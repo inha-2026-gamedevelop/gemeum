@@ -76,6 +76,7 @@ git checkout feature/{자기이름}
 |---|---|
 | [처음 프로젝트를 열 때](docs/unity/UNITY_START_HERE.md) | 클론부터 첫 실행까지 |
 | [협업 규칙](CONTRIBUTING.md) | 브랜치, 씬 규칙, PR, 주간 통합 |
+| [코딩 컨벤션](docs/coding-convention.md) | 네이밍, 스타일, GameDB/Constants 데이터 관리 |
 | [네트워크 권위](docs/unity/NETWORK_AUTHORITY.md) | 서버냐 클라냐 판단 기준 |
 | [씬 · 에셋 안전](docs/unity/SCENE_AND_ASSET_SAFETY.md) | 씬 충돌, `.meta`, LFS |
 | [밸런스 데이터 작업](docs/unity/BALANCE_DATA_WORKFLOW.md) | ScriptableObject 운용 |

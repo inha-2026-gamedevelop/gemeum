@@ -17,6 +17,15 @@ Assets/StreamingAssets/aa/*
 # Gaia 런타임 캐시 (Terrain 원본은 커밋 대상)
 Assets/Gaia User Data/Sessions/*/Backups/
 
+# 구매·무료 에셋 (라이선스상 커밋하지 않음 — 각자 로컬에 설치)
+Assets/99.ThirdParty/
+Assets/99.ThirdParty.meta
+Assets/AssetStoreTools/
+Assets/AssetStoreTools.meta
+
+# UnityYAMLMerge 충돌 해결 시 남는 백업
+*.orig
+
 # ─── IDE ──────────────────────────────────────────────
 .vs/
 .idea/

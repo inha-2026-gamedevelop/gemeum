@@ -155,6 +155,7 @@
 | 밸런스 수치 · 콘텐츠 | [게임 디자인](docs/02-game-design.md) |
 | 아키텍처 · 파트별 스펙 | [기술 설계](docs/03-technical-design.md) |
 | 협업 · 브랜치 · 씬 규칙 | [협업 규칙](CONTRIBUTING.md) |
+| C# 코딩 컨벤션 | [코딩 컨벤션](docs/coding-convention.md) |
 | AI 작업 문서 전체 | [docs/ai/README.md](docs/ai/README.md) |
 
 문서와 코드가 다르면 **코드를 우선**하고, 차이를 보고한다.
