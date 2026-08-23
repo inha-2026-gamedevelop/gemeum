@@ -44,7 +44,7 @@ jobs:
 
       - name: Main.unity 직접 수정 경고
         run: |
-          if grep -q "Assets/Scenes/Main.unity" changed.txt; then
+          if grep -q "Assets/00.Scenes/Main.unity" changed.txt; then
             echo "::warning::Main.unity가 수정됐습니다. 통합 담당자의 리뷰가 필요합니다."
           fi
 

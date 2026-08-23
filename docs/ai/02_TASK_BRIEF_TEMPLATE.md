@@ -82,9 +82,9 @@
 - 다른 파트와 충돌: 플레이어 HP 감소 경로가 전투 파트와 겹침 → 인터페이스 협의 필요
 
 ## 범위
-- 읽기: Assets/Scripts/AI/, Assets/Scripts/Combat/IDamageable
-- 수정 가능: Assets/Scripts/AI/Barrier/, Assets/Data/Barrier/
-- 제외: Assets/Scripts/Combat/ (읽기만), Main.unity
+- 읽기: Assets/01.Scripts/03.AI/, Assets/01.Scripts/02.Combat/Interfaces/IDamageable
+- 수정 가능: Assets/01.Scripts/03.AI/Barrier/, Assets/09.Data/Barrier/
+- 제외: Assets/01.Scripts/02.Combat/ (읽기만), Assets/00.Scenes/Main.unity
 
 ## 제약
 - 반드시 지킬 것: 반경은 서버가 계산하고 클라이언트는 렌더링만

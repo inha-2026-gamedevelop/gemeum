@@ -51,17 +51,17 @@
 
 ### 승인 없이 수정 가능
 
-- `Assets/Scripts/` 아래 자기 파트 폴더
-- `Assets/Data/` 의 ScriptableObject 값 (밸런스 수치)
+- `Assets/01.Scripts/` 아래 자기 파트 폴더
+- `Assets/09.Data/` 의 ScriptableObject 값 (밸런스 수치)
 - `docs/` 문서
 
 ### 승인 후 수정
 
-- `Assets/Scenes/Main.unity` — 통합 담당자만
-- 다른 파트의 `Assets/Scripts/` 폴더
+- `Assets/00.Scenes/Main.unity` — 통합 담당자만
+- 다른 파트의 `Assets/01.Scripts/` 폴더
 - `.gitattributes`, `.gitignore`, `.github/`
 - 네트워크 권위 경계를 바꾸는 변경
-- 구매 에셋 원본 (`Assets/ThirdParty/`)
+- 구매 에셋 원본 (`Assets/99.ThirdParty/`)
 - 파일 삭제, 대량 이동, 이름 일괄 변경
 
 ### 수정 금지
@@ -143,6 +143,7 @@
 - 담당자 브랜치는 오래 사므로 **기능 하나가 끝날 때마다 PR을 보낸다.**
 - 현재 작업과 무관한 변경을 stage하지 않는다.
 - commit · push는 명시적으로 요청받았을 때만 한다.
+- **커밋 메시지에 `Co-Authored-By` 트레일러를 넣지 않는다.** AI 도구가 기본으로 붙이려 해도 제외한다. 실수로 붙였고 푸시 전이면 `git commit --amend`로 지운다.
 - 절차는 [협업 규칙](CONTRIBUTING.md).
 
 ---
@@ -154,6 +155,7 @@
 | 프로젝트 개요 · 일정 · 스코프 | [시스템 기획서](docs/01-system-design.md) |
 | 밸런스 수치 · 콘텐츠 | [게임 디자인](docs/02-game-design.md) |
 | 아키텍처 · 파트별 스펙 | [기술 설계](docs/03-technical-design.md) |
+| 폴더 · 씬 · 클래스 배치 | [프로젝트 구조 설계서](docs/04-architecture.md) |
 | 협업 · 브랜치 · 씬 규칙 | [협업 규칙](CONTRIBUTING.md) |
 | C# 코딩 컨벤션 | [코딩 컨벤션](docs/coding-convention.md) |
 | AI 작업 문서 전체 | [docs/ai/README.md](docs/ai/README.md) |

@@ -11,16 +11,16 @@
 
 | 씬 | 수정 권한 |
 |---|---|
-| `Assets/Scenes/Dev_Combat.unity` | 네트워크 · 전투 |
-| `Assets/Scenes/Dev_AI.unity` | AI · 보스 설계 |
-| `Assets/Scenes/Dev_System.unity` | 게임플레이 시스템 |
-| `Assets/Scenes/Dev_Art.unity` | 테크니컬 아트 |
-| `Assets/Scenes/Main.unity` | **통합 담당자만** |
+| `Assets/00.Scenes/Dev_Combat.unity` | 네트워크 · 전투 |
+| `Assets/00.Scenes/Dev_AI.unity` | AI · 보스 설계 |
+| `Assets/00.Scenes/Dev_System.unity` | 게임플레이 시스템 |
+| `Assets/00.Scenes/Dev_Art.unity` | 테크니컬 아트 |
+| `Assets/00.Scenes/Main.unity` | **통합 담당자만** |
 
 ### 규칙
 
 - 남의 씬은 **열어도 되지만 저장하지 않는다.** 열기만 해도 Unity가 미세한 변경을 기록할 수 있다
-- 실수로 저장했으면 즉시 `git checkout -- Assets/Scenes/Dev_XXX.unity`
+- 실수로 저장했으면 즉시 `git checkout -- Assets/00.Scenes/Dev_XXX.unity`
 - 통합은 주 1회, 통합 담당자가 진행한다
 - 한 PR에 씬 파일이 2개 이상 들어가면 CI가 경고한다. 경고가 뜨면 이유를 PR에 적는다
 
@@ -96,7 +96,7 @@ git lfs pull
 
 ## 4. 구매 에셋
 
-`Assets/ThirdParty/` 안의 구매 에셋은 **수정하지 않는다.**
+`Assets/99.ThirdParty/` 안의 구매 에셋은 **수정하지 않는다.**
 
 고쳐야 하면:
 1. 필요한 파일만 프로젝트 폴더로 복사
@@ -152,7 +152,7 @@ git config --global merge.unityyamlmerge.driver \
 
 1. 즉시 작업을 멈춘다. 추가 커밋을 하지 않는다
 2. `git reflog`로 덮어쓰기 이전 커밋을 찾는다
-3. 해당 커밋의 씬 파일만 꺼낸다: `git checkout <해시> -- Assets/Scenes/XXX.unity`
+3. 해당 커밋의 씬 파일만 꺼낸다: `git checkout <해시> -- Assets/00.Scenes/XXX.unity`
 4. 팀에 알린다. 상대의 작업이 사라졌을 수 있다
 
 ### `.meta`가 날아가 참조가 끊겼다

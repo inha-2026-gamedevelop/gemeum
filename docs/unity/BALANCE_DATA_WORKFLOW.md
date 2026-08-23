@@ -29,7 +29,7 @@ private const float ParryWindow = 0.32f;
 | `EnemyData` | 잡귀 3종 스탯, 강화 배수 | AI · 보스 |
 | `BarrierPhaseData` | 단계별 시간, 반경, 피해량 | AI · 보스 |
 | `SpawnConfigData` | 구간별 밀집도, 구성 비율, 리스폰 주기 | AI · 보스 |
-| `BossPatternData` | 페이즈별 패턴, 쿨다운 | AI · 보스 |
+| `BossPatternData` | 페이즈별 패턴, 쿨다운, 예고·판정 정보 | AI · 보스 |
 | `EquipmentData` | 등급별 롤 범위, 무기별 특수옵션 풀 | 게임플레이 시스템 |
 | `DropTableData` | 필드 레벨별 등급 가중치 | 게임플레이 시스템 |
 | `ShopData` | 객주 상품과 가격 | 게임플레이 시스템 |

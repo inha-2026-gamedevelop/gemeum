@@ -396,13 +396,17 @@ SO 대상 목록은 코딩 컨벤션이 아니라 [기술 설계 3.1 ScriptableO
 ```
 스크립트: Assets/01.Scripts/00.Common/Data/     (namespace Geumeum.Data)
 에셋:     Assets/09.Data/Resources/GameDB.asset      <- 루트 GameDatabaseSO (Resources 아래 로드)
+          Assets/09.Data/Combat/CombatConfigData.asset <- 스태미나·신력·이동·구르기·패링 (HP 제외)
+          Assets/09.Data/Arrow/ArrowConfigData.asset   <- 화살 보정·유도 수치
           Assets/09.Data/Equipment/EquipmentData.asset  <- 등급별 스탯 롤 범위, 특수옵션 풀
           Assets/09.Data/DropTable/DropTableData.asset  <- 필드 레벨별 등급 가중치
           Assets/09.Data/Enemy/EnemyData.asset          <- 잡귀 3종 스탯, 강화 배수
           Assets/09.Data/Barrier/BarrierPhaseData.asset <- 결계 단계별 시간·반경·피해량
+          Assets/09.Data/Spawn/SpawnConfigData.asset  <- 구간별 스폰 수·구성·리스폰 주기
+          Assets/09.Data/Boss/BossPatternData.asset   <- 보스 패턴·쿨다운·예고·판정 정보
           Assets/09.Data/Talent/TalentTreeData.asset    <- 특성 노드 구성과 수치
           Assets/09.Data/Shop/ShopData.asset            <- 객주 상품 목록과 가격
-          Assets/09.Data/LevelCurve/LevelCurveData.asset <- 레벨별 필요 경험치, HP 증가량
+          Assets/09.Data/LevelCurve/LevelCurveData.asset <- 레벨별 필요 경험치, 최대 HP (기본값 포함)
           Assets/09.Data/Score/ScoreRuleData.asset      <- 점수 항목별 배점
           Assets/09.Data/DayCycle/DayCycleData.asset    <- 실시간·게임 내 시각 매핑, 조명 프리셋
 ```
@@ -412,14 +416,19 @@ SO 대상 목록은 코딩 컨벤션이 아니라 [기술 설계 3.1 ScriptableO
 float dropWeight = GameDB.DropTable.GetWeight(fieldLevel);
 _waitPhaseInterval = new WaitForSeconds(GameDB.Barrier.PhaseInterval);
 
-// 매 프레임 접근 코드는 Awake에서 SO 참조를 캐싱
+// 매 프레임 접근 코드는 Start에서 SO 참조를 캐싱 (Awake 아님 — 아래 규칙 참조)
 private EnemyData _enemyData;
-private void Awake() { _enemyData = GameDB.Enemy; }
+private void Start() { _enemyData = GameDB.Enemy; }
+
+// NetworkBehaviour는 OnStartServer / OnStartClient에서 캐싱해도 된다
+public override void OnStartServer() { _enemyData = GameDB.Enemy; }
 ```
 
 **GameDB 규칙**
 - SO 필드는 `[SerializeField] private` + 읽기 전용 프로퍼티. 필드에 단위/용도 주석
-- **MonoBehaviour 필드 초기화식/생성자에서 GameDB 호출 금지** (Resources.Load 앞섬) — Awake 이후 사용
+- **GameDB를 초기화하는 것은 `GameDBBootstrap` 하나뿐이다.** 이 컴포넌트가 `Awake`에서 `Resources/GameDB.asset`을 로드해 `GameDB.Initialize()`를 호출한다
+- **소비 컴포넌트는 `Awake`와 필드 초기화식에서 GameDB를 읽지 않는다.** `Start` · `OnStartServer` · `OnStartClient` 이후에 읽는다 — 같은 씬에 있는 컴포넌트들의 `Awake` 실행 순서는 보장되지 않으므로, `Awake`에서 읽으면 `GameDBBootstrap`보다 먼저 도는 컴포넌트가 초기화 전 DB를 잡는다 ([프로젝트 구조 설계서 6장](04-architecture.md))
+- 루트 DB나 필수 참조가 없으면 조용히 기본값으로 진행하지 말고 초기화 오류로 중단한다
 - 컴포넌트에 밸런스 값을 SerializeField 미러로 두지 않는다 — DB 원본이 단일 소스
 - 새 도메인은 [기술 설계 3.1](03-technical-design.md)에 항목 추가 → `*Data` 클래스 생성 → `GameDatabaseSO`에 참조 추가 → `GameDB` 프로퍼티 추가 → `09.Data/<도메인>/`에 에셋 생성
 - 밸런스 수치 변경은 DB 에셋 인스턴스에서 — 코드는 건드리지 않는다

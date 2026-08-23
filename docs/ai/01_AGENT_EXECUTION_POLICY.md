@@ -19,8 +19,8 @@
 
 ### 승인 없이 진행
 
-- `Assets/Scripts/` 자기 파트 폴더의 코드 작성 · 수정
-- `Assets/Data/` ScriptableObject 값 조정 (밸런스 수치)
+- `Assets/01.Scripts/` 자기 파트 폴더의 코드 작성 · 수정
+- `Assets/09.Data/` 자기 파트 소유 ScriptableObject 값 조정 (밸런스 수치)
 - `docs/` 문서 작성 · 수정
 - 자기 담당 `Dev_*.unity` 씬 수정
 - 읽기 전용 조사와 분석
@@ -29,11 +29,11 @@
 
 | 대상 | 이유 |
 |---|---|
-| `Assets/Scenes/Main.unity` | 통합 씬. 충돌 시 복구 불가 |
-| 다른 파트의 `Assets/Scripts/` 폴더 | 병행 작업과 충돌 |
+| `Assets/00.Scenes/Main.unity` | 통합 씬. 충돌 시 복구 불가 |
+| 다른 파트의 `Assets/01.Scripts/` 폴더 | 병행 작업과 충돌 |
 | 네트워크 권위 경계 변경 | 여러 시스템에 파급 |
 | `.gitattributes` LFS 대상 추가 | 소급 적용 안 됨, 팀 전체 영향 |
-| `Assets/ThirdParty/` 구매 에셋 원본 | 업데이트 시 변경분 소실 |
+| `Assets/99.ThirdParty/` 구매 에셋 원본 | 업데이트 시 변경분 소실 |
 | 파일 삭제, 대량 이동, 이름 일괄 변경 | 복구 어려움 |
 | Git commit · push | 명시 요청 시에만 |
 | 스코프 확장 (보스 추가, 신규 시스템) | 팀 합의 사항 |

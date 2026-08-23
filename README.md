@@ -53,10 +53,10 @@ git checkout feature/{자기이름}
 
 | 파트 | 브랜치 | 씬 |
 |---|---|---|
-| 네트워크 · 전투 | `feature/민성` | `Assets/Scenes/Dev_Combat.unity` |
-| AI · 보스 설계 | `feature/{이름}` | `Assets/Scenes/Dev_AI.unity` |
-| 게임플레이 시스템 | `feature/{이름}` | `Assets/Scenes/Dev_System.unity` |
-| 테크니컬 아트 | `feature/{이름}` | `Assets/Scenes/Dev_Art.unity` |
+| 네트워크 · 전투 | `feature/민성` | `Assets/00.Scenes/Dev_Combat.unity` |
+| AI · 보스 설계 | `feature/{이름}` | `Assets/00.Scenes/Dev_AI.unity` |
+| 게임플레이 시스템 | `feature/{이름}` | `Assets/00.Scenes/Dev_System.unity` |
+| 테크니컬 아트 | `feature/{이름}` | `Assets/00.Scenes/Dev_Art.unity` |
 
 ---
 

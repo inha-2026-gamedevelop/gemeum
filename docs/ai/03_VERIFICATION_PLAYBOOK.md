@@ -153,7 +153,7 @@ Unity 런타임 코드를 수정했다면 아래도 정적으로 확인한다.
     {
       "severity": "error | warning | info",
       "rule": "authority_boundary",
-      "file": "Assets/Scripts/Combat/ParrySystem.cs",
+      "file": "Assets/01.Scripts/02.Combat/Parry/ParryController.cs",
       "line": 0,
       "evidence": "관찰한 근거",
       "suggestion": "한 문장 제안",
