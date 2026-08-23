@@ -147,6 +147,7 @@ Mirror는 `Assets/Mirror/` 에 설치되며, **수정하지 않는다.** 구매 
 | 도구 | 지침 파일 |
 |---|---|
 | Claude Code | `CLAUDE.md` (그대로 사용) |
+| Codex, Amp 등 AGENTS.md 규약을 따르는 도구 | `AGENTS.md` (루트에 있음, `CLAUDE.md`를 가리키기만 함) |
 | Cursor | `.cursorrules` 또는 `.cursor/rules/` |
 | GitHub Copilot | `.github/copilot-instructions.md` |
 
@@ -156,6 +157,8 @@ Mirror는 `Assets/Mirror/` 에 설치되며, **수정하지 않는다.** 구매 
 # 예시
 ln -s ../CLAUDE.md .github/copilot-instructions.md
 ```
+
+Windows에서 관리자 권한 없이 심볼릭 링크가 안 되면, `AGENTS.md`처럼 `CLAUDE.md`를 가리키기만 하는 한 줄짜리 파일로 대신한다 (내용 복제 금지 원칙은 동일하게 지킨다).
 
 AI 협업 문서 전체는 `docs/ai/`에 있다. 팀원에게는 [docs/ai/README.md](docs/ai/README.md)만 알려주면 된다.
 
