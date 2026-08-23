@@ -28,6 +28,7 @@ Assets/AssetStoreTools.meta
 
 # ─── IDE ──────────────────────────────────────────────
 .vs/
+.vscode/
 .idea/
 .gradle/
 ExportedObj/
