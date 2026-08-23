@@ -273,7 +273,7 @@ switch (_state)
 
 ## 12. 주석
 
-**필요한 곳에만. 코드로 읽히면 주석 달지 않는다.**
+**꼭 필요한 곳에만, 무엇을 위해 만들었는지(의도·이유)를 적는다. 코드를 읽어서 알 수 있는 내용이면 주석을 달지 않는다.**
 
 ```csharp
 // ✅ 이유가 있는 주석
@@ -283,11 +283,34 @@ _rb.isKinematic = true; // 넉백 중 물리 끄기
 _health -= damage; // 체력 감소
 ```
 
-**public API는 XML 문서 주석:**
+**마침표(`.`)로 끝내지 않는다.** 짧은 구절로 쓴다.
 
 ```csharp
-/// <summary> 피해를 입힌다. 체력이 0이 되면 사망 처리. </summary>
+// ✅
+_rb.isKinematic = true; // 넉백 중 물리 끄기
+
+// ❌
+_rb.isKinematic = true; // 넉백 중 물리 끄기.
+```
+
+**public API는 일반 주석이 아니라 XML 문서 주석(`<summary>`)을 쓴다. 그 외(내부 로직, private 멤버)는 일반 주석(`//`).**
+
+```csharp
+// ✅ public API — summary
+/// <summary> 피해를 입힌다, 체력이 0이 되면 사망 처리 </summary>
 public void TakeDamage(float damage) { }
+
+// ✅ 내부 로직 — 일반 주석
+private void ApplyKnockback()
+{
+    _rb.isKinematic = true; // 넉백 중 물리 끄기
+}
+```
+
+**남은 작업은 TODO 주석으로 적극 남긴다.** 담당자를 알 수 있게 이름을 붙인다.
+
+```csharp
+// TODO(민성): 서버 재접속 시 스냅샷 복구 처리
 ```
 
 ---
