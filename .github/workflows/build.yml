@@ -1,0 +1,54 @@
+# ══════════════════════════════════════════════════════
+#  Unity 빌드 (GameCI)
+#
+#  ⚠ 사용 전 준비
+#  1. Unity 라이선스 활성화 파일을 발급받아
+#     리포 Settings > Secrets에 등록:
+#       UNITY_LICENSE / UNITY_EMAIL / UNITY_PASSWORD
+#     발급 방법: https://game.ci/docs/github/activation
+#  2. unityVersion을 실제 사용 버전과 맞출 것
+#  3. 라이선스 등록 전까지는 아래 on: 블록이
+#     workflow_dispatch(수동 실행)만 허용하도록 두었음
+# ══════════════════════════════════════════════════════
+name: 빌드
+
+on:
+  workflow_dispatch:
+  # 라이선스 등록 후 아래 주석을 해제해 주 1회 자동 빌드
+  # schedule:
+  #   - cron: '0 15 * * 5'   # 매주 금요일 00:00 KST
+
+jobs:
+  build:
+    name: Windows 빌드
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Library 캐시
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-
+
+      - name: 빌드
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          unityVersion: 6000.4.7f1
+          targetPlatform: StandaloneWindows64
+          buildName: Geumeum
+
+      - name: 산출물 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: Geumeum-Windows
+          path: build
+          retention-days: 14

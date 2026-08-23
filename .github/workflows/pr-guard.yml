@@ -1,0 +1,56 @@
+name: PR 검사
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  guard:
+    name: Unity 프로젝트 규칙 검사
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: false
+
+      - name: 변경 파일 목록 수집
+        id: diff
+        run: |
+          git diff --name-only --diff-filter=d \
+            "origin/${{ github.base_ref }}...HEAD" > changed.txt
+          echo "--- 변경 파일 ---"
+          cat changed.txt
+
+      - name: meta 파일 누락 검사
+        run: python3 .github/scripts/check_meta.py changed.txt
+
+      - name: LFS 미적용 대용량 파일 검사
+        run: python3 .github/scripts/check_lfs.py changed.txt
+
+      - name: 브랜치명 규칙 확인
+        run: |
+          BR="${{ github.head_ref }}"
+          if [[ ! "$BR" =~ ^feature/ ]]; then
+            echo "::warning::브랜치명이 feature/{이름} 형식이 아닙니다: $BR"
+          fi
+
+      - name: PR 크기 경고
+        run: |
+          COUNT=$(wc -l < changed.txt)
+          if [ "$COUNT" -gt 15 ]; then
+            echo "::warning::변경 파일이 ${COUNT}개입니다. 담당자 브랜치는 PR을 자주 쪼개는 것이 안전합니다."
+          fi
+
+      - name: Main.unity 직접 수정 경고
+        run: |
+          if grep -q "Assets/Scenes/Main.unity" changed.txt; then
+            echo "::warning::Main.unity가 수정됐습니다. 통합 담당자의 리뷰가 필요합니다."
+          fi
+
+      - name: 씬 파일 다중 수정 경고
+        run: |
+          COUNT=$(grep -c "\.unity$" changed.txt || true)
+          if [ "$COUNT" -gt 1 ]; then
+            echo "::warning::씬 파일 ${COUNT}개가 함께 수정됐습니다. 머지 충돌 위험이 있습니다."
+          fi

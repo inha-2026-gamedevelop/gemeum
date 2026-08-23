@@ -1,0 +1,19 @@
+# 파일 경로별 리뷰 담당자
+# GitHub 사용자명으로 교체할 것
+
+# 문서와 설정은 팀장 검토
+/docs/                  @aurenixs
+/.github/               @aurenixs
+/CONTRIBUTING.md        @aurenixs
+/.gitattributes         @aurenixs
+
+# 통합 씬은 반드시 팀장 검토
+/Assets/Scenes/Main.unity   @aurenixs
+
+# 파트별
+/Assets/Scripts/Network/    @aurenixs
+/Assets/Scripts/Combat/     @aurenixs
+/Assets/Scripts/AI/         @AI담당
+/Assets/Scripts/Systems/    @시스템담당
+/Assets/Art/                @아트담당
+/Assets/Shaders/            @아트담당

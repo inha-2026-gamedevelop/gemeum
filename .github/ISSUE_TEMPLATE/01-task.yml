@@ -1,0 +1,54 @@
+name: 작업
+description: 개발 작업 항목
+title: "[작업] "
+labels: ["task"]
+body:
+  - type: dropdown
+    id: part
+    attributes:
+      label: 담당 파트
+      options:
+        - 네트워크 · 전투
+        - AI · 보스 설계
+        - 게임플레이 시스템
+        - 테크니컬 아트
+        - 문서 · 설정
+    validations:
+      required: true
+
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: 마일스톤
+      options:
+        - 프로토타입 (09.12 - 10.03)
+        - 집중개발 (10.10 - 11.07)
+        - 마감 (11.14)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 무엇을 만드나
+      placeholder: 결계 반경 축소 로직과 범위 밖 피해 적용
+    validations:
+      required: true
+
+  - type: textarea
+    id: done
+    attributes:
+      label: 완료 조건
+      description: 무엇이 되면 이 이슈를 닫을 수 있는지 구체적으로
+      placeholder: |
+        - 3단계 모두 반경이 30초에 걸쳐 보간된다
+        - 범위 밖 플레이어에게 매 초 피해가 들어간다
+        - 3인 접속 상태에서 반경이 동일하게 보인다
+    validations:
+      required: true
+
+  - type: textarea
+    id: refs
+    attributes:
+      label: 참고 문서
+      placeholder: docs/03-technical-design.md 4.2절

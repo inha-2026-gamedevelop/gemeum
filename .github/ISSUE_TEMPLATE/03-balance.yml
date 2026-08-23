@@ -1,0 +1,42 @@
+name: 밸런스
+description: 수치 조정 제안
+title: "[밸런스] "
+labels: ["balance"]
+body:
+  - type: input
+    id: target
+    attributes:
+      label: 대상
+      placeholder: 창귀 공격력 / 패링 판정 창 / 등급 상승권 가격
+    validations:
+      required: true
+
+  - type: input
+    id: current
+    attributes:
+      label: 현재 값
+    validations:
+      required: true
+
+  - type: input
+    id: proposed
+    attributes:
+      label: 제안 값
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: 근거
+      description: 플레이 테스트에서 관찰한 것을 구체적으로
+      placeholder: 3차 결계에서 창귀 3마리에 4대 맞고 죽어 대응할 여지가 없음
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: side
+    attributes:
+      label: 영향 확인
+      options:
+        - label: 이 변경이 다른 수치에 미치는 영향을 검토했다

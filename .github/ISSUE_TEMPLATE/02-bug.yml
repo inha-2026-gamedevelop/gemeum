@@ -1,0 +1,57 @@
+name: 버그
+description: 동작하지 않는 것
+title: "[버그] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 심각도
+      options:
+        - 치명 — 진행 불가 / 크래시
+        - 높음 — 핵심 기능 오동작
+        - 보통 — 우회 가능
+        - 낮음 — 시각적 문제
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: network
+    attributes:
+      label: 네트워크 관련
+      options:
+        - label: 호스트에서만 발생
+        - label: 클라이언트에서만 발생
+        - label: 양쪽 모두 발생
+        - label: 단일 플레이에서도 발생
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 재현 순서
+      placeholder: |
+        1. 3인으로 접속
+        2. 2차 결계까지 진행
+        3. 결계 밖에서 사망
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 동작
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 실제 동작
+    validations:
+      required: true
+
+  - type: textarea
+    id: log
+    attributes:
+      label: 콘솔 로그
+      render: text

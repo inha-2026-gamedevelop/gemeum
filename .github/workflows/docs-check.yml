@@ -1,0 +1,16 @@
+name: 문서 검사
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '*.md'
+
+jobs:
+  links:
+    name: 깨진 내부 링크 검사
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 상대 경로 링크 확인
+        run: python3 .github/scripts/check_doc_links.py
