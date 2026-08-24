@@ -42,8 +42,8 @@ namespace Geumeum.Data         // ScriptableObject 정의
 | 정적 배열 | G_ prefix | `G_SpawnTable` |
 | SerializeField | 멤버 변수와 동일 | `_jumpForce` |
 | enum | PascalCase (값도 PascalCase) | `ItemGrade.Epic` |
-| ScriptableObject 클래스 | PascalCase + Data 접미사 (루트 DB는 예외적으로 GameDatabaseSO) — [기술 설계 3.1](03-technical-design.md) 목록을 따른다 | `EquipmentData`, `EnemyData` |
-| ScriptableObject 캐시 변수 | 멤버 변수 규칙과 동일 (`_camelCase`) | `_equipmentData`, `_enemyData` |
+| ScriptableObject 클래스 | PascalCase + **SO 접미사** — [기술 설계 3.1](03-technical-design.md) 목록을 따른다 | `EquipmentSO`, `EnemySO`, `GameDatabaseSO` |
+| ScriptableObject 캐시 변수 | 멤버 변수 규칙과 동일 (`_camelCase`), 접미사는 붙이지 않는다 | `_equipment`, `_enemy` |
 
 ---
 
@@ -273,34 +273,73 @@ switch (_state)
 
 ## 12. 주석
 
-**꼭 필요한 곳에만, 무엇을 위해 만들었는지(의도·이유)를 적는다. 코드를 읽어서 알 수 있는 내용이면 주석을 달지 않는다.**
+**꼭 필요한 곳에만, 무엇을 위해 만든 것인지만 적는다. 코드를 읽어서 알 수 있는 내용이면 주석을 달지 않는다.**
+
+아래 예시의 좋음/나쁨 표시는 이 문서의 표기일 뿐이다. 실제 주석에는 쓰지 않는다.
+
+좋음
 
 ```csharp
-// ✅ 이유가 있는 주석
 _rb.isKinematic = true; // 넉백 중 물리 끄기
+```
 
-// ❌ 코드가 말하는 것을 반복
+나쁨 (코드가 말하는 것을 반복)
+
+```csharp
 _health -= damage; // 체력 감소
 ```
 
-**마침표(`.`)로 끝내지 않는다.** 짧은 구절로 쓴다.
+### 최대한 짧게
+
+한 줄을 넘기지 않는 것을 기본으로 한다. 설명이 길어지면 주석을 늘리지 말고 이름을 고치거나 메서드를 쪼갠다.
+마침표로 끝내지 않고 짧은 구절로 쓴다.
+
+### 문서 위치를 적지 않는다
+
+기획서 절 번호, 이 문서의 장 번호, 다른 파일 경로를 주석에 적지 않는다.
+문서가 개정되면 번호가 어긋나는데 주석은 따라 고쳐지지 않아, 남는 것은 틀린 안내뿐이다.
+근거가 필요하면 번호 대신 이유 자체를 한 줄로 적는다.
+
+나쁨
 
 ```csharp
-// ✅
-_rb.isKinematic = true; // 넉백 중 물리 끄기
-
-// ❌
-_rb.isKinematic = true; // 넉백 중 물리 끄기.
+// 결계 단계별 강화 배수 (게임 디자인 5.2)
+// 판정 수식 분리 원칙에 따른 순수 C# 레이어, 기술 설계 1.2 참조
+// 코딩 컨벤션 22장 예외
 ```
 
-**public API는 일반 주석이 아니라 XML 문서 주석(`<summary>`)을 쓴다. 그 외(내부 로직, private 멤버)는 일반 주석(`//`).**
+좋음
 
 ```csharp
-// ✅ public API — summary
+// 스폰 시점 값으로 확정, 교전 중 최대 HP가 변하면 체력바가 어긋난다
+// Mirror에 의존하지 않아야 데디케이티드로 옮길 때 그대로 쓴다
+// 씬 배치본을 붙잡는 1회 폴백, 결과는 캐싱된다
+```
+
+### 특수 기호를 쓰지 않는다
+
+별표, 이모지, 화살표, 장식 문자를 주석에 넣지 않는다. 가운뎃점(`·`)처럼 한국어 문장에서 평범하게 쓰는 것만 허용한다.
+
+```csharp
+// 나쁨
+// ★권위 판정 레이어
+// 서버 판정 => 클라 표현
+// ✅ 반드시 캐싱할 것
+
+// 좋음
+// 권위 판정 레이어
+// 서버가 판정하고 클라는 표현만 한다
+```
+
+### XML 문서 주석
+
+**public API는 XML 문서 주석(`<summary>`)을 쓴다. 그 외(내부 로직, private 멤버)는 일반 주석(`//`).**
+summary에도 위 규칙이 그대로 적용된다.
+
+```csharp
 /// <summary> 피해를 입힌다, 체력이 0이 되면 사망 처리 </summary>
 public void TakeDamage(float damage) { }
 
-// ✅ 내부 로직 — 일반 주석
 private void ApplyKnockback()
 {
     _rb.isKinematic = true; // 넉백 중 물리 끄기
@@ -334,6 +373,8 @@ if (other.TryGetComponent(out PlayerHealth health))
 _callback?.Invoke();
 onSuccess?.Invoke();
 ```
+
+**검사를 어디에 쓰는지는 [21장 가드 절](#21-가드-절--null-체크와-예외-처리는-본문-맨-위에)을 따른다.**
 
 ---
 
@@ -396,19 +437,19 @@ SO 대상 목록은 코딩 컨벤션이 아니라 [기술 설계 3.1 ScriptableO
 ```
 스크립트: Assets/01.Scripts/00.Common/Data/     (namespace Geumeum.Data)
 에셋:     Assets/09.Data/Resources/GameDB.asset      <- 루트 GameDatabaseSO (Resources 아래 로드)
-          Assets/09.Data/Combat/CombatConfigData.asset <- 스태미나·신력·이동·구르기·패링 (HP 제외)
-          Assets/09.Data/Arrow/ArrowConfigData.asset   <- 화살 보정·유도 수치
-          Assets/09.Data/Equipment/EquipmentData.asset  <- 등급별 스탯 롤 범위, 특수옵션 풀
-          Assets/09.Data/DropTable/DropTableData.asset  <- 필드 레벨별 등급 가중치
-          Assets/09.Data/Enemy/EnemyData.asset          <- 잡귀 3종 스탯, 강화 배수
-          Assets/09.Data/Barrier/BarrierPhaseData.asset <- 결계 단계별 시간·반경·피해량
-          Assets/09.Data/Spawn/SpawnConfigData.asset  <- 구간별 스폰 수·구성·리스폰 주기
-          Assets/09.Data/Boss/BossPatternData.asset   <- 보스 패턴·쿨다운·예고·판정 정보
-          Assets/09.Data/Talent/TalentTreeData.asset    <- 특성 노드 구성과 수치
-          Assets/09.Data/Shop/ShopData.asset            <- 객주 상품 목록과 가격
-          Assets/09.Data/LevelCurve/LevelCurveData.asset <- 레벨별 필요 경험치, 최대 HP (기본값 포함)
-          Assets/09.Data/Score/ScoreRuleData.asset      <- 점수 항목별 배점
-          Assets/09.Data/DayCycle/DayCycleData.asset    <- 실시간·게임 내 시각 매핑, 조명 프리셋
+          Assets/09.Data/Combat/CombatConfigSO.asset  <- 스태미나·신력·이동·구르기·패링 (HP 제외)
+          Assets/09.Data/Arrow/ArrowConfigSO.asset    <- 화살 보정·유도 수치
+          Assets/09.Data/Equipment/EquipmentSO.asset   <- 등급별 스탯 롤 범위, 특수옵션 풀
+          Assets/09.Data/DropTable/DropTableSO.asset   <- 필드 레벨별 등급 가중치
+          Assets/09.Data/Enemy/EnemySO.asset           <- 잡귀 3종 스탯, 강화 배수
+          Assets/09.Data/Barrier/BarrierPhaseSO.asset  <- 결계 단계별 시간·반경·피해량
+          Assets/09.Data/Spawn/SpawnConfigSO.asset   <- 구간별 스폰 수·구성·리스폰 주기
+          Assets/09.Data/Boss/BossPatternSO.asset    <- 보스 패턴·쿨다운·예고·판정 정보
+          Assets/09.Data/Talent/TalentTreeSO.asset     <- 특성 노드 구성과 수치
+          Assets/09.Data/Shop/ShopSO.asset             <- 객주 상품 목록과 가격
+          Assets/09.Data/LevelCurve/LevelCurveSO.asset  <- 레벨별 필요 경험치, 최대 HP (기본값 포함)
+          Assets/09.Data/Score/ScoreRuleSO.asset       <- 점수 항목별 배점
+          Assets/09.Data/DayCycle/DayCycleSO.asset     <- 실시간·게임 내 시각 매핑, 조명 프리셋
 ```
 
 ```csharp
@@ -484,7 +525,7 @@ Collider2D[] hits = Physics2D.OverlapCircleAll(origin, radius);
 ```
 
 **추가 규칙**
-- 컴포넌트/참조 취득은 Awake/Start 1회 캐싱. Update/공격 루프에서 `GetComponent`/`Find` 금지
+- 컴포넌트/참조 취득은 Awake/Start 1회 캐싱. Update/공격 루프에서 `GetComponent`/`Find` 금지 → [22장](#22-find-계열-api-지양)
 - 람다/클로저 캡처가 있으면 힙 할당 → 루프 안에서 만들지 말고, 필요 시 대상에 대해 1회만 생성
 - 반복 사용하는 List는 필드로 두고 `Clear()` 후 재사용
 - 오브젝트 탐색 타입은 O(1) 자료구조(Stack/Queue) 사용, `List.Contains` 루프 금지
@@ -557,6 +598,149 @@ Configure(i, rec.Position, rec.Scale, rec.RotationDeg, rec.Color,
 
 ---
 
+## 21. 가드 절 — null 체크와 예외 처리는 본문 맨 위에
+
+**null 체크 · 인자 검증 · 상태 검증은 메서드 본문 맨 위에 모아서 먼저 하고, 조건에 맞지 않으면 즉시 빠져나온다.**
+본문 중간이나 아래에 흩어놓지 않는다.
+
+```csharp
+// ✅ 검사는 위에, 본문은 아래에
+public void TakeDamage(float damage, GameObject attacker)
+{
+    if (attacker == null)
+    {
+        return;
+    }
+
+    if (_isDead)
+    {
+        return;
+    }
+
+    if (damage <= Constants.Combat.DAMAGE_EPSILON)
+    {
+        return;
+    }
+
+    _health -= damage;      // 여기서부터는 유효한 상태가 보장된다
+    ApplyHitFeedback();
+}
+
+// ❌ 검사가 본문 중간에 섞여 있다
+public void TakeDamage(float damage, GameObject attacker)
+{
+    _health -= damage;
+    if (_isDead)            // 이미 깎은 뒤에 검사한다
+    {
+        return;
+    }
+    ApplyHitFeedback();
+    if (attacker == null)   // 여기까지 와서야 검사한다
+    {
+        return;
+    }
+}
+```
+
+**중첩 대신 조기 반환을 쓴다.** 들여쓰기가 깊어질수록 어떤 조건에서 도달하는 코드인지 읽기 어려워진다.
+
+```csharp
+// ✅
+if (!isServer)
+{
+    return;
+}
+
+if (!TryGetComponent(out PlayerStatus status))
+{
+    return;
+}
+
+status.Revive();
+
+// ❌ 중첩
+if (isServer)
+{
+    if (TryGetComponent(out PlayerStatus status))
+    {
+        status.Revive();
+    }
+}
+```
+
+**try/catch도 같다.** 예외가 날 수 있는 구간만 감싸고, 정상 경로를 catch 안에 넣지 않는다.
+
+```csharp
+// ✅ 예외 구간만 감싼다
+EquipmentInstance parsed;
+try
+{
+    parsed = EquipmentInstance.Deserialize(raw);
+}
+catch (FormatException e)
+{
+    Debug.LogError($"[Drop] 장비 역직렬화 실패: {e.Message}");
+    return;
+}
+
+ApplyToSlot(parsed);   // 정상 경로는 catch 밖에
+
+// ❌ 본문 전체를 감싼다 — 어디서 터졌는지 알 수 없고 오류를 조용히 삼키게 된다
+try
+{
+    var parsed = EquipmentInstance.Deserialize(raw);
+    ApplyToSlot(parsed);
+    RefreshInventoryUI();
+}
+catch { }
+```
+
+- **`catch { }`로 비우지 않는다.** 최소한 `Debug.LogError`로 남긴다 — 오류를 조용히 삼키면 3인 접속에서만 나는 결함을 추적할 수 없다
+- `[Command]` 수신부의 서버 검증(호출자 · 상태 · 거리)도 가드 절이다. 판정 코드보다 먼저 온다 → [네트워크 권위](unity/NETWORK_AUTHORITY.md)
+
+---
+
+## 22. Find 계열 API 지양
+
+**`Find`로 시작하는 탐색 API는 쓰지 않는 것을 원칙으로 한다.**
+
+```csharp
+// ❌ 금지
+GameObject.Find("Player");
+FindAnyObjectByType<BarrierController>();
+FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
+transform.Find("Model/Weapon");     // 매 프레임 호출 시
+
+// ✅ 인스펙터 주입
+[SerializeField] private Transform _weaponSocket;
+
+// ✅ 초기화 1회 캐싱
+private PlayerStatus _status;
+private void Start() { _status = GetComponent<PlayerStatus>(); }
+
+// ✅ 싱글턴 · 로케이터 · 이벤트로 받는다
+_combatFeedback = CombatFeedbackLocator.Current;
+```
+
+**이유**: 씬에 있는 오브젝트를 전부 순회하므로 씬이 커질수록 비용이 선형으로 늘어난다.
+이 프로젝트는 맵이 500~800m이고 잡귀가 동시에 20마리 넘게 존재하며, **리슨 서버라 호스트 PC가 게임 로직과 렌더링을 동시에 부담한다.** 호스트에서만 프레임이 떨어지면 그 판 전체가 흔들린다.
+문자열 기반 `GameObject.Find`는 여기에 더해 오브젝트 이름을 바꾸는 순간 컴파일 에러 없이 런타임에 null이 되는 문제까지 있다.
+
+### 허용하는 경우
+
+아래 두 가지만 예외로 두고, **그 외에는 리뷰에서 막는다.**
+
+| 허용 | 조건 |
+|---|---|
+| 에디터 전용 코드 | `#if UNITY_EDITOR` 블록, 에디터 툴, 테스트 코드 |
+| 초기화 1회 폴백 | `Awake`/`Start`/`OnStartServer`에서 단 한 번, 결과를 필드에 캐싱. **이유를 주석으로 남긴다** |
+
+**어떤 경우에도 `Update`·`FixedUpdate`·코루틴 루프·공격 판정 루프 안에서는 호출하지 않는다.**
+
+`InputActionAsset.FindActionMap` · `FindAction`은 이름은 Find지만 씬을 순회하지 않는 에셋 내부 조회라 이 규칙의 대상이 아니다. 다만 이것도 매 프레임 호출하지 말고 초기화 시 캐싱한다.
+
+---
+
 ## 요약 카드 (팀 공유용)
 
 ```
@@ -567,7 +751,7 @@ Configure(i, rec.Position, rec.Scale, rec.RotationDeg, rec.Color,
 ✅ 증감                ++i, --i (전위)
 ✅ 복합 조건           ((a > b) && (c < d))
 ✅ 매직넘버            밸런스는 GameDB(SO DB), 계약값은 Constants.*.cs
-✅ SO 네이밍           클래스 *Data (기술 설계 3.1 기준), 캐시 변수는 일반 _camelCase
+✅ SO 네이밍           클래스 *SO (기술 설계 3.1 기준), 캐시 변수는 일반 _camelCase
 ✅ 필드 정렬           = 기준 정렬
 ✅ 여러 줄 시그니처    여는 괄호 정렬 금지, 원본 줄 + TABWIDTH(4)만 추가 들여쓰기
 ✅ Inspector 노출      [SerializeField] private
@@ -575,6 +759,9 @@ Configure(i, rec.Position, rec.Scale, rec.RotationDeg, rec.Color,
 ✅ FixedUpdate         지양, 코루틴 지향 (물리 동기화 예외)
 ✅ GC                  WaitForSeconds/material/참조 캐싱, NonAlloc 쿼리
 ✅ null 체크           Unity 오브젝트 == null, 컴포넌트는 TryGetComponent
+✅ 주석                무엇을 위한 것인지만 한 줄, 문서 절 번호·특수기호 금지
+✅ 가드 절             null/상태 검사는 본문 맨 위 + 조기 반환, catch {} 금지
+✅ Find 계열           원칙 금지, 인스펙터 주입·초기화 1회 캐싱으로 대체
 ✅ 싱글턴              DDOL=PersistentSingleton<T>, 씬 로컬=SceneSingleton<T>
 ✅ 네트워크            스타일은 이 문서, 권위 판정은 네트워크 권위 문서
 ```

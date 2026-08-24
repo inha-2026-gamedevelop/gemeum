@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6efc383c9ffa198458de7594fb7d46a2, type: 3}
+  m_Name: EnemyData
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.EnemyData
+  _stats:
+  - Kind: 0
+    DisplayName: "\uD5C8\uAE68\uBE44"
+    MaxHealth: 180
+    AttackPower: 8
+    Experience: 25
+    CurrencyMin: 8
+    CurrencyMax: 15
+  - Kind: 1
+    DisplayName: "\uCC3D\uADC0"
+    MaxHealth: 260
+    AttackPower: 14
+    Experience: 45
+    CurrencyMin: 20
+    CurrencyMax: 30
+  - Kind: 2
+    DisplayName: "\uC561\uADC0"
+    MaxHealth: 140
+    AttackPower: 11
+    Experience: 40
+    CurrencyMin: 25
+    CurrencyMax: 40
+  _enhances:
+  - FieldLevel: 0
+    PrefixName: 
+    HealthMultiplier: 1
+    AttackMultiplier: 1
+    RewardMultiplier: 1
+  - FieldLevel: 1
+    PrefixName: "\uC6D0\uD55C \uC11C\uB9B0"
+    HealthMultiplier: 1
+    AttackMultiplier: 1
+    RewardMultiplier: 1
+  - FieldLevel: 2
+    PrefixName: "\uC800\uC8FC\uBC1B\uC740"
+    HealthMultiplier: 1.6
+    AttackMultiplier: 1.4
+    RewardMultiplier: 1.5
+  - FieldLevel: 3
+    PrefixName: "\uB418\uC0B4\uC544\uB09C"
+    HealthMultiplier: 1.6
+    AttackMultiplier: 1.4
+    RewardMultiplier: 1.5

@@ -65,3 +65,7 @@ crashlytics-build.properties
 # ─── 로컬 설정 ────────────────────────────────────────
 .env
 *.local
+.claude/docs
+*.zip
+.mcp.json
+/Assets/Screenshots

@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e2fcd3433826054e87bf988e1aa4950, type: 3}
+  m_Name: BarrierPhaseData
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.BarrierPhaseData
+  _runTimeLimitSeconds: 2400
+  _maxRadius: 400
+  _shrinkDuration: 30
+  _warningLeadTime: 10
+  _damageTickInterval: 1
+  _weakenedHealingMultiplier: 0.7
+  _phases:
+  - Phase: 1
+    StartSeconds: 0
+    EndSeconds: 600
+    FieldLevel: 0
+    RadiusRatio: 1
+    DamagePerSecond: 0
+    AppliesWeakened: 0
+    BlocksHealing: 0
+  - Phase: 2
+    StartSeconds: 600
+    EndSeconds: 1200
+    FieldLevel: 1
+    RadiusRatio: 0.5
+    DamagePerSecond: 1
+    AppliesWeakened: 0
+    BlocksHealing: 0
+  - Phase: 3
+    StartSeconds: 1200
+    EndSeconds: 1800
+    FieldLevel: 2
+    RadiusRatio: 0.3
+    DamagePerSecond: 2.5
+    AppliesWeakened: 1
+    BlocksHealing: 0
+  - Phase: 5
+    StartSeconds: 1800
+    EndSeconds: 2400
+    FieldLevel: 3
+    RadiusRatio: 0.3
+    DamagePerSecond: 0
+    AppliesWeakened: 0
+    BlocksHealing: 0

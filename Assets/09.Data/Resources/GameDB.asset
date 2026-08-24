@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b4c2378f19a4564381b1eb7223b083e, type: 3}
+  m_Name: GameDB
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.GameDatabaseSO
+  _combat: {fileID: 11400000, guid: e06cde3ab5e17814993fe87ced9c0248, type: 2}
+  _arrow: {fileID: 11400000, guid: 5d63aba7a303f21468c9ea430f41fec9, type: 2}
+  _enemy: {fileID: 11400000, guid: ca20e8ff65768834b865d0312fb479d9, type: 2}
+  _barrier: {fileID: 11400000, guid: 85630fdb8b6c7f84da901f0e325fb61c, type: 2}
+  _spawn: {fileID: 11400000, guid: f4bbad6da965b654d9d3d294522b81d3, type: 2}
+  _boss: {fileID: 11400000, guid: f4620008f1474374cbff35e1158851dc, type: 2}
+  _equipment: {fileID: 11400000, guid: bf757c9dd9bcbaa4fb0b97294dc900b6, type: 2}
+  _dropTable: {fileID: 11400000, guid: b92d60c02b8ac684fa16d1fd41acc0ff, type: 2}
+  _shop: {fileID: 11400000, guid: a991a49e2f41a6942953ca2ff7ea9f5d, type: 2}
+  _levelCurve: {fileID: 11400000, guid: 811b0ae5a9ddd5344ada85ca3b6914ab, type: 2}
+  _talent: {fileID: 11400000, guid: f02c217d871fd524eb4fe9ee57f2cc45, type: 2}
+  _score: {fileID: 11400000, guid: 3adc68947e7aef44eab6337abf79c50e, type: 2}
+  _dayCycle: {fileID: 11400000, guid: 0f31402934407324aa62a5f8b72360b5, type: 2}

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10a548a7eb30593428344073f1b62554, type: 3}
+  m_Name: SpawnConfigData
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.SpawnConfigData
+  _clusterSizeMin: 3
+  _clusterSizeMax: 5
+  _phases:
+  - Phase: 1
+    ConcurrentMin: 18
+    ConcurrentMax: 22
+    RespawnInterval: 90
+    RatioHeokkaebi: 6
+    RatioChanggwi: 2
+    RatioAekgwi: 2
+    TargetKillMin: 28
+    TargetKillMax: 32
+  - Phase: 2
+    ConcurrentMin: 14
+    ConcurrentMax: 16
+    RespawnInterval: 60
+    RatioHeokkaebi: 5
+    RatioChanggwi: 3
+    RatioAekgwi: 2
+    TargetKillMin: 18
+    TargetKillMax: 21
+  - Phase: 3
+    ConcurrentMin: 8
+    ConcurrentMax: 10
+    RespawnInterval: 60
+    RatioHeokkaebi: 3
+    RatioChanggwi: 3
+    RatioAekgwi: 3
+    TargetKillMin: 9
+    TargetKillMax: 12
