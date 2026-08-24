@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 960ef9d3c5cd8fc42b613ea408bf5bb8, type: 3}
+  m_Name: ShopData
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.ShopData
+  _openPhase: 3
+  _items:
+  - Kind: 1
+    DisplayName: "\uD68C\uBCF5 \uBB3C\uC57D"
+    Price: 60
+    EffectValue: 40
+    CarryLimit: 3
+  - Kind: 2
+    DisplayName: "\uC2E0\uB825 \uBB3C\uC57D"
+    Price: 50
+    EffectValue: 40
+    CarryLimit: 3
+  - Kind: 3
+    DisplayName: "\uC2A4\uD0EF \uC7AC\uC870\uC815\uAD8C"
+    Price: 150
+    EffectValue: 0
+    CarryLimit: -1
+  - Kind: 4
+    DisplayName: "\uB4F1\uAE09 \uC0C1\uC2B9\uAD8C"
+    Price: 350
+    EffectValue: 0
+    CarryLimit: -1

@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0140f870229a4443b3ad48a3952f2d8, type: 3}
+  m_Name: EquipmentData
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.EquipmentData
+  _grades:
+  - Grade: 0
+    DisplayName: "\uC77C\uBC18 (\u767D)"
+    AttackMin: 12
+    AttackMax: 18
+    OptionChance: 0
+    OptionCount: 0
+  - Grade: 1
+    DisplayName: "\uBD80\uC801 (\u9751)"
+    AttackMin: 18
+    AttackMax: 28
+    OptionChance: 0.2
+    OptionCount: 1
+  - Grade: 2
+    DisplayName: "\uC601\uD5D8 (\u7D2B)"
+    AttackMin: 28
+    AttackMax: 42
+    OptionChance: 0.5
+    OptionCount: 1
+  - Grade: 3
+    DisplayName: "\uC2E0\uBB3C (\u91D1)"
+    AttackMin: 42
+    AttackMax: 65
+    OptionChance: 1
+    OptionCount: 2
+  _commonOptions:
+  - Kind: 100
+    ValueMin: 3
+    ValueMax: 8
+  - Kind: 101
+    ValueMin: 4
+    ValueMax: 10
+  - Kind: 102
+    ValueMin: -12
+    ValueMax: -5
+  _weaponOptions:
+  - WeaponKind: 0
+    Options:
+    - Kind: 200
+      ValueMin: 4
+      ValueMax: 10
+    - Kind: 201
+      ValueMin: 0.02
+      ValueMax: 0.05
+    - Kind: 202
+      ValueMin: 2.2
+      ValueMax: 2.4
+  - WeaponKind: 1
+    Options:
+    - Kind: 300
+      ValueMin: 8
+      ValueMax: 18
+    - Kind: 301
+      ValueMin: 0.1
+      ValueMax: 0.2
+    - Kind: 302
+      ValueMin: 1
+      ValueMax: 1
+  - WeaponKind: 2
+    Options:
+    - Kind: 400
+      ValueMin: 6
+      ValueMax: 15
+    - Kind: 401
+      ValueMin: 10
+      ValueMax: 25
+    - Kind: 402
+      ValueMin: -15
+      ValueMax: -6

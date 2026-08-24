@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08bf13bf8fc9538468e482ec8330b5fa, type: 3}
+  m_Name: DropTableData
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.DropTableData
+  _entries:
+  - FieldLevel: 0
+    WeightCommon: 70
+    WeightTalisman: 25
+    WeightSpiritual: 5
+    WeightDivine: 0
+  - FieldLevel: 1
+    WeightCommon: 40
+    WeightTalisman: 40
+    WeightSpiritual: 18
+    WeightDivine: 2
+  - FieldLevel: 2
+    WeightCommon: 15
+    WeightTalisman: 35
+    WeightSpiritual: 40
+    WeightDivine: 10
+  - FieldLevel: 3
+    WeightCommon: 5
+    WeightTalisman: 25
+    WeightSpiritual: 45
+    WeightDivine: 25

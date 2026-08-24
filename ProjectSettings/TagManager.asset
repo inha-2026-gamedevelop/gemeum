@@ -2,8 +2,12 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
-  serializedVersion: 2
-  tags: []
+  serializedVersion: 3
+  tags:
+  - Enemy
+  - Boss
+  - BarrierCenter
+  - SpawnCluster
   layers:
   - Default
   - TransparentFX
@@ -13,12 +17,12 @@ TagManager:
   - UI
   - 
   - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - Ground
+  - Player
+  - Enemy
+  - Boss
+  - Projectile
+  - Interactable
   - 
   - 
   - 
@@ -50,27 +54,4 @@ TagManager:
   - Light Layer 5
   - Light Layer 6
   - Light Layer 7
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  m_MigratedRenderPipelines: []
