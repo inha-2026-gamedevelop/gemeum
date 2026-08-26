@@ -96,6 +96,7 @@ git config --global merge.unityyamlmerge.driver \
 | 네트워크 코드를 쓸 때 | [네트워크 권위](NETWORK_AUTHORITY.md) |
 | 밸런스 수치를 다룰 때 | [밸런스 데이터 작업](BALANCE_DATA_WORKFLOW.md) |
 | 성능 문제가 실제로 생겼을 때 | [Unity 엔지니어링 패턴](UNITY_ENGINEERING_PATTERNS.md) |
+| 하늘 · 날씨 · 구름을 세팅하거나 다룰 때 | [Weather Maker 사용 가이드](WEATHER_MAKER_GUIDE.md) |
 
 **처음부터 전부 읽지 않는다.** 필요할 때 해당 문서만 연다.
 
