@@ -118,3 +118,38 @@ Rain Maker 등 경쟁 에셋이 프로젝트에 같이 있으면 충돌하니 �
 - Weather Maker 자체는 순수 표현(비주얼·오디오)이라 판정 로직이 없다 → 서버 권위 이슈 없음.
 - 단, **날씨 존 배치나 Main.unity 변경은 씬 변경**이므로 [검증 플레이북](../ai/03_VERIFICATION_PLAYBOOK.md) 기준 최소 L2(담당 `Dev_*.unity`에서 1회 이상 관찰), Mirror 시간대 동기화를 건드렸다면 L3(3인 접속) 적용.
 - 시각적 결과(하늘·구름 모양 등)는 캡처나 실제 확인 없이는 미검증으로 보고한다.
+
+---
+
+## 9. 트러블슈팅
+
+### 화면이 완전히 검게 나온다
+
+카메라 Clear Flags를 Solid Color(0,0,0,0)로 맞췄는데도(§3) 아무것도 안 그려진다면, **현재 프로젝트가 실제로 쓰는 URP Renderer 에셋에 `WeatherMakerURPRenderFeatureScript` 렌더러 피처가 없는 것**이다. URP 파이프라인/렌더러 에셋을 교체하거나 새로 만들면 이 피처가 자동으로 안 붙는다.
+
+확인: `Project Settings → Graphics`에서 가리키는 Render Pipeline Asset을 연 다음, 그 Renderer Data(`m_RendererDataList`)를 열어 Renderer Features 목록에 Weather Maker 항목이 있는지 본다. 없으면 `+` 버튼으로 `Weather Maker URP Render Feature`를 추가한다(구름 그림자가 필요하면 `Screen Space Shadows`도 같이).
+
+### `Window → Weather Maker → Enable Universal Render Pipeline` 메뉴를 누르지 말 것
+
+이 메뉴는 프로젝트의 렌더 파이프라인을 **Weather Maker 자체 번들 파이프라인(`WeatherMakerURPProfile`)으로 통째로 바꿔치기**한다 — 위 문제의 정석 해법처럼 보이지만, 우리 프로젝트 고유 URP 에셋(현재 `PC_RPAsset`)의 설정(SSAO, 렌더링 모드 등)이 전부 무시된다.
+
+더 나쁜 문제: 이 메뉴를 한 번이라도 누르면 EditorPrefs 플래그(`WeatherMaker_AllowAutoEnableURPOnce`)가 켜지는데, 이 플래그가 켜진 상태로는 `GraphicsSettings.defaultRenderPipeline`이 잠깐이라도 null이 되는 순간(Play 모드 진입/종료, 도메인 리로드 등)마다 `WeatherMakerScript.CheckURP()`가 **또다시 자동으로** 파이프라인을 Weather Maker 프로필로 바꿔버린다. 이 플래그는 **로컬 머신(레지스트리) 설정이라 git에 안 잡히고, 프로젝트를 다시 열어도 안 없어진다.**
+
+실수로 눌렀다면:
+1. `Project Settings → Graphics`와 `Quality`에서 Render Pipeline Asset을 다시 우리 프로젝트 것(`PC_RPAsset` 등)으로 되돌린다.
+2. 아래 코드를 한 번 실행해 플래그를 꺼둔다 (Window → Weather Maker 메뉴가 아니라, Unity 콘솔/에디터 스크립트로):
+   ```csharp
+   UnityEditor.EditorPrefs.SetBool("WeatherMaker_AllowAutoEnableURPOnce", false);
+   UnityEditor.EditorPrefs.SetBool("WeatherMaker_SuppressAutoEnableURP", true);
+   ```
+3. 렌더러 피처가 필요하면 위 "화면이 완전히 검게 나온다" 항목대로 수동으로만 추가한다.
+
+### `GraphicsSettings`/`QualitySettings` 값을 스크립트로 바꿨는데 저장이 안 된다
+
+`GraphicsSettings.defaultRenderPipeline = X` 같은 런타임 할당은 **에디터 세션 안에서는 바로 적용되지만, 디스크(`ProjectSettings/GraphicsSettings.asset`)에 저장된다는 보장이 없다.** 반드시 해당 오브젝트를 `EditorUtility.SetDirty(...)`로 표시하고 `AssetDatabase.SaveAssets()`를 호출한 다음, 파일을 다시 읽어(또는 `git diff`) 실제로 반영됐는지 확인할 것. "Screen Space Shadows 켜기"(§3)도 같은 이유로 반영이 잘 안 됐던 적이 있다.
+
+### Play 모드인데 날씨·구름이 하나도 안 보인다
+
+`WeatherMakerMirrorNetworkScript`(§5)가 씬에 있으면, Weather Maker는 **서버(호스트)만** 날씨/시간을 적용하도록 게이트를 건다(`WeatherMakerWeatherZoneScript.UpdateProfile` 내부에서 `NetworkConnection.IsServer` 확인). 실제 Mirror 호스트를 안 띄우고 혼자 Play만 누르면 이 조건이 항상 거짓이라 아무것도 안 그려진다 — **버그가 아니라 의도된 동작**이다.
+
+혼자 빠르게 확인하고 싶으면 그 오브젝트를 잠깐 비활성화하고 테스트한 뒤, **반드시 다시 활성화하고 씬을 저장했는지 `git status`로 확인**한다. 진짜 검증(L3)은 [멀티플레이 테스트 절차](../ai/04_MULTIPLAYER_TEST_PROTOCOL.md)대로 호스트를 띄워서 한다.

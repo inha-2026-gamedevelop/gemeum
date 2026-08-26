@@ -4,16 +4,24 @@
   <Project Path="Edgegap.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Mirror.Components.csproj" />
+  <Project Path="GaiaEditor.csproj" />
+  <Project Path="GaiaCore.csproj" />
   <Project Path="Mirror.Editor.csproj" />
   <Project Path="Mirror.Examples.csproj" />
   <Project Path="kcp2k.csproj" />
+  <Project Path="AxelF.Editor.csproj" />
   <Project Path="Mirror.csproj" />
   <Project Path="SimpleWebTransport.csproj" />
+  <Project Path="PropertyMaster.csproj" />
   <Project Path="Mirror.Authenticators.csproj" />
+  <Project Path="AxelF.csproj" />
   <Project Path="Mirror.Transports.csproj" />
   <Project Path="EncryptionTransportEditor.csproj" />
+  <Project Path="WindControl.csproj" />
   <Project Path="Wingman.csproj" />
   <Project Path="Telepathy.csproj" />
   <Project Path="PWCleanup7EditorUtils.csproj" />
   <Project Path="Mirror.CompilerSymbols.csproj" />
+  <Project Path="WindControlEd.csproj" />
+  <Project Path="PropertyMaster.Editor.csproj" />
 </Solution>
