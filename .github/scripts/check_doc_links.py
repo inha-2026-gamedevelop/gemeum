@@ -10,9 +10,10 @@ SKIP = ('http://', 'https://', 'mailto:', '#')
 
 def main() -> int:
     broken = []
-    for root, _, files in os.walk('.'):
+    for root, dirs, files in os.walk('.'):
         if '/.git' in root:
             continue
+        dirs[:] = [d for d in dirs if d != '99.ThirdParty']
         for name in files:
             if not name.endswith('.md'):
                 continue
