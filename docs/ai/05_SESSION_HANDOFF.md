@@ -4,6 +4,15 @@
 
 ---
 
+## 저장 위치
+
+실제 인수인계 문서는 이 문서(양식)가 아니라 `.claude/docs/`에 쓴다.
+
+- 현재 진행 중인 작업: `.claude/docs/HANDOFF_CURRENT.md` — 다음 세션이 항상 여기부터 읽는다
+- 지난 작업 기록: `.claude/docs/handover-{YYYY-MM-DD}-{작업명}.md`로 보관, `HANDOFF_CURRENT.md`는 최신 상태로 덮어쓴다
+
+---
+
 ## 작성 시점
 
 아래 중 하나라도 해당하면 작성하거나 갱신한다.
