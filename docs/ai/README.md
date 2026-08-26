@@ -15,7 +15,7 @@
 | AI가 "다 됐다"고 했을 때 | [검증 플레이북](03_VERIFICATION_PLAYBOOK.md) |
 | 네트워크 코드를 만질 때 | [네트워크 권위](../unity/NETWORK_AUTHORITY.md) |
 | 3인 테스트를 해야 할 때 | [멀티플레이 테스트](04_MULTIPLAYER_TEST_PROTOCOL.md) |
-| 작업을 중단할 때 | [세션 인수인계](05_SESSION_HANDOFF.md) |
+| 작업을 중단할 때 | [세션 인수인계](05_SESSION_HANDOFF.md) 양식으로 `.claude/docs/HANDOFF_CURRENT.md`를 갱신 |
 | 기획서를 구현으로 옮길 때 | [기획 문서 → 구현](09_DOCUMENT_ANALYSIS_WORKFLOW.md) |
 
 저장소 루트의 [`CLAUDE.md`](../../CLAUDE.md)는 AI가 자동으로 읽는다. 사람이 먼저 읽을 필요는 없다.
