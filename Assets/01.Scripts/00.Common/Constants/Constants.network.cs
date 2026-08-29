@@ -10,6 +10,10 @@ namespace Geumeum.Common
             public const float SERVER_TICK_INTERVAL   = 1f / 60f; // 서버 판정 틱 간격(초)
             public const float RUN_TIME_SYNC_INTERVAL = 0.5f;     // 경과 시간 동기화 주기(초), 클라는 이 사이를 보간한다
 
+            // 종류마다 다르게 잡는다, 기본값을 그대로 두면 잡귀 22마리가 플레이어와 같은 주기로 3연결에 나간다
+            public const float PLAYER_SYNC_INTERVAL = 0.02f; // 조작 대상이라 촘촘하게
+            public const float ENEMY_SYNC_INTERVAL  = 0.1f;  // 보간으로 메울 수 있어 성기게
+
             // 클라가 보낸 입력 시각은 신뢰하지 않는다
             public const float MAX_INPUT_DELTA_TIME  = 0.1f;  // 입력 하나로 진행시킬 수 있는 최대 시간(초)
             public const float MAX_INPUT_TIME_BEHIND = 0.5f;  // 이만큼 이상 과거인 입력 시각은 잘라낸다(초)
