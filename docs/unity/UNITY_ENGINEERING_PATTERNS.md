@@ -97,15 +97,77 @@ void OnDisable() {
 
 ## 4. 이벤트 구독 해제
 
-전역 상태와 이벤트 구독에는 명확한 소유권과 해제 시점을 둔다.
+이벤트 구독에는 명확한 소유권과 해제 시점을 둔다.
+해제하지 않으면 파괴된 오브젝트가 계속 호출되어 `MissingReferenceException`이 난다.
+
+**정적 이벤트는 쓰지 않는다.** 구독자 목록이 씬 수명과 무관하게 살아남는다.
+Domain Reload를 끄면 플레이를 멈춰도 핸들러가 남아 다음 플레이에서 중복 호출된다.
+
+### 같은 파트 안 — 인스턴스 이벤트를 직접 쓴다
 
 ```csharp
-void OnEnable()  { BarrierController.OnPhaseChanged += HandlePhase; }
-void OnDisable() { BarrierController.OnPhaseChanged -= HandlePhase; }
+public override void OnStartServer()
+{
+    _status.Died += HandleDied;
+}
+
+public override void OnStopServer()
+{
+    _status.Died -= HandleDied;
+}
 ```
 
-해제하지 않으면 파괴된 오브젝트가 계속 호출되어 `MissingReferenceException`이 난다.
-씬 전환이 잦은 게임에서 특히 자주 터진다.
+### 파트 경계를 넘을 때 — GameEventBus를 지난다
+
+```csharp
+private void OnEnable()
+{
+    if (!GameEventBus.HasInstance)
+    {
+        return;
+    }
+
+    GameEventBus.Instance.Subscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
+}
+
+private void OnDisable()
+{
+    // 씬이 끝날 때 버스가 먼저 파괴되면 Instance가 null이다
+    if (!GameEventBus.HasInstance)
+    {
+        return;
+    }
+
+    GameEventBus.Instance.Unsubscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
+}
+```
+
+다른 파트의 구체 클래스를 참조하면 통합할 때 한 파트를 고칠 때마다 다른 파트가 깨진다.
+배치 규칙은 [프로젝트 구조 설계서](../04-architecture.md) 8장에 있다.
+
+### 해제 시점은 컴포넌트 종류로 정한다
+
+| 컴포넌트 | 구독 | 해제 |
+|---|---|---|
+| 서버 전용 NetworkBehaviour | `OnStartServer` | `OnStopServer` |
+| 씬 로컬 MonoBehaviour | `OnEnable` | `OnDisable` |
+
+서버 이벤트를 클라이언트에서 구독하지 않는다. 호스트에서는 한 프로세스가 서버와 클라이언트를
+겸하므로, 구독 시점을 잘못 잡아도 호스트 혼자서는 증상이 드러나지 않는다.
+
+### 람다로 구독하면 해제되지 않는다
+
+```csharp
+// 해제되지 않는다, 두 람다가 서로 다른 델리게이트다
+bus.Subscribe<RunPhaseChangedEvent>(e => HandlePhaseChanged(e));
+bus.Unsubscribe<RunPhaseChangedEvent>(e => HandlePhaseChanged(e));
+
+// 메서드 그룹을 넘긴다
+bus.Subscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
+bus.Unsubscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
+```
+
+`Unsubscribe`는 델리게이트 비교로 지운다. 이 절이 막으려는 누수를 이 실수가 그대로 만든다.
 
 ---
 
