@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d4dbdbf04c6ebf4ab9bbaaea3ca6638, type: 3}
   m_Name: WM_DayNightCycleProfile_Geumeum
   m_EditorClassIdentifier: 
-  Speed: 38.4
-  NightSpeed: 38.4
+  Speed: 24
+  NightSpeed: 24
   UpdateInterval: 0.03
-  TimeOfDay: 21600
-  TimeOfDayLabel: 01:06 PM
+  TimeOfDay: 28800
+  TimeOfDayLabel: 08:00 AM
   Year: 2017
   Month: 3
   Day: 13
