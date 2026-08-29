@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0984040f7c4292e4d8fc25c8637bc8d5, type: 3}
-  m_Name: CombatConfigData
-  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.CombatConfigData
+  m_Name: CombatConfigSO
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.CombatConfigSO
   _staminaMax: 100
   _staminaRegenPerSecond: 25
   _staminaRegenDelay: 0.6

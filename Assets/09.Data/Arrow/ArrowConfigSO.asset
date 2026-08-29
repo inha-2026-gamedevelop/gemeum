@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ad5aa758fb0ee934fbfccef9b8de090a, type: 3}
-  m_Name: ArrowConfigData
-  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.ArrowConfigData
+  m_Name: ArrowConfigSO
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.ArrowConfigSO
   _arrowSpeed: 30
   _arrowLifetime: 3
   _aimAssistAngle: 12

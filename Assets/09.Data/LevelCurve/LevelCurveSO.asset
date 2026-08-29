@@ -10,9 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 944df52d97d3b3145ac7ab403c6736a4, type: 3}
-  m_Name: LevelCurveData
-  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.LevelCurveData
-  _maxLevel: 10
+  m_Name: LevelCurveSO
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.LevelCurveSO
   _talentPointPerLevel: 1
   _levels:
   - Level: 1
