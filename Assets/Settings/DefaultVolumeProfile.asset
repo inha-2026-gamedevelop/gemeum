@@ -22,6 +22,41 @@ MonoBehaviour:
   gain:
     m_OverrideState: 1
     m_Value: {x: 1, y: 1, z: 1, w: 0}
+--- !u!114 &-8965550667769209096
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10b9ad5047bdaef41afc9d0c000e3d93, type: 3}
+  m_Name: LightProperties
+  m_EditorClassIdentifier: PropertyMaster::LightProperties
+  active: 1
+  rotation:
+    m_OverrideState: 1
+    m_Value: {x: 0, y: 0, z: 0}
+  color:
+    m_OverrideState: 1
+    m_Value: {r: 1, g: 1, b: 1, a: 1}
+  colorTemperature:
+    m_OverrideState: 1
+    m_Value: 5500
+  intensity:
+    m_OverrideState: 1
+    m_Value: 1
+  bounceIntensity:
+    m_OverrideState: 1
+    m_Value: 0
+  cookie:
+    m_OverrideState: 1
+    m_Value: {fileID: 0}
+    dimension: 1
+  cookieSize:
+    m_OverrideState: 1
+    m_Value: 0
 --- !u!114 &-8270506406425502121
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -299,6 +334,133 @@ MonoBehaviour:
   cropToFit:
     m_OverrideState: 1
     m_Value: 1
+--- !u!114 &-3470670403770457142
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4d4d92c6326cd74dab6467654a6d929, type: 3}
+  m_Name: WindControlProperties
+  m_EditorClassIdentifier: WindControl::WindControlProperties
+  active: 1
+  windGlobalStrengthScale:
+    m_OverrideState: 1
+    m_Value: 1
+  windGlobalStrengthAudioInfluence:
+    m_OverrideState: 1
+    m_Value: 0
+  windGlobalStrengthAudioAmplitudeThreshold:
+    m_OverrideState: 1
+    m_Value: 0.05
+  windDirection:
+    m_OverrideState: 1
+    m_Value: 65
+  windDirectionVariance:
+    m_OverrideState: 1
+    m_Value: 25
+  windDirectionVariancePeriod:
+    m_OverrideState: 1
+    m_Value: 15
+  windZoneIntensityOffset:
+    m_OverrideState: 1
+    m_Value: 0.1
+  windZoneIntensityBaseScale:
+    m_OverrideState: 1
+    m_Value: 0.25
+  windZoneIntensityGustScale:
+    m_OverrideState: 1
+    m_Value: 0.5
+  windZoneIntensityFromGrass:
+    m_OverrideState: 1
+    m_Value: 1
+  windBaseStrength:
+    m_OverrideState: 1
+    m_Value: 15
+  windBaseStrengthOffset:
+    m_OverrideState: 1
+    m_Value: 0.25
+  windBaseStrengthPhase:
+    m_OverrideState: 1
+    m_Value: 3
+  windBaseStrengthVariancePeriod:
+    m_OverrideState: 1
+    m_Value: 10
+  windGustStrength:
+    m_OverrideState: 1
+    m_Value: 25
+  windGustStrengthOffset:
+    m_OverrideState: 1
+    m_Value: 1
+  windGustStrengthPhase:
+    m_OverrideState: 1
+    m_Value: 3
+  windGustStrengthVariancePeriod:
+    m_OverrideState: 1
+    m_Value: 2
+  windGustInnerCosScale:
+    m_OverrideState: 1
+    m_Value: 2
+  windFlutterStrength:
+    m_OverrideState: 1
+    m_Value: 0.4
+  windFlutterGustStrength:
+    m_OverrideState: 1
+    m_Value: 0.2
+  windFlutterGustStrengthOffset:
+    m_OverrideState: 1
+    m_Value: 50
+  windFlutterGustStrengthScale:
+    m_OverrideState: 1
+    m_Value: 75
+  windFlutterGustVariancePeriod:
+    m_OverrideState: 1
+    m_Value: 0.25
+  windTreeBaseStrength:
+    m_OverrideState: 1
+    m_Value: 0.25
+  windTreeBaseStrengthOffset:
+    m_OverrideState: 1
+    m_Value: 1
+  windTreeBaseStrengthPhase:
+    m_OverrideState: 1
+    m_Value: 0.5
+  windTreeBaseStrengthVariancePeriod:
+    m_OverrideState: 1
+    m_Value: 6
+  windTreeGustStrength:
+    m_OverrideState: 1
+    m_Value: 3
+  windTreeGustStrengthOffset:
+    m_OverrideState: 1
+    m_Value: 1
+  windTreeGustStrengthPhase:
+    m_OverrideState: 1
+    m_Value: 2
+  windTreeGustStrengthVariancePeriod:
+    m_OverrideState: 1
+    m_Value: 4
+  windTreeGustInnerCosScale:
+    m_OverrideState: 1
+    m_Value: 2
+  windTreeFlutterStrength:
+    m_OverrideState: 1
+    m_Value: 0.1
+  windTreeFlutterGustStrength:
+    m_OverrideState: 1
+    m_Value: 0.5
+  windTreeFlutterGustStrengthOffset:
+    m_OverrideState: 1
+    m_Value: 12.5
+  windTreeFlutterGustStrengthScale:
+    m_OverrideState: 1
+    m_Value: 25
+  windTreeFlutterGustVariancePeriod:
+    m_OverrideState: 1
+    m_Value: 0.1
 --- !u!114 &-1410297666881709256
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -468,6 +630,8 @@ MonoBehaviour:
   - {fileID: -6288072647309666549}
   - {fileID: 7518938298396184218}
   - {fileID: -1410297666881709256}
+  - {fileID: -3470670403770457142}
+  - {fileID: -8965550667769209096}
 --- !u!114 &853819529557874667
 MonoBehaviour:
   m_ObjectHideFlags: 3
