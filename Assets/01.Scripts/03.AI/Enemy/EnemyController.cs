@@ -37,6 +37,9 @@ namespace Geumeum.AI
 
         public override void OnStartServer()
         {
+            // TODO: SpawnManager가 생기면 스폰 시점 결계 단계를 넘겨받아 여기서 대신 호출하게 옮긴다
+            _status.Initialize(0);
+
             _brain = CreateBrain(_status.Kind);
             _status.Died += HandleDied;
         }
