@@ -15,22 +15,21 @@ namespace Geumeum.Data
         ****************************************/
 
         // TODO(민성): 점수 구성을 기획서 기준으로 교체한다
-        // 보스 처치 · 잡귀 처치 수 · 무사망 보너스 · 사망 감점 항목이 없고,
-        // 남은 시간 보너스는 초당이 아니라 분당 배점이어서 지금 배점으로는 기획 수치를 낼 수 없다
+        // 보스 처치 · 잡귀 처치 수 · 무사망 보너스 · 사망 감점 항목이 아직 없다
         [Header("배점")]
-        [SerializeField] private int _remainingHealthScore    = 1; // 파티 남은 HP 총합 1당
-        [SerializeField] private int _remainingTimeScore      = 3; // 남은 시간 1초당, 기획의 분당 200점에 맞춘 근사값
-        [SerializeField] private int _unspentTalentPointScore = 20; // 찍지 않은 특성 포인트 1개당
-        [SerializeField] private int _remainingCurrencyScore  = 2; // 남은 노잣돈 1냥당
+        [SerializeField] private int   _remainingHealthScore    = 1;           // 파티 남은 HP 총합 1당
+        [SerializeField] private float _remainingTimeScore      = 200f / 60f;  // 남은 시간 1초당, 기획의 분당 200점
+        [SerializeField] private int   _unspentTalentPointScore = 20;          // 찍지 않은 특성 포인트 1개당
+        [SerializeField] private int   _remainingCurrencyScore  = 2;           // 남은 노잣돈 1냥당
 
         /****************************************
         *              Properties
         ****************************************/
 
-        public int RemainingHealthScore    => _remainingHealthScore;
-        public int RemainingTimeScore      => _remainingTimeScore;
-        public int UnspentTalentPointScore => _unspentTalentPointScore;
-        public int RemainingCurrencyScore  => _remainingCurrencyScore;
+        public int   RemainingHealthScore    => _remainingHealthScore;
+        public float RemainingTimeScore      => _remainingTimeScore;
+        public int   UnspentTalentPointScore => _unspentTalentPointScore;
+        public int   RemainingCurrencyScore  => _remainingCurrencyScore;
 
         /****************************************
         *                Methods
@@ -41,7 +40,8 @@ namespace Geumeum.Data
         {
             // 음수 입력이 점수를 깎지 않도록 각 항을 0에서 자른다
             int healthTerm   = Mathf.RoundToInt(Mathf.Max(0f, remainingHealthSum)) * _remainingHealthScore;
-            int timeTerm     = Mathf.RoundToInt(Mathf.Max(0f, remainingSeconds)) * _remainingTimeScore;
+            // 배점이 분당이라 초당으로 나누면 정수로 떨어지지 않는다, 곱한 뒤에 반올림한다
+            int timeTerm     = Mathf.RoundToInt(Mathf.Max(0f, remainingSeconds) * _remainingTimeScore);
             int talentTerm   = Mathf.Max(0, unspentTalentPoints) * _unspentTalentPointScore;
             int currencyTerm = Mathf.Max(0, remainingCurrency) * _remainingCurrencyScore;
 
