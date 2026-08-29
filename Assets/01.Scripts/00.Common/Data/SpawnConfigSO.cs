@@ -9,7 +9,10 @@ using Geumeum.Network;
 
 namespace Geumeum.Data
 {
-    /// <summary> 구간별 동시 존재 수 · 구성 비율 · 리스폰 주기 </summary>
+    /// <summary>
+    /// 구간별 동시 존재 수 · 구성 비율 · 리스폰 주기.
+    /// 스폰이 없는 구간은 항목 자체를 두지 않는다, 결계 데이터와 달리 전 구간을 채우지 않아도 정상이다
+    /// </summary>
     [CreateAssetMenu(fileName = "SpawnConfigSO", menuName = "Geumeum/SpawnConfigSO")]
     public class SpawnConfigSO : ScriptableObject
     {
@@ -56,7 +59,10 @@ namespace Geumeum.Data
         *                Methods
         ****************************************/
 
-        /// <summary> 구간별 스폰 설정을 찾는다, 없으면 false </summary>
+        /// <summary>
+        /// 구간별 스폰 설정을 찾는다.
+        /// false는 데이터 오류가 아니라 그 구간에 스폰이 없다는 뜻이다, Shrink3와 Boss가 여기 해당한다
+        /// </summary>
         public bool TryGetPhase(RunPhase phase, out PhaseEntry entry)
         {
             for (int i = 0; i < _phases.Length; ++i)
