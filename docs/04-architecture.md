@@ -106,6 +106,9 @@ Main.unity
 
 `@` 접두사는 "씬 구조 고정 루트"라는 표시다. 루트 오브젝트를 추가 · 삭제하는 변경은 통합 담당자 승인이 필요하다.
 
+`57cb59d` 기준으로 `GameEventBus` · `LobbyController` · `RunManager` 조립은
+`Dev_Combat.unity`에서 확인됐고, 위 `Main.unity` 최종 골격의 통합·L3 검증은 아직 남아 있다.
+
 **`@Stage` 배치의 필수 제약** ([시스템 기획 2.1](01-system-design.md) · [기술 구현 4.4](03-technical-design.md)):
 
 | 오브젝트 | 제약 |
@@ -126,22 +129,22 @@ Main.unity
 ```
 00.Common/
 ├ Data/                    namespace Geumeum.Data — GameDB 정의 → 6장
-│  ├ GameDatabaseSO.cs     SO  루트 DB. 모든 *Data 참조를 모은다
+│  ├ GameDatabaseSO.cs     SO  루트 DB. 모든 *SO 참조를 모은다
 │  ├ GameDB.cs             C#  정적 접근점 (GameDB.Enemy, GameDB.Barrier …)
 │  ├ GameDBBootstrap.cs    MB  루트 DB를 한 번 초기화하고 누락 시 즉시 실패시킨다
-│  ├ CombatConfigData.cs   SO  스태미나 · 신력 · 이동 · 구르기 · 패링 (HP는 제외)
-│  ├ ArrowConfigData.cs    SO  화살 발사각 보정 · 유도 각도 · 지속 시간
-│  ├ EquipmentData.cs      SO  등급별 롤 범위, 무기별 특수옵션 풀
-│  ├ DropTableData.cs      SO  필드 레벨별 등급 가중치
-│  ├ EnemyData.cs          SO  잡귀 3종 스탯, 결계 단계별 강화 배수
-│  ├ BarrierPhaseData.cs   SO  결계 단계별 시간 · 반경 · 피해량
-│  ├ SpawnConfigData.cs    SO  구간별 동시 존재 수 · 구성 비율 · 리스폰 주기
-│  ├ BossPatternData.cs    SO  보스 페이즈별 패턴 · 쿨다운 · 예고·판정 정보
-│  ├ TalentTreeData.cs     SO  특성 노드 구성과 수치
-│  ├ ShopData.cs           SO  객주 상품 목록과 가격
-│  ├ LevelCurveData.cs     SO  레벨별 필요 경험치 + 최대 HP 전체 (1레벨 기본값 포함)
-│  ├ ScoreRuleData.cs      SO  점수 항목별 배점
-│  └ DayCycleData.cs       SO  실시간↔게임 내 시각 매핑, 조명 프리셋 (로컬 전용)
+│  ├ CombatConfigSO.cs     SO  스태미나 · 신력 · 이동 · 구르기 · 패링 (HP는 제외)
+│  ├ ArrowConfigSO.cs      SO  화살 발사각 보정 · 유도 각도 · 지속 시간
+│  ├ EquipmentSO.cs        SO  등급별 롤 범위, 무기별 특수옵션 풀
+│  ├ DropTableSO.cs        SO  필드 레벨별 등급 가중치
+│  ├ EnemySO.cs            SO  잡귀 3종 스탯, 결계 단계별 강화 배수
+│  ├ BarrierPhaseSO.cs     SO  결계 단계별 시간 · 반경 · 피해량
+│  ├ SpawnConfigSO.cs      SO  구간별 동시 존재 수 · 구성 비율 · 리스폰 주기
+│  ├ BossPatternSO.cs      SO  보스 페이즈별 패턴 · 쿨다운 · 예고·판정 정보
+│  ├ TalentTreeSO.cs       SO  특성 노드 구성과 수치
+│  ├ ShopSO.cs             SO  객주 상품 목록과 가격
+│  ├ LevelCurveSO.cs       SO  레벨별 필요 경험치 + 최대 HP 전체 (1레벨 기본값 포함)
+│  ├ ScoreRuleSO.cs        SO  점수 항목별 배점
+│  └ DayCycleSO.cs         SO  실시간↔게임 내 시각 매핑, 조명 프리셋 (로컬 전용)
 ├ Constants/               namespace Geumeum.Common — 코드 계약값 (partial class)
 │  ├ Constants.cs          공통: 레이어, 태그, 씬 이름
 │  ├ Constants.player.cs   입력 키/축, 판정 epsilon
@@ -155,6 +158,7 @@ Main.unity
 │  └ GameEventBus.cs       MB  @Managers가 소유하는 서버/로컬 이벤트 허브.
 │                              SceneSingleton<GameEventBus>를 상속한다
 ├ Types/                   namespace Geumeum.Common — 파트 공용 열거형·값 타입
+│  ├ DamageInfo.cs         struct 서버가 확정한 피해량 · 공격자 netId · HitStrength
 │  ├ HitStrength.cs        enum 타격감 강도 (Light · Heavy · Critical)
 │  └ WeaponKind.cs         enum 무기 종류 = 직업 (Sword · Bow · Bell)
 └ Interfaces/              namespace Geumeum.Common — 파트 간 경계 → 8장
@@ -174,48 +178,60 @@ Main.unity
 01.Network/                namespace Geumeum.Network
 ├ GeumeumNetworkManager.cs NB  Mirror NetworkManager 상속. 호스트 생성 · 접속 · 해제,
 │                              최대 3명. 플레이어 프리팹 등록과 연결 수명만 담당
+├ ServerBootGate.cs        static GameDB · 런 타임라인 · Transport · 네트워크 프리팹 검사
 ├ LobbyController.cs       NB  3명 준비 상태와 런 시작 요청을 서버에서 관리. 런 시작 시
 │                              검·활·방울을 중복 없이 배분하고, 이후 신규 접속·재접속 거부
 ├ RunManager.cs            NB  런 상태 머신 + 경과 시간 → 5장. 프로젝트의 심장
 ├ RunPhase.cs              C#  enum { Lobby, Farming, Shrink1, Shrink2, Shrink3, Boss, Result }
 │                              직렬화되므로 명시값 고정, 재배열 금지
-└ ReviveController.cs      NB  사망 감지 → 관전 30초 → 제자리 부활(HP 50% · 무적 2초),
-                               노잣돈 20% 차감 요청, 서버 틱에서 전멸 판정
+├ RunPhaseChangedEvent.cs  struct 서버 프로세스 내부 phase 전환 payload
+├ RunPhaseTimeline.cs      C#  phase 경계 계산 · 순서/연속성/런 길이 불변식 검사
+├ RunTimelineBuilder.cs    static BarrierPhaseSO를 순수 타임라인으로 변환
+└ ReviveController.cs      NB  [계획] 사망 감지 → 관전 30초 → 제자리 부활,
+                               노잣돈 차감 요청과 전멸 감지
 ```
+
+`57cb59d` 기준으로 `ReviveController`를 제외한 위 네트워크 클래스는 구현되어 있다.
+`RunManager.CoServerTick`은 `NetworkTime.time`으로 경과 시간과 phase만 갱신하는 런 시계다.
+플레이어·AI·투사체를 함께 실행하는 공용 시뮬레이션 스케줄러로 간주하지 않는다.
 
 ### 4.2 02.Combat — 플레이어 · 패링 · 화살 (소유: 팀장)
 
 ```
 02.Combat/                 namespace Geumeum.Combat
 ├ Player/
-│  ├ PlayerMoveInput.cs    C#  순서 · 추정 서버 시각을 포함한 입력 스냅샷
-│  ├ PlayerMotionModel.cs  C#  서버와 클라 예측이 공유하는 순수 이동 계산
-│  ├ PlayerPrediction.cs   MB  로컬 입력 버퍼 · 서버 스냅샷 재조정
-│  ├ PlayerController.cs   NB  이동 · 달리기 · 구르기. 입력 [Command]와 서버 검증,
-│  │                           원격 상태는 NetworkTransform으로 보간
-│  ├ PlayerLifeState.cs    C#  Alive · Downed · Spectating · ReviveInvulnerable
-│  ├ PlayerStatus.cs       NB  HP · 스태미나 · 신력 · 생명 상태 SyncVar.
-│  │                           TakeDamage는 [Server] 전용. IDamageable 구현
-│  ├ PlayerWeapon.cs       NB  현재 장착 무기 = 직업. 무기 교체 시 직업 전환 이벤트 발행
-│  ├ PlayerAttack.cs       NB  공격 입력 [Command] → 서버 판정 → 결과 브로드캐스트
-│  └ InteractionController.cs NB 상호작용 입력 [Command] → 대상·거리·상태 서버 검증
+│  ├ PlayerController.cs   NB  [현재] 이동 입력 Command. [계획] sequence·상태·충돌 검증
+│  ├ PlayerMotionModel.cs  C#  [현재] 서버와 클라 예측이 공유할 순수 이동 계산
+│  ├ PlayerMoveInput.cs    C#  [계획] 순서 · 추정 서버 시각을 포함한 입력 스냅샷
+│  ├ PlayerPrediction.cs   MB  [계획] 로컬 입력 버퍼 · 서버 스냅샷 재조정
+│  ├ PlayerActionGate.cs   C#  [계획] phase·생명 상태·쿨다운·자원 공통 검증
+│  ├ PlayerLifeState.cs    enum [계획] Alive · Downed · Spectating · ReviveInvulnerable
+│  ├ PlayerStatus.cs       NB  [계획] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable
+│  ├ PlayerWeapon.cs       NB  [계획] 현재 무기와 서버 전투용 장비 snapshot
+│  ├ PlayerAttack.cs       NB  [계획] 공격의 유일한 클라이언트 Command 진입점
+│  └ InteractionController.cs NB [계획] 상호작용 Command와 서버 검증
+├ Weapon/                  [계획] 직업별 실행 계약. Mirror 비의존
+│  ├ IWeaponAbility.cs / IAbilityRuntime.cs
+│  ├ AbilityRequest.cs / AbilityResult.cs
+│  ├ TargetQuery.cs / ProjectileSpawnRequest.cs
+│  └ SwordAbility.cs / BowAbility.cs / BellAbility.cs / SwordSwingJudge.cs
 ├ Parry/
-│  ├ ParryController.cs    NB  입력 순서·추정 서버 시각 [Command] 전송, 모션 즉시 재생,
-│  │                           결과 수신 후 연출 확정 (호스트 결과 우선, 롤백 없음)
-│  ├ ParryJudge.cs         C#  ★권위 판정 레이어. 서버 보정 시각 + 판정 창으로 성공 여부만 계산.
-│  │                           Mirror에 의존하지 않는 순수 C# — 데디케이티드 전환 대비
-│  └ ParryGauge.cs         NB  플레이어 보유 게이지 SyncVar. 100 도달 시 치명의 일격(2.0~3.0배)
+│  ├ ParryController.cs    NB  [현재] 추정 서버 시각 Command. [계획] request/window 검증
+│  ├ ParryJudge.cs         C#  [현재] 시간 창 참·거짓만 계산하는 순수 판정
+│  └ ParryGauge.cs         NB  [계획] 플레이어 보유 게이지 SyncVar와 1회 치명 소비
 ├ Arrow/
-│  ├ ArrowLauncher.cs      NB  발사 [Command]. 클라는 발사 모션만 즉시 재생
-│  ├ ArrowProjectile.cs    NB  서버 스폰 투사체. 락온 보정 · 유도 · 관통을 서버가 계산
-│  └ ArrowGuidance.cs      C#  ★발사각 보정(12도) · 유도(초당 30도 · 0.4초) 계산 전용.
-│                              순수 C# — 판정 레이어 분리 원칙 동일
+│  ├ ArrowLauncher.cs      NB  [계획] BowAbility가 호출하는 서버 전용 스폰 실행기, Command 없음
+│  ├ ArrowProjectile.cs    NB  [계획] 서버 권위 궤적·명중·관통
+│  └ ArrowGuidance.cs      C#  [계획] 발사각 보정·유도 계산
 └ Camera/
-   ├ CameraRig.cs          MB  3인칭 오버숄더 (거리 3.5m · 높이 1.6m). 완전 로컬
-   └ LockOnSystem.cs       MB  락온 대상 선택 · 유지. 로컬 판단, 발사 시 대상 ID만 서버로
+   ├ CameraRig.cs          MB  [계획] 3인칭 오버숄더, 완전 로컬
+   └ LockOnSystem.cs       MB  [계획] 로컬 후보 선택, 공격 요청에는 후보 netId만 전달
 ```
 
-★표시 클래스가 [기술 구현 1.2](03-technical-design.md)의 "권위 판정 로직을 별도 레이어로 분리" 요구의 실체다. **판정 수식은 전부 순수 C# 클래스에 두고, NetworkBehaviour는 입출력(Command/SyncVar)만 담당한다.** 이 규칙은 몬스터 파트의 보스 패턴 판정과 시스템 파트의 결계 피해 판정에도 동일하게 적용한다.
+`57cb59d`의 실제 구현은 `PlayerController`, `PlayerMotionModel`, `ParryController`,
+`ParryJudge` 네 개다. 나머지는 구현 계약이다. **판정 수식은 순수 C# 클래스에 두고,
+NetworkBehaviour는 입력·서버 실행·동기화 경계를 담당한다.** 활 공격도 `PlayerAttack`의
+공통 Command를 거치며, `ArrowLauncher`가 별도의 클라이언트 요청 경로를 만들지 않는다.
 
 ### 4.3 03.AI — 잡귀 · 보스 · 스폰 (소유: 몬스터·보스 파트 @oname36-creator)
 
@@ -223,7 +239,7 @@ Main.unity
 03.AI/                     namespace Geumeum.AI
 ├ Enemy/
 │  ├ EnemyController.cs    NB  잡귀 공통: 추적 · 공격 실행 · 사망 → 드랍/경험치 이벤트 발행.
-│  │                           EnemyData의 종류 필드로 구동 (종류별 상속 대신 데이터 구동)
+│  │                           EnemySO의 종류 필드로 구동 (종류별 상속 대신 데이터 구동)
 │  ├ EnemyStatus.cs        NB  HP SyncVar + 강화 배수 적용. IDamageable 구현.
 │  │                           배수는 스폰 시점의 결계 단계로 확정하고 이후 재계산하지 않는다
 │  │                           (교전 중 최대 HP가 변하면 체력바가 어긋난다 — 게임 디자인 5.2)
@@ -255,7 +271,7 @@ Main.unity
 │  ├ EquipmentInstanceSerializer.cs C# Mirror Reader/Writer 확장. 장비 ID · 종류 · 등급 · 롤 ·
 │  │                           옵션 ID/값만 명시적으로 직렬화
 │  ├ EquipmentGenerator.cs C#  ★2단계 랜덤: 필드 레벨 → 등급 룰렛 → 롤. 서버에서만 호출.
-│  │                           재조정권 = 재생성, 등급 상승권 = 상위 Data로 교체 후 재생성
+│  │                           재조정권 = 재생성, 등급 상승권 = 상위 EquipmentSO로 교체 후 재생성
 │  ├ DropDirector.cs       NB  잡귀 사망 이벤트 구독 → Generator 호출 → DroppedItem 스폰.
 │  │                           보스 사망 시 FieldLevel 3 팀 보상 1회 생성
 │  └ DroppedItem.cs        NB  필드에 떨어진 장비. IInteractable, 습득은 [Command] → 서버 확정
@@ -266,13 +282,13 @@ Main.unity
 │  ├ CurrencyManager.cs    NB  팀 공용 노잣돈 단일 SyncVar. 구매 · 부활 차감 요청을
 │  │                           서버 큐로 순차 처리 — 잔액 음수 방지
 │  └ ShopKeeper.cs         NB  객주 NPC. RunPhase == Shrink2에만 IInteractable 활성.
-│                              상품 · 가격은 ShopData 참조
+│                              상품 · 가격은 ShopSO 참조
 ├ Growth/
-│  ├ GrowthManager.cs      NB  경험치(파티 공유) · 레벨 · 특성 포인트. LevelCurveData 참조
+│  ├ GrowthManager.cs      NB  경험치(파티 공유) · 레벨 · 특성 포인트. LevelCurveSO 참조
 │  └ TalentController.cs   NB  노드 찍기 · 무료 초기화 · 무기 교체 시 자동 초기화.
 │                              효과 적용은 이벤트로 각 파트에 통지 (예: 패링 판정 창 확대)
 ├ Score/
-│  ├ ScoreManager.cs       NB  런 동안 처치 수 · 사망 수 집계, 종료 시 ScoreRuleData로 정산
+│  ├ ScoreManager.cs       NB  런 동안 처치 수 · 사망 수 집계, 종료 시 ScoreRuleSO로 정산
 │  └ LeaderboardService.cs C#  기록 저장. 저장 방식 미정 — 로컬 JSON으로 시작하고 교체 가능하게
 │                             인터페이스 뒤에 숨긴다
 └ Barrier/
@@ -290,7 +306,7 @@ Main.unity
 
 ```
 05.Art/                    namespace Geumeum.Art
-├ DayCycleController.cs    MB  RunManager의 경과 시간 → DayCycleData로 조명 · 스카이박스 · 안개
+├ DayCycleController.cs    MB  RunManager의 경과 시간 → DayCycleSO로 조명 · 스카이박스 · 안개
 ├ BarrierVisual.cs         MB  BarrierController의 반경 SyncVar → 원통 셰이더 · 경계 파티클
 ├ CombatFeedbackImpl.cs    MB  ICombatFeedback 구현체: 히트 이펙트, 셰이크, 패링 슬로우모션.
 │                              OnEnable/OnDisable에서 CombatFeedbackLocator에 등록·해제 → 8.3
@@ -322,11 +338,15 @@ UI는 게임 상태를 **읽기만** 한다. UI에서 상태를 직접 바꾸는
 RunManager : NetworkBehaviour
 ├ SyncVar  float ElapsedSeconds     서버가 관리하는 유일한 경과 시간 원본
 ├ SyncVar  RunPhase Phase           Lobby → Farming → Shrink1 → Shrink2 → Shrink3 → Boss → Result
-├ event    OnPhaseChanged(RunPhase) 구간 전환 통지 (전 파트가 구독)
+├ local    RunPhaseChangedEvent     GameEventBus로 서버 프로세스 내부 구간 전환 통지
 └ int      FieldLevel               Phase에서 파생 — 드랍 가중치 · 잡귀 강화 배수의 키
 ```
 
-`ElapsedSeconds`와 `Phase`는 서버만 변경한다. 서버는 네트워크 틱에서 경과 시간을 갱신하고, 클라이언트는 수신한 값을 보간해 표시한다. 클라이언트가 자기 시계로 `Phase`를 전환하지 않는다. 구간의 시작 시각·종료 시각·반경·피해량은 `BarrierPhaseData`에서 읽는다.
+`ElapsedSeconds`와 `Phase`는 서버만 변경한다. 서버는 `RunManager.CoServerTick`에서
+`NetworkTime.time`으로 경과 시간을 다시 계산하고, 클라이언트는 수신한 값을 보간해 표시한다.
+클라이언트가 자기 시계로 `Phase`를 전환하지 않는다. 구간의 시작 시각·종료 시각·반경·피해량은
+`BarrierPhaseSO`에서 읽는다. 이 코루틴은 현재 런 시계·phase 전용이며 공용 전투 시뮬레이션
+스케줄러가 아니다.
 
 ### 5.1 전환 계약
 
@@ -340,19 +360,22 @@ RunManager : NetworkBehaviour
 | `Boss` | 실시간 30:00 | 보스 사망 또는 실시간 40:00 | 결계 피해 종료, 보스 전투 또는 시간 초과 실패 |
 | `Result` | 승리·실패·전멸·이탈 | 정산 완료 | 점수 계산, 성공 런만 리더보드 등록 |
 
+`57cb59d`에서 실제로 구현된 전환은 타임라인 경계·시간 초과·런 중 이탈이다.
+보스 사망, 전멸, 종료 사유, 점수 정산과 결계·스폰 구독자 side effect는 아직 구현 계약이다.
+
 `FieldLevel 3`은 일반 잡귀 드랍에 사용하지 않고 보스 처치 후 팀 보상에 한 번만 사용한다. `Result`로 전환하면 모든 입력·드랍·구매 요청을 거부한다.
 
 | 구독자 | ElapsedSeconds / Phase로 하는 일 |
 |---|---|
 | BarrierController | 단계별 목표 반경으로 축소 시작, 범위 밖 피해량 결정 |
 | SpawnManager | 동시 존재 수 · 리스폰 주기 · 구성 비율 전환 |
-| DropDirector | FieldLevel → DropTableData 가중치 선택. 3차는 보스 보상에만 적용 |
+| DropDirector | FieldLevel → DropTableSO 가중치 선택. 3차는 보스 보상에만 적용 |
 | ShopKeeper | Shrink2에서만 상호작용 활성 |
 | ScoreManager | 클리어 시간 보너스 계산 |
 | DayCycleController | 시각 환산 → 조명 (클라 로컬, 네트워크 무관) |
 | UI 각종 | 남은 시간 · 축소 10초 전 경고 표시 |
 
-구간 전환 시각과 배율은 코드가 아니라 `BarrierPhaseData` · `DayCycleData`가 가진다. RunManager는 시계를 진행하고 전환 이벤트를 발행하며, 각 파트는 시간을 다시 계산해 자기 상태를 변경하지 않는다.
+구간 전환 시각과 배율은 코드가 아니라 `BarrierPhaseSO` · `DayCycleSO`가 가진다. RunManager는 시계를 진행하고 전환 이벤트를 발행하며, 각 파트는 시간을 다시 계산해 자기 상태를 변경하지 않는다.
 
 ---
 
@@ -364,24 +387,24 @@ RunManager : NetworkBehaviour
 ```
 Assets/09.Data/
 ├ Resources/GameDB.asset        루트 GameDatabaseSO (Resources.Load 진입점)
-├ Combat/CombatConfigData.asset 스태미나 · 신력 · 이동 · 구르기 · 패링 (HP 제외)
-├ Arrow/ArrowConfigData.asset   화살 발사각 보정 · 유도 각도 · 지속 시간
-├ Equipment/EquipmentData.asset
-├ DropTable/DropTableData.asset
-├ Enemy/EnemyData.asset
-├ Barrier/BarrierPhaseData.asset
-├ Spawn/SpawnConfigData.asset  구간별 동시 존재 수 · 구성 비율 · 리스폰 주기
-├ Boss/BossPatternData.asset   보스 페이즈별 패턴 · 쿨다운 · 예고·판정 정보
-├ Talent/TalentTreeData.asset
-├ Shop/ShopData.asset
-├ LevelCurve/LevelCurveData.asset  레벨별 필요 경험치 + 최대 HP (단일 소스)
-├ Score/ScoreRuleData.asset
-└ DayCycle/DayCycleData.asset   ← 유일하게 네트워크와 무관한 순수 로컬 리소스
+├ Combat/CombatConfigSO.asset 스태미나 · 신력 · 이동 · 구르기 · 패링 (HP 제외)
+├ Arrow/ArrowConfigSO.asset   화살 발사각 보정 · 유도 각도 · 지속 시간
+├ Equipment/EquipmentSO.asset
+├ DropTable/DropTableSO.asset
+├ Enemy/EnemySO.asset
+├ Barrier/BarrierPhaseSO.asset
+├ Spawn/SpawnConfigSO.asset  구간별 동시 존재 수 · 구성 비율 · 리스폰 주기
+├ Boss/BossPatternSO.asset   보스 페이즈별 패턴 · 쿨다운 · 예고·판정 정보
+├ Talent/TalentTreeSO.asset
+├ Shop/ShopSO.asset
+├ LevelCurve/LevelCurveSO.asset  레벨별 필요 경험치 + 최대 HP (단일 소스)
+├ Score/ScoreRuleSO.asset
+└ DayCycle/DayCycleSO.asset   ← 유일하게 네트워크와 무관한 순수 로컬 리소스
 ```
 
 `GameDBBootstrap`만 `Resources/GameDB.asset`을 로드해 `GameDB.Initialize()`를 호출한다. `@Managers`의 초기화 순서는 `GameDBBootstrap` → `GameEventBus` → 네트워크 매니저이며, 소비 컴포넌트는 `Awake`의 필드 초기화식이 아니라 `Start`·`OnStartServer` 이후에 GameDB를 읽는다. 루트 DB나 필수 참조가 없으면 조용히 기본값으로 진행하지 않고 초기화 오류로 중단한다. 서버와 클라이언트는 같은 빌드의 GameDB를 사용한다.
 
-새 데이터 도메인 추가 절차: [기술 구현 3.1](03-technical-design.md)에 항목 추가 → `*Data` 클래스 → `GameDatabaseSO` 참조 → `GameDB` 프로퍼티 → 에셋 생성 ([밸런스 데이터 작업](unity/BALANCE_DATA_WORKFLOW.md)).
+새 데이터 도메인 추가 절차: [기술 구현 3.1](03-technical-design.md)에 항목 추가 → `*SO` 클래스 → `GameDatabaseSO` 참조 → `GameDB` 프로퍼티 → 에셋 생성 ([밸런스 데이터 작업](unity/BALANCE_DATA_WORKFLOW.md)).
 
 ---
 
@@ -405,20 +428,25 @@ Assets/02.Prefabs/
    └ VFX · 연출 프리팹 (로컬 재생 전용, NetworkIdentity 없음)
 ```
 
-**Player.prefab 컴포넌트 구성** (파트 간 접점이므로 고정):
+**Player.prefab 컴포넌트 구성**:
 
 ```
+[현재 — 57cb59d]
 Player.prefab
-├ NetworkIdentity, NetworkTransform
-├ PlayerController / PlayerStatus / PlayerWeapon / PlayerAttack   (Combat)
-├ PlayerPrediction / InteractionController                        (Combat, 로컬 입력·서버 요청)
-├ ParryController / ParryGauge                                    (Combat, 검 장착 시 활성)
-├ ArrowLauncher                                                   (Combat, 활 장착 시 활성)
-├ InventoryController / TalentController                          (Systems)
+├ NetworkIdentity / NetworkTransformReliable
+├ PlayerController / ParryController
+└ CapsuleCollider · MeshFilter · MeshRenderer
+
+[계획 — 단계별 추가]
+├ PlayerStatus / PlayerWeapon / PlayerAttack
+├ PlayerPrediction / InteractionController
+├ ParryGauge / ArrowLauncher(서버 전용)
+├ InventoryController / TalentController
 └ 자식: CameraRig 앵커, 모델 · 애니메이터
 ```
 
-플레이어에 새 NetworkBehaviour를 붙이는 변경은 동기화 대역폭과 파트 경계에 걸리므로 팀장 승인 대상.
+`ArrowLauncher`는 클라이언트 Command를 받지 않고 `BowAbility`의 서버 스폰 요청만 수행한다.
+플레이어에 새 NetworkBehaviour를 붙이는 변경은 동기화 대역폭과 파트 경계에 걸리므로 팀장 승인 대상이다.
 
 ---
 
@@ -486,7 +514,8 @@ _combatFeedback.PlayCritical(multiplier);
 | 공격 · 패링 · 화살 판정 | 서버 (판정 수식은 순수 C# ★클래스) | ParryJudge, ArrowGuidance 등 |
 | 잡귀 · 보스 AI, 결계 | 서버 | EnemyBrain*, BossPhase*, BarrierController |
 | 드랍 · 노잣돈 · 소유권 · 경험치 | 서버 | EquipmentGenerator, CurrencyManager, GrowthManager |
-| 사망 · 부활 · 전멸 | 서버 | ReviveController |
+| 사망 · 부활 · 전멸 감지 | 서버 | ReviveController |
+| 런 종료 · `Result` 커밋 | 서버 | RunManager |
 | 조명 · 카메라 · 이펙트 · 사운드 · UI | 클라 로컬 | 05.Art, 06.UI, CameraRig |
 | 보스 예고 장판 · 결계선 · 액귀 투사체 | **서버가 이벤트, 클라가 렌더링** | BossPatternTelegraph 등 |
 
@@ -509,6 +538,10 @@ _combatFeedback.PlayCritical(multiplier);
 | 집중 4주 | BossController + Phase 클래스들 |
 | 집중 5주 | 05.Art 전체 (CombatFeedbackImpl · DayCycle · BarrierVisual) · 사운드 |
 
+현재 기준선은 프로토 1주의 공용 데이터·부트·로비·런 시계 골격과
+Player.prefab의 이동·패링 초기 컴포넌트까지다. 3인 M2와 `PlayerStatus`/`PlayerWeapon`
+연결이 끝나기 전에는 프로토 1주 네트워크 범위를 완료로 표시하지 않는다.
+
 `00.Common`(인터페이스 · GameDB · RunPhase enum)이 **1주차 최우선**인 이유: 이것이 없으면 3명이 각자 임시 타입을 만들고, 통합 주에 전부 다시 붙여야 한다.
 
 ---
@@ -523,7 +556,7 @@ _combatFeedback.PlayCritical(multiplier);
 | 서버는 원본 값 하나만 | 기술 3.2 | RunManager의 ElapsedSeconds 허브 (5장) |
 | UI 전담자 없음 | 시스템 4 | 06.UI 파트별 하위 폴더 소유 (4.6) |
 | 페이즈마다 패링 패턴 | 게임 9.2 | BossPhaseBase + IParryable 계약 (4.3) |
-| 아이템 양도 · 재조정권 재사용 | 기술 4.3 | EquipmentData(설계도) / EquipmentInstance(결과) 분리 (4.4) |
+| 아이템 양도 · 재조정권 재사용 | 기술 4.3 | EquipmentSO(설계도) / EquipmentInstance(결과) 분리 (4.4) |
 | 호스트 PC 부하 | 기술 4.4 | 05.Art 로컬 전용 강제, VFX 프리팹에 NetworkIdentity 금지 (4.5 · 7장) |
 | 스코프 잠금 | 시스템 6 | 보스 1 · 고정 맵 · 제작 없음 — 해당 확장용 폴더 · 클래스를 미리 만들지 않는다 |
 | 3인 고정 · 역할 무작위 배분 | 시스템 2.3 | LobbyController가 런 시작을 게이트하고 무기를 중복 없이 배분 (4.1 · 10장) |

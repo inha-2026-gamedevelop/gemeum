@@ -14,7 +14,7 @@
 private const float ParryWindow = 0.32f;
 
 // 맞음
-[SerializeField] private CombatConfigData config;
+[SerializeField] private CombatConfigSO config;
 // config.parryWindow 를 참조
 ```
 
@@ -24,19 +24,19 @@ private const float ParryWindow = 0.32f;
 
 | 데이터 | 담는 것 | 소유 파트 |
 |---|---|---|
-| `CombatConfigData` | HP, 스태미나, 구르기, 패링 수치 | 네트워크 · 전투 |
-| `ArrowConfigData` | 발사각 보정, 유도 각도 · 지속 | 네트워크 · 전투 |
-| `EnemyData` | 잡귀 3종 스탯, 강화 배수 | 몬스터 · 보스 |
-| `BarrierPhaseData` | 단계별 시간, 반경, 피해량 | 게임플레이 시스템 |
-| `SpawnConfigData` | 구간별 밀집도, 구성 비율, 리스폰 주기 | 몬스터 · 보스 |
-| `BossPatternData` | 페이즈별 패턴, 쿨다운, 예고·판정 정보 | 몬스터 · 보스 |
-| `EquipmentData` | 등급별 롤 범위, 무기별 특수옵션 풀 | 게임플레이 시스템 |
-| `DropTableData` | 필드 레벨별 등급 가중치 | 게임플레이 시스템 |
-| `ShopData` | 객주 상품과 가격 | 게임플레이 시스템 |
-| `LevelCurveData` | 레벨별 필요 경험치, HP 증가량 | 게임플레이 시스템 |
-| `TalentTreeData` | 특성 노드 구성과 수치 | 게임플레이 시스템 |
-| `ScoreRuleData` | 점수 항목별 배점 | 게임플레이 시스템 |
-| `DayCycleData` | 실시간 ↔ 게임 시각 매핑, 조명 프리셋 | 테크니컬 아트 (팀장 겸임) |
+| `CombatConfigSO` | 스태미나, 신력, 이동, 구르기, 패링 수치 (**HP 제외**) | 네트워크 · 전투 |
+| `ArrowConfigSO` | 발사각 보정, 유도 각도 · 지속 | 네트워크 · 전투 |
+| `EnemySO` | 잡귀 3종 스탯, 강화 배수 | 몬스터 · 보스 |
+| `BarrierPhaseSO` | 단계별 시간, 반경, 피해량 | 게임플레이 시스템 |
+| `SpawnConfigSO` | 구간별 밀집도, 구성 비율, 리스폰 주기 | 몬스터 · 보스 |
+| `BossPatternSO` | 페이즈별 패턴, 쿨다운, 예고·판정 정보 | 몬스터 · 보스 |
+| `EquipmentSO` | 등급별 롤 범위, 무기별 특수옵션 풀 | 게임플레이 시스템 |
+| `DropTableSO` | 필드 레벨별 등급 가중치 | 게임플레이 시스템 |
+| `ShopSO` | 객주 상품과 가격 | 게임플레이 시스템 |
+| `LevelCurveSO` | 레벨별 필요 경험치, 1레벨 기본 HP와 레벨별 최대 HP | 게임플레이 시스템 |
+| `TalentTreeSO` | 특성 노드 구성과 수치 | 게임플레이 시스템 |
+| `ScoreRuleSO` | 점수 항목별 배점 | 게임플레이 시스템 |
+| `DayCycleSO` | 실시간 ↔ 게임 시각 매핑, 조명 프리셋 | 테크니컬 아트 (팀장 겸임) |
 
 ---
 
@@ -46,7 +46,7 @@ private const float ParryWindow = 0.32f;
 
 | 구분 | 역할 | 형태 |
 |---|---|---|
-| `EquipmentData` | 원본 설계도. 등급, 이름, 롤 범위, 특수옵션 풀 | ScriptableObject |
+| `EquipmentSO` | 원본 설계도. 등급, 이름, 롤 범위, 특수옵션 풀 | ScriptableObject |
 | `EquipmentInstance` | 개별 드랍 결과. 실제 굴려진 수치 | 런타임 클래스 |
 
 이렇게 해야 같은 무기라도 드랍마다 스탯이 달라지는 구조가 깔끔하다.
