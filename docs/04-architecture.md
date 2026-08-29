@@ -57,6 +57,7 @@ Assets/
 ├ 09.Data/          ScriptableObject 에셋 (GameDB)             → 6장
 ├ 10.InputSystem/   Input Action 에셋
 ├ 11.Timeline/      연출 타임라인 (집중개발 4~5주차부터)
+├ 12.Materials/     머티리얼 (모델 · 캐릭터별 하위 폴더)
 ├ 99.ThirdParty/    구매 에셋 원본 — 수정 금지, 커스텀은 밖으로 복사
 └ Mirror/           Mirror 패키지 — 수정 금지
 ```
