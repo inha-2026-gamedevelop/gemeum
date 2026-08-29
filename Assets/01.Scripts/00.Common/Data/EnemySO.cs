@@ -28,6 +28,11 @@ namespace Geumeum.Data
             public int       Experience;  // 처치 시 파티 전원 획득
             public int       CurrencyMin; // 냥
             public int       CurrencyMax; // 냥
+
+            public float AggroRange;     // 추적 시작 거리
+            public float AttackRange;    // 공격 판정 시작 거리
+            public float WindupDuration; // 공격 전 선딜 시간(초)
+            public float AttackCooldown; // 공격 후 재공격까지 대기 시간(초)
         }
 
         /// <summary> 필드 레벨별 강화 배수 </summary>
