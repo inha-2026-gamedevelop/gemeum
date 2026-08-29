@@ -26,15 +26,15 @@
       └→ DayCycleController  시각 → 조명 (로컬 전용)     ← Geumeum.Art
 ```
 
-파트 4개가 각자의 폴더 · 네임스페이스 · 작업 씬을 소유하고, 파트 간 결합은
+파트 4개가 각자의 폴더 · 네임스페이스 · 작업 씬을 소유하고(3인 팀이므로 테크니컬 아트는 팀장이 겸임한다), 파트 간 결합은
 **공용 인터페이스(`00.Common`)와 이벤트**로만 한다. Combat·AI·Systems 사이의 구체 클래스 직접 참조는 금지하고, Art·UI도 읽기 전용 뷰·이벤트를 통해서만 상태를 읽는다.
 
-| 파트 | 네임스페이스 | 폴더 (`Assets/01.Scripts/`) | 작업 씬 |
-|---|---|---|---|
-| 네트워크 · 전투 (팀장) | `Geumeum.Network` `Geumeum.Combat` | `01.Network/` `02.Combat/` | `Dev_Combat.unity` |
-| AI · 보스 | `Geumeum.AI` | `03.AI/` | `Dev_AI.unity` |
-| 게임플레이 시스템 | `Geumeum.Systems` | `04.Systems/` | `Dev_System.unity` |
-| 테크니컬 아트 | `Geumeum.Art` | `05.Art/` | `Dev_Art.unity` |
+| 파트 | 담당자 | 네임스페이스 | 폴더 (`Assets/01.Scripts/`) | 작업 씬 |
+|---|---|---|---|---|
+| 네트워크 · 전투 (팀장) | @AidenKim923 | `Geumeum.Network` `Geumeum.Combat` | `01.Network/` `02.Combat/` | `Dev_Combat.unity` |
+| 몬스터 · 보스 | @oname36-creator | `Geumeum.AI` | `03.AI/` | `Dev_AI.unity` |
+| 게임플레이 시스템 | @kjw1237 | `Geumeum.Systems` | `04.Systems/` | `Dev_System.unity` |
+| 테크니컬 아트 | @AidenKim923 (겸임) | `Geumeum.Art` | `05.Art/` | `Dev_Art.unity` |
 | (공용) | `Geumeum.Data` `Geumeum.Common` | `00.Common/` | — |
 | (각자) | `Geumeum.UI` | `06.UI/<파트>/` | — |
 
@@ -74,7 +74,7 @@ Assets/
 Assets/00.Scenes/
 ├ Main.unity          통합 씬. 통합 담당자(팀장)만 수정
 ├ Dev_Combat.unity    네트워크·전투 작업 씬
-├ Dev_AI.unity        AI·보스 작업 씬
+├ Dev_AI.unity        몬스터·보스 작업 씬
 ├ Dev_System.unity    게임플레이 시스템 작업 씬
 └ Dev_Art.unity       테크니컬 아트 작업 씬
 ```
@@ -215,9 +215,9 @@ Main.unity
    └ LockOnSystem.cs       MB  락온 대상 선택 · 유지. 로컬 판단, 발사 시 대상 ID만 서버로
 ```
 
-★표시 클래스가 [기술 구현 1.2](03-technical-design.md)의 "권위 판정 로직을 별도 레이어로 분리" 요구의 실체다. **판정 수식은 전부 순수 C# 클래스에 두고, NetworkBehaviour는 입출력(Command/SyncVar)만 담당한다.** 이 규칙은 AI 파트의 판정(결계 피해, 보스 패턴 판정)에도 동일하게 적용한다.
+★표시 클래스가 [기술 구현 1.2](03-technical-design.md)의 "권위 판정 로직을 별도 레이어로 분리" 요구의 실체다. **판정 수식은 전부 순수 C# 클래스에 두고, NetworkBehaviour는 입출력(Command/SyncVar)만 담당한다.** 이 규칙은 몬스터 파트의 보스 패턴 판정과 시스템 파트의 결계 피해 판정에도 동일하게 적용한다.
 
-### 4.3 03.AI — 잡귀 · 보스 · 결계 · 스폰 (소유: AI·보스 파트)
+### 4.3 03.AI — 잡귀 · 보스 · 스폰 (소유: 몬스터·보스 파트 @oname36-creator)
 
 ```
 03.AI/                     namespace Geumeum.AI
@@ -236,11 +236,6 @@ Main.unity
 │  ├ SpawnManager.cs       NB  RunPhase별 동시 존재 수 · 리스폰 타이머 · 구성 비율 관리.
 │  │                           결계 축소 시 범위 밖 클러스터 비활성화
 │  └ SpawnCluster.cs       MB  씬에 배치되는 거점 마커 (3~5마리). 위치 고정 · 구성 랜덤
-├ Barrier/
-│  ├ BarrierController.cs  NB  현재 단계 · 중심 · 반경 SyncVar. 중심은 씬의 BarrierCenter 고정,
-│  │                           30초 반경 보간, 10초 전 경고 이벤트,
-│  │                           매 초 범위 밖 IDamageable에 피해 + 쇠약/회복 봉쇄 플래그
-│  └ BarrierJudge.cs       C#  ★"반경 밖인가 · 얼마의 피해인가" 계산 전용 순수 C#
 └ Boss/
    ├ BossController.cs     NB  현재 페이즈에 위임만 한다. 페이즈 전환 조건 관리
    ├ BossStatus.cs         NB  보스 HP SyncVar. IDamageable
@@ -250,7 +245,7 @@ Main.unity
                               렌더링은 클라 — 기술 구현 3.2 "보이지만 판정에 걸리는 것"
 ```
 
-### 4.4 04.Systems — 장비 · 경제 · 성장 · 점수 (소유: 게임플레이 시스템 파트)
+### 4.4 04.Systems — 장비 · 경제 · 성장 · 점수 · 결계 (소유: 게임플레이 시스템 파트 @kjw1237)
 
 ```
 04.Systems/                namespace Geumeum.Systems
@@ -276,13 +271,20 @@ Main.unity
 │  ├ GrowthManager.cs      NB  경험치(파티 공유) · 레벨 · 특성 포인트. LevelCurveData 참조
 │  └ TalentController.cs   NB  노드 찍기 · 무료 초기화 · 무기 교체 시 자동 초기화.
 │                              효과 적용은 이벤트로 각 파트에 통지 (예: 패링 판정 창 확대)
-└ Score/
-   ├ ScoreManager.cs       NB  런 동안 처치 수 · 사망 수 집계, 종료 시 ScoreRuleData로 정산
-   └ LeaderboardService.cs C#  기록 저장. 저장 방식 미정 — 로컬 JSON으로 시작하고 교체 가능하게
-                              인터페이스 뒤에 숨긴다
+├ Score/
+│  ├ ScoreManager.cs       NB  런 동안 처치 수 · 사망 수 집계, 종료 시 ScoreRuleData로 정산
+│  └ LeaderboardService.cs C#  기록 저장. 저장 방식 미정 — 로컬 JSON으로 시작하고 교체 가능하게
+│                             인터페이스 뒤에 숨긴다
+└ Barrier/
+   ├ BarrierController.cs  NB  현재 단계 · 중심 · 반경 SyncVar. 중심은 씬의 BarrierCenter 고정,
+   │                          30초 반경 보간, 10초 전 경고 이벤트,
+   │                          매 초 범위 밖 IDamageable에 피해 + 쇠약/회복 봉쇄 플래그
+   └ BarrierJudge.cs       C#  ★"반경 밖인가 · 얼마의 피해인가" 계산 전용 순수 C#
 ```
 
-### 4.5 05.Art — 연출 · 시간대 · 결계 비주얼 (소유: 테크니컬 아트)
+결계는 잡귀 난이도가 아니라 런 진행에 걸린 시스템이라 이 폴더에 둔다. `SpawnManager`(4.3)와 `BarrierVisual`(4.5)은 `BarrierController`의 SyncVar를 **읽기만** 한다.
+
+### 4.5 05.Art — 연출 · 시간대 · 결계 비주얼 (소유: 테크니컬 아트 @AidenKim923 겸임)
 
 전부 **로컬 전용**이다. 이 폴더의 클래스가 NetworkBehaviour를 상속하면 설계 위반이다.
 
@@ -301,9 +303,10 @@ Main.unity
 ```
 06.UI/                     namespace Geumeum.UI
 ├ Combat/    HUD(HP · 스태미나 · 신력 · 패링 게이지), 락온 마커, 관전 화면   ← 팀장
-├ AI/        결계 경고 배너, 미니맵 원, 보스 HP 바                           ← AI 파트
-├ Systems/   인벤토리, 특성 트리, 객주 상점, 정산 · 리더보드                  ← 시스템 파트
-└ Art/       페이드 · 트랜지션, 연출성 UI                                    ← 아트 파트
+├ AI/        보스 HP 바                                                    ← 몬스터 파트
+├ Systems/   인벤토리, 특성 트리, 객주 상점, 정산 · 리더보드,
+│            결계 경고 배너 · 미니맵 원                                      ← 시스템 파트
+└ Art/       페이드 · 트랜지션, 연출성 UI                                    ← 팀장 (아트 겸임)
 ```
 
 UI는 게임 상태를 **읽기만** 한다. UI에서 상태를 직접 바꾸는 코드(예: 버튼에서 HP 조작)는 금지 — 반드시 해당 시스템의 Command 경유.
@@ -506,7 +509,7 @@ _combatFeedback.PlayCritical(multiplier);
 | 집중 4주 | BossController + Phase 클래스들 |
 | 집중 5주 | 05.Art 전체 (CombatFeedbackImpl · DayCycle · BarrierVisual) · 사운드 |
 
-`00.Common`(인터페이스 · GameDB · RunPhase enum)이 **1주차 최우선**인 이유: 이것이 없으면 4명이 각자 임시 타입을 만들고, 통합 주에 전부 다시 붙여야 한다.
+`00.Common`(인터페이스 · GameDB · RunPhase enum)이 **1주차 최우선**인 이유: 이것이 없으면 3명이 각자 임시 타입을 만들고, 통합 주에 전부 다시 붙여야 한다.
 
 ---
 

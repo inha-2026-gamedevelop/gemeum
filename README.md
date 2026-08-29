@@ -56,10 +56,12 @@ git checkout feature/{자기이름}
 
 | 파트 | 브랜치 | 씬 |
 |---|---|---|
-| 네트워크 · 전투 | `feature/민성` | `Assets/00.Scenes/Dev_Combat.unity` |
-| AI · 보스 설계 | `feature/{이름}` | `Assets/00.Scenes/Dev_AI.unity` |
-| 게임플레이 시스템 | `feature/{이름}` | `Assets/00.Scenes/Dev_System.unity` |
-| 테크니컬 아트 | `feature/{이름}` | `Assets/00.Scenes/Dev_Art.unity` |
+| 파트 | 담당자 | 브랜치 | 씬 |
+|---|---|---|---|
+| 네트워크 · 전투 | @AidenKim923 | `feature/Minsung` | `Assets/00.Scenes/Dev_Combat.unity` |
+| 몬스터 · 보스 | @oname36-creator | `feature/{이름}` | `Assets/00.Scenes/Dev_AI.unity` |
+| 게임플레이 시스템 | @kjw1237 | `feature/{이름}` | `Assets/00.Scenes/Dev_System.unity` |
+| 테크니컬 아트 | @AidenKim923 (겸임) | `feature/Minsung` | `Assets/00.Scenes/Dev_Art.unity` |
 
 ---
 
@@ -100,12 +102,14 @@ git checkout feature/{자기이름}
 
 ## 팀
 
-| 파트 | 핵심 기술 |
-|---|---|
-| 네트워크 · 전투 | 네트워크 환경에서의 패링 판정 동기화 |
-| AI · 보스 설계 | 보스 패턴 상태 머신 |
-| 게임플레이 시스템 | 가중치 기반 절차적 아이템 생성 |
-| 테크니컬 아트 | URP 기반 렌더링 및 아트 파이프라인 |
+3인 팀. 테크니컬 아트는 팀장이 겸임한다.
+
+| 파트 | 담당자 | 핵심 기술 |
+|---|---|---|
+| 네트워크 · 전투 (팀장) | 김민성 @AidenKim923 | 네트워크 환경에서의 패링 판정 동기화 |
+| 몬스터 · 보스 | @oname36-creator | 보스 패턴 상태 머신 |
+| 게임플레이 시스템 · 결계 | @kjw1237 | 가중치 기반 절차적 아이템 생성 |
+| 테크니컬 아트 (겸임) | 김민성 @AidenKim923 | URP 기반 렌더링 및 아트 파이프라인 |
 
 ---
 

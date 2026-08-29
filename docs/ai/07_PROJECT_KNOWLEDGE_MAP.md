@@ -23,20 +23,20 @@
 
 | 질문 · 키워드 | 기준 문서 | 코드 진입점 | 검증 방법 | 소유자 |
 |---|---|---|---|---|
-| 코어 루프, 결계 단계, 시간대 | [게임 디자인 2절](../02-game-design.md) | `BarrierController` | M2 3인 반경 일치 | AI 파트 |
+| 코어 루프, 결계 단계, 시간대 | [게임 디자인 2절](../02-game-design.md) | `BarrierController` | M2 3인 반경 일치 | 시스템 파트 |
 | 패링, 판정 창, 패링 게이지 | [게임 디자인 3절](../02-game-design.md) | `ParrySystem` | M3 지연 조건별 성공률 | 팀장 |
 | 화살, 유도, 락온 | [게임 디자인 4절](../02-game-design.md) | `ArrowProjectile` | M2 궤적 일치 | 팀장 |
-| 잡귀, 스폰, 강화 접두사 | [게임 디자인 5절](../02-game-design.md) | `SpawnManager`, `EnemyData` | M1 스폰 수 확인 | AI 파트 |
+| 잡귀, 스폰, 강화 접두사 | [게임 디자인 5절](../02-game-design.md) | `SpawnManager`, `EnemyData` | M1 스폰 수 확인 | 몬스터 파트 |
 | 장비, 등급, 스탯 롤 | [게임 디자인 6절](../02-game-design.md) | `EquipmentInstance`, `DropTableData` | M2 동시 획득 | 시스템 파트 |
 | 노잣돈, 객주, 상점 | [게임 디자인 7절](../02-game-design.md) | `EconomyManager`, `ShopData` | M2 동시 구매 잔액 | 시스템 파트 |
 | 레벨, 특성 트리 | [게임 디자인 8절](../02-game-design.md) | `TalentTreeData`, `LevelCurveData` | M1 | 시스템 파트 |
-| 보스 페이즈, 패턴 | [게임 디자인 9절](../02-game-design.md) | `BossController`, `BossPhaseBase` | M2 페이즈 전환 동시성 | AI 파트 |
+| 보스 페이즈, 패턴 | [게임 디자인 9절](../02-game-design.md) | `BossController`, `BossPhaseBase` | M2 페이즈 전환 동시성 | 몬스터 파트 |
 | 사망, 부활, 전멸 | [게임 디자인 10절](../02-game-design.md) | 부활 처리 로직 | M2 전멸 오판정 없음 | 팀장 |
 | 점수, 리더보드 | [게임 디자인 11절](../02-game-design.md) | `ScoreRuleData` | M1 | 시스템 파트 |
 | 서버냐 클라냐 | [네트워크 권위](../unity/NETWORK_AUTHORITY.md) | — | 코드 리뷰 체크리스트 | 팀장 |
 | 씬 충돌, `.meta`, LFS | [씬·에셋 안전](../unity/SCENE_AND_ASSET_SAFETY.md) | `.gitattributes` | CI 자동 검사 | 팀장 |
 | 밸런스 수치 변경 | [밸런스 데이터](../unity/BALANCE_DATA_WORKFLOW.md) | `Assets/09.Data/` | M1 값 반영 확인 | 시스템 파트 |
-| 조명, 시간대 연출 | [기술 설계](../03-technical-design.md) | `DayCycleData` | 로컬, 동기화 불필요 | 아트 파트 |
+| 조명, 시간대 연출 | [기술 설계](../03-technical-design.md) | `DayCycleData` | 로컬, 동기화 불필요 | 팀장 (아트 겸임) |
 | 브랜치, PR, 통합 | [협업 규칙](../../CONTRIBUTING.md) | `.github/` | CI 통과 | 팀장 |
 | Mirror API, SyncVar, Command | [네트워크 권위 5.5](../unity/NETWORK_AUTHORITY.md) | `NetworkManager` | M2 | 팀장 |
 | 3인 테스트 방법 | [멀티플레이 테스트](04_MULTIPLAYER_TEST_PROTOCOL.md) | — | — | 팀장 |
@@ -51,7 +51,8 @@
 |---|---|---|---|
 | 세션 · 동기화 | 네트워크 · 전투 | `Dev_Combat` | 서버 |
 | 플레이어 조작 · 패링 · 화살 | 네트워크 · 전투 | `Dev_Combat` | 서버 |
-| 잡귀 · 보스 · 결계 | AI · 보스 | `Dev_AI` | 서버 |
+| 잡귀 · 보스 | 몬스터 · 보스 | `Dev_AI` | 서버 |
+| 결계 | 게임플레이 시스템 | `Dev_System` | 서버 |
 | 장비 · 경제 · 특성 · 점수 | 게임플레이 시스템 | `Dev_System` | 서버 |
 | 셰이더 · VFX · 맵 · 조명 | 테크니컬 아트 | `Dev_Art` | 클라이언트 |
 
@@ -65,7 +66,7 @@
 |---|---|---|---|---|
 | D-001 | 호스트 권위 리슨 서버 | 3인 협동에 충분, 구현 단순 | 데디케이티드 (비용·복잡도) | 유효 |
 | D-008 | 네트워크 라이브러리 **Mirror** | 자료·커뮤니티 풍부, 무료, Steam 트랜스포트 교체 가능 | Netcode for GameObjects, Photon | 유효 |
-| D-009 | 브랜치 전략 `feature/{이름}` | 관리 단순, 4인 소규모 | 기능별 브랜치 (PR 범위는 명확하나 브랜치 난립) | 유효 |
+| D-009 | 브랜치 전략 `feature/{이름}` | 관리 단순, 3인 소규모 | 기능별 브랜치 (PR 범위는 명확하나 브랜치 난립) | 유효 |
 | D-002 | 보스 1마리 확정 | 5주 안에 완성도 확보 | 보스 3마리 (미완성 위험) | 유효 |
 | D-003 | 고정 맵 + 랜덤 스폰 | 절차적 생성 비용 회피 | 절차적 지형 | 유효 |
 | D-004 | 장비는 공격력만 상승 | 생존력은 레벨업으로 분리 | 방어력·HP 옵션 포함 | 유효 |

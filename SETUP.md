@@ -10,7 +10,7 @@
 
 | 파일 | 자리표시자 | 바꿀 값 |
 |---|---|---|
-| `.github/CODEOWNERS` | `@팀장` `@AI담당` `@시스템담당` `@아트담당` | GitHub 사용자명 |
+| `.github/CODEOWNERS` | — | 치환 완료 (@AidenKim923 · @oname36-creator · @kjw1237) |
 | `.github/ISSUE_TEMPLATE/config.yml` | `OWNER/REPO` | 실제 리포 경로 |
 | `README.md` | `<repo-url>` | 클론 주소 |
 
@@ -31,14 +31,12 @@ git push -u origin main
 git checkout -b develop
 git push -u origin develop
 
-# 담당자별 작업 브랜치 생성 (4인)
-git checkout -b feature/민성 && git push -u origin feature/민성
+# 담당자별 작업 브랜치 생성 (3인)
+git checkout -b feature/Minsung && git push -u origin feature/Minsung
 git checkout develop
 git checkout -b feature/{이름2} && git push -u origin feature/{이름2}
 git checkout develop
 git checkout -b feature/{이름3} && git push -u origin feature/{이름3}
-git checkout develop
-git checkout -b feature/{이름4} && git push -u origin feature/{이름4}
 git checkout develop
 ```
 

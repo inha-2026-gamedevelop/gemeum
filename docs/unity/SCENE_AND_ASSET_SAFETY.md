@@ -11,10 +11,10 @@
 
 | 씬 | 수정 권한 |
 |---|---|
-| `Assets/00.Scenes/Dev_Combat.unity` | 네트워크 · 전투 |
-| `Assets/00.Scenes/Dev_AI.unity` | AI · 보스 설계 |
-| `Assets/00.Scenes/Dev_System.unity` | 게임플레이 시스템 |
-| `Assets/00.Scenes/Dev_Art.unity` | 테크니컬 아트 |
+| `Assets/00.Scenes/Dev_Combat.unity` | 네트워크 · 전투 (@AidenKim923) |
+| `Assets/00.Scenes/Dev_AI.unity` | 몬스터 · 보스 (@oname36-creator) |
+| `Assets/00.Scenes/Dev_System.unity` | 게임플레이 시스템 (@kjw1237) |
+| `Assets/00.Scenes/Dev_Art.unity` | 테크니컬 아트 (@AidenKim923 겸임) |
 | `Assets/00.Scenes/Main.unity` | **통합 담당자만** |
 
 ### 규칙

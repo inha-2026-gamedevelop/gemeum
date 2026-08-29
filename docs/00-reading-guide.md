@@ -47,9 +47,9 @@
 | 파트 | 추가 필독 |
 |---|---|
 | 네트워크 · 전투 | [네트워크 권위](unity/NETWORK_AUTHORITY.md) |
-| AI · 보스 | [네트워크 권위](unity/NETWORK_AUTHORITY.md) · [게임 디자인 5·9절](02-game-design.md) |
-| 게임플레이 시스템 | [밸런스 데이터 작업](unity/BALANCE_DATA_WORKFLOW.md) · [게임 디자인 6~8·11절](02-game-design.md) |
-| 테크니컬 아트 | [씬 · 에셋 안전](unity/SCENE_AND_ASSET_SAFETY.md) · [기술 설계 4.4](03-technical-design.md) |
+| 몬스터 · 보스 | [네트워크 권위](unity/NETWORK_AUTHORITY.md) · [게임 디자인 5·9절](02-game-design.md) |
+| 게임플레이 시스템 · 결계 | [밸런스 데이터 작업](unity/BALANCE_DATA_WORKFLOW.md) · [게임 디자인 2·6~8·11절](02-game-design.md) |
+| 테크니컬 아트 (팀장 겸임) | [씬 · 에셋 안전](unity/SCENE_AND_ASSET_SAFETY.md) · [기술 설계 4.4](03-technical-design.md) |
 
 ---
 

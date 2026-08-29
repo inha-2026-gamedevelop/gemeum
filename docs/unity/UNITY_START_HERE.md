@@ -63,10 +63,10 @@ git config --global merge.unityyamlmerge.driver \
 
 | 파트 | 씬 |
 |---|---|
-| 네트워크 · 전투 | `Assets/00.Scenes/Dev_Combat.unity` |
-| AI · 보스 설계 | `Assets/00.Scenes/Dev_AI.unity` |
-| 게임플레이 시스템 | `Assets/00.Scenes/Dev_System.unity` |
-| 테크니컬 아트 | `Assets/00.Scenes/Dev_Art.unity` |
+| 네트워크 · 전투 (@AidenKim923) | `Assets/00.Scenes/Dev_Combat.unity` |
+| 몬스터 · 보스 (@oname36-creator) | `Assets/00.Scenes/Dev_AI.unity` |
+| 게임플레이 시스템 (@kjw1237) | `Assets/00.Scenes/Dev_System.unity` |
+| 테크니컬 아트 (@AidenKim923 겸임) | `Assets/00.Scenes/Dev_Art.unity` |
 
 ---
 
