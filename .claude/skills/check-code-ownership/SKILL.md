@@ -13,15 +13,15 @@ description: 코드 변경이 다른 파트/담당자 소유 영역과 접촉할
 
 다른 팀원이 요청자일 때는 구체적으로 다음을 건드리기 직전 이 스킬 전체 절차를 따른다:
 
-- `Assets/Scenes/Main.unity` (통합 씬)
-- 요청자 본인 파트가 아닌 `Assets/Scripts/` 하위 폴더 (예: 네트워크·전투 담당이 AI 폴더를 고침)
+- `Assets/00.Scenes/Main.unity` (통합 씬)
+- 요청자 본인 파트가 아닌 `Assets/01.Scripts/` 하위 폴더 (예: 네트워크·전투 담당이 `03.AI/`를 고침)
 - `.gitattributes`, `.gitignore`, `.github/` 등 저장소 공용 설정
 - 네트워크 권위 경계를 바꾸는 변경 (서버 판정 ↔ 클라 로컬 처리 전환)
 - 구매 에셋 원본 (`Assets/99.ThirdParty/`, `Assets/Mirror/` 등)
 - 파일 삭제, 대량 이동, 이름 일괄 변경
 - 다른 사람의 작업 씬 (`Dev_*.unity`)
 
-`CLAUDE.md` 작업 범위표에서 "승인 없이 수정 가능"에 해당하는 영역(자기 파트 `Assets/Scripts/`, `Assets/Data/` SO 값, `docs/`)은 이 스킬 대상이 아니다 — 바로 진행한다.
+`CLAUDE.md` 작업 범위표에서 "승인 없이 수정 가능"에 해당하는 영역(자기 파트 `Assets/01.Scripts/`, `Assets/09.Data/` SO 값, `docs/`)은 이 스킬 대상이 아니다 — 바로 진행한다.
 
 ## 방법
 
@@ -37,10 +37,10 @@ description: 코드 변경이 다른 파트/담당자 소유 영역과 접촉할
 ## 예시
 
 ```
-요청: "AI 담당인데, 패링 판정 로직도 같이 손보고 싶어" (Assets/Scripts/Combat/ 수정 필요)
+요청: "AI 담당인데, 패링 판정 로직도 같이 손보고 싶어" (Assets/01.Scripts/02.Combat/ 수정 필요)
 
 ❌ 바로 Combat 폴더 코드를 고침
-✅ CODEOWNERS 확인 → /Assets/Scripts/Combat/ 은 팀장(@AidenKim923) 소유
+✅ CODEOWNERS 확인 → /Assets/01.Scripts/02.Combat/ 은 팀장(@AidenKim923) 소유
    → CLAUDE.md 작업 범위표: 다른 파트 Scripts 폴더 = "승인 후 수정"
    → AskUserQuestion으로 "팀장 확인받으셨나요?" 확인 후 진행
 ```
