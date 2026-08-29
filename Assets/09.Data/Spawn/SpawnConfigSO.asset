@@ -18,7 +18,7 @@ MonoBehaviour:
   - Phase: 1
     ConcurrentMin: 18
     ConcurrentMax: 22
-    RespawnInterval: 90
+    RespawnInterval: 150
     RatioHeokkaebi: 6
     RatioChanggwi: 2
     RatioAekgwi: 2
@@ -27,7 +27,7 @@ MonoBehaviour:
   - Phase: 2
     ConcurrentMin: 14
     ConcurrentMax: 16
-    RespawnInterval: 60
+    RespawnInterval: 120
     RatioHeokkaebi: 5
     RatioChanggwi: 3
     RatioAekgwi: 2
@@ -36,7 +36,7 @@ MonoBehaviour:
   - Phase: 3
     ConcurrentMin: 8
     ConcurrentMax: 10
-    RespawnInterval: 60
+    RespawnInterval: 0
     RatioHeokkaebi: 3
     RatioChanggwi: 3
     RatioAekgwi: 3

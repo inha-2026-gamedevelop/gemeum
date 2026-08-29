@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: ScoreRuleData
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.ScoreRuleData
   _remainingHealthScore: 1
-  _remainingTimeScore: 10
+  _remainingTimeScore: 3
   _unspentTalentPointScore: 20
-  _remainingCurrencyScore: 10
+  _remainingCurrencyScore: 2
