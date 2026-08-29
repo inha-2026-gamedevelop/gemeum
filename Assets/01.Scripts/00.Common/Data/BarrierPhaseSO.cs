@@ -1,5 +1,6 @@
 // System
 using System;
+using System.Collections.Generic;
 
 // Unity
 using UnityEngine;
@@ -65,6 +66,9 @@ namespace Geumeum.Data
         public float WarningLeadTime           => _warningLeadTime;
         public float DamageTickInterval        => _damageTickInterval;
         public float WeakenedHealingMultiplier => _weakenedHealingMultiplier;
+
+        /// <summary> 정의된 순서 그대로의 단계 목록. 서버가 부트 시 구간 연속성을 검사할 때 읽는다 </summary>
+        public IReadOnlyList<PhaseEntry> Phases => _phases;
 
         /****************************************
         *                Methods
