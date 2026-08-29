@@ -12,6 +12,22 @@ IGNORE_SUFFIX = ('.meta',)
 IGNORE_DIRS = ('Assets/StreamingAssets/aa/',)
 
 
+def unity_ignores(path: str) -> bool:
+    """Unity가 .meta를 만들지 않는 경로인지 판정.
+
+    Unity는 점으로 시작하거나 물결로 끝나는 이름, cvs 폴더, .tmp 파일을
+    임포트 대상에서 제외한다. 이런 경로에 .meta를 요구하면 영원히 통과할 수 없다.
+    """
+    for part in path.split('/'):
+        if not part:
+            continue
+        if part.startswith('.') or part.endswith('~'):
+            return True
+        if part.lower() == 'cvs' or part.endswith('.tmp'):
+            return True
+    return False
+
+
 def main(list_path: str) -> int:
     with open(list_path, encoding='utf-8') as f:
         changed = [ln.strip() for ln in f if ln.strip()]
@@ -25,6 +41,8 @@ def main(list_path: str) -> int:
         if path.endswith(IGNORE_SUFFIX):
             continue
         if any(path.startswith(d) for d in IGNORE_DIRS):
+            continue
+        if unity_ignores(path):
             continue
 
         meta = path + '.meta'

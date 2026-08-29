@@ -7,13 +7,15 @@ import sys
 LINK = re.compile(r'\[[^\]]*\]\(([^)]+)\)')
 SKIP = ('http://', 'https://', 'mailto:', '#')
 
+# 구매 에셋과 Unity 생성물. CI 체크아웃에는 없지만, 로컬에서 같은 검사를
+# 돌려볼 수 있어야 PR을 올리기 전에 깨진 링크를 잡을 수 있다.
+SKIP_DIRS = {'99.ThirdParty', '.git', 'Library', 'Temp', 'obj', 'Build', 'Logs'}
+
 
 def main() -> int:
     broken = []
     for root, dirs, files in os.walk('.'):
-        if '/.git' in root:
-            continue
-        dirs[:] = [d for d in dirs if d != '99.ThirdParty']
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
         for name in files:
             if not name.endswith('.md'):
                 continue
