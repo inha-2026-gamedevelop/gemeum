@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c0140f870229a4443b3ad48a3952f2d8, type: 3}
-  m_Name: EquipmentData
-  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.EquipmentData
+  m_Name: EquipmentSO
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.EquipmentSO
   _grades:
   - Grade: 0
     DisplayName: "\uC77C\uBC18 (\u767D)"

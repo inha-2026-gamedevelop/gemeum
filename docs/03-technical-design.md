@@ -70,21 +70,21 @@ Gaia로 생성한 Terrain 데이터는 **테크니컬 아트 담당자만 수정
 
 | 데이터 | 내용 |
 |---|---|
-| `CombatConfigData` | 스태미나, 신력, 이동 속도, 구르기, 패링 수치 (**HP는 제외**) |
-| `ArrowConfigData` | 화살 발사각 보정, 유도 각도 · 지속 시간 |
-| `EquipmentData` | 등급별 스탯 롤 범위, 특수옵션 풀 |
-| `DropTableData` | 필드 레벨별 등급 가중치 |
-| `EnemyData` | 잡귀 3종 스탯, 강화 배수 |
-| `BarrierPhaseData` | 결계 단계별 시간, 반경, 피해량 |
-| `SpawnConfigData` | 구간별 동시 존재 수, 구성 비율, 리스폰 주기 |
-| `BossPatternData` | 보스 페이즈별 패턴, 쿨다운, 예고·판정 정보 |
-| `TalentTreeData` | 특성 노드 구성과 수치 |
-| `ShopData` | 객주 상품 목록과 가격 |
-| `LevelCurveData` | 레벨별 필요 경험치, **1레벨 기본 HP와 레벨별 최대 HP 전체** |
-| `ScoreRuleData` | 점수 항목별 배점 |
-| `DayCycleData` | 실시간과 게임 내 시각 매핑, 시간대별 조명 프리셋 |
+| `CombatConfigSO` | 스태미나, 신력, 이동 속도, 구르기, 패링 수치 (**HP는 제외**) |
+| `ArrowConfigSO` | 화살 발사각 보정, 유도 각도 · 지속 시간 |
+| `EquipmentSO` | 등급별 스탯 롤 범위, 특수옵션 풀 |
+| `DropTableSO` | 필드 레벨별 등급 가중치 |
+| `EnemySO` | 잡귀 3종 스탯, 강화 배수 |
+| `BarrierPhaseSO` | 결계 단계별 시간, 반경, 피해량 |
+| `SpawnConfigSO` | 구간별 동시 존재 수, 구성 비율, 리스폰 주기 |
+| `BossPatternSO` | 보스 페이즈별 패턴, 쿨다운, 예고·판정 정보 |
+| `TalentTreeSO` | 특성 노드 구성과 수치 |
+| `ShopSO` | 객주 상품 목록과 가격 |
+| `LevelCurveSO` | 레벨별 필요 경험치, **1레벨 기본 HP와 레벨별 최대 HP 전체** |
+| `ScoreRuleSO` | 점수 항목별 배점 |
+| `DayCycleSO` | 실시간과 게임 내 시각 매핑, 시간대별 조명 프리셋 |
 
-**최대 HP는 `LevelCurveData`가 단독으로 소유한다.** 1레벨 기본값 100을 `CombatConfigData`에도 두면 두 에셋이 서로 다른 최대 HP를 주장할 수 있다. `CombatConfigData`는 레벨과 무관한 값(스태미나 · 신력 · 이동 · 구르기 · 패링)만 가진다.
+**최대 HP는 `LevelCurveSO`가 단독으로 소유한다.** 1레벨 기본값 100을 `CombatConfigSO`에도 두면 두 에셋이 서로 다른 최대 HP를 주장할 수 있다. `CombatConfigSO`는 레벨과 무관한 값(스태미나 · 신력 · 이동 · 구르기 · 패링)만 가진다.
 
 ---
 
@@ -128,7 +128,7 @@ Gaia로 생성한 Terrain 데이터는 **테크니컬 아트 담당자만 수정
 | 결계 반경 120m | 원통 셰이더, 미니맵 원, 경계 파티클 |
 | 플레이어 HP 42 | 체력바 애니메이션, 저체력 화면 효과 |
 
-시간대 조명 프리셋 자체는 네트워크를 전혀 타지 않는다. `DayCycleData`는 로컬 리소스다.
+시간대 조명 프리셋 자체는 네트워크를 전혀 타지 않는다. `DayCycleSO`는 로컬 리소스다.
 
 ### 예외 — 보이지만 판정에 걸리는 것
 
@@ -204,6 +204,11 @@ public interface ICombatFeedback
 - 패링 판정과 패링 게이지 동기화
 - 사망 · 부활 처리
 
+> 현재 구현 기준(`57cb59d`): `ServerBootGate`, `GeumeumNetworkManager`,
+> `LobbyController`, `RunManager`, `RunPhaseTimeline`, `RunTimelineBuilder`가 존재한다.
+> 부트 게이트와 런 시계는 L2까지 확인됐고, 3인 준비·무기 배분·이탈 경로는 M2 검증 대기다.
+> 플레이어는 이동과 패링의 초기 Command만 있으며 상태·공격·부활은 아직 계획 단계다.
+
 #### 권위 모델
 
 | 대상 | 판정 주체 | Mirror |
@@ -215,6 +220,10 @@ public interface ICombatFeedback
 | 드랍 결정 | 호스트 | `[Server]` + `NetworkServer.Spawn` |
 
 `NetworkTransform`에 예측·재조정을 맡기지 않는다. 근거는 아래 "패링 동기화의 기술적 과제" 마지막 항을 따른다.
+
+공격 입력의 클라이언트 Command 진입점은 `PlayerAttack` 하나로 고정한다.
+활도 `PlayerAttack`이 현재 무기의 `BowAbility`를 선택하고, 서버 전용 `ArrowLauncher`가
+화살을 스폰한다. `ArrowLauncher`에 별도의 클라이언트 Command를 두지 않는다.
 
 전체 API 매핑은 [네트워크 권위 5.5절](unity/NETWORK_AUTHORITY.md).
 
@@ -255,7 +264,10 @@ public interface ICombatFeedback
   → 3인 전원의 HP가 0인 상태면 런 종료 처리
 ```
 
-전멸 판정은 "동시 사망"이 아니라 **서버 틱에서 3인의 생명 상태를 확인하여 전원 사망 상태인지** 판정한다. 타이밍 차이로 인한 판정 누락을 막고, 사망 이벤트가 중복으로 노잣돈을 차감하지 않도록 플레이어별 부활 상태를 함께 기록한다.
+전멸 판정은 "동시 사망"이 아니라 **서버 틱에서 3인의 생명 상태를 확인하여 전원 사망 상태인지** 판정한다.
+`ReviveController`가 전멸 조건을 감지하고 `RunManager.AbortRun`을 요청하며,
+`RunManager`만 `RunPhase.Result`를 커밋한다. 타이밍 차이로 인한 판정 누락을 막고,
+사망 이벤트가 중복으로 노잣돈을 차감하지 않도록 플레이어별 부활 상태를 함께 기록한다.
 
 ---
 
@@ -294,7 +306,7 @@ public interface ICombatFeedback
 enum + switch 방식은 패턴 추가 시 수정 범위가 넓어진다.
 
 **제약**: 페이즈마다 패링 가능 패턴 최소 1개.
-패턴의 수치·쿨다운·예고 시간은 `BossPatternData`가 소유하고, 페이즈 클래스는 서버에서 패턴 선택과 상태 전환만 담당한다.
+패턴의 수치·쿨다운·예고 시간은 `BossPatternSO`가 소유하고, 페이즈 클래스는 서버에서 패턴 선택과 상태 전환만 담당한다.
 
 ---
 
@@ -329,10 +341,10 @@ BarrierController (호스트 권위)
 
 ```
 1단계 — 등급 결정
-  필드 레벨 참조 → DropTableData 가중치 룰렛 → 등급 확정
+  필드 레벨 참조 → DropTableSO 가중치 룰렛 → 등급 확정
 
 2단계 — 스탯 롤
-  등급에 해당하는 EquipmentData의 롤 범위 내에서 무작위 값 생성
+  등급에 해당하는 EquipmentSO의 롤 범위 내에서 무작위 값 생성
   등급별 확률에 따라 특수옵션 부여
 ```
 
@@ -342,7 +354,7 @@ BarrierController (호스트 권위)
 
 | 구분 | 역할 |
 |---|---|
-| `EquipmentData` (ScriptableObject) | 원본 설계도. 등급, 이름, 롤 범위, **무기 종류별 특수옵션 풀** |
+| `EquipmentSO` (ScriptableObject) | 원본 설계도. 등급, 이름, 롤 범위, **무기 종류별 특수옵션 풀** |
 | `EquipmentInstance` (런타임 클래스) | 개별 드랍 결과. 실제 굴려진 수치 보유 |
 
 이렇게 해야 같은 무기라도 드랍마다 스탯이 달라지는 구조가 깔끔하게 나온다.
@@ -351,8 +363,8 @@ BarrierController (호스트 권위)
 
 #### 스탯 재조정권 · 등급 상승권
 
-- 재조정권: 같은 `EquipmentData`로 `EquipmentInstance`를 재생성
-- 등급 상승권: 상위 등급 `EquipmentData`로 교체 후 재생성
+- 재조정권: 같은 `EquipmentSO`로 `EquipmentInstance`를 재생성
+- 등급 상승권: 상위 등급 `EquipmentSO`로 교체 후 재생성
 
 두 기능 모두 위 구조를 그대로 재사용하므로 추가 구현 비용이 거의 없다.
 
@@ -479,5 +491,6 @@ UI 전담자를 두지 않는다. **각자 자기 시스템의 UI를 담당**한
 | 항목 | 상태 |
 |---|---|
 | 데디케이티드 서버 전환 여부 | 추후 검토 |
+| 공용 권위 시뮬레이션 틱 | `RunManager.CoServerTick`은 런 시계·phase 전용으로 구현됨. 플레이어·AI·투사체의 고정 실행 순서를 같은 루프에 넣을지 별도 스케줄러로 둘지는 미정 |
 | 애니메이션 에셋 소싱 | 미정 |
 | 빌드 배포 방식 (테스트용) | 미정 |

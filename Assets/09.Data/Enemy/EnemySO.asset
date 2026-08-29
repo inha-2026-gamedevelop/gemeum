@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6efc383c9ffa198458de7594fb7d46a2, type: 3}
-  m_Name: EnemyData
-  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.EnemyData
+  m_Name: EnemySO
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.EnemySO
   _stats:
   - Kind: 0
     DisplayName: "\uD5C8\uAE68\uBE44"

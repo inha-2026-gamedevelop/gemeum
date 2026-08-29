@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 08bf13bf8fc9538468e482ec8330b5fa, type: 3}
-  m_Name: DropTableData
-  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.DropTableData
+  m_Name: DropTableSO
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.DropTableSO
   _entries:
   - FieldLevel: 0
     WeightCommon: 70

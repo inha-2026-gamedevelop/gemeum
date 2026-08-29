@@ -70,7 +70,7 @@
 - 근거 문서: docs/02-game-design.md 2.1절, docs/03-technical-design.md 4.3절
 
 ## 산출물
-- 최종 형태: BarrierController와 BarrierPhaseData ScriptableObject
+- 최종 형태: BarrierController와 BarrierPhaseSO ScriptableObject
 - 이번에 포함: 반경 보간, 단계 전환, 범위 밖 피해, 10초 전 경고 이벤트
 - 후속으로 미룸: 결계 시각 연출 (테크니컬 아트 — 팀장 겸임)
 
@@ -78,7 +78,7 @@
 - 담당 파트: 게임플레이 시스템
 - 수정할 씬: Dev_System.unity
 - 네트워크 영향: 서버 권위. 반경 값을 모든 클라이언트에 동기화
-- 밸런스 데이터 영향: BarrierPhaseData 신규 생성
+- 밸런스 데이터 영향: BarrierPhaseSO 신규 생성
 - 다른 파트와 충돌: 플레이어 HP 감소 경로가 전투 파트와 겹침 → 인터페이스 협의 필요
 
 ## 범위

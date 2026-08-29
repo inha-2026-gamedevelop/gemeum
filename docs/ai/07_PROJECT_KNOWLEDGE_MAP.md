@@ -26,17 +26,17 @@
 | 코어 루프, 결계 단계, 시간대 | [게임 디자인 2절](../02-game-design.md) | `BarrierController` | M2 3인 반경 일치 | 시스템 파트 |
 | 패링, 판정 창, 패링 게이지 | [게임 디자인 3절](../02-game-design.md) | `ParrySystem` | M3 지연 조건별 성공률 | 팀장 |
 | 화살, 유도, 락온 | [게임 디자인 4절](../02-game-design.md) | `ArrowProjectile` | M2 궤적 일치 | 팀장 |
-| 잡귀, 스폰, 강화 접두사 | [게임 디자인 5절](../02-game-design.md) | `SpawnManager`, `EnemyData` | M1 스폰 수 확인 | 몬스터 파트 |
-| 장비, 등급, 스탯 롤 | [게임 디자인 6절](../02-game-design.md) | `EquipmentInstance`, `DropTableData` | M2 동시 획득 | 시스템 파트 |
-| 노잣돈, 객주, 상점 | [게임 디자인 7절](../02-game-design.md) | `EconomyManager`, `ShopData` | M2 동시 구매 잔액 | 시스템 파트 |
-| 레벨, 특성 트리 | [게임 디자인 8절](../02-game-design.md) | `TalentTreeData`, `LevelCurveData` | M1 | 시스템 파트 |
+| 잡귀, 스폰, 강화 접두사 | [게임 디자인 5절](../02-game-design.md) | `SpawnManager`, `EnemySO` | M1 스폰 수 확인 | 몬스터 파트 |
+| 장비, 등급, 스탯 롤 | [게임 디자인 6절](../02-game-design.md) | `EquipmentInstance`, `DropTableSO` | M2 동시 획득 | 시스템 파트 |
+| 노잣돈, 객주, 상점 | [게임 디자인 7절](../02-game-design.md) | `CurrencyManager`, `ShopSO` | M2 동시 구매 잔액 | 시스템 파트 |
+| 레벨, 특성 트리 | [게임 디자인 8절](../02-game-design.md) | `TalentTreeSO`, `LevelCurveSO` | M1 | 시스템 파트 |
 | 보스 페이즈, 패턴 | [게임 디자인 9절](../02-game-design.md) | `BossController`, `BossPhaseBase` | M2 페이즈 전환 동시성 | 몬스터 파트 |
 | 사망, 부활, 전멸 | [게임 디자인 10절](../02-game-design.md) | 부활 처리 로직 | M2 전멸 오판정 없음 | 팀장 |
-| 점수, 리더보드 | [게임 디자인 11절](../02-game-design.md) | `ScoreRuleData` | M1 | 시스템 파트 |
+| 점수, 리더보드 | [게임 디자인 11절](../02-game-design.md) | `ScoreRuleSO` | M1 | 시스템 파트 |
 | 서버냐 클라냐 | [네트워크 권위](../unity/NETWORK_AUTHORITY.md) | — | 코드 리뷰 체크리스트 | 팀장 |
 | 씬 충돌, `.meta`, LFS | [씬·에셋 안전](../unity/SCENE_AND_ASSET_SAFETY.md) | `.gitattributes` | CI 자동 검사 | 팀장 |
 | 밸런스 수치 변경 | [밸런스 데이터](../unity/BALANCE_DATA_WORKFLOW.md) | `Assets/09.Data/` | M1 값 반영 확인 | 시스템 파트 |
-| 조명, 시간대 연출 | [기술 설계](../03-technical-design.md) | `DayCycleData` | 로컬, 동기화 불필요 | 팀장 (아트 겸임) |
+| 조명, 시간대 연출 | [기술 설계](../03-technical-design.md) | `DayCycleSO` | 로컬, 동기화 불필요 | 팀장 (아트 겸임) |
 | 브랜치, PR, 통합 | [협업 규칙](../../CONTRIBUTING.md) | `.github/` | CI 통과 | 팀장 |
 | Mirror API, SyncVar, Command | [네트워크 권위 5.5](../unity/NETWORK_AUTHORITY.md) | `NetworkManager` | M2 | 팀장 |
 | 3인 테스트 방법 | [멀티플레이 테스트](04_MULTIPLAYER_TEST_PROTOCOL.md) | — | — | 팀장 |

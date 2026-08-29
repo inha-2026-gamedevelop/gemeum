@@ -6,7 +6,7 @@
 **이 문서를 강제하는 파일**
 - [`.editorconfig`](../.editorconfig) — 중괄호 위치(Allman), 멤버 변수/상수/인터페이스 명명 규칙을 IDE 경고로 표시한다. VS/Rider 모두 자동 인식.
 - `Assets/ScriptTemplates/1-Scripting__MonoBehaviour Script-NewMonoBehaviourScript.cs.txt` — Unity `Create > MonoBehaviour Script`의 기본 템플릿을 9장 파일 구조로 덮어쓴다.
-- `Assets/ScriptTemplates/2-Scripting__ScriptableObject Script-NewScriptableObjectScript.cs.txt` — `Create > ScriptableObject Script` 템플릿을 16장 GameDB `*Data` 규칙(메뉴 경로 `Geumeum/...`)에 맞춘다.
+- `Assets/ScriptTemplates/2-Scripting__ScriptableObject Script-NewScriptableObjectScript.cs.txt` — `Create > ScriptableObject Script` 템플릿을 16장 GameDB `*SO` 규칙(메뉴 경로 `Geumeum/...`)에 맞춘다.
 
 두 템플릿 모두 프로젝트 내장 파일이라 각자 에디터를 새로 열면 바로 적용된다 (에디터별 전역 설정이 아니다).
 
@@ -458,7 +458,7 @@ float dropWeight = GameDB.DropTable.GetWeight(fieldLevel);
 _waitPhaseInterval = new WaitForSeconds(GameDB.Barrier.PhaseInterval);
 
 // 매 프레임 접근 코드는 Start에서 SO 참조를 캐싱 (Awake 아님 — 아래 규칙 참조)
-private EnemyData _enemyData;
+private EnemySO _enemyData;
 private void Start() { _enemyData = GameDB.Enemy; }
 
 // NetworkBehaviour는 OnStartServer / OnStartClient에서 캐싱해도 된다
@@ -471,9 +471,9 @@ public override void OnStartServer() { _enemyData = GameDB.Enemy; }
 - **소비 컴포넌트는 `Awake`와 필드 초기화식에서 GameDB를 읽지 않는다.** `Start` · `OnStartServer` · `OnStartClient` 이후에 읽는다 — 같은 씬에 있는 컴포넌트들의 `Awake` 실행 순서는 보장되지 않으므로, `Awake`에서 읽으면 `GameDBBootstrap`보다 먼저 도는 컴포넌트가 초기화 전 DB를 잡는다 ([프로젝트 구조 설계서 6장](04-architecture.md))
 - 루트 DB나 필수 참조가 없으면 조용히 기본값으로 진행하지 말고 초기화 오류로 중단한다
 - 컴포넌트에 밸런스 값을 SerializeField 미러로 두지 않는다 — DB 원본이 단일 소스
-- 새 도메인은 [기술 설계 3.1](03-technical-design.md)에 항목 추가 → `*Data` 클래스 생성 → `GameDatabaseSO`에 참조 추가 → `GameDB` 프로퍼티 추가 → `09.Data/<도메인>/`에 에셋 생성
+- 새 도메인은 [기술 설계 3.1](03-technical-design.md)에 항목 추가 → `*SO` 클래스 생성 → `GameDatabaseSO`에 참조 추가 → `GameDB` 프로퍼티 추가 → `09.Data/<도메인>/`에 에셋 생성
 - 밸런스 수치 변경은 DB 에셋 인스턴스에서 — 코드는 건드리지 않는다
-- `DayCycleData`는 네트워크를 타지 않는 로컬 리소스다 (서버가 경과 시간만 보내고, 조명·스카이박스는 각자 계산 — [기술 설계 3.2](03-technical-design.md))
+- `DayCycleSO`는 네트워크를 타지 않는 로컬 리소스다 (서버가 경과 시간만 보내고, 조명·스카이박스는 각자 계산 — [기술 설계 3.2](03-technical-design.md))
 
 ### Constants — 코드 계약값 (partial class)
 
@@ -492,7 +492,7 @@ float dist = _col.bounds.extents.y + Constants.Player.GROUND_CHECK_EXTRA;
 
 **Constants 규칙**
 - 해당 시스템 파일에만 추가, UPPER_SNAKE_CASE, 반드시 단위/용도 주석
-- 파일 필드가 전부 밸런스 값이 되면 GameDB의 `*Data`로 승격을 검토한다
+- 파일 필드가 전부 밸런스 값이 되면 GameDB의 `*SO`로 승격을 검토한다
 
 ---
 

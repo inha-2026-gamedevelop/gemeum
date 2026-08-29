@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cffdf1688414c44459bf31720b1a487a, type: 3}
-  m_Name: BossPatternData
-  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.BossPatternData
+  m_Name: BossPatternSO
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.BossPatternSO
   _maxHealth: 0
   _phases: []
   _patterns: []

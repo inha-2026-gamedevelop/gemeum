@@ -10,11 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0b65b16eb3d7d4643bbd4adba31c9a59, type: 3}
-  m_Name: TalentTreeData
-  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.TalentTreeData
+  m_Name: TalentTreeSO
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.TalentTreeSO
   _columnsPerWeapon: 2
   _nodesPerColumn: 5
-  _totalPoints: 9
   _columns:
   - WeaponKind: 0
     ColumnIndex: 0

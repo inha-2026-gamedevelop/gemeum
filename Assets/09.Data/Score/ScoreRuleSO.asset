@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fc910588cf26cfc48ae98d04fe3e3edf, type: 3}
-  m_Name: ScoreRuleData
-  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.ScoreRuleData
+  m_Name: ScoreRuleSO
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.ScoreRuleSO
   _remainingHealthScore: 1
-  _remainingTimeScore: 3
+  _remainingTimeScore: 3.3333333
   _unspentTalentPointScore: 20
   _remainingCurrencyScore: 2
