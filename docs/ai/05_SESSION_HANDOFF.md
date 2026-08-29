@@ -6,10 +6,33 @@
 
 ## 저장 위치
 
-실제 인수인계 문서는 이 문서(양식)가 아니라 `.claude/docs/`에 쓴다.
+실제 인수인계 문서는 이 문서(양식)가 아니라 `.claude/docs/` 아래 **날짜 폴더**에 쓴다.
 
-- 현재 진행 중인 작업: `.claude/docs/HANDOFF_CURRENT.md` — 다음 세션이 항상 여기부터 읽는다
-- 지난 작업 기록: `.claude/docs/handover-{YYYY-MM-DD}-{작업명}.md`로 보관, `HANDOFF_CURRENT.md`는 최신 상태로 덮어쓴다
+```
+.claude/docs/
+├ HANDOFF_CURRENT.md          진행 중인 항목을 가리키는 포인터. 다음 세션이 항상 여기부터 읽는다
+├ 2026-08-24/
+│  ├ common-scaffolding.md
+│  └ network-combat.md
+└ 2026-08-25/
+   ├ weather-maker-main-scene.md
+   └ gaia-main-scene-terrain.md
+```
+
+- 경로 규칙: `.claude/docs/{YYYY-MM-DD}/{항목}.md`
+- **날짜는 작업을 시작한 날**로 고정한다. 여러 날에 걸친 작업이라도 폴더를 옮기지 않는다 — 옮기면 이전 세션이 남긴 경로가 끊긴다.
+- **항목**은 kebab-case 작업명이다. 하루에 여러 작업을 하면 같은 폴더에 파일을 나란히 둔다.
+- `HANDOFF_CURRENT.md`에는 **본문을 복사하지 않는다.** 경로와 상태만 적고, 갱신은 날짜 폴더의 원본에 한다. 사본을 두면 어느 쪽이 최신인지 알 수 없게 된다.
+- 끝난 항목은 `HANDOFF_CURRENT.md`의 표에서만 지운다. 문서 자체는 날짜 폴더에 그대로 남겨 기록으로 쓴다.
+- `.claude/docs/`는 `.gitignore` 대상이라 커밋되지 않는다. **저장소에 남겨야 하는 결정은 `docs/`에 따로 쓴다.**
+
+### 문서 안의 상대 경로
+
+날짜 폴더는 저장소 루트에서 3단계 아래다. 기준 문서를 링크할 때 접두사는 `../../../docs/`다.
+
+예: 네트워크 권위 문서를 가리키는 링크 대상은 `../../../docs/unity/NETWORK_AUTHORITY.md`.
+
+경로를 틀리면 링크가 조용히 깨진 채 남는다. 이전 인수인계 문서를 복사해 쓰는 경우 특히 확인할 것.
 
 ---
 
@@ -40,6 +63,7 @@
 ```markdown
 # 인수인계 — {{작업명}}
 
+경로: .claude/docs/{YYYY-MM-DD}/{항목}.md
 작성일: YYYY-MM-DD
 브랜치: feature/{이름}
 담당 파트: 

@@ -19,8 +19,8 @@
 ```csharp
 namespace Geumeum.Network      // 세션, 동기화 — 네트워크·전투 파트
 namespace Geumeum.Combat       // 플레이어, 패링, 화살 — 네트워크·전투 파트
-namespace Geumeum.AI           // 잡귀, 보스, 스폰 — AI·보스 파트
-namespace Geumeum.Systems      // 장비, 경제, 특성, 점수 — 게임플레이 시스템 파트
+namespace Geumeum.AI           // 잡귀, 보스, 스폰 — 몬스터·보스 파트
+namespace Geumeum.Systems      // 장비, 경제, 특성, 점수, 결계 — 게임플레이 시스템 파트
 namespace Geumeum.UI           // 각 파트가 자기 UI를 여기에
 namespace Geumeum.Data         // ScriptableObject 정의
 // 폴더 구조와 일치시킨다 — namespace가 Assets/01.Scripts/ 하위 경로와 어긋나면 잘못된 것

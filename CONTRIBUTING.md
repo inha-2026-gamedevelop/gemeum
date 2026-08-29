@@ -1,6 +1,6 @@
 # 협업 규칙
 
-이 문서는 4명이 5주 안에 게임을 완성하기 위한 최소한의 규칙이다.
+이 문서는 3명이 5주 안에 게임을 완성하기 위한 최소한의 규칙이다.
 규칙이 많으면 지켜지지 않으므로, 사고가 실제로 나는 지점만 정했다.
 
 ---
@@ -12,11 +12,12 @@
 ```
 main                      항상 실행 가능한 상태. 직접 푸시 금지
  └ develop                통합 브랜치. PR로만 병합
-    ├ feature/민성        네트워크 · 전투
-    ├ feature/{이름}      AI · 보스 설계
-    ├ feature/{이름}      게임플레이 시스템
-    └ feature/{이름}      테크니컬 아트
+    ├ feature/Minsung     @AidenKim923 — 네트워크 · 전투 · 테크니컬 아트 · 통합
+    ├ feature/{이름}      @oname36-creator — 몬스터 · 보스
+    └ feature/{이름}      @kjw1237 — 게임플레이 시스템 · 결계
 ```
+
+테크니컬 아트는 팀장이 겸임하므로 아트용 브랜치를 따로 만들지 않는다. 브랜치는 사람 단위다.
 
 - 브랜치 이름은 `feature/{팀원이름}` 형식으로 통일한다
 - 각자 자기 브랜치에서만 작업한다
@@ -24,7 +25,7 @@ main                      항상 실행 가능한 상태. 직접 푸시 금지
 - 병합 후 `develop`을 자기 브랜치로 되가져온다
 
 ```bash
-git checkout feature/민성
+git checkout feature/Minsung
 git fetch origin
 git merge origin/develop
 ```
@@ -72,10 +73,10 @@ feat: 패링 판정을 서버 타임스탬프 기준으로 처리
 
 | 씬 | 수정 권한 |
 |---|---|
-| `Assets/00.Scenes/Dev_Combat.unity` | 네트워크 · 전투 |
-| `Assets/00.Scenes/Dev_AI.unity` | AI · 보스 설계 |
-| `Assets/00.Scenes/Dev_System.unity` | 게임플레이 시스템 |
-| `Assets/00.Scenes/Dev_Art.unity` | 테크니컬 아트 |
+| `Assets/00.Scenes/Dev_Combat.unity` | 네트워크 · 전투 (@AidenKim923) |
+| `Assets/00.Scenes/Dev_AI.unity` | 몬스터 · 보스 (@oname36-creator) |
+| `Assets/00.Scenes/Dev_System.unity` | 게임플레이 시스템 (@kjw1237) |
+| `Assets/00.Scenes/Dev_Art.unity` | 테크니컬 아트 (@AidenKim923 겸임) |
 | `Assets/00.Scenes/Main.unity` | **통합 담당자만** |
 
 - 자기 씬 외의 씬은 열어도 되지만 **저장하지 않는다**. 열기만 해도 Unity가 미세한 변경을 기록할 수 있으니, 실수로 저장했으면 `git checkout` 으로 되돌린다

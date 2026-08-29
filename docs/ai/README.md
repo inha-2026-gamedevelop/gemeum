@@ -15,7 +15,7 @@
 | AI가 "다 됐다"고 했을 때 | [검증 플레이북](03_VERIFICATION_PLAYBOOK.md) |
 | 네트워크 코드를 만질 때 | [네트워크 권위](../unity/NETWORK_AUTHORITY.md) |
 | 3인 테스트를 해야 할 때 | [멀티플레이 테스트](04_MULTIPLAYER_TEST_PROTOCOL.md) |
-| 작업을 중단할 때 | [세션 인수인계](05_SESSION_HANDOFF.md) 양식으로 `.claude/docs/HANDOFF_CURRENT.md`를 갱신 |
+| 작업을 중단할 때 | [세션 인수인계](05_SESSION_HANDOFF.md) 양식으로 `.claude/docs/{YYYY-MM-DD}/{항목}.md`를 쓰고 `HANDOFF_CURRENT.md` 포인터를 갱신 |
 | 기획서를 구현으로 옮길 때 | [기획 문서 → 구현](09_DOCUMENT_ANALYSIS_WORKFLOW.md) |
 
 저장소 루트의 [`CLAUDE.md`](../../CLAUDE.md)는 AI가 자동으로 읽는다. 사람이 먼저 읽을 필요는 없다.
@@ -64,7 +64,7 @@
 | — | **[씬 · 에셋 안전] 신규.** 이 프로젝트에서 복구 불가능한 사고 지점 |
 | — | **[밸런스 데이터 작업] 신규.** ScriptableObject 운용 |
 | 개인정보 중심 데이터 정책 | 구매 에셋 라이선스 중심으로 재편 |
-| Unity 숙련도 질문 게이트 | 삭제. 팀 4명 전원 프로그래머라 불필요 |
+| Unity 숙련도 질문 게이트 | 삭제. 팀 3명 전원 프로그래머라 불필요 |
 | 네트워크 라이브러리 미정 | **Mirror 확정.** API 매핑을 네트워크 권위 문서에 추가 |
 | 기능별 브랜치 전략 | **`feature/{팀원이름}` 담당자별로 변경** |
 
