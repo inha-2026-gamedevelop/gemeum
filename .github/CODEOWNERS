@@ -43,11 +43,8 @@
 /Assets/01.Scripts/04.Systems/      @kjw1237
 /Assets/01.Scripts/05.Art/          @AidenKim923
 
-# UI는 각 파트가 자기 화면을 소유한다
-/Assets/01.Scripts/06.UI/Combat/    @AidenKim923
-/Assets/01.Scripts/06.UI/AI/        @oname36-creator
-/Assets/01.Scripts/06.UI/Systems/   @kjw1237
-/Assets/01.Scripts/06.UI/Art/       @AidenKim923
+# UI는 게임플레이 시스템 담당(@kjw1237)이 전담한다 — 2026-08-30~ (04-architecture.md 4.6)
+/Assets/01.Scripts/06.UI/            @kjw1237
 
 # ---------------------------------------------------------------
 # 프리팹 — 스크립트 소유권과 같은 파트

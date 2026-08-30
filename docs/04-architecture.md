@@ -35,8 +35,8 @@
 | 몬스터 · 보스 | @oname36-creator | `Geumeum.AI` | `03.AI/` | `Dev_AI.unity` |
 | 게임플레이 시스템 | @kjw1237 | `Geumeum.Systems` | `04.Systems/` | `Dev_System.unity` |
 | 테크니컬 아트 | @AidenKim923 (겸임) | `Geumeum.Art` | `05.Art/` | `Dev_Art.unity` |
+| UI (전담) | @kjw1237 (게임플레이 시스템 겸임) | `Geumeum.UI` | `06.UI/` | `Dev_System.unity` |
 | (공용) | `Geumeum.Data` `Geumeum.Common` | `00.Common/` | — |
-| (각자) | `Geumeum.UI` | `06.UI/<파트>/` | — |
 
 ---
 
@@ -55,7 +55,7 @@ Assets/
 ├ 06.Model/         자체 제작 모델 (장승 · 솟대 등 한국 상징물)
 ├ 07.Sounds/        BGM · SFX (국악 라이브러리 포함)
 ├ 09.Data/          ScriptableObject 에셋 (GameDB)             → 6장
-├ 10.InputSystem/   Input Action 에셋
+├ 10.InputSystem/   Input Action 에셋 (입력은 Input Manager로 받는다, 5.6장)
 ├ 11.Timeline/      연출 타임라인 (집중개발 4~5주차부터)
 ├ 12.Materials/     머티리얼 (모델 · 캐릭터별 하위 폴더)
 ├ 99.ThirdParty/    구매 에셋 원본 — 수정 금지, 커스텀은 밖으로 복사
@@ -188,28 +188,42 @@ Main.unity
 ├ RunPhaseChangedEvent.cs  struct 서버 프로세스 내부 phase 전환 payload
 ├ RunPhaseTimeline.cs      C#  phase 경계 계산 · 순서/연속성/런 길이 불변식 검사
 ├ RunTimelineBuilder.cs    static BarrierPhaseSO를 순수 타임라인으로 변환
-└ ReviveController.cs      NB  [계획] 사망 감지 → 관전 30초 → 제자리 부활,
-                               노잣돈 차감 요청과 전멸 감지
+├ ReviveController.cs      NB  [계획] 사망 감지 → 관전 30초 → 제자리 부활,
+│                              노잣돈 차감 요청과 전멸 감지
+└ AuthorityTickScheduler.cs NB [현재] 서버 전용 공용 시뮬레이션 틱. `FixedUpdate`에서
+                               등록 순서(우선순위 정수)대로 콜백 실행:
+                               입력 적용(이동) → AI → 투사체 → 능력 판정 → 자원 회복.
+                               Rigidbody 조작이 물리 스텝 안에서만 안전하므로 물리 주기를
+                               틱 경계로 삼는다 (Fixed Timestep = `SERVER_TICK_INTERVAL`)
 ```
 
 `57cb59d` 기준으로 `ReviveController`를 제외한 위 네트워크 클래스는 구현되어 있다.
 `RunManager.CoServerTick`은 `NetworkTime.time`으로 경과 시간과 phase만 갱신하는 런 시계다.
-플레이어·AI·투사체를 함께 실행하는 공용 시뮬레이션 스케줄러로 간주하지 않는다.
+플레이어·AI·투사체를 함께 실행하는 공용 시뮬레이션 스케줄러로 간주하지 않는다 — 그 역할은
+`AuthorityTickScheduler`로 분리한다(2026-08-30 결정). `RunManager`는 phase·타이머 책임만
+유지하고, 시스템이 5개 미만이라 별도 이벤트 큐 같은 과설계는 하지 않는다.
 
 ### 4.2 02.Combat — 플레이어 · 패링 · 화살 (소유: 팀장)
 
 ```
 02.Combat/                 namespace Geumeum.Combat
 ├ Player/
-│  ├ PlayerController.cs   NB  [현재] 이동 입력 Command. [계획] sequence·상태·충돌 검증
-│  ├ PlayerMotionModel.cs  C#  [현재] 서버와 클라 예측이 공유할 순수 이동 계산
-│  ├ PlayerMoveInput.cs    C#  [계획] 순서 · 추정 서버 시각을 포함한 입력 스냅샷
-│  ├ PlayerPrediction.cs   MB  [계획] 로컬 입력 버퍼 · 서버 스냅샷 재조정
-│  ├ PlayerActionGate.cs   C#  [계획] phase·생명 상태·쿨다운·자원 공통 검증
-│  ├ PlayerLifeState.cs    enum [계획] Alive · Downed · Spectating · ReviveInvulnerable
-│  ├ PlayerStatus.cs       NB  [계획] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable
-│  ├ PlayerWeapon.cs       NB  [계획] 현재 무기와 서버 전투용 장비 snapshot
-│  ├ PlayerAttack.cs       NB  [계획] 공격의 유일한 클라이언트 Command 진입점
+│  ├ PlayerController.cs   NB  [현재] 이동 입력 Command, sequence 검증, 구르기.
+│  │                           서버가 Rigidbody 속도로 이동시키고 Y는 중력에 맡긴다
+│  ├ PlayerMotionModel.cs  C#  [현재] 서버와 클라 예측이 공유하는 순수 이동 계산
+│  ├ PlayerMoveInput.cs    C#  [현재] 순서 · 추정 서버 시각을 포함한 입력 스냅샷
+│  ├ PlayerPrediction.cs   MB  [현재] 로컬 입력 버퍼 · 서버 스냅샷 재조정
+│  ├ PlayerActionGate.cs   C#  [현재] phase·생명 상태 공통 검증. [계획] 쿨다운·자원 추가
+│  ├ PlayerAnimationController.cs MB [현재] 동기화된 위치 변화만 관찰해 재생하는 표현 전용
+│  ├ PlayerLifeState.cs    enum [현재] Alive · Downed · Spectating · ReviveInvulnerable
+│  ├ PlayerStatus.cs       NB  [현재] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable
+│  ├ PlayerWeapon.cs       NB  [현재] 현재 무기 SyncVar(초기 1회 배분). [계획] 서버 전투용
+│  │                           장비 snapshot 추가
+│  ├ PlayerAppearance.cs   MB  [현재] 무기 SyncVar 훅으로 직업별 모델을 켜는 표현 전용 컴포넌트.
+│  │                           지금은 검(차사) 모델만 바인딩, 활·방울은 모델 도착 후 연결
+│  ├ PlayerAttack.cs       NB  [계획] 공격의 유일한 클라이언트 Command 진입점. 무기당 기본 공격
+│  │                           1종만 받고, 연사·관통·치유·버프 변형은 서버가 TalentController
+│  │                           상태에서 스스로 산출한다 (클라이언트가 슬롯을 고르지 않는다)
 │  └ InteractionController.cs NB [계획] 상호작용 Command와 서버 검증
 ├ Weapon/                  [계획] 직업별 실행 계약. Mirror 비의존
 │  ├ IWeaponAbility.cs / IAbilityRuntime.cs
@@ -217,7 +231,9 @@ Main.unity
 │  ├ TargetQuery.cs / ProjectileSpawnRequest.cs
 │  └ SwordAbility.cs / BowAbility.cs / BellAbility.cs / SwordSwingJudge.cs
 ├ Parry/
-│  ├ ParryController.cs    NB  [현재] 추정 서버 시각 Command. [계획] request/window 검증
+│  ├ ParryController.cs    NB  [현재] 추정 서버 시각 Command. [계획] request/window 검증.
+│  │                           window ID는 공격자별 단조 증가 uint, 대상당 활성 창 1개
+│  │                           (새 창이 이전 미소비 창을 무효화)
 │  ├ ParryJudge.cs         C#  [현재] 시간 창 참·거짓만 계산하는 순수 판정
 │  └ ParryGauge.cs         NB  [계획] 플레이어 보유 게이지 SyncVar와 1회 치명 소비
 ├ Arrow/
@@ -229,10 +245,31 @@ Main.unity
    └ LockOnSystem.cs       MB  [계획] 로컬 후보 선택, 공격 요청에는 후보 netId만 전달
 ```
 
-`57cb59d`의 실제 구현은 `PlayerController`, `PlayerMotionModel`, `ParryController`,
-`ParryJudge` 네 개다. 나머지는 구현 계약이다. **판정 수식은 순수 C# 클래스에 두고,
-NetworkBehaviour는 입력·서버 실행·동기화 경계를 담당한다.** 활 공격도 `PlayerAttack`의
-공통 Command를 거치며, `ArrowLauncher`가 별도의 클라이언트 요청 경로를 만들지 않는다.
+실제 구현은 `PlayerController`, `PlayerMotionModel`, `ParryController`, `ParryJudge`,
+`PlayerStatus`, `PlayerWeapon`, `PlayerLifeState`, `PlayerAppearance` 여덟 개다(2026-08-30 기준).
+나머지는 구현 계약이다. **판정 수식은 순수 C# 클래스에 두고, NetworkBehaviour는 입력·서버 실행·
+동기화 경계를 담당한다.** 활 공격도 `PlayerAttack`의 공통 Command를 거치며, `ArrowLauncher`가
+별도의 클라이언트 요청 경로를 만들지 않는다.
+
+**공격 능력 구조값은 `WeaponAbilityConfigSO`(6장)가 갖는다 — 피해량 자체는 갖지 않는다.**
+`EquipmentSO`가 롤한 무기 공격력을 그대로 쓰고, `WeaponAbilityConfigSO`는 사거리·범위·각도·
+쿨다운·자원 비용·치유/버프 환산 비율만 가진다. **아래 자원 비용·수치는 전부 프로토타입
+임시값이다 — 게임 디자인 문서 자체가 "모든 수치는 시작점"이라고 전제하므로 플레이테스트로
+조정한다:**
+
+| 항목 | 임시값 |
+|---|---|
+| 차사 기본 공격 자원 | 스태미나 15 |
+| 신궁 기본 공격 자원 | 스태미나 12 |
+| 무녀 치유 (단일 대상) | 신력 20, 회복량 30, 사거리 8m, 쿨다운 2.5초 |
+| 무녀 버프 (파티 단일 종류) | 신력 20, 공격력 +15% · 지속 8초, 쿨다운 2.5초 |
+| 입력 발신 주기 | 30Hz (`PLAYER_INPUT_SEND_INTERVAL`, `PLAYER_SYNC_INTERVAL`과 별개 상수) |
+| 입력 공백 만료 | 250ms 초과 시 0 입력 |
+| 소유자 재조정 임계값 | 위치 오차 0.1m |
+
+무기 교체는 `ReviveInvulnerable` 중에도 허용한다 — 공격·구르기 중이 아니면 막을 이유가 없고,
+그 외 상태에서는 애초에 교체 요청 자체가 게이트에서 거부되므로 진행 중 능력을 취소하는
+로직은 따로 두지 않는다. `EquipmentInstance`(4.4)의 직렬화 필드 확정은 4.4절 참조.
 
 ### 4.3 03.AI — 잡귀 · 보스 · 스폰 (소유: 몬스터·보스 파트 @oname36-creator)
 
@@ -268,7 +305,10 @@ NetworkBehaviour는 입력·서버 실행·동기화 경계를 담당한다.** �
 04.Systems/                namespace Geumeum.Systems
 ├ Equipment/
 │  ├ EquipmentInstance.cs  C#  개별 드랍 결과 (굴려진 공격력 · 특수옵션). 직렬화 가능 구조로
-│  │                           만든다. Unity/SO 참조는 보유하지 않는다
+│  │                           만든다. Unity/SO 참조는 보유하지 않는다. 필드(2026-08-30 결정):
+│  │                           WeaponKind · ItemGrade · InstanceId(uint, 서버 발급) ·
+│  │                           AttackPower(float, 등급 롤 범위 내 확정값) ·
+│  │                           Options({EquipmentOptionKind, float} 목록)
 │  ├ EquipmentInstanceSerializer.cs C# Mirror Reader/Writer 확장. 장비 ID · 종류 · 등급 · 롤 ·
 │  │                           옵션 ID/값만 명시적으로 직렬화
 │  ├ EquipmentGenerator.cs C#  ★2단계 랜덤: 필드 레벨 → 등급 룰렛 → 롤. 서버에서만 호출.
@@ -315,18 +355,24 @@ NetworkBehaviour는 입력·서버 실행·동기화 경계를 담당한다.** �
 └ Shaders/, VFX/           셰이더 · 파티클 에셋
 ```
 
-### 4.6 06.UI — 각 파트가 자기 화면을 소유
+### 4.6 06.UI — 게임플레이 시스템(@kjw1237)이 전담
+
+기존에는 각 파트가 자기 화면의 UI를 각자 담당했으나, 2026-08-30부로 **UI 전담자를 둔다.** 담당은 게임플레이 시스템(@kjw1237)이 겸임한다. 화면이 어느 파트 소재인지와 무관하게 UI 구현·수정은 전담자를 거친다.
 
 ```
 06.UI/                     namespace Geumeum.UI
-├ Combat/    HUD(HP · 스태미나 · 신력 · 패링 게이지), 락온 마커, 관전 화면   ← 팀장
-├ AI/        보스 HP 바                                                    ← 몬스터 파트
+├ Combat/    HUD(HP · 스태미나 · 신력 · 패링 게이지), 락온 마커, 관전 화면
+├ AI/        보스 HP 바
 ├ Systems/   인벤토리, 특성 트리, 객주 상점, 정산 · 리더보드,
-│            결계 경고 배너 · 미니맵 원                                      ← 시스템 파트
-└ Art/       페이드 · 트랜지션, 연출성 UI                                    ← 팀장 (아트 겸임)
+│            결계 경고 배너 · 미니맵 원
+└ Art/       페이드 · 트랜지션, 연출성 UI
 ```
 
+폴더는 화면이 참조하는 게임 상태의 출처를 기준으로 그대로 나눠 두되(코드가 어느 시스템의 SyncVar · 이벤트를 읽는지 한눈에 보이도록), 소유자는 폴더 구분과 무관하게 @kjw1237 한 명이다.
+
 UI는 게임 상태를 **읽기만** 한다. UI에서 상태를 직접 바꾸는 코드(예: 버튼에서 HP 조작)는 금지 — 반드시 해당 시스템의 Command 경유.
+
+**UI 작업은 씬 · 프리팹 작업을 우선한다.** 레이아웃 · 앵커 · 색상 · 폰트 · 계층 구조처럼 Unity 에디터에서 직접 만들고 눈으로 확인할 수 있는 것은 전부 씬/프리팹에서 만든다. 코드로는 **에디터에서 할 수 없는 것만** 작성한다 — 게임 상태를 읽어 텍스트 · 값 · 활성화 여부를 갱신하는 바인딩, 이벤트 구독, 데이터 기반 반복 생성(슬롯 리스트 등) 같은 것들이다. 코드로 UI 계층을 만들거나(`new GameObject`로 패널 구성 등) 인스펙터에서 되는 값을 코드 상수로 박아 넣지 않는다. 상세 패턴은 [Unity 엔지니어링 패턴 9장](unity/UNITY_ENGINEERING_PATTERNS.md).
 
 ---
 
@@ -390,6 +436,8 @@ Assets/09.Data/
 ├ Resources/GameDB.asset        루트 GameDatabaseSO (Resources.Load 진입점)
 ├ Combat/CombatConfigSO.asset 스태미나 · 신력 · 이동 · 구르기 · 패링 (HP 제외)
 ├ Arrow/ArrowConfigSO.asset   화살 발사각 보정 · 유도 각도 · 지속 시간
+├ Weapon/WeaponAbilityConfigSO.asset [계획] 직업별 공격 능력의 사거리 · 범위 · 각도 ·
+│                             쿨다운 · 자원 비용 · 치유/버프 환산 비율 (공격력 자체는 미보유)
 ├ Equipment/EquipmentSO.asset
 ├ DropTable/DropTableSO.asset
 ├ Enemy/EnemySO.asset
@@ -432,18 +480,20 @@ Assets/02.Prefabs/
 **Player.prefab 컴포넌트 구성**:
 
 ```
-[현재 — 57cb59d]
+[현재 — 2026-08-31]
 Player.prefab
 ├ NetworkIdentity / NetworkTransformReliable
 ├ PlayerController / ParryController
-└ CapsuleCollider · MeshFilter · MeshRenderer
+├ PlayerStatus / PlayerWeapon / PlayerAppearance
+├ PlayerPrediction / PlayerAnimationController
+├ CapsuleCollider / Rigidbody
+└ 자식: Chisa(차사) 모델 · Animator — 활 · 방울 모델은 아직 없음
 
 [계획 — 단계별 추가]
-├ PlayerStatus / PlayerWeapon / PlayerAttack
-├ PlayerPrediction / InteractionController
+├ PlayerAttack / InteractionController
 ├ ParryGauge / ArrowLauncher(서버 전용)
 ├ InventoryController / TalentController
-└ 자식: CameraRig 앵커, 모델 · 애니메이터
+└ 자식: CameraRig 앵커, 신궁 · 무녀 모델(PlayerAppearance 바인딩 추가)
 ```
 
 `ArrowLauncher`는 클라이언트 Command를 받지 않고 `BowAbility`의 서버 스폰 요청만 수행한다.
@@ -555,7 +605,7 @@ Player.prefab의 이동·패링 초기 컴포넌트까지다. 3인 M2와 `Player
 | 밸런스 수치 코드 금지 | 기술 3 | GameDB 단일 소스 (6장) |
 | 씬 머지 충돌 방지 | 기술 2.1 | Dev 씬 4개 + Main 통합 전용 + 파트 루트 프리팹화 (3장) |
 | 서버는 원본 값 하나만 | 기술 3.2 | RunManager의 ElapsedSeconds 허브 (5장) |
-| UI 전담자 없음 | 시스템 4 | 06.UI 파트별 하위 폴더 소유 (4.6) |
+| UI 전담자 지정 (2026-08-30~) | 시스템 5 | 06.UI를 @kjw1237 전담, 씬 작업 우선 원칙 (4.6) |
 | 페이즈마다 패링 패턴 | 게임 9.2 | BossPhaseBase + IParryable 계약 (4.3) |
 | 아이템 양도 · 재조정권 재사용 | 기술 4.3 | EquipmentSO(설계도) / EquipmentInstance(결과) 분리 (4.4) |
 | 호스트 PC 부하 | 기술 4.4 | 05.Art 로컬 전용 강제, VFX 프리팹에 NetworkIdentity 금지 (4.5 · 7장) |

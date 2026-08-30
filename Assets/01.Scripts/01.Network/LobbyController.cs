@@ -36,6 +36,12 @@ namespace Geumeum.Network
         *                Fields
         ****************************************/
 
+        [Tooltip("접속하면 자동으로 준비 상태로 만든다. 로비 UI가 아직 없는 Dev 씬 테스트 전용, Main.unity에서는 반드시 꺼 둔다")]
+        [SerializeField] private bool _devAutoReady = false;
+
+        [Tooltip("런을 시작하는 데 필요한 인원. 혼자 이동·모션을 확인하려고 낮추는 Dev 씬 전용 값이고, Main.unity에서는 반드시 3으로 둔다")]
+        [SerializeField] private int _devMinPlayers = Constants.Network.MAX_PLAYERS;
+
         private readonly SyncList<LobbySlot> _slots = new SyncList<LobbySlot>();
 
         private System.Random _serverRandom = null; // 서버 전용, 역할 배분의 유일한 난수원
@@ -93,6 +99,11 @@ namespace Geumeum.Network
                 HasWeapon    = false,
                 Weapon       = default,
             });
+
+            if (_devAutoReady)
+            {
+                SetSlotReady(conn.connectionId, true);
+            }
         }
 
         /// <summary> 이탈한 플레이어의 슬롯을 지운다. GeumeumNetworkManager만 호출한다 </summary>
@@ -143,9 +154,20 @@ namespace Geumeum.Network
                 return;
             }
 
-            if (!TryFindSlotIndex(sender.connectionId, out int index))
+            SetSlotReady(sender.connectionId, isReady);
+        }
+
+        /****************************************
+        *                Methods
+        ****************************************/
+
+        // CmdSetReady와 _devAutoReady 둘 다 여기로 모은다, 준비 상태를 바꾸는 경로는 하나뿐이어야 한다
+        [Server]
+        private void SetSlotReady(int connectionId, bool isReady)
+        {
+            if (!TryFindSlotIndex(connectionId, out int index))
             {
-                Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 준비 요청을 무시했다: connectionId={sender.connectionId}", this);
+                Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 준비 요청을 무시했다: connectionId={connectionId}", this);
                 return;
             }
 
@@ -160,10 +182,6 @@ namespace Geumeum.Network
 
             TryStartRun();
         }
-
-        /****************************************
-        *                Methods
-        ****************************************/
 
         // 3명이 모두 준비된 순간을 한 번의 서버 트랜잭션으로 처리한다
         [Server]
@@ -180,7 +198,8 @@ namespace Geumeum.Network
                 return;
             }
 
-            if (_slots.Count != Constants.Network.MAX_PLAYERS)
+            int requiredPlayers = ResolveRequiredPlayers();
+            if (_slots.Count != requiredPlayers)
             {
                 return;
             }
@@ -199,8 +218,26 @@ namespace Geumeum.Network
                 return;
             }
 
+            // 정원 미만으로 시작한 런은 기획된 3인 조건이 아니다, 나중에 결과를 오해하지 않도록 남긴다
+            if (requiredPlayers != Constants.Network.MAX_PLAYERS)
+            {
+                Debug.LogWarning($"[LobbyController] Dev 설정으로 {requiredPlayers}인 런을 시작한다. 3인 검증에는 쓸 수 없다", this);
+            }
+
             LockAdmission();
             RunManager.ServerInstance.StartRun();
+        }
+
+        // 접속 정원(MAX_PLAYERS)은 그대로 두고 런 시작 조건만 낮춘다.
+        // 잘못된 값이 들어오면 조용히 따르지 않고 기획값으로 되돌린다
+        private int ResolveRequiredPlayers()
+        {
+            if ((_devMinPlayers <= 0) || (_devMinPlayers > Constants.Network.MAX_PLAYERS))
+            {
+                return Constants.Network.MAX_PLAYERS;
+            }
+
+            return _devMinPlayers;
         }
 
         // 접속 순서나 이름이 아니라 서버 난수로 순열을 만든다

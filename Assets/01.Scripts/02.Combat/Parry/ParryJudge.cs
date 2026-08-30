@@ -6,10 +6,9 @@ namespace Geumeum.Combat
     /// </summary>
     public static class ParryJudge
     {
-        /// <summary> 패링 입력 시각이 판정 창(windowStartTime ~ windowStartTime + windowDuration) 안에 들어오는지 판정한다 </summary>
-        public static bool IsSuccess(double parryInputTime, double windowStartTime, float windowDuration)
+        /// <summary> 패링 입력 시각이 시작·종료 시각을 포함한 판정 창 안에 들어오는지 판정한다 </summary>
+        public static bool IsSuccess(double parryInputTime, double windowStartTime, double windowEndTime)
         {
-            double windowEndTime = windowStartTime + windowDuration;
             return (parryInputTime >= windowStartTime) && (parryInputTime <= windowEndTime);
         }
     }

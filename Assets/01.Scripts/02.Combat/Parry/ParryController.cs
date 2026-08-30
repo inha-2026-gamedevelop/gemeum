@@ -1,78 +1,186 @@
+// System
+using System;
+using System.Collections.Generic;
+
 // Unity
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 // 서드파티
 using Mirror;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Data;
+using Geumeum.Network;
 
 namespace Geumeum.Combat
 {
-    /// <summary>
-    /// 패링 입력을 서버로 보내고 모션은 즉시 재생한다.
-    /// 결과는 호스트 응답 후 확정하며 롤백하지 않는다
-    /// </summary>
+    /// <summary> 패링 입력과 서버 창·무기·상태·쿨다운·자원 검증을 소유한다 </summary>
     public class ParryController : NetworkBehaviour
     {
         /****************************************
         *                Fields
         ****************************************/
 
-        [SerializeField] private InputActionAsset _inputActions;
+        private readonly Dictionary<uint, ParryWindow> _windowsById          = new Dictionary<uint, ParryWindow>();
+        private readonly Dictionary<uint, uint>        _activeByAttacker     = new Dictionary<uint, uint>();
+        private readonly Dictionary<uint, uint>        _lastIdByAttacker     = new Dictionary<uint, uint>();
+        private readonly HashSet<uint>                 _seenWindowIds        = new HashSet<uint>();
+        private readonly List<uint>                    _expiredWindowIds     = new List<uint>();
 
-        private InputAction _parryAction;
+        private PlayerStatus         _status;
+        private PlayerWeapon         _weapon;
+        private PlayerRollController _roll;
+        private ParryGauge           _gauge;
 
-        private double _windowStartTime = 0.0;  // 서버 전용, 공격 측이 OpenParryWindow로 채운다
-        private float  _windowDuration  = 0f;   // 서버 전용
+        private uint             _localRequestId       = 0;
+        private uint             _clientActiveWindowId = 0;
+        private RequestIdTracker _requestIds;
+
+        // 서버 전용
+        private double _actionEndServerTime            = 0.0;
+        private double _cooldownEndServerTime          = 0.0;
+        private double _invincibleEndServerTime        = 0.0;
+        private bool   _ownsTemporaryInvincibility     = false;
 
         /****************************************
         *              Unity Event
         ****************************************/
 
-        public override void OnStartAuthority()
+        private void Awake()
         {
-            if (_inputActions == null)
-            {
-                Debug.LogError("[ParryController] InputActionAsset이 비어 있어 패링 입력을 받을 수 없다", this);
-                return;
-            }
-
-            _parryAction = _inputActions.FindActionMap(Constants.Player.ACTION_MAP).FindAction(Constants.Player.ACTION_PARRY);
-            _parryAction.performed += OnParryPerformed;
-            _parryAction.Enable();
+            _status = GetComponent<PlayerStatus>();
+            _weapon = GetComponent<PlayerWeapon>();
+            _roll   = GetComponent<PlayerRollController>();
+            _gauge  = GetComponent<ParryGauge>();
         }
 
-        public override void OnStopAuthority()
+        private void Update()
         {
-            if (_parryAction == null)
+            if (isServer)
+            {
+                ServerUpdateTimers(NetworkTime.time);
+            }
+
+            if ((!isOwned) || (!Input.GetMouseButtonDown(Constants.Player.MOUSE_BUTTON_PARRY)))
             {
                 return;
             }
 
-            _parryAction.performed -= OnParryPerformed;
+            uint windowId = _clientActiveWindowId;
+            if (windowId == 0)
+            {
+                return;
+            }
+
+            _clientActiveWindowId = 0;
+            CmdParry(NextRequestId(), windowId, NetworkTime.time);
         }
 
         /****************************************
-        *              Input
+        *              Server Callbacks
         ****************************************/
 
-        // TODO(민성): 패링 모션과 연출 연결
-        private void OnParryPerformed(InputAction.CallbackContext context)
+        public override void OnStartServer()
         {
-            CmdParry(NetworkTime.time);
+            if ((_status == null) || (_weapon == null) || (_roll == null) || (_gauge == null))
+            {
+                Debug.LogError("[ParryController] 패링에 필요한 PlayerStatus·PlayerWeapon·PlayerRollController·ParryGauge 중 하나가 없다", this);
+            }
+        }
+
+        public override void OnStopServer()
+        {
+            if ((_ownsTemporaryInvincibility) && (_status != null) && (_status.IsInvincible))
+            {
+                _status.SetInvincible(false);
+            }
+
+            _windowsById.Clear();
+            _activeByAttacker.Clear();
+            _lastIdByAttacker.Clear();
+            _seenWindowIds.Clear();
+            _expiredWindowIds.Clear();
         }
 
         /****************************************
         *              Commands
         ****************************************/
 
-        // TODO(민성): 생명 상태와 장착 무기가 생기면 여기서 먼저 검증한다
         [Command]
-        private void CmdParry(double clientEstimatedServerTime)
+        private void CmdParry(uint requestId, uint windowId, double clientEstimatedServerTime)
         {
-            bool success = ParryJudge.IsSuccess(clientEstimatedServerTime, _windowStartTime, _windowDuration);
+            if (!_requestIds.TryAccept(requestId))
+            {
+                return;
+            }
+
+            if ((!GameDB.IsInitialized) || (_status == null) || (_weapon == null) || (_roll == null) || (_gauge == null))
+            {
+                return;
+            }
+
+            double now = NetworkTime.time;
+            CleanupExpiredWindows(now);
+
+            if (!_windowsById.TryGetValue(windowId, out ParryWindow window))
+            {
+                return;
+            }
+
+            if ((window.Consumed) || (window.IsExpired(now)) || (window.TargetNetId != netId) || (!window.HasValidSource()))
+            {
+                return;
+            }
+
+            CombatConfigSO combat = GameDB.Combat;
+            RunPhase       phase  = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
+
+            bool hasSword = ((_weapon.HasWeapon) && (_weapon.Weapon == WeaponKind.Sword));
+            PlayerActionContext context = new PlayerActionContext(
+                phase,
+                _status.LifeState,
+                hasSword,
+                (_roll.IsRolling) || (IsActionInProgress(now)),
+                now,
+                _cooldownEndServerTime,
+                _status.Stamina,
+                combat.ParryStaminaCost);
+
+            if (!PlayerActionGate.CanStartAction(context))
+            {
+                return;
+            }
+
+            if (!_status.TrySpendStamina(combat.ParryStaminaCost))
+            {
+                return;
+            }
+
+            double actionDuration = combat.ParryStartupDuration
+                + combat.ParryWindowDuration
+                + combat.ParryRecoveryDuration;
+
+            _actionEndServerTime   = now + actionDuration;
+            _cooldownEndServerTime = _actionEndServerTime;
+
+            double effectiveInputTime = Math.Max(
+                now - Constants.Network.MAX_INPUT_TIME_BEHIND,
+                Math.Min(clientEstimatedServerTime, now + Constants.Network.MAX_INPUT_TIME_AHEAD));
+
+            bool success = ParryJudge.IsSuccess(
+                effectiveInputTime,
+                window.StartServerTime,
+                window.EndServerTime);
+
+            if ((success) && (window.TryConsume()))
+            {
+                _activeByAttacker.Remove(window.AttackerNetId);
+                _gauge.ServerAddSuccess();
+                BeginTemporaryInvincibility(now, combat.ParryInvincibleDuration);
+                window.Source.OnParried(netId);
+            }
+
             TargetParryResult(success);
         }
 
@@ -80,12 +188,64 @@ namespace Geumeum.Combat
         *              Server API
         ****************************************/
 
-        /// <summary> 이 플레이어를 노리는 공격의 판정 창을 연다 </summary>
+        /// <summary>
+        /// 공격 소스가 발급한 단조 증가 window ID로 이 플레이어를 노리는 패링 창을 연다.
+        /// 같은 공격자의 이전 미소비 창은 자동 무효화한다
+        /// </summary>
         [Server]
-        public void OpenParryWindow(float windowDuration)
+        public bool OpenParryWindow(uint windowId, uint attackerNetId, IParryable source)
         {
-            _windowStartTime = NetworkTime.time;
-            _windowDuration  = windowDuration;
+            if ((!GameDB.IsInitialized) || (windowId == 0) || (attackerNetId == 0) || (source == null))
+            {
+                return false;
+            }
+
+            if ((source is UnityEngine.Object unityObject) && (unityObject == null))
+            {
+                return false;
+            }
+
+            if (((_lastIdByAttacker.TryGetValue(attackerNetId, out uint lastWindowId)) && (windowId <= lastWindowId))
+                || (!_seenWindowIds.Add(windowId)))
+            {
+                return false;
+            }
+
+            double now = NetworkTime.time;
+            CleanupExpiredWindows(now);
+
+            if (_activeByAttacker.TryGetValue(attackerNetId, out uint previousWindowId))
+            {
+                _windowsById.Remove(previousWindowId);
+            }
+
+            float duration = Mathf.Clamp(source.ParryWindowDuration, 0f, GameDB.Combat.ParryWindowDurationMax);
+            if (duration <= 0f)
+            {
+                return false;
+            }
+
+            ParryWindow window = new ParryWindow(
+                windowId,
+                attackerNetId,
+                netId,
+                now,
+                now + duration,
+                source);
+
+            _windowsById.Add(windowId, window);
+            _activeByAttacker[attackerNetId] = windowId;
+            _lastIdByAttacker[attackerNetId] = windowId;
+
+            TargetOpenParryWindow(windowId);
+            return true;
+        }
+
+        /// <summary> 구르기 등 다른 행동 게이트가 확인하는 패링 진행 상태 </summary>
+        [Server]
+        public bool IsActionInProgress(double serverTime)
+        {
+            return serverTime < _actionEndServerTime;
         }
 
         /****************************************
@@ -93,9 +253,88 @@ namespace Geumeum.Combat
         ****************************************/
 
         [TargetRpc]
+        private void TargetOpenParryWindow(uint windowId)
+        {
+            _clientActiveWindowId = windowId;
+        }
+
+        [TargetRpc]
         private void TargetParryResult(bool success)
         {
-            Debug.Log(success ? "[ParryController] 패링 성공" : "[ParryController] 패링 실패");
+            if (success)
+            {
+                CombatFeedbackLocator.Current.PlayParrySuccess();
+            }
+
+            Debug.Log(success ? "[ParryController] 패링 성공" : "[ParryController] 패링 실패", this);
+        }
+
+        /****************************************
+        *                Methods
+        ****************************************/
+
+        private uint NextRequestId()
+        {
+            ++_localRequestId;
+            if (_localRequestId == 0)
+            {
+                ++_localRequestId;
+            }
+
+            return _localRequestId;
+        }
+
+        private void ServerUpdateTimers(double now)
+        {
+            CleanupExpiredWindows(now);
+
+            if ((!_ownsTemporaryInvincibility) || (now < _invincibleEndServerTime))
+            {
+                return;
+            }
+
+            _ownsTemporaryInvincibility = false;
+            if ((_status != null) && (_status.IsInvincible))
+            {
+                _status.SetInvincible(false);
+            }
+        }
+
+        private void BeginTemporaryInvincibility(double now, float duration)
+        {
+            _invincibleEndServerTime    = now + duration;
+            _ownsTemporaryInvincibility = true;
+            _status.SetInvincible(true);
+        }
+
+        private void CleanupExpiredWindows(double now)
+        {
+            _expiredWindowIds.Clear();
+
+            foreach (KeyValuePair<uint, ParryWindow> entry in _windowsById)
+            {
+                if (entry.Value.IsExpired(now))
+                {
+                    _expiredWindowIds.Add(entry.Key);
+                }
+            }
+
+            for (int i = 0; i < _expiredWindowIds.Count; ++i)
+            {
+                uint windowId = _expiredWindowIds[i];
+                if (!_windowsById.TryGetValue(windowId, out ParryWindow window))
+                {
+                    continue;
+                }
+
+                _windowsById.Remove(windowId);
+
+                if ((_activeByAttacker.TryGetValue(window.AttackerNetId, out uint activeWindowId))
+                    && (activeWindowId == windowId))
+                {
+                    _activeByAttacker.Remove(window.AttackerNetId);
+                }
+            }
         }
     }
 }
