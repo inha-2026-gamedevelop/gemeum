@@ -19,8 +19,10 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
-        [SyncVar] private WeaponKind _weapon    = default;
-        [SyncVar] private bool       _hasWeapon = false;
+        [SyncVar(hook = nameof(OnWeaponChanged))] private WeaponKind _weapon    = default;
+        [SyncVar]                                 private bool       _hasWeapon = false;
+
+        private PlayerAppearance _appearance;
 
         /****************************************
         *              Properties
@@ -30,6 +32,30 @@ namespace Geumeum.Combat
         public bool HasWeapon => _hasWeapon;
 
         public WeaponKind Weapon => _weapon;
+
+        /****************************************
+        *              Unity Callbacks
+        ****************************************/
+
+        private void Awake()
+        {
+            _appearance = GetComponent<PlayerAppearance>();
+        }
+
+        /****************************************
+        *              SyncVar Hooks
+        ****************************************/
+
+        /// <summary> 서버·클라이언트 모두에서 값이 바뀔 때 호출된다, 판정에는 관여하지 않는다 </summary>
+        private void OnWeaponChanged(WeaponKind oldWeapon, WeaponKind newWeapon)
+        {
+            if (_appearance == null)
+            {
+                return;
+            }
+
+            _appearance.ApplyAppearance(newWeapon);
+        }
 
         /****************************************
         *              Server API
