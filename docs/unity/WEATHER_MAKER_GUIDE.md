@@ -153,3 +153,83 @@ Rain Maker 등 경쟁 에셋이 프로젝트에 같이 있으면 충돌하니 �
 `WeatherMakerMirrorNetworkScript`(§5)가 씬에 있으면, Weather Maker는 **서버(호스트)만** 날씨/시간을 적용하도록 게이트를 건다(`WeatherMakerWeatherZoneScript.UpdateProfile` 내부에서 `NetworkConnection.IsServer` 확인). 실제 Mirror 호스트를 안 띄우고 혼자 Play만 누르면 이 조건이 항상 거짓이라 아무것도 안 그려진다 — **버그가 아니라 의도된 동작**이다.
 
 혼자 빠르게 확인하고 싶으면 그 오브젝트를 잠깐 비활성화하고 테스트한 뒤, **반드시 다시 활성화하고 씬을 저장했는지 `git status`로 확인**한다. 진짜 검증(L3)은 [멀티플레이 테스트 절차](../ai/04_MULTIPLAYER_TEST_PROTOCOL.md)대로 호스트를 띄워서 한다.
+
+### 화면 전체(하늘·지형 구분 없이)에 자잘한 그레인/노이즈가 낀다
+
+Main.unity Play 화면 전체에 균일한 speckle 노이즈가 낀다는 보고가 있었다(2026-08-30).
+원인 후보를 실측으로 좁힌 기록:
+
+- **아니었던 것**: `_WeatherMakerBlueNoiseTexture`/`_WeatherMakerDitherTexture` 참조 누락 — 텍스처는 정상 연결돼 있음. `UNITY_URP` 스크립팅 심볼 누락 — `ProjectSettings.asset`에 정상 정의돼 있어 `WeatherMakerCommandBufferManagerScript.URP.cs`(RenderPipelineManager 콜백 기반)가 정상적으로 컴파일됨.
+- **테스트했지만 결론 안 남**: `VolumetricCloudTemporalReprojectionSize`를 `None(0)`으로 꺼서 시간적 리프로젝션을 완전히 우회해봤다 — 그레인은 거의 그대로였고, 대신 프레임 타임이 수백~수천 ms로 폭락했다(GTX 1060 기준 실사용 불가). 즉 리프로젝션이 원인이라는 가설은 이 테스트로 반증됐다.
+- **의심되는 것(미확정)**: `Assets/09.Data/Environment/WM_PerformanceProfile_Geumeum.asset`을 `_Simple` 프리셋에서 복제할 때 `VolumetricCloudRayDither`가 원본 `_Default`(Min 0.01/Max 0.03)보다 훨씬 공격적인 값(Min 0.15/Max 1)으로 따라왔다 — 이 값을 다시 `_Default` 수준으로 낮춰봤지만, 편집 → refresh → Play 재진입을 반복하는 동안 프레임 타임 표시가 계속 비정상(수천 ms)으로 나와 셰이더 재컴파일 스파이크와 실제 정상 상태를 구분하지 못했다. 즉 이 수정이 실제로 그레인을 줄였는지 **확인하지 못한 채** 값만 되돌려 둔 상태다.
+
+- **시도했지만 명확히 개선되지 않음**: UserManual §13.7("Temporal Reprojection")에 `_Blender`(1=크리스프하지만 밤에 고스팅/아티팩트 발생) · `_TemporalReprojection_BlendMode`(0=sharp, 1=blue noise·"artifact cleanup") 두 머티리얼 프로퍼티가 문서화돼 있다. 원본 `WeatherMakerTemporalReprojectionCloudsMaterial.mat`은 `_Blender=1`, `_TemporalReprojection_BlendMode=0`(sharp)로 세팅돼 있었는데, 그믐은 야간(새벽/그믐) 장면이 많아 매뉴얼이 경고하는 "밤에 고스팅" 조건과 정확히 겹친다. 구매 에셋 원본을 고치지 않고 `Assets/09.Data/Environment/WM_TemporalReprojectionCloudsMaterial_Geumeum.mat`을 만들어 `_Blender=0`, `_TemporalReprojection_BlendMode=1`(blue noise)로 바꾸고 `Main.unity`의 `WeatherMakerFullScreenCloudsScript.TemporalReprojectionMaterial`을 이걸로 재지정했다. 프레임 타임은 20ms(50FPS)로 정상 복귀했지만, 하늘의 speckle 노이즈는 육안상 뚜렷하게 줄지 않았다 — **이 조정도 근본 원인은 아니었을 가능성이 높다.**
+
+**다음에 이 문제를 다시 볼 사람에게**: 원격 도구로 Play를 반복 진입시키며 스크린샷을 비교하는 방식은 매번 셰이더 워밍업 비용이 섞여 들어가 신뢰할 수 없었다. 에디터에 사람이 직접 붙어서 Play를 한 번만 켜고 수 초 이상 안정화를 기다린 뒤 눈으로 확인하는 게 가장 빠르다. `_Blender`/`BlendMode` 조정으로도 안 잡히면 다음을 시도할 것:
+1. Frame Debugger에서 `WeatherMaker BeforeForwardOpaque`/`AfterImageEffectsOpaque` Blit 각각을 픽셀 단위로 열어 노이즈가 정확히 어느 패스(클라우드 raymarch vs 안개 vs 대기)에서 생기는지 특정한다.
+2. WeatherMaker 지원 포럼에서 Unity 6 Render Graph 호환성 이슈(구버전 SRP 콜백 기반 임시 리프로젝션 버퍼가 Render Graph의 텍스처 풀링과 안 맞는 경우)를 검색한다.
+3. 벤더에 8.1.0 이후 Unity 6 Render Graph 패치가 있는지 확인한다.
+
+**격리 테스트 결과 (2026-08-30, 결정적)**: `Assets/00.Scenes/Dev_WeatherMakerIsolation.unity`를 새로 만들어
+WeatherMaker 매뉴얼 §2~§3 순서 그대로 순정 `WeatherMakerPrefab` + 기본 Performance Profile만 넣고(그믐 커스텀
+프로필도, Gaia도, Mirror도 전부 뺀 상태) Play해보니 **하늘이 완전히 매끈했다 — 노이즈가 전혀 없다.**
+
+즉 **WeatherMaker 자체의 버그가 아니다.** 원인은 `Main.unity` 쪽 구성 — Gaia(지형·식생, `QuadTreeBatchNode.Render`로
+렌더링됨), 우리가 만든 커스텀 Performance Profile/TemporalReprojectionMaterial, 또는 프로젝트의 URP Renderer
+Feature 조합 중 하나(또는 여럿의 상호작용)에 있다. **개발자에게 "WeatherMaker 버그"로 문의하기 전에, 이 격리
+씬에 Main.unity의 구성 요소(우리 커스텀 프로필 → Gaia 지형 → 다른 렌더러 피처 순으로)를 하나씩 추가해가며
+어느 시점에 노이즈가 나타나는지 이분 탐색하는 게 먼저다.** `Dev_WeatherMakerIsolation.unity`는 Build Settings에
+넣지 않은 순수 진단용 씬이다.
+
+**격리 씬 + 낮밤 주기 테스트 (2026-08-30, Gaia보다 먼저 좁혀짐)**: 같은 격리 씬에 그믐이 쓰는
+`WM_DayNightCycleProfile_Geumeum`(Speed 24)만 추가해서 `TimeOfDay`를 08:00 → 13:00 → 18:00 → 20:00 순서로
+넘겨봤다.
+
+| 시각 | 결과 |
+|---|---|
+| 08:00 (여명) | 노이즈 있음 |
+| 13:00 (한낮) | **깨끗함** |
+| 18:00 (늦은 오후, 아직 밝음) | **깨끗함** |
+| 20:00 (황혼~밤) | 노이즈 있음 |
+
+Gaia도 없는 상태에서 이미 재현됐다 — Gaia 문제는 아니다.
+
+**정정 (2026-08-30)**: 위 표는 하늘(화면 위쪽)만 보고 판단한 것이었다. 13:00 스크린샷을 픽셀 단위로 다시
+보니 화면 아래쪽(카메라 Clear Flags가 Solid Color(0,0,0,0)라 지형 없이 그냥 검게 비는 배경 영역)에도
+노이즈가 있었다 — 하늘 영역(평균 밝기 174)은 표준편차 2.68로 거의 안 보이고, 바닥 빈 배경(평균 밝기 12)은
+표준편차 6.58로 절대값도 크고 밝기 대비로는 훨씬 두드러졌다.
+
+**즉 원인은 "시간대"가 아니라 "화면의 어두운 영역"이다.** 여명·황혼·밤은 화면 전체가 어두워서 노이즈가
+다 보이고, 한낮은 하늘만 밝아서 하늘에서는 안 보였을 뿐 어두운 배경 영역에는 그때도 있었다. 디더링(또는
+레이마치 노이즈)이 저휘도 영역에서 상대적으로 과도하게 드러나는, 훨씬 흔하고 특정하기 쉬운 유형의 문제로
+좁혀졌다 — HDR/톤매핑이 어두운 값을 밀어올리며 절대적으로는 작은 디더 진폭을 상대적으로 크게 보이게
+만드는 것으로 추정된다(이 프로젝트 격리 씬엔 Volume/톤맵도 없으니, 톤맵이 원인의 전부는 아니고 디더 자체가
+저휘도에서 상대적으로 크게 설계돼 있을 가능성이 크다).
+
+**`AutoSetPerformanceProfile` 콘솔 경고 확인 및 수정 (2026-08-30)**: Unity 콘솔에 다음 경고가 실제로 떴다.
+
+> Weather Maker auto-performance profile expects between 3 to 6 quality settings, but you have 1.
+> Please click stop and set a performance profile manually on WeatherMakerScript, and set
+> 'Auto Set Performance Profile' to false.
+
+확인해보니 실제 버그였다 — `Dev_WeatherMakerIsolation.unity`는 `WeatherMakerPrefab` 기본값을 그대로 썼는데
+프리팹 기본값이 `AutoSetPerformanceProfile: 1`(true)이고, 그믐 프로젝트의 `ProjectSettings/QualitySettings.asset`엔
+품질 등급이 2개뿐이다(권장 3~6개). 그 결과 런타임에 `WeatherMakerScript._PerformanceProfile`이 **`null`인 채로
+방치**돼 있었다 — 격리 씬에서 지금까지 본 노이즈 중 일부는 프로필이 아예 적용 안 된 상태에서 나온 것일
+수 있다.
+
+`AutoSetPerformanceProfile = false`로 끄고 `_PerformanceProfile`을 `WeatherMakerPerformanceProfile_Default`로
+수동 지정한 뒤 20:00(황혼)에서 다시 스크린샷을 찍었다 — **노이즈는 거의 그대로였다.** 즉 이 버그는 실존하고
+고칠 가치는 있지만(콘솔 경고 자체를 없애야 하니), **그레인 노이즈의 원인은 아니었다.**
+
+Main.unity 쪽은 `AutoSetPerformanceProfile`이 프리팹 오버라이드로 이미 `0`(false)로 꺼져 있고
+`_PerformanceProfile`도 수동 지정돼 있어(9절 참조) 이 버그의 영향을 안 받는 것으로 보이지만, 실제 Play
+중 런타임 값으로 재확인은 안 했다 — 다음에 볼 때 `WeatherMakerScript` 인스펙터에서 `Auto Set Performance
+Profile` 체크박스가 꺼져 있고 `Performance Profile` 필드가 비어있지 않은지 눈으로 한 번 확인할 것.
+
+**현재까지 종합**: 리프로젝션 on/off, RayDither 값, `_Blender`/`BlendMode`, `AutoSetPerformanceProfile` 전부
+바꿔봤지만 "한낮엔 깨끗하고 여명·황혼·밤엔 노이즈"라는 패턴 자체는 변하지 않았다. 설정값 하나를 잘못
+바꿔서 생기는 문제라기보다, 이 Unity 6 + URP 조합에서 WeatherMaker의 야간(저조도) 하늘 렌더링 자체에
+내재된 특성/한계일 가능성이 높다. Gaia도, 그믐 커스텀 프로필도 없는 순수 격리 씬에서 재현되므로, 지금이
+개발자에게 문의하기 가장 깨끗한 시점이다 — 이전 대화에서 준비한 영문 질문 초안에 이 표(08:00/13:00/18:00/
+20:00 결과)를 그대로 붙이면 된다.
