@@ -32,6 +32,17 @@ namespace Geumeum.Combat
 
         [SerializeField] private WeaponModelBinding[] _bindings = Array.Empty<WeaponModelBinding>();
 
+        private PlayerAnimationController _animation;
+
+        /****************************************
+        *              Unity Event
+        ****************************************/
+
+        private void Awake()
+        {
+            _animation = GetComponent<PlayerAnimationController>();
+        }
+
         /****************************************
         *                Methods
         ****************************************/
@@ -72,6 +83,11 @@ namespace Geumeum.Combat
                 {
                     model.SetActive(model == matchedModel);
                 }
+            }
+
+            if (_animation != null)
+            {
+                _animation.RefreshAnimator();
             }
         }
     }

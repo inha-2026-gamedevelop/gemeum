@@ -163,13 +163,26 @@ namespace Geumeum.Combat
         [Server]
         public bool TrySpendStamina(float amount)
         {
-            if (_stamina < amount)
+            if ((amount < 0f) || (_stamina < amount))
             {
                 return false;
             }
 
             _stamina                    -= amount;
             _lastStaminaSpendServerTime  = NetworkTime.time;
+            return true;
+        }
+
+        /// <summary> 신력이 충분할 때만 원자적으로 차감한다. 자연 회복 시간에는 영향을 주지 않는다 </summary>
+        [Server]
+        public bool TrySpendSpirit(float amount)
+        {
+            if ((amount < 0f) || (_spirit < amount))
+            {
+                return false;
+            }
+
+            _spirit -= amount;
             return true;
         }
 

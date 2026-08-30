@@ -48,17 +48,7 @@ namespace Geumeum.Combat
 
         private void Awake()
         {
-            _animator = GetComponentInChildren<Animator>(true);
-            if (_animator == null)
-            {
-                Debug.LogWarning("[PlayerAnimationController] 자식에서 Animator를 찾지 못했다", this);
-                return;
-            }
-
-            _animator.applyRootMotion = false; // 이동은 CharacterController가 결정한다, 애니메이션은 표현만 한다
-            _visualRoot = _animator.transform;
-
-            _rollClipLength = FindClipLength(CLIP_ROLL);
+            RefreshAnimator();
         }
 
         private void Update()
@@ -98,7 +88,7 @@ namespace Geumeum.Combat
         *              Public API
         ****************************************/
 
-        /// <summary> 구르기 모션을 한 번 재생한다. PlayerController의 구르기 SyncVar 훅이 호출한다 </summary>
+        /// <summary> 구르기 모션을 한 번 재생한다. PlayerRollController의 구르기 SyncVar 훅이 호출한다 </summary>
         public void PlayRoll()
         {
             if (_animator == null)
@@ -108,6 +98,27 @@ namespace Geumeum.Combat
 
             _animator.SetFloat(PARAM_ROLL_SPEED, ResolveRollSpeed());
             _animator.SetTrigger(PARAM_ROLL);
+        }
+
+        /// <summary> PlayerAppearance가 모델을 교체한 뒤 현재 활성 모델의 Animator를 다시 캐싱한다 </summary>
+        public void RefreshAnimator()
+        {
+            _animator = GetComponentInChildren<Animator>();
+            if (_animator == null)
+            {
+                _visualRoot       = null;
+                _rollClipLength   = 0f;
+                _hasLastPosition  = false;
+                _smoothedSpeed    = 0f;
+                Debug.LogWarning("[PlayerAnimationController] 활성 모델에서 Animator를 찾지 못했다", this);
+                return;
+            }
+
+            _animator.applyRootMotion = false; // 이동은 Rigidbody가 결정한다, 애니메이션은 표현만 한다
+            _visualRoot               = _animator.transform;
+            _rollClipLength           = FindClipLength(CLIP_ROLL);
+            _hasLastPosition          = false;
+            _smoothedSpeed            = 0f;
         }
 
         /****************************************
@@ -120,7 +131,7 @@ namespace Geumeum.Combat
         /// </summary>
         private float ResolveRollSpeed()
         {
-            if (!GameDB.IsInitialized || (_rollClipLength <= 0f))
+            if ((!GameDB.IsInitialized) || (_rollClipLength <= 0f))
             {
                 return 1f;
             }
@@ -161,7 +172,7 @@ namespace Geumeum.Combat
         /// </summary>
         private static float NormalizeSpeed(float speed)
         {
-            if (!GameDB.IsInitialized || (speed <= MOVE_SPEED_EPSILON))
+            if ((!GameDB.IsInitialized) || (speed <= MOVE_SPEED_EPSILON))
             {
                 return 0f;
             }

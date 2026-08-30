@@ -39,7 +39,12 @@ namespace Geumeum.Combat
 
             float moveSpeed = resolveSpeed(input.SprintHeld);
             transform.position = PlayerMotionModel.ComputeNextPosition(transform.position, input.MoveDirection, moveSpeed, deltaTime);
-            _pendingInputs.Add(input);
+
+            // 정지 입력은 위치를 바꾸지 않으므로 보관하지 않는다, 장시간 정지 시 버퍼가 자라지 않게 한다
+            if (input.MoveDirection.sqrMagnitude > (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
+            {
+                _pendingInputs.Add(input);
+            }
         }
 
         /// <summary>
