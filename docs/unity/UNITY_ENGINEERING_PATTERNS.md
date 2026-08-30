@@ -234,3 +234,33 @@ catch (Exception e) { Debug.LogError($"[Barrier] 축소 실패: {e.Message}"); }
 
 **리슨 서버 구조에서는 호스트 PC가 게임 로직과 렌더링을 동시에 부담한다.**
 성능 측정은 호스트에서 한다. 클라이언트만 보면 실제 병목을 놓친다.
+
+---
+
+## 9. UI 작업 — 씬 우선, 코드는 최소한
+
+UI(`06.UI`)는 게임플레이 시스템 담당(@kjw1237)이 전담한다 ([프로젝트 구조 설계서 4.6](../04-architecture.md#46-06ui--게임플레이-시스템kjw1237이-전담)).
+
+**Unity 에디터에서 직접 만들고 눈으로 확인할 수 있는 것은 전부 씬 · 프리팹에서 만든다.** 코드로는 에디터에서 할 수 없는 것만 작성한다.
+
+| 씬/프리팹에서 한다 | 코드로 한다 |
+|---|---|
+| 레이아웃 · 앵커 · 정렬 (RectTransform, Layout Group) | 게임 상태 → 텍스트 · 값 · 활성화 여부 바인딩 |
+| 색상 · 폰트 · 스타일 (컴포넌트 인스펙터) | 이벤트 구독 (버튼 클릭 → Command 호출 등) |
+| 패널 계층 구조, 버튼 · 슬라이더 등 컴포넌트 배치 | 데이터 기반 반복 생성 (인벤토리 슬롯처럼 개수가 가변인 목록) |
+
+```csharp
+// 잘못 — 인스펙터로 되는 배치를 코드로 조립
+void Awake() {
+    var panel = new GameObject("HpBar");
+    panel.transform.SetParent(canvas.transform);
+    var image = panel.AddComponent<Image>();
+    image.color = Color.red; // 이런 값도 인스펙터에서 정한다
+}
+
+// 맞음 — 프리팹에 이미 배치된 참조를 코드는 갱신만 한다
+[SerializeField] private Image hpFillImage;
+void OnHpChanged(float ratio) { hpFillImage.fillAmount = ratio; }
+```
+
+개수가 실행 중에 정해지는 목록(인벤토리 슬롯, 리더보드 행 등)처럼 씬에서 미리 배치할 수 없는 경우에만 코드로 인스턴스화한다. 이때도 슬롯 자체의 레이아웃 · 스타일은 프리팹으로 만들고, 코드는 그 프리팹을 개수만큼 생성 · 바인딩하는 역할만 한다.
