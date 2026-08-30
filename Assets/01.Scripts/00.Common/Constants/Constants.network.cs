@@ -18,6 +18,17 @@ namespace Geumeum.Common
             public const float MAX_INPUT_DELTA_TIME  = 0.1f;  // 입력 하나로 진행시킬 수 있는 최대 시간(초)
             public const float MAX_INPUT_TIME_BEHIND = 0.5f;  // 이만큼 이상 과거인 입력 시각은 잘라낸다(초)
             public const float MAX_INPUT_TIME_AHEAD  = 0.05f; // 이보다 앞서면 서버 현재 시각으로 클램프(초)
+
+            // syncInterval(상태 전송 주기)과 별개다, 이동 snapshot을 보내는 주기 — 프로토타입 시작값
+            public const float PLAYER_INPUT_SEND_INTERVAL = 1f / 30f; // 이동 입력 발신 주기(초)
+            public const float PLAYER_INPUT_EXPIRY        = 0.25f;   // 이 이상 새 입력이 없으면 0 입력으로 간주(초)
+            public const float PLAYER_RECONCILE_THRESHOLD = 0.1f;    // 예측 위치와 서버 스냅샷의 오차 허용치(m)
+
+            // AuthorityTickScheduler 등록 순서, 숫자가 작을수록 먼저 실행된다
+            public const int TICK_PRIORITY_MOVEMENT   = 0;
+            public const int TICK_PRIORITY_AI         = 100;
+            public const int TICK_PRIORITY_PROJECTILE = 200;
+            public const int TICK_PRIORITY_ABILITY    = 300;
         }
     }
 }

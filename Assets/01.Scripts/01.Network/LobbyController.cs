@@ -36,6 +36,9 @@ namespace Geumeum.Network
         *                Fields
         ****************************************/
 
+        [Tooltip("접속하면 자동으로 준비 상태로 만든다. 로비 UI가 아직 없는 Dev 씬 테스트 전용, Main.unity에서는 반드시 꺼 둔다")]
+        [SerializeField] private bool _devAutoReady = false;
+
         private readonly SyncList<LobbySlot> _slots = new SyncList<LobbySlot>();
 
         private System.Random _serverRandom = null; // 서버 전용, 역할 배분의 유일한 난수원
@@ -93,6 +96,11 @@ namespace Geumeum.Network
                 HasWeapon    = false,
                 Weapon       = default,
             });
+
+            if (_devAutoReady)
+            {
+                SetSlotReady(conn.connectionId, true);
+            }
         }
 
         /// <summary> 이탈한 플레이어의 슬롯을 지운다. GeumeumNetworkManager만 호출한다 </summary>
@@ -143,9 +151,20 @@ namespace Geumeum.Network
                 return;
             }
 
-            if (!TryFindSlotIndex(sender.connectionId, out int index))
+            SetSlotReady(sender.connectionId, isReady);
+        }
+
+        /****************************************
+        *                Methods
+        ****************************************/
+
+        // CmdSetReady와 _devAutoReady 둘 다 여기로 모은다, 준비 상태를 바꾸는 경로는 하나뿐이어야 한다
+        [Server]
+        private void SetSlotReady(int connectionId, bool isReady)
+        {
+            if (!TryFindSlotIndex(connectionId, out int index))
             {
-                Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 준비 요청을 무시했다: connectionId={sender.connectionId}", this);
+                Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 준비 요청을 무시했다: connectionId={connectionId}", this);
                 return;
             }
 
@@ -160,10 +179,6 @@ namespace Geumeum.Network
 
             TryStartRun();
         }
-
-        /****************************************
-        *                Methods
-        ****************************************/
 
         // 3명이 모두 준비된 순간을 한 번의 서버 트랜잭션으로 처리한다
         [Server]
