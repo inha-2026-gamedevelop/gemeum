@@ -55,7 +55,7 @@ Assets/
 ├ 06.Model/         자체 제작 모델 (장승 · 솟대 등 한국 상징물)
 ├ 07.Sounds/        BGM · SFX (국악 라이브러리 포함)
 ├ 09.Data/          ScriptableObject 에셋 (GameDB)             → 6장
-├ 10.InputSystem/   Input Action 에셋
+├ 10.InputSystem/   Input Action 에셋 (입력은 Input Manager로 받는다, 5.6장)
 ├ 11.Timeline/      연출 타임라인 (집중개발 4~5주차부터)
 ├ 12.Materials/     머티리얼 (모델 · 캐릭터별 하위 폴더)
 ├ 99.ThirdParty/    구매 에셋 원본 — 수정 금지, 커스텀은 밖으로 복사
@@ -190,9 +190,11 @@ Main.unity
 ├ RunTimelineBuilder.cs    static BarrierPhaseSO를 순수 타임라인으로 변환
 ├ ReviveController.cs      NB  [계획] 사망 감지 → 관전 30초 → 제자리 부활,
 │                              노잣돈 차감 요청과 전멸 감지
-└ AuthorityTickScheduler.cs NB [계획] 서버 전용 공용 시뮬레이션 틱. `SERVER_TICK_INTERVAL`
-                               코루틴 하나에서 등록 순서(우선순위 정수)대로 콜백 실행:
-                               입력 적용(이동) → AI → 투사체 → 능력 판정
+└ AuthorityTickScheduler.cs NB [현재] 서버 전용 공용 시뮬레이션 틱. `FixedUpdate`에서
+                               등록 순서(우선순위 정수)대로 콜백 실행:
+                               입력 적용(이동) → AI → 투사체 → 능력 판정 → 자원 회복.
+                               Rigidbody 조작이 물리 스텝 안에서만 안전하므로 물리 주기를
+                               틱 경계로 삼는다 (Fixed Timestep = `SERVER_TICK_INTERVAL`)
 ```
 
 `57cb59d` 기준으로 `ReviveController`를 제외한 위 네트워크 클래스는 구현되어 있다.
@@ -206,12 +208,13 @@ Main.unity
 ```
 02.Combat/                 namespace Geumeum.Combat
 ├ Player/
-│  ├ PlayerController.cs   NB  [현재] 이동 입력 Command. [계획] sequence·상태·충돌 검증,
-│  │                           서버 CharacterController 기반 충돌·접지
-│  ├ PlayerMotionModel.cs  C#  [현재] 서버와 클라 예측이 공유할 순수 이동 계산
-│  ├ PlayerMoveInput.cs    C#  [계획] 순서 · 추정 서버 시각을 포함한 입력 스냅샷
-│  ├ PlayerPrediction.cs   MB  [계획] 로컬 입력 버퍼 · 서버 스냅샷 재조정
-│  ├ PlayerActionGate.cs   C#  [계획] phase·생명 상태·쿨다운·자원 공통 검증
+│  ├ PlayerController.cs   NB  [현재] 이동 입력 Command, sequence 검증, 구르기.
+│  │                           서버가 Rigidbody 속도로 이동시키고 Y는 중력에 맡긴다
+│  ├ PlayerMotionModel.cs  C#  [현재] 서버와 클라 예측이 공유하는 순수 이동 계산
+│  ├ PlayerMoveInput.cs    C#  [현재] 순서 · 추정 서버 시각을 포함한 입력 스냅샷
+│  ├ PlayerPrediction.cs   MB  [현재] 로컬 입력 버퍼 · 서버 스냅샷 재조정
+│  ├ PlayerActionGate.cs   C#  [현재] phase·생명 상태 공통 검증. [계획] 쿨다운·자원 추가
+│  ├ PlayerAnimationController.cs MB [현재] 동기화된 위치 변화만 관찰해 재생하는 표현 전용
 │  ├ PlayerLifeState.cs    enum [현재] Alive · Downed · Spectating · ReviveInvulnerable
 │  ├ PlayerStatus.cs       NB  [현재] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable
 │  ├ PlayerWeapon.cs       NB  [현재] 현재 무기 SyncVar(초기 1회 배분). [계획] 서버 전투용
@@ -477,20 +480,19 @@ Assets/02.Prefabs/
 **Player.prefab 컴포넌트 구성**:
 
 ```
-[현재 — 2026-08-30]
+[현재 — 2026-08-31]
 Player.prefab
 ├ NetworkIdentity / NetworkTransformReliable
 ├ PlayerController / ParryController
 ├ PlayerStatus / PlayerWeapon / PlayerAppearance
-├ CapsuleCollider
+├ PlayerPrediction / PlayerAnimationController
+├ CapsuleCollider / Rigidbody
 └ 자식: Chisa(차사) 모델 · Animator — 활 · 방울 모델은 아직 없음
 
 [계획 — 단계별 추가]
-├ PlayerAttack / PlayerActionGate
-├ PlayerPrediction / InteractionController
+├ PlayerAttack / InteractionController
 ├ ParryGauge / ArrowLauncher(서버 전용)
 ├ InventoryController / TalentController
-├ CharacterController (CapsuleCollider 대체 검토, 8장 결정 4)
 └ 자식: CameraRig 앵커, 신궁 · 무녀 모델(PlayerAppearance 바인딩 추가)
 ```
 
