@@ -8,6 +8,7 @@ using UnityEngine;
 using Mirror;
 
 // 프로젝트 내부
+using Geumeum.Combat;
 using Geumeum.Common;
 
 namespace Geumeum.Network
@@ -192,20 +193,36 @@ namespace Geumeum.Network
                 }
             }
 
+            // 무기가 세 명 모두에게 실제로 적용된 뒤에만 런을 연다
+            if (!AssignWeapons())
+            {
+                return;
+            }
+
             LockAdmission();
-            AssignWeapons();
             RunManager.ServerInstance.StartRun();
         }
 
         // 접속 순서나 이름이 아니라 서버 난수로 순열을 만든다
         [Server]
-        private void AssignWeapons()
+        private bool AssignWeapons()
         {
             WeaponKind[] weapons = (WeaponKind[]) Enum.GetValues(typeof(WeaponKind));
             if (weapons.Length < _slots.Count)
             {
                 Debug.LogError($"[LobbyController] 무기 종류가 인원보다 적다: {weapons.Length} < {_slots.Count}", this);
-                return;
+                return false;
+            }
+
+            // 한 명이라도 적용에 실패하면 아무에게도 배분하지 않는다
+            PlayerWeapon[] targets = new PlayerWeapon[_slots.Count];
+            for (int i = 0; i < _slots.Count; ++i)
+            {
+                if (!TryFindPlayerWeapon(_slots[i].ConnectionId, out targets[i]))
+                {
+                    Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}의 PlayerWeapon을 찾지 못했다", this);
+                    return false;
+                }
             }
 
             for (int i = weapons.Length - 1; i > 0; --i)
@@ -219,11 +236,37 @@ namespace Geumeum.Network
 
             for (int i = 0; i < _slots.Count; ++i)
             {
+                if (!targets[i].ServerSetInitialWeapon(weapons[i]))
+                {
+                    Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}에 무기를 확정하지 못했다", this);
+                    return false;
+                }
+
                 LobbySlot slot = _slots[i];
                 slot.HasWeapon = true;
                 slot.Weapon    = weapons[i];
                 _slots[i]      = slot;
             }
+
+            return true;
+        }
+
+        // 연결의 플레이어 오브젝트에서 무기 소유자를 찾는다
+        private bool TryFindPlayerWeapon(int connectionId, out PlayerWeapon weapon)
+        {
+            weapon = null;
+
+            if (!NetworkServer.connections.TryGetValue(connectionId, out NetworkConnectionToClient conn))
+            {
+                return false;
+            }
+
+            if (conn.identity == null)
+            {
+                return false;
+            }
+
+            return conn.identity.TryGetComponent(out weapon);
         }
 
         private void LockAdmission()

@@ -10,7 +10,8 @@ namespace Geumeum.Common
             public const int ITEM_GRADE_COUNT  = 4; // 드랍 가중치 배열 크기와 연동
             public const int FIELD_LEVEL_COUNT = 4; // 0은 개활, 3은 보스 보상
 
-            public const int MAX_LEVEL = 10; // 레벨 곡선 길이와 특성 포인트 총합이 여기에 묶인다
+            public const int START_LEVEL = 1;  // 런 시작 레벨, 초기 최대 HP를 레벨 곡선에서 찾는 키
+            public const int MAX_LEVEL   = 10; // 레벨 곡선 길이와 특성 포인트 총합이 여기에 묶인다
 
             public const int   HIT_QUERY_BUFFER_SIZE = 16;     // NonAlloc 물리 쿼리 재사용 버퍼 크기
             public const float DAMAGE_EPSILON        = 0.001f; // 부동소수 오차로 HP가 계속 갱신되는 것을 막는다
