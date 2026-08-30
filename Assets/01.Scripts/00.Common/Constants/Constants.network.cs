@@ -29,6 +29,7 @@ namespace Geumeum.Common
             public const int TICK_PRIORITY_AI         = 100;
             public const int TICK_PRIORITY_PROJECTILE = 200;
             public const int TICK_PRIORITY_ABILITY    = 300;
+            public const int TICK_PRIORITY_STATUS     = 400; // 자원 회복, 그 틱의 소모가 모두 반영된 뒤에 돈다
         }
     }
 }

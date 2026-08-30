@@ -4,7 +4,6 @@ using System.Collections.Generic;
 
 // Unity
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 // 서드파티
 using Mirror;
@@ -18,6 +17,7 @@ namespace Geumeum.Combat
 {
     /// <summary>
     /// 이동 입력을 일정 주기로 서버에 보내고, 서버가 순서·충돌을 검증한 뒤 위치를 확정한다.
+    /// 서버는 Rigidbody 속도로 이동시키고 Y는 중력에 맡기며, 물리 스텝에서만 값을 만진다.
     /// 소유 클라이언트는 로컬 예측 후 서버 스냅샷으로 재조정하고, 원격 클라이언트는 NetworkTransform 보간만 쓴다
     /// </summary>
     public class PlayerController : NetworkBehaviour
@@ -26,13 +26,7 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
-        [SerializeField] private InputActionAsset _inputActions;
-
-        private InputAction _moveAction;
-        private InputAction _sprintAction;
-        private InputAction _rollAction;
-
-        private CharacterController       _characterController;
+        private Rigidbody                 _rigidbody;
         private PlayerPrediction          _prediction;
         private PlayerStatus              _status;
         private PlayerAnimationController _animation;
@@ -40,14 +34,18 @@ namespace Geumeum.Combat
 
         private double _lastInputSendTime = 0.0;
         private uint   _localSequence     = 0;
+        private bool   _rollRequested     = false; // Update에서 눌린 프레임을 잡아 두고 전송 주기에 실어 보낸다
 
         // 서버 전용
         private readonly Queue<PlayerMoveInput> _serverInputBuffer = new Queue<PlayerMoveInput>();
 
-        private uint   _lastAcceptedSequence        = 0;
-        private uint   _lastProcessedSequence       = 0;
-        private double _lastInputReceivedServerTime = -1.0;
-        private double _lastMotionServerTime        = -1.0; // 틱 호출 사이에도 이어져야 한다, 지역 변수면 매 틱 delta가 0이 된다
+        private uint    _lastAcceptedSequence        = 0;
+        private uint    _lastProcessedSequence       = 0;
+        private double  _lastInputReceivedServerTime = -1.0;
+        private Vector2 _lastMoveDirection           = Vector2.zero;
+        private Vector2 _lastFacingDirection         = Vector2.up; // 입력이 멈춰도 유지되는 마지막 이동 방향, 제자리 구르기가 이 방향을 쓴다
+        private bool    _lastSprintHeld              = false;
+        private bool    _wasMovingLastTick           = false;
 
         // 구르기. 이동 입력과 달리 서버가 방향·속도를 고정해 두고 재생하는 단발 상태다.
         // 판정은 전부 서버가 하지만 모든 관찰자가 구르기 모션을 봐야 하므로 진행 여부만 동기화한다
@@ -64,11 +62,11 @@ namespace Geumeum.Combat
 
         private void Awake()
         {
-            _characterController = GetComponent<CharacterController>();
-            _prediction           = GetComponent<PlayerPrediction>();
-            _status               = GetComponent<PlayerStatus>();
-            _animation            = GetComponent<PlayerAnimationController>();
-            _networkTransform     = GetComponent<NetworkTransformReliable>();
+            _rigidbody        = GetComponent<Rigidbody>();
+            _prediction       = GetComponent<PlayerPrediction>();
+            _status           = GetComponent<PlayerStatus>();
+            _animation        = GetComponent<PlayerAnimationController>();
+            _networkTransform = GetComponent<NetworkTransformReliable>();
         }
 
         private void Update()
@@ -78,9 +76,10 @@ namespace Geumeum.Combat
                 return;
             }
 
-            if (_moveAction == null)
+            // 전송 주기와 무관하게 매 프레임 본다, 30Hz로 걸러내면 누른 프레임을 놓친다
+            if (Input.GetKeyDown(Constants.Player.KEY_ROLL))
             {
-                return;
+                _rollRequested = true;
             }
 
             double now = NetworkTime.time;
@@ -91,10 +90,20 @@ namespace Geumeum.Combat
 
             _lastInputSendTime = now;
 
+            if (_rollRequested)
+            {
+                _rollRequested = false;
+                CmdRequestRoll(ResolveRollDirection());
+            }
+
+            Vector2 moveAxis = new Vector2(
+                Input.GetAxisRaw(Constants.Player.AXIS_HORIZONTAL),
+                Input.GetAxisRaw(Constants.Player.AXIS_VERTICAL));
+
             PlayerMoveInput input = new PlayerMoveInput
             {
-                MoveDirection             = Vector2.ClampMagnitude(_moveAction.ReadValue<Vector2>(), 1f),
-                SprintHeld                = ((_sprintAction != null) && (_sprintAction.ReadValue<float>() > 0f)),
+                MoveDirection             = Vector2.ClampMagnitude(moveAxis, 1f),
+                SprintHeld                = Input.GetKey(Constants.Player.KEY_SPRINT),
                 ClientEstimatedServerTime = now,
                 Sequence                  = ++_localSequence,
             };
@@ -106,21 +115,6 @@ namespace Geumeum.Combat
             }
 
             CmdSendMoveInput(input);
-        }
-
-        /****************************************
-        *              Input
-        ****************************************/
-
-        private void OnRollPerformed(InputAction.CallbackContext context)
-        {
-            Vector2 direction = _moveAction.ReadValue<Vector2>();
-            if (direction.sqrMagnitude < (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
-            {
-                direction = Vector2.up; // 입력이 없으면 정면(월드 +Z)으로 구른다
-            }
-
-            CmdRequestRoll(direction.normalized);
         }
 
         /****************************************
@@ -153,41 +147,19 @@ namespace Geumeum.Combat
             {
                 _networkTransform.enabled = false;
             }
-
-            if (_inputActions == null)
-            {
-                Debug.LogError("[PlayerController] InputActionAsset이 비어 있어 이동 입력을 받을 수 없다", this);
-                return;
-            }
-
-            InputActionMap map = _inputActions.FindActionMap(Constants.Player.ACTION_MAP);
-            _moveAction   = map.FindAction(Constants.Player.ACTION_MOVE);
-            _sprintAction = map.FindAction(Constants.Player.ACTION_SPRINT);
-            _rollAction   = map.FindAction(Constants.Player.ACTION_ROLL);
-
-            _moveAction.Enable();
-            _sprintAction.Enable();
-
-            _rollAction.performed += OnRollPerformed;
-            _rollAction.Enable();
         }
 
-        public override void OnStopAuthority()
+        /****************************************
+        *              Client Callbacks
+        ****************************************/
+
+        public override void OnStartClient()
         {
-            if (_moveAction != null)
+            // 원격 인스턴스의 물리가 스스로 돌면 서버 스냅샷·로컬 예측과 위치를 두고 싸운다.
+            // 호스트는 자기 자신이 서버라 물리를 그대로 써야 하므로 제외한다
+            if (!isServer && (_rigidbody != null))
             {
-                _moveAction.Disable();
-            }
-
-            if (_sprintAction != null)
-            {
-                _sprintAction.Disable();
-            }
-
-            if (_rollAction != null)
-            {
-                _rollAction.performed -= OnRollPerformed;
-                _rollAction.Disable();
+                _rigidbody.isKinematic = true;
             }
         }
 
@@ -266,7 +238,7 @@ namespace Geumeum.Combat
             double now = NetworkTime.time;
 
             _isRolling                   = true;
-            _rollDirection               = Vector2.ClampMagnitude(direction, 1f); // 클라 방향값을 신뢰하지 않는다
+            _rollDirection               = ResolveServerRollDirection(direction);
             _rollEndServerTime           = now + combat.RollTotalDuration;
             _rollInvincibleEndServerTime = now + combat.RollInvincibleDuration;
 
@@ -277,17 +249,10 @@ namespace Geumeum.Combat
         *              Server Tick
         ****************************************/
 
-        // AuthorityTickScheduler가 TICK_PRIORITY_MOVEMENT 순서로 매 서버 틱 호출한다
+        // AuthorityTickScheduler가 물리 스텝마다 TICK_PRIORITY_MOVEMENT 순서로 호출한다
         private void ServerProcessMovementTick(float fixedDeltaTime)
         {
-            bool hasBufferedInput = (_serverInputBuffer.Count > 0);
-            bool isInputExpired = ((_lastInputReceivedServerTime >= 0.0)
-                && ((NetworkTime.time - _lastInputReceivedServerTime) > Constants.Network.PLAYER_INPUT_EXPIRY));
-
-            if (!hasBufferedInput && !isInputExpired && !_isRolling)
-            {
-                return; // 새 입력도 없고 만료도 안 됐고 구르는 중도 아니면 이번 틱은 건너뛴다
-            }
+            DrainInputBuffer();
 
             RunPhase        phase     = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
             PlayerLifeState lifeState = (_status != null) ? _status.LifeState : PlayerLifeState.Alive;
@@ -298,41 +263,75 @@ namespace Geumeum.Combat
                 UpdateRollState(NetworkTime.time, canMove);
             }
 
+            Vector2 direction = Vector2.zero;
+            float   speed     = 0f;
+
+            if (canMove && _isRolling)
+            {
+                CombatConfigSO combat = GameDB.Combat;
+
+                direction = _rollDirection; // 구르기 중에는 일반 이동 입력을 무시한다
+                speed     = combat.RollDistance / combat.RollTotalDuration;
+            }
+            else if (canMove)
+            {
+                direction = _lastMoveDirection;
+                speed     = ResolveMoveSpeed(_lastSprintHeld);
+            }
+
+            ApplyPlanarVelocity(direction, speed);
+
+            // 멈춰 있는 동안까지 매 물리 스텝 스냅샷을 보내면 3연결에 그대로 낭비가 된다
+            bool isMoving = ((direction.sqrMagnitude > 0f) && (speed > 0f));
+            if (isMoving || _wasMovingLastTick)
+            {
+                TargetMoveSnapshot(_rigidbody.position, _lastProcessedSequence);
+            }
+
+            _wasMovingLastTick = isMoving;
+        }
+
+        // 버퍼에 쌓인 입력을 순서대로 비우고 마지막 값만 남긴다.
+        // 속도로 이동시키므로 물리 스텝 하나에 적용할 방향은 하나뿐이다
+        private void DrainInputBuffer()
+        {
+            bool isInputExpired = ((_lastInputReceivedServerTime >= 0.0)
+                && ((NetworkTime.time - _lastInputReceivedServerTime) > Constants.Network.PLAYER_INPUT_EXPIRY));
+
+            if (isInputExpired)
+            {
+                _lastMoveDirection = Vector2.zero; // 통신이 끊기면 마지막 입력을 무한히 유지하지 않는다
+                _lastSprintHeld    = false;
+            }
+
             while (_serverInputBuffer.Count > 0)
             {
                 PlayerMoveInput input = _serverInputBuffer.Dequeue();
+
                 _lastProcessedSequence = input.Sequence;
+                _lastMoveDirection     = input.MoveDirection;
+                _lastSprintHeld        = input.SprintHeld;
 
-                if (!canMove || _isRolling)
+                // 입력을 놓아도 마지막으로 향하던 방향은 남겨 둔다, 제자리 구르기가 이 값을 쓴다
+                if (input.MoveDirection.sqrMagnitude > (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
                 {
-                    continue; // sequence는 갱신하되 위치는 바꾸지 않는다, 구르기 중에는 일반 이동 입력을 무시한다
+                    _lastFacingDirection = input.MoveDirection.normalized;
                 }
-
-                // _lastMotionServerTime은 필드다 — 틱 하나에 입력이 1개만 들어오는 게 보통이라
-                // 지역 변수로 두면 매번 "이전 시각 없음"이 되어 delta가 항상 0이 된다
-                double effectiveTime = ClampInputTime(input.ClientEstimatedServerTime, NetworkTime.time);
-                float  deltaTime = (_lastMotionServerTime < 0.0)
-                    ? 0f
-                    : Mathf.Clamp((float) (effectiveTime - _lastMotionServerTime), 0f, Constants.Network.MAX_INPUT_DELTA_TIME);
-                _lastMotionServerTime = effectiveTime;
-
-                ApplyServerMotion(input.MoveDirection, ResolveMoveSpeed(input.SprintHeld), deltaTime);
             }
-
-            if (_isRolling)
-            {
-                ApplyRollMotion(fixedDeltaTime);
-            }
-
-            TargetMoveSnapshot(transform.position, _lastProcessedSequence);
         }
 
-        private void ApplyServerMotion(Vector2 moveDirection, float moveSpeed, float deltaTime)
+        /// <summary>
+        /// XZ만 속도로 지정하고 Y는 건드리지 않는다. 낙하 · 경사 · 충돌은 물리에 맡긴다.
+        /// 속도 x 고정 스텝이 PlayerMotionModel의 변위와 같아 클라이언트 예측과 어긋나지 않는다
+        /// </summary>
+        private void ApplyPlanarVelocity(Vector2 moveDirection, float moveSpeed)
         {
-            Vector3 nextPosition = PlayerMotionModel.ComputeNextPosition(transform.position, moveDirection, moveSpeed, deltaTime);
-            Vector3 delta        = nextPosition - transform.position;
+            Vector3 velocity = _rigidbody.linearVelocity;
 
-            _characterController.Move(delta);
+            velocity.x = moveDirection.x * moveSpeed;
+            velocity.z = moveDirection.y * moveSpeed;
+
+            _rigidbody.linearVelocity = velocity;
         }
 
         /// <summary> 무적 만료·구르기 종료·생명 상태 이탈(사망 등)을 확인한다. 위치는 바꾸지 않는다 </summary>
@@ -354,25 +353,6 @@ namespace Geumeum.Combat
             }
         }
 
-        private void ApplyRollMotion(float deltaTime)
-        {
-            CombatConfigSO combat    = GameDB.Combat;
-            float          rollSpeed = combat.RollDistance / combat.RollTotalDuration;
-
-            Vector3 nextPosition = PlayerMotionModel.ComputeNextPosition(transform.position, _rollDirection, rollSpeed, deltaTime);
-            Vector3 delta        = nextPosition - transform.position;
-
-            _characterController.Move(delta);
-        }
-
-        private static double ClampInputTime(double clientEstimatedServerTime, double serverNow)
-        {
-            double earliest = serverNow - Constants.Network.MAX_INPUT_TIME_BEHIND;
-            double latest   = serverNow + Constants.Network.MAX_INPUT_TIME_AHEAD;
-
-            return Math.Clamp(clientEstimatedServerTime, earliest, latest);
-        }
-
         /****************************************
         *              TargetRpc
         ****************************************/
@@ -391,6 +371,36 @@ namespace Geumeum.Combat
         /****************************************
         *                Methods
         ****************************************/
+
+        // 누르고 있는 방향이 있으면 그 방향, 없으면 0을 보낸다. 실제 방향 결정은 서버가 한다
+        private static Vector2 ResolveRollDirection()
+        {
+            Vector2 direction = new Vector2(
+                Input.GetAxisRaw(Constants.Player.AXIS_HORIZONTAL),
+                Input.GetAxisRaw(Constants.Player.AXIS_VERTICAL));
+
+            if (direction.sqrMagnitude < (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
+            {
+                return Vector2.zero;
+            }
+
+            return direction.normalized;
+        }
+
+        /// <summary>
+        /// 방향키를 누른 채면 그 방향, 제자리면 마지막으로 향하던 방향으로 구른다.
+        /// 클라이언트가 보낸 값은 크기만 신뢰하지 않고 잘라 쓴다
+        /// </summary>
+        [Server]
+        private Vector2 ResolveServerRollDirection(Vector2 requested)
+        {
+            if (requested.sqrMagnitude > (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
+            {
+                return Vector2.ClampMagnitude(requested, 1f);
+            }
+
+            return _lastFacingDirection;
+        }
 
         private float ResolveMoveSpeed(bool sprintHeld)
         {

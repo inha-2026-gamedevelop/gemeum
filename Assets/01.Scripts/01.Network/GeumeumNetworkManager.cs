@@ -22,6 +22,9 @@ namespace Geumeum.Network
 
         private static readonly List<string> _bootFailures = new List<string>();
 
+        [Tooltip("이 키로 호스트를 시작한다. NetworkManagerHUD 없이 붙기 위한 Dev 씬 전용이고, Main.unity에서는 None으로 둔다")]
+        [SerializeField] private KeyCode _devStartHostKey = KeyCode.None;
+
         /****************************************
         *              Properties
         ****************************************/
@@ -37,6 +40,22 @@ namespace Geumeum.Network
         {
             maxConnections = Constants.Network.MAX_PLAYERS; // NetworkServer.Listen이 이 값으로 접속 정원을 강제한다
             base.Awake();
+        }
+
+        public override void Update()
+        {
+            base.Update();
+
+            if ((_devStartHostKey == KeyCode.None) || isNetworkActive)
+            {
+                return;
+            }
+
+            if (Input.GetKeyDown(_devStartHostKey))
+            {
+                Debug.Log($"[GeumeumNetworkManager] Dev 단축키({_devStartHostKey})로 호스트를 시작한다");
+                StartHost();
+            }
         }
 
         /****************************************

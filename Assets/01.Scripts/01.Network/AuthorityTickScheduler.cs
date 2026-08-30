@@ -1,6 +1,5 @@
 // System
 using System;
-using System.Collections;
 using System.Collections.Generic;
 
 // Unity
@@ -9,14 +8,13 @@ using UnityEngine;
 // 서드파티
 using Mirror;
 
-// 프로젝트 내부
-using Geumeum.Common;
-
 namespace Geumeum.Network
 {
     /// <summary>
     /// 서버 전용 공용 시뮬레이션 틱. 등록된 콜백을 우선순위 순서로 매 틱 실행한다.
-    /// RunManager는 phase·타이머 책임만 유지하고, 플레이어·AI·투사체 실행 순서는 여기서 관리한다
+    /// RunManager는 phase·타이머 책임만 유지하고, 플레이어·AI·투사체 실행 순서는 여기서 관리한다.
+    /// Rigidbody 조작은 물리 스텝 안에서만 안전하므로 FixedUpdate를 틱 경계로 삼는다.
+    /// 물리 주기는 ProjectSettings의 Fixed Timestep이며 SERVER_TICK_INTERVAL과 같은 값으로 맞춰 둔다
     /// </summary>
     public class AuthorityTickScheduler : NetworkBehaviour
     {
@@ -36,9 +34,8 @@ namespace Geumeum.Network
 
         private readonly List<TickCallback> _callbacks = new List<TickCallback>();
 
-        private bool            _isSorted    = true;
-        private Coroutine       _tickRoutine = null;
-        private WaitForSeconds  _tickWait    = null;
+        private bool _isSorted  = true;
+        private bool _isTicking = false;
 
         /****************************************
         *              Properties
@@ -51,9 +48,24 @@ namespace Geumeum.Network
         *              Unity Event
         ****************************************/
 
-        private void Awake()
+        // 물리 스텝이 곧 서버 틱이다. Rigidbody를 만지는 콜백이 여기 밖에서 돌면 이동이 물리와 어긋난다
+        private void FixedUpdate()
         {
-            _tickWait = new WaitForSeconds(Constants.Network.SERVER_TICK_INTERVAL);
+            if (!_isTicking)
+            {
+                return;
+            }
+
+            if (!_isSorted)
+            {
+                _callbacks.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+                _isSorted = true;
+            }
+
+            for (int i = 0; i < _callbacks.Count; ++i)
+            {
+                _callbacks[i].Callback.Invoke(Time.fixedDeltaTime);
+            }
         }
 
         /****************************************
@@ -63,16 +75,13 @@ namespace Geumeum.Network
         public override void OnStartServer()
         {
             ServerInstance = this;
-            _tickRoutine    = StartCoroutine(CoServerTick());
+            _isTicking     = true;
         }
 
         public override void OnStopServer()
         {
-            if (_tickRoutine != null)
-            {
-                StopCoroutine(_tickRoutine);
-                _tickRoutine = null;
-            }
+            _isTicking = false;
+            _callbacks.Clear();
 
             if (ServerInstance == this)
             {
@@ -84,7 +93,7 @@ namespace Geumeum.Network
         *              Server API
         ****************************************/
 
-        /// <summary> 우선순위가 낮을수록 먼저 실행된다. deltaTime은 SERVER_TICK_INTERVAL 고정값이 전달된다 </summary>
+        /// <summary> 우선순위가 낮을수록 먼저 실행된다. deltaTime은 물리 고정 스텝이 전달된다 </summary>
         [Server]
         public void Register(int priority, Action<float> callback)
         {
@@ -101,29 +110,6 @@ namespace Geumeum.Network
                 {
                     _callbacks.RemoveAt(i);
                 }
-            }
-        }
-
-        /****************************************
-        *                Methods
-        ****************************************/
-
-        private IEnumerator CoServerTick()
-        {
-            while (true)
-            {
-                if (!_isSorted)
-                {
-                    _callbacks.Sort((a, b) => a.Priority.CompareTo(b.Priority));
-                    _isSorted = true;
-                }
-
-                for (int i = 0; i < _callbacks.Count; ++i)
-                {
-                    _callbacks[i].Callback.Invoke(Constants.Network.SERVER_TICK_INTERVAL);
-                }
-
-                yield return _tickWait;
             }
         }
     }

@@ -340,6 +340,7 @@ MonoBehaviour:
   evaluationMethod: 0
   evaluationInterval: 3
   timeInterpolationGui: 0
+  _devStartHostKey: 282
 --- !u!4 &80988259
 Transform:
   m_ObjectHideFlags: 0
@@ -885,6 +886,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   _devAutoReady: 1
+  _devMinPlayers: 1
 --- !u!114 &328390365
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -7,6 +7,7 @@ using Mirror;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
+using Geumeum.Network;
 
 namespace Geumeum.Combat
 {
@@ -26,6 +27,8 @@ namespace Geumeum.Combat
         [SyncVar] private float           _spirit       = 0f;
         [SyncVar] private PlayerLifeState _lifeState    = PlayerLifeState.Alive;
         [SyncVar] private bool            _isInvincible = false; // 구르기 · 패링 성공처럼 생명 상태는 그대로인 일시 무적
+
+        private double _lastStaminaSpendServerTime = -1.0; // 서버 전용, 회복 시작을 늦추는 기준 시각
 
         /****************************************
         *              Properties
@@ -67,6 +70,54 @@ namespace Geumeum.Combat
             _stamina   = combat.StaminaMax;
             _spirit    = combat.SpiritMax;
             _lifeState = PlayerLifeState.Alive;
+
+            if (AuthorityTickScheduler.ServerInstance == null)
+            {
+                Debug.LogError("[PlayerStatus] AuthorityTickScheduler가 없어 스태미나 회복을 돌릴 수 없다", this);
+                return;
+            }
+
+            AuthorityTickScheduler.ServerInstance.Register(Constants.Network.TICK_PRIORITY_STATUS, ServerRegenTick);
+        }
+
+        public override void OnStopServer()
+        {
+            if (AuthorityTickScheduler.ServerInstance == null)
+            {
+                return;
+            }
+
+            AuthorityTickScheduler.ServerInstance.Unregister(ServerRegenTick);
+        }
+
+        /****************************************
+        *              Server Tick
+        ****************************************/
+
+        // 신력은 자연 회복하지 않는다, 물약 전용 희소 자원이라 여기서 건드리지 않는다
+        private void ServerRegenTick(float fixedDeltaTime)
+        {
+            if (IsDead || !GameDB.IsInitialized)
+            {
+                return;
+            }
+
+            CombatConfigSO combat = GameDB.Combat;
+            if (_stamina >= combat.StaminaMax)
+            {
+                return;
+            }
+
+            // 행동 직후 곧바로 차오르면 연속 구르기를 막는 자원 설계가 무의미해진다
+            bool isDelayPassed = ((_lastStaminaSpendServerTime < 0.0)
+                || ((NetworkTime.time - _lastStaminaSpendServerTime) >= combat.StaminaRegenDelay));
+
+            if (!isDelayPassed)
+            {
+                return;
+            }
+
+            _stamina = Mathf.Min(combat.StaminaMax, _stamina + (combat.StaminaRegenPerSecond * fixedDeltaTime));
         }
 
         /****************************************
@@ -117,7 +168,8 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            _stamina -= amount;
+            _stamina                    -= amount;
+            _lastStaminaSpendServerTime  = NetworkTime.time;
             return true;
         }
 

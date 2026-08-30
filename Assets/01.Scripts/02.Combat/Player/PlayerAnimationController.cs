@@ -21,7 +21,7 @@ namespace Geumeum.Combat
         private const string PARAM_ROLL       = "Roll";
         private const string PARAM_ROLL_SPEED = "RollSpeed";
 
-        private const string CLIP_ROLL = "StandToRoll";
+        private const string CLIP_ROLL = "SprintingForwardRoll";
 
         private const float SPEED_SMOOTH_TIME    = 0.15f;   // 초, 서버 틱 사이 위치가 안 바뀌는 구간을 완화한다
         private const float TURN_DEGREES_PER_SEC = 720f;

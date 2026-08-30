@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 3520025059153897771}
   - component: {fileID: 7158754663249516040}
   - component: {fileID: 1391620650104165911}
+  - component: {fileID: 1391620650104165912}
   - component: {fileID: 5457873659344650020}
   - component: {fileID: 6948535784815658364}
   m_Layer: 9
@@ -108,7 +109,6 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  _inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
 --- !u!114 &2865124169510563787
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124,7 +124,6 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  _inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
 --- !u!114 &2175489978544684979
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -170,8 +169,8 @@ MonoBehaviour:
   _bindings:
   - Weapon: 0
     Model: {fileID: 4182965954587609578}
---- !u!143 &1391620650104165911
-CharacterController:
+--- !u!136 &1391620650104165911
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -187,14 +186,39 @@ CharacterController:
   m_LayerOverridePriority: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 1.54
+  serializedVersion: 2
+  m_IsTrigger: 0
   m_Radius: 0.25
-  m_SlopeLimit: 45
-  m_StepOffset: 0.3
-  m_SkinWidth: 0.08
-  m_MinMoveDistance: 0.001
+  m_Height: 1.54
+  m_Direction: 1
   m_Center: {x: 0, y: 0.77, z: 0}
+--- !u!54 &1391620650104165912
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  serializedVersion: 4
+  m_Mass: 70
+  m_Damping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 1
+  m_Constraints: 112
+  m_CollisionDetection: 2
 --- !u!114 &5457873659344650020
 MonoBehaviour:
   m_ObjectHideFlags: 0

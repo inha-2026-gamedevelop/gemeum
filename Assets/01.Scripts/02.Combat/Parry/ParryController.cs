@@ -1,6 +1,5 @@
 // Unity
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 // 서드파티
 using Mirror;
@@ -20,10 +19,6 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
-        [SerializeField] private InputActionAsset _inputActions;
-
-        private InputAction _parryAction;
-
         private double _windowStartTime = 0.0;  // 서버 전용, 공격 측이 OpenParryWindow로 채운다
         private float  _windowDuration  = 0f;   // 서버 전용
 
@@ -31,36 +26,19 @@ namespace Geumeum.Combat
         *              Unity Event
         ****************************************/
 
-        public override void OnStartAuthority()
-        {
-            if (_inputActions == null)
-            {
-                Debug.LogError("[ParryController] InputActionAsset이 비어 있어 패링 입력을 받을 수 없다", this);
-                return;
-            }
-
-            _parryAction = _inputActions.FindActionMap(Constants.Player.ACTION_MAP).FindAction(Constants.Player.ACTION_PARRY);
-            _parryAction.performed += OnParryPerformed;
-            _parryAction.Enable();
-        }
-
-        public override void OnStopAuthority()
-        {
-            if (_parryAction == null)
-            {
-                return;
-            }
-
-            _parryAction.performed -= OnParryPerformed;
-        }
-
-        /****************************************
-        *              Input
-        ****************************************/
-
         // TODO(민성): 패링 모션과 연출 연결
-        private void OnParryPerformed(InputAction.CallbackContext context)
+        private void Update()
         {
+            if (!isOwned)
+            {
+                return;
+            }
+
+            if (!Input.GetMouseButtonDown(Constants.Player.MOUSE_BUTTON_PARRY))
+            {
+                return;
+            }
+
             CmdParry(NetworkTime.time);
         }
 
