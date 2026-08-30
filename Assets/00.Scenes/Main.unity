@@ -7335,8 +7335,12 @@ PrefabInstance:
       objectReference: {fileID: 11400000, guid: 3f5bbf1d13698254d892f1740ad586f1, type: 2}
     - target: {fileID: 114189907102477492, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
       propertyPath: _PerformanceProfile
-      value: 
-      objectReference: {fileID: 11400000, guid: b51c55183bcdd874e9ead3097b958bc6, type: 2}
+      value:
+      objectReference: {fileID: 11400000, guid: 44eaa2804fb24697b7a13b1b94f6676d, type: 2}
+    - target: {fileID: 114515445234937670, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: TemporalReprojectionMaterial
+      value:
+      objectReference: {fileID: 2100000, guid: 374bc786913744b69bfe9a3a9f058962, type: 2}
     - target: {fileID: 114189907102477492, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
       propertyPath: AllowCameras.Array.size
       value: 3
