@@ -24,6 +24,11 @@ namespace Geumeum.Common
             public const float PLAYER_INPUT_EXPIRY        = 0.25f;   // 이 이상 새 입력이 없으면 0 입력으로 간주(초)
             public const float PLAYER_RECONCILE_THRESHOLD = 0.1f;    // 예측 위치와 서버 스냅샷의 오차 허용치(m)
 
+            // 서버가 위치를 움직이지 않는 구간에도 스냅샷이 끊기면 소유 클라이언트의 재조정 ACK가
+            // 같이 끊겨 예측 위치가 되돌아올 방법이 없고 미확인 입력도 비워지지 않는다
+            public const float PLAYER_SNAPSHOT_IDLE_INTERVAL = 0.2f; // 정지 구간의 스냅샷 최소 송신 주기(초)
+            public const int   PLAYER_MAX_PENDING_INPUTS     = 64;   // 재조정에 다시 적용할 미확인 입력 상한(개)
+
             // AuthorityTickScheduler 등록 순서, 숫자가 작을수록 먼저 실행된다
             public const int TICK_PRIORITY_MOVEMENT   = 0;
             public const int TICK_PRIORITY_AI         = 100;

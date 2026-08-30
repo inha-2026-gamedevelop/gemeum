@@ -1,5 +1,4 @@
 // System
-using System;
 using System.Collections.Generic;
 
 // Unity
@@ -73,6 +72,14 @@ namespace Geumeum.Combat
             {
                 return;
             }
+
+            // 구르기는 서버가 방향·속도를 대신 정하고, 쓰러진 뒤에는 서버가 이동을 아예 거부한다.
+            // 두 구간에서 로컬 예측을 계속하면 서버 위치와 벌어지기만 해 재조정이 고무줄이 된다.
+            // 서버 phase는 소유 클라이언트가 알 수 없으므로 클라이언트가 아는 상태만 본다
+            bool isServerDrivenMotion = (((_roll != null) && (_roll.IsRolling))
+                || ((_status != null) && (_status.IsDead)));
+
+            _prediction.SetSuspended(isServerDrivenMotion);
 
             double now = NetworkTime.time;
             if ((now - _lastInputSendTime) < Constants.Network.PLAYER_INPUT_SEND_INTERVAL)
@@ -263,31 +270,26 @@ namespace Geumeum.Combat
         {
             bool isMoving = ((direction.sqrMagnitude > 0f) && (speed > 0f));
 
-            if (isMoving)
+            if (isMoving != _wasMovingLastTick)
             {
-                if (!_wasMovingLastTick)
-                {
-                    TargetMoveSnapshot(_rigidbody.position, _lastProcessedSequence);
-                    _snapshotElapsed = 0f;
-                }
-                else
-                {
-                    _snapshotElapsed += fixedDeltaTime;
-                    if (_snapshotElapsed >= Constants.Network.PLAYER_SYNC_INTERVAL)
-                    {
-                        TargetMoveSnapshot(_rigidbody.position, _lastProcessedSequence);
-                        _snapshotElapsed -= Constants.Network.PLAYER_SYNC_INTERVAL;
-                    }
-                }
+                TargetMoveSnapshot(_rigidbody.position, _lastProcessedSequence); // 이동·정지 전이를 즉시 확정한다
+                _snapshotElapsed   = 0f;
+                _wasMovingLastTick = isMoving;
+                return;
             }
-            else if (_wasMovingLastTick)
+
+            // 정지 구간에도 성기게나마 계속 보낸다. 여기서 끊으면 소유 클라이언트가 마지막 처리 sequence를
+            // 받지 못해 미확인 입력을 비우지도, 어긋난 예측 위치를 되돌리지도 못한다
+            float sendInterval = isMoving
+                ? Constants.Network.PLAYER_SYNC_INTERVAL
+                : Constants.Network.PLAYER_SNAPSHOT_IDLE_INTERVAL;
+
+            _snapshotElapsed += fixedDeltaTime;
+
+            if (_snapshotElapsed >= sendInterval)
             {
-                TargetMoveSnapshot(_rigidbody.position, _lastProcessedSequence); // 정지 전이를 즉시 확정한다
-                _snapshotElapsed = 0f;
-            }
-            else
-            {
-                _snapshotElapsed = 0f;
+                TargetMoveSnapshot(_rigidbody.position, _lastProcessedSequence);
+                _snapshotElapsed -= sendInterval;
             }
 
             _wasMovingLastTick = isMoving;

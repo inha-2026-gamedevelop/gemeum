@@ -23,10 +23,38 @@ namespace Geumeum.Combat
         private readonly List<PlayerMoveInput> _pendingInputs = new List<PlayerMoveInput>();
 
         private double _lastInputTime = -1.0;
+        private bool   _isSuspended   = false;
+
+        /****************************************
+        *              Properties
+        ****************************************/
+
+        /// <summary> 예측을 멈추고 서버 위치를 그대로 따르는 중인지 여부 </summary>
+        public bool IsSuspended => _isSuspended;
 
         /****************************************
         *              Methods
         ****************************************/
+
+        /// <summary>
+        /// 구르기처럼 서버가 이동을 대신 결정하거나 아예 거부하는 구간에서 예측을 멈춘다.
+        /// 이 구간의 로컬 입력은 서버 위치와 어긋나기만 하므로 보관하지 않는다
+        /// </summary>
+        public void SetSuspended(bool suspended)
+        {
+            if (_isSuspended == suspended)
+            {
+                return;
+            }
+
+            _isSuspended = suspended;
+
+            if (suspended)
+            {
+                _pendingInputs.Clear();
+                _lastInputTime = -1.0;
+            }
+        }
 
         /// <summary>
         /// 입력을 즉시 로컬에 반영하고, 서버 확인 전까지 재조정용으로 보관한다.
@@ -34,6 +62,11 @@ namespace Geumeum.Combat
         /// </summary>
         public void Predict(PlayerMoveInput input, Func<bool, float> resolveSpeed)
         {
+            if (_isSuspended)
+            {
+                return;
+            }
+
             float deltaTime = ComputeDeltaTime(input.ClientEstimatedServerTime, _lastInputTime);
             _lastInputTime  = input.ClientEstimatedServerTime;
 
@@ -41,10 +74,19 @@ namespace Geumeum.Combat
             transform.position = PlayerMotionModel.ComputeNextPosition(transform.position, input.MoveDirection, moveSpeed, deltaTime);
 
             // 정지 입력은 위치를 바꾸지 않으므로 보관하지 않는다, 장시간 정지 시 버퍼가 자라지 않게 한다
-            if (input.MoveDirection.sqrMagnitude > (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
+            if (input.MoveDirection.sqrMagnitude <= (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
             {
-                _pendingInputs.Add(input);
+                return;
             }
+
+            // 스냅샷이 오래 끊겨도 버퍼가 무한히 자라지 않게 한다.
+            // 상한을 넘길 만큼 오래된 입력은 어차피 재적용해도 서버 위치를 따라잡지 못한다
+            if (_pendingInputs.Count >= Constants.Network.PLAYER_MAX_PENDING_INPUTS)
+            {
+                _pendingInputs.RemoveAt(0);
+            }
+
+            _pendingInputs.Add(input);
         }
 
         /// <summary>
@@ -54,6 +96,14 @@ namespace Geumeum.Combat
         public void Reconcile(Vector3 serverPosition, uint lastProcessedSequence, Func<bool, float> resolveSpeed)
         {
             DiscardAcknowledged(lastProcessedSequence);
+
+            // 예측을 멈춘 구간에는 다시 적용할 입력도, 지켜야 할 로컬 위치도 없다.
+            // 임계값을 두면 서버가 움직이는 동안 오차가 그 아래로 계속 남아 따라가지 못한다
+            if (_isSuspended)
+            {
+                transform.position = serverPosition;
+                return;
+            }
 
             float error = Vector3.Distance(transform.position, serverPosition);
             if (error <= Constants.Network.PLAYER_RECONCILE_THRESHOLD)
