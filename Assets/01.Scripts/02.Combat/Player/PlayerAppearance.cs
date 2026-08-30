@@ -34,6 +34,9 @@ namespace Geumeum.Combat
 
         private PlayerAnimationController _animation;
 
+        private WeaponKind _appliedWeapon    = default;
+        private bool       _hasAppliedWeapon = false;
+
         /****************************************
         *              Unity Event
         ****************************************/
@@ -53,6 +56,12 @@ namespace Geumeum.Combat
         /// </summary>
         public void ApplyAppearance(WeaponKind weapon)
         {
+            // 무기와 배분 여부 두 SyncVar가 각각 훅을 걸고 있어 같은 무기로 두 번 들어올 수 있다
+            if ((_hasAppliedWeapon) && (_appliedWeapon == weapon))
+            {
+                return;
+            }
+
             GameObject matchedModel = null;
 
             for (int i = 0; i < _bindings.Length; ++i)
@@ -84,6 +93,9 @@ namespace Geumeum.Combat
                     model.SetActive(model == matchedModel);
                 }
             }
+
+            _appliedWeapon    = weapon;
+            _hasAppliedWeapon = true;
 
             if (_animation != null)
             {
