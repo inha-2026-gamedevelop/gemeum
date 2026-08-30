@@ -37,30 +37,41 @@ namespace Geumeum.Combat
         ****************************************/
 
         /// <summary>
-        /// 무기에 매칭되는 모델만 켠다. 아직 모델이 없는 직업(신궁·무녀)은 바인딩을 비워 두면
-        /// 매칭이 없어 아무것도 켜지지 않는다 — 임의로 다른 모델을 대신 보여주지 않는다
+        /// 무기에 매칭되는 모델만 켠다. 매칭되는 모델이 없으면 현재 외형을 보존한다.
+        /// 새 외형이 준비되지 않은 상태에서 기존 모델부터 끄면 플레이어가 통째로 사라지기 때문이다
         /// </summary>
         public void ApplyAppearance(WeaponKind weapon)
         {
-            bool matched = false;
+            GameObject matchedModel = null;
 
             for (int i = 0; i < _bindings.Length; ++i)
             {
                 WeaponModelBinding binding = _bindings[i];
 
-                if (binding.Model == null)
+                if ((binding.Weapon != weapon) || (binding.Model == null))
                 {
                     continue;
                 }
 
-                bool isMatch = (binding.Weapon == weapon);
-                binding.Model.SetActive(isMatch);
-                matched |= isMatch;
+                matchedModel = binding.Model;
+                break;
             }
 
-            if (!matched)
+            if (matchedModel == null)
             {
-                Debug.LogWarning($"[PlayerAppearance] {weapon}에 매칭되는 모델 바인딩이 없다", this);
+                Debug.LogWarning($"[PlayerAppearance] {weapon}에 매칭되는 모델 바인딩이 없어 현재 외형을 유지한다", this);
+                return;
+            }
+
+            // 사용할 모델을 먼저 확정한 뒤 한 번에 전환한다. 같은 모델을 여러 무기의 임시 외형으로
+            // 공유해도 마지막 바인딩 순서에 따라 다시 꺼지지 않는다
+            for (int i = 0; i < _bindings.Length; ++i)
+            {
+                GameObject model = _bindings[i].Model;
+                if (model != null)
+                {
+                    model.SetActive(model == matchedModel);
+                }
             }
         }
     }
