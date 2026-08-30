@@ -11,7 +11,7 @@ namespace Geumeum.Common
             public const string ACTION_LOOK     = "Look";
             public const string ACTION_ATTACK   = "Attack";
             public const string ACTION_PARRY    = "Parry";
-            public const string ACTION_ROLL     = "Crouch"; // TODO(민성): 구르기 전용 액션으로 분리
+            public const string ACTION_ROLL     = "Roll";
             public const string ACTION_SPRINT   = "Sprint";
             public const string ACTION_INTERACT = "Interact";
 

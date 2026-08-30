@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 7158754663249516040}
   - component: {fileID: 1391620650104165911}
   - component: {fileID: 5457873659344650020}
+  - component: {fileID: 6948535784815658364}
   m_Layer: 9
   m_Name: Player
   m_TagString: Untagged
@@ -72,7 +73,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Mirror.Components::Mirror.NetworkTransformReliable
   syncDirection: 0
   syncMode: 0
-  syncInterval: 0
+  syncInterval: 0.02
   target: {fileID: 6657460897001572079}
   syncPosition: 1
   syncRotation: 1
@@ -206,6 +207,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56ab3848c01138b419dd19254a6eadea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.PlayerPrediction
+--- !u!114 &6948535784815658364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c79313c80e9d2c844ad13af906e537c2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.PlayerAnimationController
 --- !u!1001 &3948962593664824507
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -286,6 +299,14 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[6]'
       value: 
       objectReference: {fileID: 2100000, guid: 400f75c8ee47b8a4a8b50ffd07c34122, type: 2}
+    - target: {fileID: 5866666021909216657, guid: 4ee6c6cc7d89e9a4dab0dbd14b7887a8, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 9419576030d96f241a050688e50699f1, type: 2}
+    - target: {fileID: 5866666021909216657, guid: 4ee6c6cc7d89e9a4dab0dbd14b7887a8, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

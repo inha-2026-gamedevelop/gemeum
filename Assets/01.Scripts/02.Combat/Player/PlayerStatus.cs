@@ -20,21 +20,23 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
-        [SyncVar] private float           _health    = 0f;
-        [SyncVar] private float           _maxHealth = 0f;
-        [SyncVar] private float           _stamina   = 0f;
-        [SyncVar] private float           _spirit    = 0f;
-        [SyncVar] private PlayerLifeState _lifeState = PlayerLifeState.Alive;
+        [SyncVar] private float           _health       = 0f;
+        [SyncVar] private float           _maxHealth    = 0f;
+        [SyncVar] private float           _stamina      = 0f;
+        [SyncVar] private float           _spirit       = 0f;
+        [SyncVar] private PlayerLifeState _lifeState    = PlayerLifeState.Alive;
+        [SyncVar] private bool            _isInvincible = false; // 구르기 · 패링 성공처럼 생명 상태는 그대로인 일시 무적
 
         /****************************************
         *              Properties
         ****************************************/
 
-        public float           Health    => _health;
-        public float           MaxHealth => _maxHealth;
-        public float           Stamina   => _stamina;
-        public float           Spirit    => _spirit;
-        public PlayerLifeState LifeState => _lifeState;
+        public float           Health       => _health;
+        public float           MaxHealth    => _maxHealth;
+        public float           Stamina      => _stamina;
+        public float           Spirit       => _spirit;
+        public PlayerLifeState LifeState    => _lifeState;
+        public bool            IsInvincible => _isInvincible;
 
         /// <summary> 관전 중이거나 쓰러진 상태. 부활 무적은 살아 있는 것으로 센다 </summary>
         public bool IsDead => ((_lifeState == PlayerLifeState.Downed) || (_lifeState == PlayerLifeState.Spectating));
@@ -86,6 +88,12 @@ namespace Geumeum.Combat
                 return;
             }
 
+            // 구르기 · 패링 성공 무적은 생명 상태를 바꾸지 않는 일시 상태라 별도로 확인한다
+            if (_isInvincible)
+            {
+                return;
+            }
+
             if (damage.Amount <= Constants.Combat.DAMAGE_EPSILON)
             {
                 return;
@@ -98,6 +106,26 @@ namespace Geumeum.Combat
                 // TODO(민성): ReviveController가 붙으면 Spectating 전이와 관전 타이머를 잇는다
                 _lifeState = PlayerLifeState.Downed;
             }
+        }
+
+        /// <summary> 스태미나가 충분할 때만 원자적으로 차감한다. 서버에서만 호출한다 </summary>
+        [Server]
+        public bool TrySpendStamina(float amount)
+        {
+            if (_stamina < amount)
+            {
+                return false;
+            }
+
+            _stamina -= amount;
+            return true;
+        }
+
+        /// <summary> 구르기 · 패링 성공처럼 생명 상태와 무관한 일시 무적을 켜고 끈다. 서버에서만 호출한다 </summary>
+        [Server]
+        public void SetInvincible(bool isInvincible)
+        {
+            _isInvincible = isInvincible;
         }
     }
 }

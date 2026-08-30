@@ -30,11 +30,13 @@ namespace Geumeum.Combat
 
         private InputAction _moveAction;
         private InputAction _sprintAction;
+        private InputAction _rollAction;
 
-        private CharacterController      _characterController;
-        private PlayerPrediction         _prediction;
-        private PlayerStatus             _status;
-        private NetworkTransformReliable _networkTransform;
+        private CharacterController       _characterController;
+        private PlayerPrediction          _prediction;
+        private PlayerStatus              _status;
+        private PlayerAnimationController _animation;
+        private NetworkTransformReliable  _networkTransform;
 
         private double _lastInputSendTime = 0.0;
         private uint   _localSequence     = 0;
@@ -47,6 +49,15 @@ namespace Geumeum.Combat
         private double _lastInputReceivedServerTime = -1.0;
         private double _lastMotionServerTime        = -1.0; // 틱 호출 사이에도 이어져야 한다, 지역 변수면 매 틱 delta가 0이 된다
 
+        // 구르기. 이동 입력과 달리 서버가 방향·속도를 고정해 두고 재생하는 단발 상태다.
+        // 판정은 전부 서버가 하지만 모든 관찰자가 구르기 모션을 봐야 하므로 진행 여부만 동기화한다
+        [SyncVar(hook = nameof(OnRollingChanged))] private bool _isRolling = false;
+
+        // 서버 전용 — 아래 값은 판정에만 쓰이고 클라이언트가 알 필요가 없다
+        private Vector2 _rollDirection               = Vector2.zero;
+        private double  _rollEndServerTime           = 0.0;
+        private double  _rollInvincibleEndServerTime = 0.0;
+
         /****************************************
         *              Unity Event
         ****************************************/
@@ -56,6 +67,7 @@ namespace Geumeum.Combat
             _characterController = GetComponent<CharacterController>();
             _prediction           = GetComponent<PlayerPrediction>();
             _status               = GetComponent<PlayerStatus>();
+            _animation            = GetComponent<PlayerAnimationController>();
             _networkTransform     = GetComponent<NetworkTransformReliable>();
         }
 
@@ -97,6 +109,36 @@ namespace Geumeum.Combat
         }
 
         /****************************************
+        *              Input
+        ****************************************/
+
+        private void OnRollPerformed(InputAction.CallbackContext context)
+        {
+            Vector2 direction = _moveAction.ReadValue<Vector2>();
+            if (direction.sqrMagnitude < (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
+            {
+                direction = Vector2.up; // 입력이 없으면 정면(월드 +Z)으로 구른다
+            }
+
+            CmdRequestRoll(direction.normalized);
+        }
+
+        /****************************************
+        *              SyncVar Hooks
+        ****************************************/
+
+        // 서버·클라이언트 모두에서 값이 바뀔 때 호출된다, 판정에는 관여하지 않는다
+        private void OnRollingChanged(bool oldRolling, bool newRolling)
+        {
+            if (!newRolling || (_animation == null))
+            {
+                return; // 종료는 애니메이터가 클립 길이로 알아서 빠져나온다
+            }
+
+            _animation.PlayRoll();
+        }
+
+        /****************************************
         *              Authority Callbacks
         ****************************************/
 
@@ -121,9 +163,13 @@ namespace Geumeum.Combat
             InputActionMap map = _inputActions.FindActionMap(Constants.Player.ACTION_MAP);
             _moveAction   = map.FindAction(Constants.Player.ACTION_MOVE);
             _sprintAction = map.FindAction(Constants.Player.ACTION_SPRINT);
+            _rollAction   = map.FindAction(Constants.Player.ACTION_ROLL);
 
             _moveAction.Enable();
             _sprintAction.Enable();
+
+            _rollAction.performed += OnRollPerformed;
+            _rollAction.Enable();
         }
 
         public override void OnStopAuthority()
@@ -136,6 +182,12 @@ namespace Geumeum.Combat
             if (_sprintAction != null)
             {
                 _sprintAction.Disable();
+            }
+
+            if (_rollAction != null)
+            {
+                _rollAction.performed -= OnRollPerformed;
+                _rollAction.Disable();
             }
         }
 
@@ -184,6 +236,43 @@ namespace Geumeum.Combat
             _serverInputBuffer.Enqueue(input);
         }
 
+        [Command]
+        private void CmdRequestRoll(Vector2 direction)
+        {
+            if (_isRolling)
+            {
+                return; // 이미 구르는 중이면 재요청을 그냥 버린다, 재전송도 정상 트래픽이다
+            }
+
+            RunPhase        phase     = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
+            PlayerLifeState lifeState = (_status != null) ? _status.LifeState : PlayerLifeState.Alive;
+
+            if (!PlayerActionGate.CanAct(phase, lifeState))
+            {
+                return;
+            }
+
+            if (!GameDB.IsInitialized)
+            {
+                return;
+            }
+
+            CombatConfigSO combat = GameDB.Combat;
+            if ((_status == null) || !_status.TrySpendStamina(combat.RollStaminaCost))
+            {
+                return;
+            }
+
+            double now = NetworkTime.time;
+
+            _isRolling                   = true;
+            _rollDirection               = Vector2.ClampMagnitude(direction, 1f); // 클라 방향값을 신뢰하지 않는다
+            _rollEndServerTime           = now + combat.RollTotalDuration;
+            _rollInvincibleEndServerTime = now + combat.RollInvincibleDuration;
+
+            _status.SetInvincible(true);
+        }
+
         /****************************************
         *              Server Tick
         ****************************************/
@@ -195,23 +284,28 @@ namespace Geumeum.Combat
             bool isInputExpired = ((_lastInputReceivedServerTime >= 0.0)
                 && ((NetworkTime.time - _lastInputReceivedServerTime) > Constants.Network.PLAYER_INPUT_EXPIRY));
 
-            if (!hasBufferedInput && !isInputExpired)
+            if (!hasBufferedInput && !isInputExpired && !_isRolling)
             {
-                return; // 새 입력도 없고 아직 만료도 안 됐으면 이번 틱은 건너뛴다
+                return; // 새 입력도 없고 만료도 안 됐고 구르는 중도 아니면 이번 틱은 건너뛴다
             }
 
             RunPhase        phase     = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
             PlayerLifeState lifeState = (_status != null) ? _status.LifeState : PlayerLifeState.Alive;
             bool            canMove   = PlayerActionGate.CanAct(phase, lifeState);
 
+            if (_isRolling)
+            {
+                UpdateRollState(NetworkTime.time, canMove);
+            }
+
             while (_serverInputBuffer.Count > 0)
             {
                 PlayerMoveInput input = _serverInputBuffer.Dequeue();
                 _lastProcessedSequence = input.Sequence;
 
-                if (!canMove)
+                if (!canMove || _isRolling)
                 {
-                    continue; // sequence는 갱신하되 위치는 바꾸지 않는다
+                    continue; // sequence는 갱신하되 위치는 바꾸지 않는다, 구르기 중에는 일반 이동 입력을 무시한다
                 }
 
                 // _lastMotionServerTime은 필드다 — 틱 하나에 입력이 1개만 들어오는 게 보통이라
@@ -225,12 +319,47 @@ namespace Geumeum.Combat
                 ApplyServerMotion(input.MoveDirection, ResolveMoveSpeed(input.SprintHeld), deltaTime);
             }
 
+            if (_isRolling)
+            {
+                ApplyRollMotion(fixedDeltaTime);
+            }
+
             TargetMoveSnapshot(transform.position, _lastProcessedSequence);
         }
 
         private void ApplyServerMotion(Vector2 moveDirection, float moveSpeed, float deltaTime)
         {
             Vector3 nextPosition = PlayerMotionModel.ComputeNextPosition(transform.position, moveDirection, moveSpeed, deltaTime);
+            Vector3 delta        = nextPosition - transform.position;
+
+            _characterController.Move(delta);
+        }
+
+        /// <summary> 무적 만료·구르기 종료·생명 상태 이탈(사망 등)을 확인한다. 위치는 바꾸지 않는다 </summary>
+        private void UpdateRollState(double now, bool canMove)
+        {
+            if (_status.IsInvincible && (now >= _rollInvincibleEndServerTime))
+            {
+                _status.SetInvincible(false);
+            }
+
+            if (!canMove || (now >= _rollEndServerTime))
+            {
+                _isRolling = false;
+
+                if (_status.IsInvincible)
+                {
+                    _status.SetInvincible(false); // 구르는 도중 사망 등으로 강제 종료되면 무적도 같이 끈다
+                }
+            }
+        }
+
+        private void ApplyRollMotion(float deltaTime)
+        {
+            CombatConfigSO combat    = GameDB.Combat;
+            float          rollSpeed = combat.RollDistance / combat.RollTotalDuration;
+
+            Vector3 nextPosition = PlayerMotionModel.ComputeNextPosition(transform.position, _rollDirection, rollSpeed, deltaTime);
             Vector3 delta        = nextPosition - transform.position;
 
             _characterController.Move(delta);

@@ -27,6 +27,7 @@ namespace Geumeum.Data
         [SerializeField] private float _rollStaminaCost        = 25f;
         [SerializeField] private float _rollInvincibleDuration = 0.45f; // 초
         [SerializeField] private float _rollTotalDuration      = 0.9f;  // 전체 동작(초)
+        [SerializeField] private float _rollDistance           = 3f;    // 이동 거리(m), 게임 디자인 문서에 값이 없어 프로토타입 시작값으로 추가
 
         [Header("패링")]
         [SerializeField] private float _parryStartupDuration    = 0.05f; // 선딜(초)
@@ -65,6 +66,7 @@ namespace Geumeum.Data
         public float RollStaminaCost        => _rollStaminaCost;
         public float RollInvincibleDuration => _rollInvincibleDuration;
         public float RollTotalDuration      => _rollTotalDuration;
+        public float RollDistance           => _rollDistance;
 
         public float ParryStartupDuration    => _parryStartupDuration;
         public float ParryWindowDuration     => _parryWindowDuration;
