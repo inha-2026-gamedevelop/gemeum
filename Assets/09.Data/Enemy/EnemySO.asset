@@ -20,6 +20,10 @@ MonoBehaviour:
     Experience: 25
     CurrencyMin: 8
     CurrencyMax: 15
+    AggroRange: 8
+    AttackRange: 1.5
+    WindupDuration: 1.2
+    AttackCooldown: 1.5
   - Kind: 1
     DisplayName: "\uCC3D\uADC0"
     MaxHealth: 260
@@ -27,6 +31,10 @@ MonoBehaviour:
     Experience: 45
     CurrencyMin: 20
     CurrencyMax: 30
+    AggroRange: 0
+    AttackRange: 0
+    WindupDuration: 0
+    AttackCooldown: 0
   - Kind: 2
     DisplayName: "\uC561\uADC0"
     MaxHealth: 140
@@ -34,6 +42,10 @@ MonoBehaviour:
     Experience: 40
     CurrencyMin: 25
     CurrencyMax: 40
+    AggroRange: 0
+    AttackRange: 0
+    WindupDuration: 0
+    AttackCooldown: 0
   _enhances:
   - FieldLevel: 0
     PrefixName: 
