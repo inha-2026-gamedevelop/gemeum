@@ -19,10 +19,8 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
-        [SyncVar(hook = nameof(OnWeaponChanged))]    private WeaponKind _weapon    = default;
-        [SyncVar(hook = nameof(OnHasWeaponChanged))] private bool       _hasWeapon = false;
-
-        private PlayerAppearance _appearance;
+        [SyncVar] private WeaponKind _weapon    = default;
+        [SyncVar] private bool       _hasWeapon = false;
 
         /****************************************
         *              Properties
@@ -32,33 +30,6 @@ namespace Geumeum.Combat
         public bool HasWeapon => _hasWeapon;
 
         public WeaponKind Weapon => _weapon;
-
-        /****************************************
-        *              Unity Callbacks
-        ****************************************/
-
-        private void Awake()
-        {
-            _appearance = GetComponent<PlayerAppearance>();
-        }
-
-        /****************************************
-        *              SyncVar Hooks
-        ****************************************/
-
-        /// <summary> 서버·클라이언트 모두에서 값이 바뀔 때 호출된다, 판정에는 관여하지 않는다 </summary>
-        private void OnWeaponChanged(WeaponKind oldWeapon, WeaponKind newWeapon)
-        {
-            RefreshAppearance();
-        }
-
-        // Sword가 enum 기본값이라 검을 배분받으면 _weapon 값이 바뀌지 않아 위 훅이 호출되지 않는다.
-        // 배분 여부는 반드시 false에서 true로 바뀌므로 외형 적용을 여기에도 건다.
-        // _weapon이 먼저 선언되어 있어 스폰 payload를 읽을 때 이 시점의 _weapon은 이미 확정된 값이다
-        private void OnHasWeaponChanged(bool oldHasWeapon, bool newHasWeapon)
-        {
-            RefreshAppearance();
-        }
 
         /****************************************
         *              Server API
@@ -80,20 +51,6 @@ namespace Geumeum.Combat
             _weapon    = weapon;
             _hasWeapon = true;
             return true;
-        }
-
-        /****************************************
-        *                Methods
-        ****************************************/
-
-        private void RefreshAppearance()
-        {
-            if ((!_hasWeapon) || (_appearance == null))
-            {
-                return;
-            }
-
-            _appearance.ApplyAppearance(_weapon);
         }
     }
 }
