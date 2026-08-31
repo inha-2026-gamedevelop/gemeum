@@ -5,7 +5,6 @@ using System.Text;
 
 // Unity
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 // 서드파티
 using Mirror;
@@ -32,8 +31,8 @@ namespace Geumeum.Network
         private const int OVERLAY_HEIGHT = 90;
 
         [Header("단축키")]
-        [SerializeField] private Key _writeKey   = Key.F9;
-        [SerializeField] private Key _overlayKey = Key.F10;
+        [SerializeField] private KeyCode _writeKeyCode   = KeyCode.F9;
+        [SerializeField] private KeyCode _overlayKeyCode = KeyCode.F10;
 
         private float[] _frameSeconds; // 프레임당 소요 시간
         private byte[]  _framePhase;   // 같은 인덱스의 프레임이 속한 RunPhase
@@ -134,17 +133,12 @@ namespace Geumeum.Network
 
         private void HandleKeys()
         {
-            if (Keyboard.current == null)
-            {
-                return;
-            }
-
-            if (Keyboard.current[_writeKey].wasPressedThisFrame)
+            if (Input.GetKeyDown(_writeKeyCode))
             {
                 Write();
             }
 
-            if (Keyboard.current[_overlayKey].wasPressedThisFrame)
+            if (Input.GetKeyDown(_overlayKeyCode))
             {
                 _showOverlay = !_showOverlay;
             }

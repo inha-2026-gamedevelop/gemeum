@@ -1,6 +1,5 @@
 using DigitalRuby.WeatherMaker;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Geumeum.Common.Environment
 {
@@ -9,15 +8,22 @@ namespace Geumeum.Common.Environment
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 
+        // 시간대 즉시 이동이 맞추는 시각
+        private const float SECONDS_PER_HOUR = 3600f;
+        private const float MORNING_HOUR     = 6f;
+        private const float NOON_HOUR        = 12f;
+        private const float EVENING_HOUR     = 18f;
+        private const float NIGHT_HOUR       = 22f;
+
         [Header("배속 (누르고 있는 동안 적용)")]
-        [SerializeField] private Key fastForwardKey = Key.Tab;
+        [SerializeField] private KeyCode _fastForwardKeyCode = KeyCode.Tab;
         [SerializeField] private float fastForwardMultiplier = 30f;
 
         [Header("시간대 즉시 이동")]
-        [SerializeField] private Key morningKey = Key.Digit1;
-        [SerializeField] private Key noonKey = Key.Digit2;
-        [SerializeField] private Key eveningKey = Key.Digit3;
-        [SerializeField] private Key nightKey = Key.Digit4;
+        [SerializeField] private KeyCode _morningKeyCode = KeyCode.Alpha1;
+        [SerializeField] private KeyCode _noonKeyCode    = KeyCode.Alpha2;
+        [SerializeField] private KeyCode _eveningKeyCode = KeyCode.Alpha3;
+        [SerializeField] private KeyCode _nightKeyCode   = KeyCode.Alpha4;
 
         private WeatherMakerDayNightCycleManagerScript dayNightCycle;
         private float baseSpeed;
@@ -30,18 +36,13 @@ namespace Geumeum.Common.Environment
 
         private void Update()
         {
-            if (Keyboard.current == null)
-            {
-                return;
-            }
-
             HandleFastForward();
             HandleTimeJump();
         }
 
         private void HandleFastForward()
         {
-            if (!Keyboard.current[fastForwardKey].isPressed)
+            if (!Input.GetKey(_fastForwardKeyCode))
             {
                 return;
             }
@@ -53,10 +54,22 @@ namespace Geumeum.Common.Environment
 
         private void HandleTimeJump()
         {
-            if (Keyboard.current[morningKey].wasPressedThisFrame) dayNightCycle.TimeOfDay = 6f * 3600f;
-            else if (Keyboard.current[noonKey].wasPressedThisFrame) dayNightCycle.TimeOfDay = 12f * 3600f;
-            else if (Keyboard.current[eveningKey].wasPressedThisFrame) dayNightCycle.TimeOfDay = 18f * 3600f;
-            else if (Keyboard.current[nightKey].wasPressedThisFrame) dayNightCycle.TimeOfDay = 22f * 3600f;
+            if (Input.GetKeyDown(_morningKeyCode))
+            {
+                dayNightCycle.TimeOfDay = MORNING_HOUR * SECONDS_PER_HOUR;
+            }
+            else if (Input.GetKeyDown(_noonKeyCode))
+            {
+                dayNightCycle.TimeOfDay = NOON_HOUR * SECONDS_PER_HOUR;
+            }
+            else if (Input.GetKeyDown(_eveningKeyCode))
+            {
+                dayNightCycle.TimeOfDay = EVENING_HOUR * SECONDS_PER_HOUR;
+            }
+            else if (Input.GetKeyDown(_nightKeyCode))
+            {
+                dayNightCycle.TimeOfDay = NIGHT_HOUR * SECONDS_PER_HOUR;
+            }
         }
 
 #endif
