@@ -24,6 +24,11 @@ MonoBehaviour:
     AttackRange: 1.5
     WindupDuration: 1.2
     AttackCooldown: 1.5
+    ChargeSpeed: 0
+    ChargeDistance: 0
+    ChargeHitRadius: 0
+    StaggerDuration: 0
+    ParryWindowDuration: 0
   - Kind: 1
     DisplayName: "\uCC3D\uADC0"
     MaxHealth: 260
@@ -31,10 +36,15 @@ MonoBehaviour:
     Experience: 45
     CurrencyMin: 20
     CurrencyMax: 30
-    AggroRange: 0
-    AttackRange: 0
-    WindupDuration: 0
-    AttackCooldown: 0
+    AggroRange: 9
+    AttackRange: 6
+    WindupDuration: 0.6
+    AttackCooldown: 2
+    ChargeSpeed: 9
+    ChargeDistance: 7
+    ChargeHitRadius: 1.3
+    StaggerDuration: 1.8
+    ParryWindowDuration: 0.32
   - Kind: 2
     DisplayName: "\uC561\uADC0"
     MaxHealth: 140
@@ -46,6 +56,11 @@ MonoBehaviour:
     AttackRange: 0
     WindupDuration: 0
     AttackCooldown: 0
+    ChargeSpeed: 0
+    ChargeDistance: 0
+    ChargeHitRadius: 0
+    StaggerDuration: 0
+    ParryWindowDuration: 0
   _enhances:
   - FieldLevel: 0
     PrefixName: 
