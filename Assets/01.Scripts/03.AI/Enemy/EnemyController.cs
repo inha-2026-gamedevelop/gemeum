@@ -7,6 +7,7 @@ using Mirror;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Network;
 
 namespace Geumeum.AI
 {
@@ -22,48 +23,81 @@ namespace Geumeum.AI
         *                Fields
         ****************************************/
 
-        private const float TARGET_SCAN_INTERVAL = 0.5f; // 매 프레임 탐색 대신 주기 탐색
-        private const float TARGET_SCAN_RADIUS    = 20f;  // Brain의 AggroRange보다 넉넉히 잡고, 실제 인지 여부는 Brain이 판단
+        private const float TARGET_SCAN_INTERVAL    = 0.5f; // 매 프레임 탐색 대신 주기 탐색
+        private const float TARGET_SCAN_RADIUS      = 20f;  // Brain의 AggroRange보다 넉넉히 잡고, 실제 인지 여부는 Brain이 판단
+        private const float PROJECTILE_RANGE_MARGIN = 1.5f; // 시전 사거리보다 이만큼 더 날아갈 여유를 준다
 
-        [SerializeField] private EnemyStatus  _status;
-        [SerializeField] private NavMeshAgent _agent;
+        [SerializeField] private EnemyStatus     _status;
+        [SerializeField] private NavMeshAgent    _agent;
+        [SerializeField] private CurseProjectile _projectilePrefab; // 원거리형만 배정, 근접형은 비워둔다
 
         private EnemyBrainBase _brain;
-        private float          _scanTimer = 0f;
+        private float          _scanTimer    = 0f;
+        private float          _defaultSpeed = 0f;
 
         /****************************************
         *              Unity Event
         ****************************************/
 
+        private void Awake()
+        {
+            if (_status == null)
+            {
+                _status = GetComponent<EnemyStatus>();
+            }
+
+            if (_agent == null)
+            {
+                _agent = GetComponent<NavMeshAgent>();
+            }
+        }
+
         public override void OnStartServer()
         {
-            // TODO: SpawnManager가 생기면 스폰 시점 결계 단계를 넘겨받아 여기서 대신 호출하게 옮긴다
-            _status.Initialize(0);
+            int fieldLevel = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.FieldLevel : 0;
+            _status.Initialize(fieldLevel);
 
-            _brain = CreateBrain(_status.Kind);
+            _defaultSpeed = _agent.speed;
+            _brain        = CreateBrain(_status.Kind);
             _status.Died += HandleDied;
+
+            if (AuthorityTickScheduler.ServerInstance == null)
+            {
+                Debug.LogError("[EnemyController] AuthorityTickScheduler가 없어 AI를 처리할 수 없다", this);
+                return;
+            }
+
+            AuthorityTickScheduler.ServerInstance.Register(Constants.Network.TICK_PRIORITY_AI, ServerTick);
         }
 
         public override void OnStopServer()
         {
             _status.Died -= HandleDied;
-        }
 
-        private void Update()
-        {
-            if (!isServer || _status.IsDead || (_brain == null))
+            if (AuthorityTickScheduler.ServerInstance == null)
             {
                 return;
             }
 
-            _scanTimer += Time.deltaTime;
+            AuthorityTickScheduler.ServerInstance.Unregister(ServerTick);
+        }
+
+        // AuthorityTickScheduler가 물리 스텝마다 TICK_PRIORITY_AI 순서로 호출한다
+        private void ServerTick(float deltaTime)
+        {
+            if (_status.IsDead || (_brain == null))
+            {
+                return;
+            }
+
+            _scanTimer += deltaTime;
             if (_scanTimer >= TARGET_SCAN_INTERVAL)
             {
                 _scanTimer = 0f;
                 RefreshTarget();
             }
 
-            _brain.Tick(Time.deltaTime);
+            _brain.Tick(deltaTime);
             ApplyBrainDecision();
         }
 
@@ -78,6 +112,10 @@ namespace Geumeum.AI
             {
                 case EnemyKind.Heokkaebi:
                     return new HeokkaebiBrain(transform, _status);
+                case EnemyKind.Changgwi:
+                    return new ChanggwiBrain(transform, _status);
+                case EnemyKind.Aekgwi:
+                    return new AekgwiBrain(transform, _status);
                 default:
                     Debug.LogError($"[EnemyController] {kind} 종류의 Brain이 아직 없다", this);
                     return null;
@@ -94,6 +132,11 @@ namespace Geumeum.AI
 
             for (int i = 0; i < hits.Length; ++i)
             {
+                if (hits[i].TryGetComponent(out IDamageable damageable) && damageable.IsDead)
+                {
+                    continue; // 다운·관전 중인 플레이어는 때려도 무의미하다, 살아있는 대상만 노린다
+                }
+
                 float distance = Vector3.Distance(transform.position, hits[i].transform.position);
                 if (distance < nearestDistance)
                 {
@@ -108,10 +151,17 @@ namespace Geumeum.AI
         [Server]
         private void ApplyBrainDecision()
         {
-            if (_brain.ShouldChase && (_brain.Target != null))
+            Vector3? destination = _brain.ChaseDestinationOverride;
+            if ((destination == null) && (_brain.Target != null))
             {
+                destination = _brain.Target.position;
+            }
+
+            if (_brain.ShouldChase && (destination != null))
+            {
+                _agent.speed     = _brain.MoveSpeedOverride ?? _defaultSpeed;
                 _agent.isStopped = false;
-                _agent.SetDestination(_brain.Target.position);
+                _agent.SetDestination(destination.Value);
             }
             else
             {
@@ -132,6 +182,12 @@ namespace Geumeum.AI
                 return;
             }
 
+            if (_brain.IsRangedAttack)
+            {
+                SpawnProjectile(target);
+                return;
+            }
+
             if (!target.TryGetComponent(out IDamageable damageable))
             {
                 return;
@@ -141,9 +197,33 @@ namespace Geumeum.AI
         }
 
         [Server]
+        private void SpawnProjectile(Transform target)
+        {
+            if (_projectilePrefab == null)
+            {
+                Debug.LogError($"[EnemyController] {_status.Kind}의 투사체 프리팹이 비어있다", this);
+                return;
+            }
+
+            Vector3 direction = target.position - transform.position;
+            direction.y = 0f;
+            direction   = (direction.sqrMagnitude > 0.0001f) ? direction.normalized : transform.forward;
+
+            CurseProjectile projectile = Instantiate(_projectilePrefab, transform.position, Quaternion.LookRotation(direction));
+            projectile.Initialize(direction, _status.ProjectileSpeed, _status.AttackPower, netId, _status.AttackRange * PROJECTILE_RANGE_MARGIN);
+            NetworkServer.Spawn(projectile.gameObject);
+        }
+
+        [Server]
         private void HandleDied(uint killerNetId)
         {
-            GameEventBus.Instance.Publish(new EnemyDiedEvent(netId, _status.Kind, transform.position, killerNetId, false));
+            // HasInstance→Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다, Instance를 한 번만 받는다
+            GameEventBus bus = GameEventBus.Instance;
+            if (bus != null)
+            {
+                bus.Publish(new EnemyDiedEvent(netId, _status.Kind, transform.position, killerNetId, false));
+            }
+
             NetworkServer.Destroy(gameObject);
         }
     }

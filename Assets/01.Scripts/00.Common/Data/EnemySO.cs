@@ -30,9 +30,20 @@ namespace Geumeum.Data
             public int       CurrencyMax; // 냥
 
             public float AggroRange;     // 추적 시작 거리
-            public float AttackRange;    // 공격 판정 시작 거리
+            public float AttackRange;    // 공격 판정 시작 거리(돌진형은 돌진 커밋 거리)
             public float WindupDuration; // 공격 전 선딜 시간(초)
             public float AttackCooldown; // 공격 후 재공격까지 대기 시간(초)
+
+            // 돌진형 전용, 돌진하지 않는 종류는 0으로 둔다
+            public float ChargeSpeed;      // 돌진 중 이동 속도
+            public float ChargeDistance;   // 돌진 최대 거리
+            public float ChargeHitRadius;  // 돌진 중 이 거리 안으로 들어오면 명중 판정
+            public float StaggerDuration;  // 패링당했을 때 경직 시간(초)
+            public float ParryWindowDuration; // 패링 판정 창 길이(초), 패링 불가 공격은 0
+
+            // 원거리형 전용, 원거리가 아닌 종류는 0으로 둔다
+            public float ProjectileSpeed; // 저주 투사체 비행 속도
+            public float RetreatRange;    // 이 거리보다 가까워지면 물러나 사거리를 유지한다
         }
 
         /// <summary> 필드 레벨별 강화 배수 </summary>
