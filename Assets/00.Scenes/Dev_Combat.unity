@@ -586,6 +586,10 @@ PrefabInstance:
       propertyPath: 'AllowCameras.Array.data[1]'
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 114962901692534914, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: SkySphereProfile
+      value: 
+      objectReference: {fileID: 11400000, guid: 63cdc8b64f0992b45a8f814172f85810, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

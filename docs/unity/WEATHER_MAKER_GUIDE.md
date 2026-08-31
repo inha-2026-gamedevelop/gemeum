@@ -233,3 +233,31 @@ Profile` 체크박스가 꺼져 있고 `Performance Profile` 필드가 비어있
 내재된 특성/한계일 가능성이 높다. Gaia도, 그믐 커스텀 프로필도 없는 순수 격리 씬에서 재현되므로, 지금이
 개발자에게 문의하기 가장 깨끗한 시점이다 — 이전 대화에서 준비한 영문 질문 초안에 이 표(08:00/13:00/18:00/
 20:00 결과)를 그대로 붙이면 된다.
+
+**개발자 답변과 적용 (2026-08-31)**: WeatherMaker 개발자(Digital Ruby)가 Discord로 답변했다.
+
+> Try changing WeatherMakerPrefab -> SkySphere -> SkySphereProfile -> Dither to 0.002
+> It's not perfect but is much better from what I'm seeing.
+
+즉 원인 지점은 **Sky Sphere 프로파일의 디더 진폭**이고, 개발자 본인도 완전한 해결이 아니라 완화라고 밝혔다.
+앞선 조사에서 "저휘도 영역에서 디더가 상대적으로 과하게 드러난다"고 좁힌 결론과 일치한다.
+
+해당 필드는 `WeatherMakerSkyProfileScript.DitherLevel`이고, `WeatherMakerPrefab`이 참조하는 프로파일은
+`WeatherMakerSkyProfile_ProceduralMilkyWayPhysicallyBased.asset`(구매 에셋 원본, `DitherLevel: 0.01`)이다.
+원본을 직접 고치면 에셋 업데이트 때 덮어써지고 다른 씬에도 한꺼번에 반영되므로, Performance Profile·
+TemporalReprojection 머티리얼과 같은 방식으로 복제본을 만들어 적용했다.
+
+- `Assets/09.Data/Environment/WM_SkyProfile_Geumeum.asset` — 원본 복제 후 `DitherLevel: 0.01 → 0.002`
+- `WeatherMakerPrefab`이 있는 씬 3개 모두 `SkySphere`가 이 복제본을 쓰도록 프리팹 오버라이드 추가 —
+  `Main.unity`, `Dev_Combat.unity`, `Dev_WeatherMakerIsolation.unity`
+
+격리 씬과 `Main.unity`에서 육안 확인 결과 노이즈가 눈에 띄게 줄었다(2026-08-31, 사용자 확인).
+
+**왜 씬마다 오버라이드를 거는가 — 프리팹 한 곳에서 바꾸면 안 되는 이유**: `WeatherMakerPrefab`의
+`SkySphereProfile` 필드를 복제본으로 바꾸면 씬별 오버라이드 없이 전부 반영되지만, `Assets/99.ThirdParty/`는
+`.gitignore` 대상(`.gitignore:21`)이라 **그 변경이 저장소에 올라가지 않는다.** 고친 사람 로컬에서만 적용되고
+다른 팀원은 여전히 원본 `DitherLevel: 0.01`을 보게 되는, 눈에 잘 띄지 않는 divergence가 생긴다.
+같은 이유로 구매 에셋 원본 프로파일의 값을 직접 고치는 것도 안 된다.
+
+**WeatherMaker가 들어가는 씬을 새로 만들 때는 이 오버라이드를 손으로 걸어야 한다.** 위 세 씬 중 하나를
+열어 `SkySphere`의 `Sky Sphere Profile` 필드를 확인하면 된다.
