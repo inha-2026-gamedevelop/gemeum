@@ -165,6 +165,10 @@ namespace Geumeum.AI
             _chargeMaxDuration = (Status.ChargeSpeed > 0f) ? (Status.ChargeDistance / Status.ChargeSpeed) * 1.5f : 1f;
             _state             = BrainState.Charge;
             _stateTimer        = 0f;
+
+            // TODO(오나): Combat 쪽에 IParryWindowTarget이 생기면 여기서 대상의 그 인터페이스를 찾아
+            // OpenParryWindow(windowId, attackerNetId, this)를 호출한다. 지금은 이 호출이 없어서
+            // OnParried가 절대 실행되지 않는다 — 패링 판정이 이 창귀 패턴과 연결되지 않은 상태다
         }
 
         private void TickCharge(float deltaTime)
