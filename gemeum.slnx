@@ -7,11 +7,14 @@
   <Project Path="GaiaEditor.csproj" />
   <Project Path="GaiaCore.csproj" />
   <Project Path="Mirror.Editor.csproj" />
+  <Project Path="MeshBakerCore.csproj" />
   <Project Path="Mirror.Examples.csproj" />
   <Project Path="kcp2k.csproj" />
   <Project Path="AxelF.Editor.csproj" />
+  <Project Path="MeshBakerExamples.csproj" />
   <Project Path="Mirror.csproj" />
   <Project Path="SimpleWebTransport.csproj" />
+  <Project Path="MeshBakerEditor.csproj" />
   <Project Path="PropertyMaster.csproj" />
   <Project Path="Mirror.Authenticators.csproj" />
   <Project Path="AxelF.csproj" />
