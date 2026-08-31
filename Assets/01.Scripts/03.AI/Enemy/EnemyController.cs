@@ -29,7 +29,8 @@ namespace Geumeum.AI
         [SerializeField] private NavMeshAgent _agent;
 
         private EnemyBrainBase _brain;
-        private float          _scanTimer = 0f;
+        private float          _scanTimer    = 0f;
+        private float          _defaultSpeed = 0f;
 
         /****************************************
         *              Unity Event
@@ -40,7 +41,8 @@ namespace Geumeum.AI
             // TODO: SpawnManager가 생기면 스폰 시점 결계 단계를 넘겨받아 여기서 대신 호출하게 옮긴다
             _status.Initialize(0);
 
-            _brain = CreateBrain(_status.Kind);
+            _defaultSpeed = _agent.speed;
+            _brain        = CreateBrain(_status.Kind);
             _status.Died += HandleDied;
         }
 
@@ -78,6 +80,8 @@ namespace Geumeum.AI
             {
                 case EnemyKind.Heokkaebi:
                     return new HeokkaebiBrain(transform, _status);
+                case EnemyKind.Changgwi:
+                    return new ChanggwiBrain(transform, _status);
                 default:
                     Debug.LogError($"[EnemyController] {kind} 종류의 Brain이 아직 없다", this);
                     return null;
@@ -108,10 +112,17 @@ namespace Geumeum.AI
         [Server]
         private void ApplyBrainDecision()
         {
-            if (_brain.ShouldChase && (_brain.Target != null))
+            Vector3? destination = _brain.ChaseDestinationOverride;
+            if ((destination == null) && (_brain.Target != null))
             {
+                destination = _brain.Target.position;
+            }
+
+            if (_brain.ShouldChase && (destination != null))
+            {
+                _agent.speed     = _brain.MoveSpeedOverride ?? _defaultSpeed;
                 _agent.isStopped = false;
-                _agent.SetDestination(_brain.Target.position);
+                _agent.SetDestination(destination.Value);
             }
             else
             {

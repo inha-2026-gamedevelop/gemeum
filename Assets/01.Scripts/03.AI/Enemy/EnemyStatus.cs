@@ -26,25 +26,35 @@ namespace Geumeum.AI
 
         [SyncVar] private float _health;
 
-        private float _maxHealth      = 0f;
-        private float _attackPower    = 0f;
-        private float _aggroRange     = 0f;
-        private float _attackRange    = 0f;
-        private float _windupDuration = 0f;
-        private float _attackCooldown = 0f;
-        private bool  _isDead         = false;
+        private float _maxHealth           = 0f;
+        private float _attackPower         = 0f;
+        private float _aggroRange          = 0f;
+        private float _attackRange         = 0f;
+        private float _windupDuration      = 0f;
+        private float _attackCooldown      = 0f;
+        private float _chargeSpeed         = 0f;
+        private float _chargeDistance      = 0f;
+        private float _chargeHitRadius     = 0f;
+        private float _staggerDuration     = 0f;
+        private float _parryWindowDuration = 0f;
+        private bool  _isDead              = false;
 
         /****************************************
         *              Properties
         ****************************************/
 
-        public bool      IsDead         => _isDead;
-        public EnemyKind Kind           => _kind;
-        public float     AttackPower    => _attackPower;
-        public float     AggroRange     => _aggroRange;
-        public float     AttackRange    => _attackRange;
-        public float     WindupDuration => _windupDuration;
-        public float     AttackCooldown => _attackCooldown;
+        public bool      IsDead              => _isDead;
+        public EnemyKind Kind                => _kind;
+        public float     AttackPower         => _attackPower;
+        public float     AggroRange          => _aggroRange;
+        public float     AttackRange         => _attackRange;
+        public float     WindupDuration      => _windupDuration;
+        public float     AttackCooldown      => _attackCooldown;
+        public float     ChargeSpeed         => _chargeSpeed;
+        public float     ChargeDistance      => _chargeDistance;
+        public float     ChargeHitRadius     => _chargeHitRadius;
+        public float     StaggerDuration     => _staggerDuration;
+        public float     ParryWindowDuration => _parryWindowDuration;
 
         /// <summary> 사망 시 서버에서 발생한다, killerNetId를 전달한다. 이벤트 발행 · 오브젝트 정리는 EnemyController가 한다 </summary>
         public event Action<uint> Died;
@@ -78,6 +88,11 @@ namespace Geumeum.AI
             _attackRange    = stat.AttackRange;
             _windupDuration = stat.WindupDuration;
             _attackCooldown = stat.AttackCooldown;
+            _chargeSpeed        = stat.ChargeSpeed;
+            _chargeDistance     = stat.ChargeDistance;
+            _chargeHitRadius    = stat.ChargeHitRadius;
+            _staggerDuration    = stat.StaggerDuration;
+            _parryWindowDuration = stat.ParryWindowDuration;
             _health         = _maxHealth;
             _isDead         = false;
         }
