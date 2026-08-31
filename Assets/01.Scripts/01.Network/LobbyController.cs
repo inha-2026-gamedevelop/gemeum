@@ -23,13 +23,15 @@ namespace Geumeum.Network
         *                Types
         ****************************************/
 
-        /// <summary> 로비 슬롯 하나. 무기는 런 시작 시점에만 채워진다 </summary>
+        /// <summary> 로비 슬롯 하나. 외형은 로비에서 고르고, 무기는 런 시작 시점에만 채워진다 </summary>
         public struct LobbySlot
         {
-            public int        ConnectionId;
-            public bool       IsReady;
-            public bool       HasWeapon;
-            public WeaponKind Weapon;
+            public int            ConnectionId;
+            public bool           IsReady;
+            public bool           HasWeapon;
+            public WeaponKind     Weapon;
+            public bool           HasAppearance;
+            public AppearanceKind Appearance;
         }
 
         /****************************************
@@ -94,10 +96,12 @@ namespace Geumeum.Network
 
             _slots.Add(new LobbySlot
             {
-                ConnectionId = conn.connectionId,
-                IsReady      = false,
-                HasWeapon    = false,
-                Weapon       = default,
+                ConnectionId  = conn.connectionId,
+                IsReady       = false,
+                HasWeapon     = false,
+                Weapon        = default,
+                HasAppearance = false,
+                Appearance    = default,
             });
 
             if (_devAutoReady)
@@ -157,6 +161,56 @@ namespace Geumeum.Network
             SetSlotReady(sender.connectionId, isReady);
         }
 
+        /// <summary>
+        /// 로비에서 외형을 고른다. 무기 배분과는 무관하며, 이미 다른 사람이 고른 외형은 거부한다.
+        /// 고르지 않은 채 런이 시작되면 서버가 남은 외형을 배정한다
+        /// </summary>
+        [Command(requiresAuthority = false)]
+        public void CmdSelectAppearance(AppearanceKind appearance, NetworkConnectionToClient sender = null)
+        {
+            if (sender == null)
+            {
+                return;
+            }
+
+            if (IsAdmissionLocked())
+            {
+                return;
+            }
+
+            // 클라이언트가 보낸 값은 신뢰하지 않는다, 정의되지 않은 enum 값이 슬롯에 들어가면 모델 바인딩이 어긋난다
+            if (!Enum.IsDefined(typeof(AppearanceKind), appearance))
+            {
+                Debug.LogWarning($"[LobbyController] 정의되지 않은 외형 선택을 무시했다: connectionId={sender.connectionId}, appearance={appearance}", this);
+                return;
+            }
+
+            if (!TryFindSlotIndex(sender.connectionId, out int index))
+            {
+                Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 외형 선택을 무시했다: connectionId={sender.connectionId}", this);
+                return;
+            }
+
+            // 3인칭 오버숄더라 같은 외형이 둘이면 파티원을 구분할 수 없다
+            for (int i = 0; i < _slots.Count; ++i)
+            {
+                if (i == index)
+                {
+                    continue;
+                }
+
+                if ((_slots[i].HasAppearance) && (_slots[i].Appearance == appearance))
+                {
+                    return;
+                }
+            }
+
+            LobbySlot slot     = _slots[index];
+            slot.HasAppearance = true;
+            slot.Appearance    = appearance;
+            _slots[index]      = slot;
+        }
+
         /****************************************
         *                Methods
         ****************************************/
@@ -212,8 +266,8 @@ namespace Geumeum.Network
                 }
             }
 
-            // 무기가 세 명 모두에게 실제로 적용된 뒤에만 런을 연다
-            if (!AssignWeapons())
+            // 무기와 외형이 세 명 모두에게 실제로 적용된 뒤에만 런을 연다
+            if (!AssignRoles())
             {
                 return;
             }
@@ -240,28 +294,59 @@ namespace Geumeum.Network
             return _devMinPlayers;
         }
 
-        // 접속 순서나 이름이 아니라 서버 난수로 순열을 만든다
+        // 무기와 외형을 한 번에 확정한다. 둘을 따로 적용하면 한쪽만 확정된 채 런이 열리지 않는 상태가 남는다
         [Server]
-        private bool AssignWeapons()
+        private bool AssignRoles()
         {
-            WeaponKind[] weapons = (WeaponKind[]) Enum.GetValues(typeof(WeaponKind));
+            WeaponKind[]     weapons     = (WeaponKind[])     Enum.GetValues(typeof(WeaponKind));
+            AppearanceKind[] appearances = (AppearanceKind[]) Enum.GetValues(typeof(AppearanceKind));
+
             if (weapons.Length < _slots.Count)
             {
                 Debug.LogError($"[LobbyController] 무기 종류가 인원보다 적다: {weapons.Length} < {_slots.Count}", this);
                 return false;
             }
 
-            // 한 명이라도 적용에 실패하면 아무에게도 배분하지 않는다
-            PlayerWeapon[] targets = new PlayerWeapon[_slots.Count];
+            if (appearances.Length < _slots.Count)
+            {
+                Debug.LogError($"[LobbyController] 외형 종류가 인원보다 적다: {appearances.Length} < {_slots.Count}", this);
+                return false;
+            }
+
+            // 한 명이라도 준비되지 않았으면 아무에게도 적용하지 않는다
+            PlayerWeapon[]     weaponTargets     = new PlayerWeapon[_slots.Count];
+            PlayerAppearance[] appearanceTargets = new PlayerAppearance[_slots.Count];
+
             for (int i = 0; i < _slots.Count; ++i)
             {
-                if (!TryFindPlayerWeapon(_slots[i].ConnectionId, out targets[i]))
+                int connectionId = _slots[i].ConnectionId;
+
+                if (!TryFindPlayerComponent(connectionId, out weaponTargets[i]))
                 {
-                    Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}의 PlayerWeapon을 찾지 못했다", this);
+                    Debug.LogError($"[LobbyController] connectionId={connectionId}의 PlayerWeapon을 찾지 못했다", this);
+                    return false;
+                }
+
+                if (!TryFindPlayerComponent(connectionId, out appearanceTargets[i]))
+                {
+                    Debug.LogError($"[LobbyController] connectionId={connectionId}의 PlayerAppearance를 찾지 못했다", this);
+                    return false;
+                }
+
+                // 적용 도중에 실패하면 되돌릴 수 없으므로 확정 가능 여부를 먼저 전부 확인한다
+                if ((weaponTargets[i].HasWeapon) || (appearanceTargets[i].HasAppearance))
+                {
+                    Debug.LogError($"[LobbyController] connectionId={connectionId}는 이미 역할이 확정되어 있다", this);
                     return false;
                 }
             }
 
+            if (!TryResolveAppearances(appearances, out AppearanceKind[] resolvedAppearances))
+            {
+                return false;
+            }
+
+            // 접속 순서나 이름이 아니라 서버 난수로 순열을 만든다
             for (int i = weapons.Length - 1; i > 0; --i)
             {
                 int swapIndex = _serverRandom.Next(i + 1);
@@ -273,25 +358,80 @@ namespace Geumeum.Network
 
             for (int i = 0; i < _slots.Count; ++i)
             {
-                if (!targets[i].ServerSetInitialWeapon(weapons[i]))
+                // 위에서 확정 가능 여부를 이미 확인했으므로 여기서 실패하면 상태가 어긋난 것이다.
+                // 절반만 적용된 채 런을 열지 않도록 막는다
+                if ((!weaponTargets[i].ServerSetInitialWeapon(weapons[i])) ||
+                    (!appearanceTargets[i].ServerSetAppearance(resolvedAppearances[i])))
                 {
-                    Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}에 무기를 확정하지 못했다", this);
+                    Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}에 역할을 확정하지 못했다", this);
                     return false;
                 }
 
-                LobbySlot slot = _slots[i];
-                slot.HasWeapon = true;
-                slot.Weapon    = weapons[i];
-                _slots[i]      = slot;
+                LobbySlot slot     = _slots[i];
+                slot.HasWeapon     = true;
+                slot.Weapon        = weapons[i];
+                slot.HasAppearance = true;
+                slot.Appearance    = resolvedAppearances[i];
+                _slots[i]          = slot;
             }
 
             return true;
         }
 
-        // 연결의 플레이어 오브젝트에서 무기 소유자를 찾는다
-        private bool TryFindPlayerWeapon(int connectionId, out PlayerWeapon weapon)
+        // 로비에서 고른 외형은 그대로 두고, 고르지 않은 사람에게만 남은 외형을 준다.
+        // 무기와 달리 섞지 않는다 — 고른 사람의 선택을 뒤집지 않기 위해서다
+        [Server]
+        private bool TryResolveAppearances(AppearanceKind[] appearances, out AppearanceKind[] resolved)
         {
-            weapon = null;
+            resolved = new AppearanceKind[_slots.Count];
+
+            bool[] isTaken = new bool[appearances.Length];
+
+            for (int i = 0; i < _slots.Count; ++i)
+            {
+                if (!_slots[i].HasAppearance)
+                {
+                    continue;
+                }
+
+                int index = Array.IndexOf(appearances, _slots[i].Appearance);
+
+                // CmdSelectAppearance가 중복과 미정의 값을 막지만, 여기서 뚫리면 두 사람이 같은 모습이 된다
+                if ((index < 0) || (isTaken[index]))
+                {
+                    Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}의 외형 선택이 유효하지 않다: {_slots[i].Appearance}", this);
+                    return false;
+                }
+
+                isTaken[index] = true;
+                resolved[i]    = _slots[i].Appearance;
+            }
+
+            for (int i = 0; i < _slots.Count; ++i)
+            {
+                if (_slots[i].HasAppearance)
+                {
+                    continue;
+                }
+
+                int freeIndex = Array.IndexOf(isTaken, false);
+                if (freeIndex < 0)
+                {
+                    Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}에 줄 남은 외형이 없다", this);
+                    return false;
+                }
+
+                isTaken[freeIndex] = true;
+                resolved[i]        = appearances[freeIndex];
+            }
+
+            return true;
+        }
+
+        // 연결의 플레이어 오브젝트에서 컴포넌트를 찾는다
+        private bool TryFindPlayerComponent<T>(int connectionId, out T component) where T : Component
+        {
+            component = null;
 
             if (!NetworkServer.connections.TryGetValue(connectionId, out NetworkConnectionToClient conn))
             {
@@ -303,7 +443,7 @@ namespace Geumeum.Network
                 return false;
             }
 
-            return conn.identity.TryGetComponent(out weapon);
+            return conn.identity.TryGetComponent(out component);
         }
 
         private void LockAdmission()

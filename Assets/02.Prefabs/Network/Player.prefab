@@ -168,8 +168,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 54a32214eede629469c15b17c46e1537, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.PlayerAppearance
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   _bindings:
-  - Weapon: 0
+  - Appearance: 0
     Model: {fileID: 4182965954587609578}
 --- !u!136 &1391620650104165911
 CapsuleCollider:
