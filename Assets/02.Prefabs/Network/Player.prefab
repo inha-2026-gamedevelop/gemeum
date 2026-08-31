@@ -20,6 +20,8 @@ GameObject:
   - component: {fileID: 1391620650104165912}
   - component: {fileID: 5457873659344650020}
   - component: {fileID: 6948535784815658364}
+  - component: {fileID: -876890030373372519}
+  - component: {fileID: -8642913932917621867}
   m_Layer: 9
   m_Name: Player
   m_TagString: Untagged
@@ -184,10 +186,10 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
+  m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_IsTrigger: 0
   m_Radius: 0.25
   m_Height: 1.54
   m_Direction: 1
@@ -199,9 +201,9 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3550045087523702412}
-  serializedVersion: 4
+  serializedVersion: 5
   m_Mass: 70
-  m_Damping: 0
+  m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
@@ -243,6 +245,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c79313c80e9d2c844ad13af906e537c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.PlayerAnimationController
+--- !u!114 &-876890030373372519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a28278a52f78ecd42ab222ba05614077, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.PlayerRollController
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+--- !u!114 &-8642913932917621867
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dea3e9d3b653a1c449ed3937561dea76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.ParryGauge
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1001 &3948962593664824507
 PrefabInstance:
   m_ObjectHideFlags: 0
