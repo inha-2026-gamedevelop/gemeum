@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 62aa3dad63718da4384ff6bafd0ae0f1, type: 3}
   m_Name: WM_PerformanceProfile_Geumeum
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   EnableVolumetricClouds: 1
   VolumetricCloudFlatLayerMask: -1
   VolumetricCloudFlatLayerLod: 1
@@ -57,7 +57,7 @@ MonoBehaviour:
   AtmosphericLightShaftSampleCount: 0
   AtmosphericLightShaftMaxRayLength: 100
   AuroraSampleCount: 24
-  AuroraSubSampleCount: 5
+  AuroraSubSampleCount: 4
   EnablePrecipitationCollision: 0
   EnablePerPixelLighting: 1
   FogDownsampleScale: 2

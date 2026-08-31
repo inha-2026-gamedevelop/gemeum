@@ -549,7 +549,7 @@ _combatFeedback.PlayCritical(multiplier);
 ```
 
 - `CombatFeedbackLocator.Current`는 **등록된 구현이 없으면 아무것도 하지 않는 `NullCombatFeedback`을 돌려준다.** null 체크를 호출부마다 흩뿌리지 않기 위해서다.
-- 따라서 프로토타입(09.12–10.03)에는 `CombatFeedbackImpl`이 씬에 없어도 전투 코드가 그대로 돈다 — 연출은 집중개발 4~5주차 착수.
+- 따라서 프로토타입(08.30–09.19)에는 `CombatFeedbackImpl`이 씬에 없어도 전투 코드가 그대로 돈다 — 연출은 집중개발 4~5주차 착수.
 - 연출은 로컬 표현이므로 **서버에서 호출하지 않는다.** 판정은 서버가 하고, 그 결과 이벤트를 받은 각 클라이언트가 자기 화면에서 호출한다.
 
 ---
