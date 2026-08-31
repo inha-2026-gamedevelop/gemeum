@@ -39,6 +39,19 @@ namespace Geumeum.AI
         *              Unity Event
         ****************************************/
 
+        private void Awake()
+        {
+            if (_status == null)
+            {
+                _status = GetComponent<EnemyStatus>();
+            }
+
+            if (_agent == null)
+            {
+                _agent = GetComponent<NavMeshAgent>();
+            }
+        }
+
         public override void OnStartServer()
         {
             int fieldLevel = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.FieldLevel : 0;
@@ -47,28 +60,44 @@ namespace Geumeum.AI
             _defaultSpeed = _agent.speed;
             _brain        = CreateBrain(_status.Kind);
             _status.Died += HandleDied;
+
+            if (AuthorityTickScheduler.ServerInstance == null)
+            {
+                Debug.LogError("[EnemyController] AuthorityTickScheduler가 없어 AI를 처리할 수 없다", this);
+                return;
+            }
+
+            AuthorityTickScheduler.ServerInstance.Register(Constants.Network.TICK_PRIORITY_AI, ServerTick);
         }
 
         public override void OnStopServer()
         {
             _status.Died -= HandleDied;
-        }
 
-        private void Update()
-        {
-            if (!isServer || _status.IsDead || (_brain == null))
+            if (AuthorityTickScheduler.ServerInstance == null)
             {
                 return;
             }
 
-            _scanTimer += Time.deltaTime;
+            AuthorityTickScheduler.ServerInstance.Unregister(ServerTick);
+        }
+
+        // AuthorityTickScheduler가 물리 스텝마다 TICK_PRIORITY_AI 순서로 호출한다
+        private void ServerTick(float deltaTime)
+        {
+            if (_status.IsDead || (_brain == null))
+            {
+                return;
+            }
+
+            _scanTimer += deltaTime;
             if (_scanTimer >= TARGET_SCAN_INTERVAL)
             {
                 _scanTimer = 0f;
                 RefreshTarget();
             }
 
-            _brain.Tick(Time.deltaTime);
+            _brain.Tick(deltaTime);
             ApplyBrainDecision();
         }
 
@@ -103,6 +132,11 @@ namespace Geumeum.AI
 
             for (int i = 0; i < hits.Length; ++i)
             {
+                if (hits[i].TryGetComponent(out IDamageable damageable) && damageable.IsDead)
+                {
+                    continue; // 다운·관전 중인 플레이어는 때려도 무의미하다, 살아있는 대상만 노린다
+                }
+
                 float distance = Vector3.Distance(transform.position, hits[i].transform.position);
                 if (distance < nearestDistance)
                 {
@@ -183,7 +217,13 @@ namespace Geumeum.AI
         [Server]
         private void HandleDied(uint killerNetId)
         {
-            GameEventBus.Instance.Publish(new EnemyDiedEvent(netId, _status.Kind, transform.position, killerNetId, false));
+            // HasInstance→Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다, Instance를 한 번만 받는다
+            GameEventBus bus = GameEventBus.Instance;
+            if (bus != null)
+            {
+                bus.Publish(new EnemyDiedEvent(netId, _status.Kind, transform.position, killerNetId, false));
+            }
+
             NetworkServer.Destroy(gameObject);
         }
     }

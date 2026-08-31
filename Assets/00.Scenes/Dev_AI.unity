@@ -394,6 +394,7 @@ GameObject:
   - component: {fileID: 831179306}
   - component: {fileID: 831179305}
   - component: {fileID: 831179310}
+  - component: {fileID: 831179311}
   m_Layer: 0
   m_Name: '@Managers'
   m_TagString: Untagged
@@ -489,6 +490,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0231ad574bd82ec4c9dea855b44d6d60, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Common.GameEventBus
+--- !u!114 &831179311
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 831179304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd93672a8738f054a9a7d026be93f1d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.AuthorityTickScheduler
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1 &947114452
 GameObject:
   m_ObjectHideFlags: 0
