@@ -37,6 +37,8 @@ namespace Geumeum.AI
         private float _chargeHitRadius     = 0f;
         private float _staggerDuration     = 0f;
         private float _parryWindowDuration = 0f;
+        private float _projectileSpeed     = 0f;
+        private float _retreatRange        = 0f;
         private bool  _isDead              = false;
 
         /****************************************
@@ -55,6 +57,8 @@ namespace Geumeum.AI
         public float     ChargeHitRadius     => _chargeHitRadius;
         public float     StaggerDuration     => _staggerDuration;
         public float     ParryWindowDuration => _parryWindowDuration;
+        public float     ProjectileSpeed     => _projectileSpeed;
+        public float     RetreatRange        => _retreatRange;
 
         /// <summary> 사망 시 서버에서 발생한다, killerNetId를 전달한다. 이벤트 발행 · 오브젝트 정리는 EnemyController가 한다 </summary>
         public event Action<uint> Died;
@@ -82,19 +86,21 @@ namespace Geumeum.AI
                 attackMultiplier = enhance.AttackMultiplier;
             }
 
-            _maxHealth      = stat.MaxHealth   * healthMultiplier;
-            _attackPower    = stat.AttackPower * attackMultiplier;
-            _aggroRange     = stat.AggroRange;     // 사거리 · 타이밍은 강화 배수 대상이 아니다
-            _attackRange    = stat.AttackRange;
-            _windupDuration = stat.WindupDuration;
-            _attackCooldown = stat.AttackCooldown;
-            _chargeSpeed        = stat.ChargeSpeed;
-            _chargeDistance     = stat.ChargeDistance;
-            _chargeHitRadius    = stat.ChargeHitRadius;
-            _staggerDuration    = stat.StaggerDuration;
+            _maxHealth           = stat.MaxHealth   * healthMultiplier;
+            _attackPower         = stat.AttackPower * attackMultiplier;
+            _aggroRange          = stat.AggroRange; // 사거리 · 타이밍은 강화 배수 대상이 아니다
+            _attackRange         = stat.AttackRange;
+            _windupDuration      = stat.WindupDuration;
+            _attackCooldown      = stat.AttackCooldown;
+            _chargeSpeed         = stat.ChargeSpeed;
+            _chargeDistance      = stat.ChargeDistance;
+            _chargeHitRadius     = stat.ChargeHitRadius;
+            _staggerDuration     = stat.StaggerDuration;
             _parryWindowDuration = stat.ParryWindowDuration;
-            _health         = _maxHealth;
-            _isDead         = false;
+            _projectileSpeed     = stat.ProjectileSpeed;
+            _retreatRange        = stat.RetreatRange;
+            _health              = _maxHealth;
+            _isDead              = false;
         }
 
         /// <summary> 피해를 적용한다, 서버에서만 호출한다 </summary>

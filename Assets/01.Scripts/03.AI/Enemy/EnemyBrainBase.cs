@@ -44,6 +44,9 @@ namespace Geumeum.AI
         /// <summary> 이번 틱의 이동 속도를 강제한다, null이면 Agent 기본 속도를 쓴다 </summary>
         public virtual float? MoveSpeedOverride => null;
 
+        /// <summary> true면 ShouldAttackNow 실행 시 근접 피해 대신 투사체를 발사한다 </summary>
+        public virtual bool IsRangedAttack => false;
+
         /****************************************
         *                Methods
         ****************************************/

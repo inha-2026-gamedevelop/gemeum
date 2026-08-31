@@ -22,11 +22,13 @@ namespace Geumeum.AI
         *                Fields
         ****************************************/
 
-        private const float TARGET_SCAN_INTERVAL = 0.5f; // 매 프레임 탐색 대신 주기 탐색
-        private const float TARGET_SCAN_RADIUS    = 20f;  // Brain의 AggroRange보다 넉넉히 잡고, 실제 인지 여부는 Brain이 판단
+        private const float TARGET_SCAN_INTERVAL    = 0.5f; // 매 프레임 탐색 대신 주기 탐색
+        private const float TARGET_SCAN_RADIUS      = 20f;  // Brain의 AggroRange보다 넉넉히 잡고, 실제 인지 여부는 Brain이 판단
+        private const float PROJECTILE_RANGE_MARGIN = 1.5f; // 시전 사거리보다 이만큼 더 날아갈 여유를 준다
 
-        [SerializeField] private EnemyStatus  _status;
-        [SerializeField] private NavMeshAgent _agent;
+        [SerializeField] private EnemyStatus     _status;
+        [SerializeField] private NavMeshAgent    _agent;
+        [SerializeField] private CurseProjectile _projectilePrefab; // 원거리형만 배정, 근접형은 비워둔다
 
         private EnemyBrainBase _brain;
         private float          _scanTimer    = 0f;
@@ -82,6 +84,8 @@ namespace Geumeum.AI
                     return new HeokkaebiBrain(transform, _status);
                 case EnemyKind.Changgwi:
                     return new ChanggwiBrain(transform, _status);
+                case EnemyKind.Aekgwi:
+                    return new AekgwiBrain(transform, _status);
                 default:
                     Debug.LogError($"[EnemyController] {kind} 종류의 Brain이 아직 없다", this);
                     return null;
@@ -143,12 +147,36 @@ namespace Geumeum.AI
                 return;
             }
 
+            if (_brain.IsRangedAttack)
+            {
+                SpawnProjectile(target);
+                return;
+            }
+
             if (!target.TryGetComponent(out IDamageable damageable))
             {
                 return;
             }
 
             damageable.TakeDamage(new DamageInfo(_status.AttackPower, netId, HitStrength.Light));
+        }
+
+        [Server]
+        private void SpawnProjectile(Transform target)
+        {
+            if (_projectilePrefab == null)
+            {
+                Debug.LogError($"[EnemyController] {_status.Kind}의 투사체 프리팹이 비어있다", this);
+                return;
+            }
+
+            Vector3 direction = target.position - transform.position;
+            direction.y = 0f;
+            direction   = (direction.sqrMagnitude > 0.0001f) ? direction.normalized : transform.forward;
+
+            CurseProjectile projectile = Instantiate(_projectilePrefab, transform.position, Quaternion.LookRotation(direction));
+            projectile.Initialize(direction, _status.ProjectileSpeed, _status.AttackPower, netId, _status.AttackRange * PROJECTILE_RANGE_MARGIN);
+            NetworkServer.Spawn(projectile.gameObject);
         }
 
         [Server]
