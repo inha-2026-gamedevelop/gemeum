@@ -7,6 +7,7 @@ using Mirror;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Network;
 
 namespace Geumeum.AI
 {
@@ -40,8 +41,8 @@ namespace Geumeum.AI
 
         public override void OnStartServer()
         {
-            // TODO: SpawnManager가 생기면 스폰 시점 결계 단계를 넘겨받아 여기서 대신 호출하게 옮긴다
-            _status.Initialize(0);
+            int fieldLevel = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.FieldLevel : 0;
+            _status.Initialize(fieldLevel);
 
             _defaultSpeed = _agent.speed;
             _brain        = CreateBrain(_status.Kind);

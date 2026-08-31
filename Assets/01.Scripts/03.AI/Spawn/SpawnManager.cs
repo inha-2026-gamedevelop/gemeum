@@ -1,0 +1,300 @@
+// System
+using System;
+using System.Collections;
+using System.Collections.Generic;
+
+// Unity
+using UnityEngine;
+
+// 서드파티
+using Mirror;
+
+// 프로젝트 내부
+using Geumeum.Common;
+using Geumeum.Data;
+using Geumeum.Network;
+
+namespace Geumeum.AI
+{
+    /// <summary>
+    /// RunPhase별 동시 존재 수 · 리스폰 타이머 · 구성 비율을 관리한다.
+    /// 결계 축소 시 범위 밖 클러스터를 비활성화한다. SpawnConfigSO/BarrierPhaseSO 데이터로 구동된다
+    /// </summary>
+    public class SpawnManager : NetworkBehaviour
+    {
+        /****************************************
+        *                Types
+        ****************************************/
+
+        [Serializable]
+        private struct EnemyPrefabEntry
+        {
+            public EnemyKind       Kind;
+            public EnemyController Prefab;
+        }
+
+        /****************************************
+        *                Fields
+        ****************************************/
+
+        [SerializeField] private EnemyPrefabEntry[] _enemyPrefabs = new EnemyPrefabEntry[Constants.Combat.ENEMY_KIND_COUNT];
+
+        private readonly List<SpawnCluster>                   _clusters             = new List<SpawnCluster>();
+        private readonly Dictionary<SpawnCluster, List<uint>> _aliveNetIdsByCluster = new Dictionary<SpawnCluster, List<uint>>();
+        private readonly Dictionary<uint, SpawnCluster>       _clusterByNetId       = new Dictionary<uint, SpawnCluster>();
+
+        private Transform                _barrierCenter;
+        private SpawnConfigSO.PhaseEntry _currentPhase;
+        private bool                     _isPhaseActive   = false; // 현재 phase에 스폰 설정이 있는지
+        private int                      _totalAliveCount = 0;
+        private Coroutine                _respawnRoutine  = null;
+        private WaitForSeconds           _respawnWait     = null;
+
+        /****************************************
+        *              Server Callbacks
+        ****************************************/
+
+        public override void OnStartServer()
+        {
+            FindClusters();
+            FindBarrierCenter();
+
+            GameEventBus.Instance.Subscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
+            GameEventBus.Instance.Subscribe<EnemyDiedEvent>(HandleEnemyDied);
+        }
+
+        public override void OnStopServer()
+        {
+            StopRespawnRoutine();
+
+            if (!GameEventBus.HasInstance)
+            {
+                return;
+            }
+
+            GameEventBus.Instance.Unsubscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
+            GameEventBus.Instance.Unsubscribe<EnemyDiedEvent>(HandleEnemyDied);
+        }
+
+        /****************************************
+        *                Methods
+        ****************************************/
+
+        private void FindClusters()
+        {
+            _clusters.Clear();
+            _clusters.AddRange(FindObjectsByType<SpawnCluster>(FindObjectsSortMode.None));
+        }
+
+        private void FindBarrierCenter()
+        {
+            GameObject marker = GameObject.FindWithTag(Constants.Tag.BARRIER_CENTER);
+            if (marker == null)
+            {
+                Debug.LogWarning("[SpawnManager] BarrierCenter 마커를 찾지 못했다, 결계 반경 판정 없이 전 클러스터를 활성 상태로 둔다", this);
+                return;
+            }
+
+            _barrierCenter = marker.transform;
+        }
+
+        [Server]
+        private void HandlePhaseChanged(RunPhaseChangedEvent evt)
+        {
+            RefreshClusterRange(evt.Current);
+
+            StopRespawnRoutine();
+
+            _isPhaseActive = GameDB.Spawn.TryGetPhase(evt.Current, out _currentPhase);
+            if (!_isPhaseActive)
+            {
+                return; // 이 구간엔 스폰 설정이 없다 (Lobby, Shrink3, Boss, Result) — 신규 스폰 중단
+            }
+
+            TryFillClusters();
+
+            if (_currentPhase.RespawnInterval > 0f)
+            {
+                _respawnWait    = new WaitForSeconds(_currentPhase.RespawnInterval);
+                _respawnRoutine = StartCoroutine(CoRespawnTick());
+            }
+        }
+
+        [Server]
+        private void HandleEnemyDied(EnemyDiedEvent evt)
+        {
+            if (!_clusterByNetId.TryGetValue(evt.EnemyNetId, out SpawnCluster cluster))
+            {
+                return; // 이 매니저가 스폰하지 않은 개체(보스 등)
+            }
+
+            _clusterByNetId.Remove(evt.EnemyNetId);
+            if (_aliveNetIdsByCluster.TryGetValue(cluster, out List<uint> aliveIds))
+            {
+                aliveIds.Remove(evt.EnemyNetId);
+            }
+
+            _totalAliveCount = Mathf.Max(0, _totalAliveCount - 1);
+        }
+
+        // TODO(오나): BarrierController가 생기면 이 메서드는 그 SyncVar(현재 반경)를 읽는 쪽으로 바꾼다.
+        // 지금은 BarrierController가 없어 BarrierPhaseSO의 "단계별 목표 반경"을 대신 읽는다 —
+        // 30초 축소 연출 도중의 실제 반경이 아니라 그 단계의 최종 반경으로 즉시 판정하는 근사치다
+        private void RefreshClusterRange(RunPhase phase)
+        {
+            if (_barrierCenter == null)
+            {
+                return; // 마커가 없으면 전 클러스터를 활성 상태로 둔 채 판정을 건너뛴다
+            }
+
+            if (!GameDB.Barrier.TryGetPhase(phase, out BarrierPhaseSO.PhaseEntry barrierPhase))
+            {
+                return;
+            }
+
+            float radius = GameDB.Barrier.MaxRadius * barrierPhase.RadiusRatio;
+
+            for (int i = 0; i < _clusters.Count; ++i)
+            {
+                float distance = Vector3.Distance(_clusters[i].transform.position, _barrierCenter.position);
+                _clusters[i].IsInRange = (distance <= radius);
+            }
+        }
+
+        private IEnumerator CoRespawnTick()
+        {
+            while (true)
+            {
+                yield return _respawnWait;
+                TryFillClusters();
+            }
+        }
+
+        private void StopRespawnRoutine()
+        {
+            if (_respawnRoutine == null)
+            {
+                return;
+            }
+
+            StopCoroutine(_respawnRoutine);
+            _respawnRoutine = null;
+        }
+
+        // 목표 동시 존재 수(ConcurrentMax)에 닿을 때까지, 비어 있고 범위 안인 클러스터를 순서대로 채운다
+        [Server]
+        private void TryFillClusters()
+        {
+            if (!_isPhaseActive)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _clusters.Count; ++i)
+            {
+                if (_totalAliveCount >= _currentPhase.ConcurrentMax)
+                {
+                    return;
+                }
+
+                SpawnCluster cluster = _clusters[i];
+                if ((!cluster.IsInRange) || IsOccupied(cluster))
+                {
+                    continue;
+                }
+
+                PopulateCluster(cluster);
+            }
+        }
+
+        private bool IsOccupied(SpawnCluster cluster)
+        {
+            return _aliveNetIdsByCluster.TryGetValue(cluster, out List<uint> aliveIds) && (aliveIds.Count > 0);
+        }
+
+        [Server]
+        private void PopulateCluster(SpawnCluster cluster)
+        {
+            int remainingBudget = _currentPhase.ConcurrentMax - _totalAliveCount;
+            int clusterSize     = UnityEngine.Random.Range(GameDB.Spawn.ClusterSizeMin, GameDB.Spawn.ClusterSizeMax + 1);
+            int spawnCount      = Mathf.Min(clusterSize, remainingBudget);
+
+            if (spawnCount <= 0)
+            {
+                return;
+            }
+
+            if (!_aliveNetIdsByCluster.TryGetValue(cluster, out List<uint> aliveIds))
+            {
+                aliveIds = new List<uint>();
+                _aliveNetIdsByCluster[cluster] = aliveIds;
+            }
+
+            for (int i = 0; i < spawnCount; ++i)
+            {
+                EnemyKind kind = RollKind();
+                uint      netId = SpawnEnemy(kind, cluster.GetRandomPoint());
+                if (netId == 0)
+                {
+                    continue;
+                }
+
+                aliveIds.Add(netId);
+                _clusterByNetId[netId] = cluster;
+                ++_totalAliveCount;
+            }
+        }
+
+        private EnemyKind RollKind()
+        {
+            int total = _currentPhase.RatioHeokkaebi + _currentPhase.RatioChanggwi + _currentPhase.RatioAekgwi;
+            if (total <= 0)
+            {
+                return EnemyKind.Heokkaebi;
+            }
+
+            int roll = UnityEngine.Random.Range(0, total);
+            if (roll < _currentPhase.RatioHeokkaebi)
+            {
+                return EnemyKind.Heokkaebi;
+            }
+
+            if (roll < _currentPhase.RatioHeokkaebi + _currentPhase.RatioChanggwi)
+            {
+                return EnemyKind.Changgwi;
+            }
+
+            return EnemyKind.Aekgwi;
+        }
+
+        // 스폰에 성공하면 netId, 실패하면 0(Mirror가 유효한 netId로 발급하지 않는 값)을 반환한다
+        [Server]
+        private uint SpawnEnemy(EnemyKind kind, Vector3 position)
+        {
+            if (!TryGetPrefab(kind, out EnemyController prefab))
+            {
+                Debug.LogError($"[SpawnManager] {kind}의 프리팹이 배정되지 않았다", this);
+                return 0;
+            }
+
+            EnemyController instance = Instantiate(prefab, position, Quaternion.identity);
+            NetworkServer.Spawn(instance.gameObject);
+            return instance.netId;
+        }
+
+        private bool TryGetPrefab(EnemyKind kind, out EnemyController prefab)
+        {
+            for (int i = 0; i < _enemyPrefabs.Length; ++i)
+            {
+                if (_enemyPrefabs[i].Kind == kind)
+                {
+                    prefab = _enemyPrefabs[i].Prefab;
+                    return prefab != null;
+                }
+            }
+
+            prefab = null;
+            return false;
+        }
+    }
+}
