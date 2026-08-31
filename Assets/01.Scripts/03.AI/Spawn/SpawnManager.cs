@@ -67,13 +67,16 @@ namespace Geumeum.AI
         {
             StopRespawnRoutine();
 
-            if (!GameEventBus.HasInstance)
+            // HasInstance→Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다(_isQuitting을
+            // HasInstance는 안 보고 Instance는 본다). Instance 한 번만 받아 그 결과로 null 체크한다
+            GameEventBus bus = GameEventBus.Instance;
+            if (bus == null)
             {
                 return;
             }
 
-            GameEventBus.Instance.Unsubscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
-            GameEventBus.Instance.Unsubscribe<EnemyDiedEvent>(HandleEnemyDied);
+            bus.Unsubscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
+            bus.Unsubscribe<EnemyDiedEvent>(HandleEnemyDied);
         }
 
         /****************************************
@@ -83,7 +86,7 @@ namespace Geumeum.AI
         private void FindClusters()
         {
             _clusters.Clear();
-            _clusters.AddRange(FindObjectsByType<SpawnCluster>(FindObjectsSortMode.None));
+            _clusters.AddRange(FindObjectsByType<SpawnCluster>(FindObjectsInactive.Exclude));
         }
 
         private void FindBarrierCenter()
