@@ -233,15 +233,19 @@ Main.unity
 │  │                           서버가 Rigidbody 속도로 이동시키고 Y는 중력에 맡긴다
 │  ├ PlayerMotionModel.cs  C#  [현재] 서버와 클라 예측이 공유하는 순수 이동 계산
 │  ├ PlayerMoveInput.cs    C#  [현재] 순서 · 추정 서버 시각을 포함한 입력 스냅샷
-│  ├ PlayerPrediction.cs   MB  [현재] 로컬 입력 버퍼 · 서버 스냅샷 재조정
+│  ├ PlayerPrediction.cs   MB  [현재] 매 프레임 로컬 예측 · 미확인 입력 버퍼 · 3단계 재조정
+│  │                           (데드존 · 지수 수렴 · 즉시 스냅)
 │  ├ PlayerActionGate.cs   C#  [현재] phase·생명 상태 공통 검증. [계획] 쿨다운·자원 추가
-│  ├ PlayerAnimationController.cs MB [현재] 동기화된 위치 변화만 관찰해 재생하는 표현 전용
+│  ├ PlayerPresentation.cs MB  [현재] 방향 · 속도를 명시적으로 보관하는 표현 상태.
+│  │                           서버는 수락한 이동, 소유 클라는 입력, 원격은 SyncVar
+│  ├ PlayerAnimationController.cs MB [현재] PlayerPresentation을 읽어 LateUpdate에서
+│  │                           VisualPivot을 회전시키는 표현 전용. 위치 차분을 쓰지 않는다
 │  ├ PlayerLifeState.cs    enum [현재] Alive · Downed · Spectating · ReviveInvulnerable
 │  ├ PlayerStatus.cs       NB  [현재] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable
 │  ├ PlayerWeapon.cs       NB  [현재] 현재 무기 SyncVar(초기 1회 배분). [계획] 서버 전투용
 │  │                           장비 snapshot 추가
-│  ├ PlayerAppearance.cs   MB  [현재] 무기 SyncVar 훅으로 직업별 모델을 켜는 표현 전용 컴포넌트.
-│  │                           지금은 검(차사) 모델만 바인딩, 활·방울은 모델 도착 후 연결
+│  ├ PlayerAppearance.cs   MB  [현재] AppearanceKind SyncVar 훅으로 외형 모델을 켜는 표현 전용.
+│  │                           차사 · 신궁 · 무녀 3종 바인딩 완료. 무기와는 무관하다
 │  ├ PlayerAttack.cs       NB  [계획] 공격의 유일한 클라이언트 Command 진입점. 무기당 기본 공격
 │  │                           1종만 받고, 연사·관통·치유·버프 변형은 서버가 TalentController
 │  │                           상태에서 스스로 산출한다 (클라이언트가 슬롯을 고르지 않는다)
@@ -501,20 +505,22 @@ Assets/02.Prefabs/
 **Player.prefab 컴포넌트 구성**:
 
 ```
-[현재 — 2026-08-31]
+[현재 — 2026-09-01]
 Player.prefab
-├ NetworkIdentity / NetworkTransformReliable
-├ PlayerController / ParryController
+├ NetworkIdentity / NetworkTransformReliable(syncRotation 꺼짐)
+├ PlayerController / ParryController / ParryGauge
 ├ PlayerStatus / PlayerWeapon / PlayerAppearance
-├ PlayerPrediction / PlayerAnimationController
+├ PlayerPrediction / PlayerPresentation / PlayerAnimationController / PlayerRollController
 ├ CapsuleCollider / Rigidbody
-└ 자식: Chisa(차사) 모델 · Animator — 활 · 방울 모델은 아직 없음
+└ VisualPivot                   표현용 Yaw만 적용, 물리 · 네트워크 루트는 회전하지 않는다
+   ├ Chasa_Art · Singung_Art · Munyeo_Art   모델별 축 보정을 로컬 회전으로 유지
+   └ Chisa(비활성)                          교체 전 외부 에셋, 바인딩하지 않는다
 
 [계획 — 단계별 추가]
 ├ PlayerAttack / InteractionController
-├ ParryGauge / ArrowLauncher(서버 전용)
+├ ArrowLauncher(서버 전용)
 ├ InventoryController / TalentController
-└ 자식: CameraRig 앵커, 신궁 · 무녀 모델(PlayerAppearance 바인딩 추가)
+└ VisualPivot 자식: CameraRig 앵커
 ```
 
 `ArrowLauncher`는 클라이언트 Command를 받지 않고 `BowAbility`의 서버 스폰 요청만 수행한다.
