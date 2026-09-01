@@ -1,3 +1,7 @@
+// System
+using System;
+using System.Collections;
+
 // Unity
 using UnityEngine;
 using UnityEngine.AI;
@@ -31,9 +35,26 @@ namespace Geumeum.AI
         [SerializeField] private NavMeshAgent    _agent;
         [SerializeField] private CurseProjectile _projectilePrefab; // 원거리형만 배정, 근접형은 비워둔다
 
+        [SyncVar(hook = nameof(OnVisualStateChanged))]
+        private EnemyVisualState _visualState = EnemyVisualState.Idle;
+
+        [SyncVar(hook = nameof(OnAttackVariantChanged))]
+        private int _attackVariant = 0;
+
         private EnemyBrainBase _brain;
         private float          _scanTimer    = 0f;
         private float          _defaultSpeed = 0f;
+        private Coroutine      _schedulerWaitRoutine;
+
+        /****************************************
+        *                Events
+        ****************************************/
+
+        /// <summary> 표현 전용 컴포넌트(EnemyAnimationController)가 구독한다. 서버 · 클라이언트 모두에서 값이 바뀔 때마다 발생한다 </summary>
+        public event Action<EnemyVisualState> VisualStateChanged;
+
+        /// <summary> 공격 모션 인덱스가 바뀔 때마다 발생한다, VisualStateChanged와 같은 틱에 함께 갱신된다 </summary>
+        public event Action<int> AttackVariantChanged;
 
         /****************************************
         *              Unity Event
@@ -59,20 +80,34 @@ namespace Geumeum.AI
 
             _defaultSpeed = _agent.speed;
             _brain        = CreateBrain(_status.Kind);
-            _status.Died += HandleDied;
+            _status.Died       += HandleDied;
+            _status.Damaged    += HandleDamaged;
+            _status.HitLanded  += HandleHitLanded;
+            _status.Knockback  += HandleKnockback;
 
-            if (AuthorityTickScheduler.ServerInstance == null)
+            if (AuthorityTickScheduler.ServerInstance != null)
             {
-                Debug.LogError("[EnemyController] AuthorityTickScheduler가 없어 AI를 처리할 수 없다", this);
+                AuthorityTickScheduler.ServerInstance.Register(Constants.Network.TICK_PRIORITY_AI, ServerTick);
                 return;
             }
 
-            AuthorityTickScheduler.ServerInstance.Register(Constants.Network.TICK_PRIORITY_AI, ServerTick);
+            // 씬 오브젝트 간 OnStartServer 호출 순서는 Mirror가 보장하지 않는다 —
+            // 스케줄러가 아직 안 떴을 수 있으니, 뜰 때까지 기다렸다가 등록한다
+            _schedulerWaitRoutine = StartCoroutine(CoWaitForScheduler());
         }
 
         public override void OnStopServer()
         {
-            _status.Died -= HandleDied;
+            _status.Died      -= HandleDied;
+            _status.Damaged   -= HandleDamaged;
+            _status.HitLanded -= HandleHitLanded;
+            _status.Knockback -= HandleKnockback;
+
+            if (_schedulerWaitRoutine != null)
+            {
+                StopCoroutine(_schedulerWaitRoutine);
+                _schedulerWaitRoutine = null;
+            }
 
             if (AuthorityTickScheduler.ServerInstance == null)
             {
@@ -80,6 +115,17 @@ namespace Geumeum.AI
             }
 
             AuthorityTickScheduler.ServerInstance.Unregister(ServerTick);
+        }
+
+        private IEnumerator CoWaitForScheduler()
+        {
+            while (AuthorityTickScheduler.ServerInstance == null)
+            {
+                yield return null;
+            }
+
+            AuthorityTickScheduler.ServerInstance.Register(Constants.Network.TICK_PRIORITY_AI, ServerTick);
+            _schedulerWaitRoutine = null;
         }
 
         // AuthorityTickScheduler가 물리 스텝마다 TICK_PRIORITY_AI 순서로 호출한다
@@ -99,6 +145,20 @@ namespace Geumeum.AI
 
             _brain.Tick(deltaTime);
             ApplyBrainDecision();
+            _visualState   = _brain.VisualState;
+            _attackVariant = _brain.AttackVariant;
+        }
+
+        /// <summary> _visualState 동기화 훅, 서버 · 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
+        private void OnVisualStateChanged(EnemyVisualState oldState, EnemyVisualState newState)
+        {
+            VisualStateChanged?.Invoke(newState);
+        }
+
+        /// <summary> _attackVariant 동기화 훅, 서버 · 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
+        private void OnAttackVariantChanged(int oldVariant, int newVariant)
+        {
+            AttackVariantChanged?.Invoke(newVariant);
         }
 
         /****************************************
@@ -212,6 +272,46 @@ namespace Geumeum.AI
             CurseProjectile projectile = Instantiate(_projectilePrefab, transform.position, Quaternion.LookRotation(direction));
             projectile.Initialize(direction, _status.ProjectileSpeed, _status.AttackPower, netId, _status.AttackRange * PROJECTILE_RANGE_MARGIN);
             NetworkServer.Spawn(projectile.gameObject);
+        }
+
+        /// <summary> 인지 범위 밖이어도 공격자를 즉시 인식시킨다, 스캔 반경(TARGET_SCAN_RADIUS) 밖 공격자는 무시한다 </summary>
+        [Server]
+        private void HandleDamaged(uint attackerNetId)
+        {
+            if (_brain == null)
+            {
+                return;
+            }
+
+            if (!NetworkServer.spawned.TryGetValue(attackerNetId, out NetworkIdentity attacker))
+            {
+                return;
+            }
+
+            float distance = Vector3.Distance(transform.position, attacker.transform.position);
+            if (distance > TARGET_SCAN_RADIUS)
+            {
+                return; // 너무 멀리서 온 피해(투사체 등)로는 강제 인식하지 않는다
+            }
+
+            _brain.Target = attacker.transform;
+            _brain.ForceAggro();
+        }
+
+        /// <summary> 넉백 문턱에 못 미친 일반 피격, 공격 판정 중이 아닐 때만 경직으로 반영한다 </summary>
+        [Server]
+        private void HandleHitLanded()
+        {
+            if ((_brain != null) && !_brain.IsAttackCommitted)
+            {
+                _brain.EnterStagger();
+            }
+        }
+
+        [Server]
+        private void HandleKnockback()
+        {
+            _brain?.EnterKnockback();
         }
 
         [Server]
