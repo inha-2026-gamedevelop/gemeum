@@ -50,7 +50,7 @@ namespace Geumeum.AI
         private Vector3    _chargeDestination;
         private float      _chargeMaxDuration; // 목표에 못 미쳐도 이 시간이 지나면 돌진을 끝낸다
         private Vector3    _patrolDestination;
-        private int         _attackVariant      = 0;
+        private int        _attackVariant      = 0;
 
         /****************************************
         *              Properties

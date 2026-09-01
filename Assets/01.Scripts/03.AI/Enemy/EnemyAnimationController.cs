@@ -18,13 +18,14 @@ namespace Geumeum.AI
         *              Constants
         ****************************************/
 
-        private const string PARAM_VISUAL_STATE   = "VisualState";
-        private const string PARAM_ATTACK_VARIANT = "AttackVariant";
+        // 문자열 기반 Animator 호출은 매번 해시를 재계산한다, 정적 해시로 캐싱해서 쓴다
+        private static readonly int PARAM_VISUAL_STATE_HASH   = Animator.StringToHash("VisualState");
+        private static readonly int PARAM_ATTACK_VARIANT_HASH = Animator.StringToHash("AttackVariant");
 
         // 창귀 점프 공격 전용 — 판정에는 영향 없는 시각 연출. 스테이트 이름이 없는 몬스터에서는 그냥 매 프레임 0을 더해 아무 효과가 없다
-        private const string JUMP_ATTACK_STATE_NAME  = "Attack_Jump";
-        private const float  JUMP_ATTACK_HOP_HEIGHT  = 0.5f; // 최고점(m)
-        private const float  JUMP_ATTACK_HOP_EXTENT  = 0.85f; // 이 정규화 시간까지 0→최고점→0을 마친다, Attack_Jump→Recovery 전환의 exitTime과 맞춰야 착지가 자연스럽다
+        private static readonly int JUMP_ATTACK_STATE_HASH = Animator.StringToHash("Attack_Jump");
+        private const float JUMP_ATTACK_HOP_HEIGHT = 0.5f; // 최고점(m)
+        private const float JUMP_ATTACK_HOP_EXTENT = 0.85f; // 이 정규화 시간까지 0→최고점→0을 마친다, Attack_Jump→Recovery 전환의 exitTime과 맞춰야 착지가 자연스럽다
 
         /****************************************
         *                Fields
@@ -35,6 +36,7 @@ namespace Geumeum.AI
         private EnemyController _controller;
         private Transform       _artTransform;
         private Vector3         _artBaseLocalPosition;
+        private float           _lastHop;
 
         /****************************************
         *              Unity Event
@@ -71,13 +73,20 @@ namespace Geumeum.AI
             AnimatorStateInfo info = _animator.GetCurrentAnimatorStateInfo(0);
             float              hop = 0f;
 
-            if (info.IsName(JUMP_ATTACK_STATE_NAME))
+            if (info.shortNameHash == JUMP_ATTACK_STATE_HASH)
             {
                 float t = Mathf.Clamp01(info.normalizedTime / JUMP_ATTACK_HOP_EXTENT);
                 hop = JUMP_ATTACK_HOP_HEIGHT * Mathf.Sin(t * Mathf.PI);
             }
 
+            // hop이 계속 0이면 이미 기준 위치라 쓸 필요가 없다, 0으로 돌아오는 마지막 한 번만 반영한다
+            if ((hop == 0f) && (_lastHop == 0f))
+            {
+                return;
+            }
+
             _artTransform.localPosition = _artBaseLocalPosition + (Vector3.up * hop);
+            _lastHop                    = hop;
         }
 
         private void OnEnable()
@@ -103,7 +112,7 @@ namespace Geumeum.AI
                 return;
             }
 
-            _animator.SetInteger(PARAM_VISUAL_STATE, (int)state);
+            _animator.SetInteger(PARAM_VISUAL_STATE_HASH, (int)state);
         }
 
         /// <summary> 여러 공격 모션이 있는 몬스터(예: 창귀)에서 이번 공격에 쓸 모션 인덱스를 반영한다 </summary>
@@ -114,7 +123,7 @@ namespace Geumeum.AI
                 return;
             }
 
-            _animator.SetInteger(PARAM_ATTACK_VARIANT, variant);
+            _animator.SetInteger(PARAM_ATTACK_VARIANT_HASH, variant);
         }
     }
 }

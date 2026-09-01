@@ -30,6 +30,7 @@ namespace Geumeum.AI
         private const float TARGET_SCAN_INTERVAL    = 0.5f; // 매 프레임 탐색 대신 주기 탐색
         private const float TARGET_SCAN_RADIUS      = 20f;  // Brain의 AggroRange보다 넉넉히 잡고, 실제 인지 여부는 Brain이 판단
         private const float PROJECTILE_RANGE_MARGIN = 1.5f; // 시전 사거리보다 이만큼 더 날아갈 여유를 준다
+        private const int   TARGET_SCAN_BUFFER_SIZE = 8;    // 파티 최대 인원(3)보다 넉넉히 잡은 NonAlloc 버퍼 크기
 
         [SerializeField] private EnemyStatus     _status;
         [SerializeField] private NavMeshAgent    _agent;
@@ -42,9 +43,11 @@ namespace Geumeum.AI
         private int _attackVariant = 0;
 
         private EnemyBrainBase _brain;
-        private float          _scanTimer    = 0f;
-        private float          _defaultSpeed = 0f;
+        private float          _scanTimer       = 0f;
+        private float          _defaultSpeed    = 0f;
         private Coroutine      _schedulerWaitRoutine;
+        private int            _playerLayerMask;
+        private readonly Collider[] _scanBuffer = new Collider[TARGET_SCAN_BUFFER_SIZE];
 
         /****************************************
         *                Events
@@ -71,6 +74,8 @@ namespace Geumeum.AI
             {
                 _agent = GetComponent<NavMeshAgent>();
             }
+
+            _playerLayerMask = LayerMask.GetMask(Constants.Layer.PLAYER);
         }
 
         public override void OnStartServer()
@@ -185,23 +190,23 @@ namespace Geumeum.AI
         [Server]
         private void RefreshTarget()
         {
-            Collider[] hits = Physics.OverlapSphere(transform.position, TARGET_SCAN_RADIUS, LayerMask.GetMask(Constants.Layer.PLAYER));
+            int count = Physics.OverlapSphereNonAlloc(transform.position, TARGET_SCAN_RADIUS, _scanBuffer, _playerLayerMask);
 
             Transform nearest         = null;
             float     nearestDistance = float.MaxValue;
 
-            for (int i = 0; i < hits.Length; ++i)
+            for (int i = 0; i < count; ++i)
             {
-                if (hits[i].TryGetComponent(out IDamageable damageable) && damageable.IsDead)
+                if (_scanBuffer[i].TryGetComponent(out IDamageable damageable) && damageable.IsDead)
                 {
                     continue; // 다운·관전 중인 플레이어는 때려도 무의미하다, 살아있는 대상만 노린다
                 }
 
-                float distance = Vector3.Distance(transform.position, hits[i].transform.position);
+                float distance = Vector3.Distance(transform.position, _scanBuffer[i].transform.position);
                 if (distance < nearestDistance)
                 {
                     nearestDistance = distance;
-                    nearest         = hits[i].transform;
+                    nearest         = _scanBuffer[i].transform;
                 }
             }
 

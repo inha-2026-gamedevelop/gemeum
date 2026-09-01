@@ -30,8 +30,8 @@ namespace Geumeum.AI
         *                Fields
         ****************************************/
 
-        private BrainState _state = BrainState.Idle;
-        private float       _stateTimer = 0f;
+        private BrainState _state      = BrainState.Idle;
+        private float      _stateTimer = 0f;
 
         /****************************************
         *              Properties
