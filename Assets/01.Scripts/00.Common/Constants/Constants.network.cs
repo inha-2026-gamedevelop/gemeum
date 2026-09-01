@@ -31,7 +31,7 @@ namespace Geumeum.Common
             public const float PARRY_INPUT_TIME_TOLERANCE  = 0.05f; // rtt 흔들림과 서버 틱 여유(초)
             public const float PARRY_MIN_REQUEST_INTERVAL  = 0.05f; // 거부 응답도 이 간격보다 자주 처리하지 않는다(초)
 
-            // syncInterval(상태 전송 주기)과 별개다, 이동 snapshot을 보내는 주기 — 프로토타입 시작값
+            // syncInterval(상태 전송 주기)과 별개다, 이동 snapshot을 보내는 주기 - 프로토타입 시작값
             public const float PLAYER_INPUT_SEND_INTERVAL = 1f / 30f; // 이동 입력 발신 주기(초)
             public const float PLAYER_INPUT_EXPIRY        = 0.25f;   // 이 이상 새 입력이 없으면 0 입력으로 간주(초)
             // 재조정 3단계. 이 아래는 클라이언트 값을 그대로 보여 주고, 중간 구간은 서서히 서버 쪽으로
@@ -45,7 +45,7 @@ namespace Geumeum.Common
             public const float PLAYER_SNAPSHOT_IDLE_INTERVAL = 0.2f; // 정지 구간의 스냅샷 최소 송신 주기(초)
             public const int   PLAYER_MAX_PENDING_INPUTS     = 64;   // 재조정에 다시 적용할 미확인 입력 상한(개)
 
-            // 30Hz 발신·60Hz 드레인이면 정상적으로는 한두 개만 쌓인다. 조작된 클라가 sequence만
+            // 30Hz 발신, 60Hz 드레인이면 정상적으로는 한두 개만 쌓인다. 조작된 클라가 sequence만
             // 올려가며 폭주 전송해도 서버 큐가 무한히 자라지 않도록 상한을 둔다
             public const int PLAYER_SERVER_INPUT_BUFFER_MAX = 8;
 

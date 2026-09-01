@@ -15,7 +15,7 @@ using Geumeum.Data;
 namespace Geumeum.Network
 {
     /// <summary>
-    /// 서버를 열기 전에 GameDB · 런 데이터 · 스폰 프리팹을 검사한다.
+    /// 서버를 열기 전에 GameDB, 런 데이터, 스폰 프리팹을 검사한다.
     /// 여기서 걸러지지 않으면 결함이 런 중반에야 드러나고 3인 세션 전체가 버려진다
     /// </summary>
     public static class ServerBootGate

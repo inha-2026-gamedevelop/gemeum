@@ -15,7 +15,7 @@ using Geumeum.Network;
 
 namespace Geumeum.Combat
 {
-    /// <summary> 패링 입력과 서버 창·무기·상태·쿨다운·자원 검증을 소유한다 </summary>
+    /// <summary> 패링 입력과 서버 창, 무기, 상태, 쿨다운, 자원 검증을 소유한다 </summary>
     public class ParryController : NetworkBehaviour, IParryWindowTarget
     {
         /****************************************
@@ -31,7 +31,7 @@ namespace Geumeum.Combat
         private ParryWindowKey _consumedWindowKey;
         private double         _consumedWindowImpactTime;
 
-        // 공격자마다 WindowId가 따로 증가하므로 재사용·역전 요청을 막으려면 공격자별 마지막 값이 필요하다
+        // 공격자마다 WindowId가 따로 증가하므로 재사용, 역전 요청을 막으려면 공격자별 마지막 값이 필요하다
         private readonly Dictionary<uint, uint> _lastIdByAttacker = new Dictionary<uint, uint>();
 
         private PlayerStatus         _status;
@@ -90,7 +90,7 @@ namespace Geumeum.Combat
         {
             if ((_status == null) || (_weapon == null) || (_roll == null) || (_gauge == null))
             {
-                Debug.LogError("[ParryController] 패링에 필요한 PlayerStatus·PlayerWeapon·PlayerRollController·ParryGauge 중 하나가 없다", this);
+                Debug.LogError("[ParryController] 패링에 필요한 PlayerStatus, PlayerWeapon, PlayerRollController, ParryGauge 중 하나가 없다", this);
             }
         }
 
@@ -108,7 +108,7 @@ namespace Geumeum.Combat
         [Command]
         private void CmdRequestParry(ParryRequest request)
         {
-            // 1. request ID·시각 유한성 검사
+            // 1. request ID, 시각 유한성 검사
             if ((request.RequestId == 0) || (!IsFinite(request.ClientEstimatedServerTime)))
             {
                 return; // 검증조차 안 되는 request는 결과도 보내지 않는다
@@ -122,8 +122,8 @@ namespace Geumeum.Combat
 
             double now = NetworkTime.time;
 
-            // 거부 요청도 자원·상태를 바꾸지 않으므로 비용 없이 연타될 수 있다. 최소 간격 미만이면
-            // 결과도 보내지 않고 조용히 버린다. 정상 입력은 선딜·후딜 때문에 이 간격에 걸리지 않는다
+            // 거부 요청도 자원, 상태를 바꾸지 않으므로 비용 없이 연타될 수 있다. 최소 간격 미만이면
+            // 결과도 보내지 않고 조용히 버린다. 정상 입력은 선딜, 후딜 때문에 이 간격에 걸리지 않는다
             if ((_lastRequestServerTime >= 0.0) && ((now - _lastRequestServerTime) < Constants.Network.PARRY_MIN_REQUEST_INTERVAL))
             {
                 return;
@@ -131,7 +131,7 @@ namespace Geumeum.Combat
 
             _lastRequestServerTime = now;
 
-            // 3. 필수 컴포넌트·GameDB 준비 확인
+            // 3. 필수 컴포넌트, GameDB 준비 확인
             if ((!GameDB.IsInitialized) || (_status == null) || (_weapon == null) || (_roll == null) || (_gauge == null))
             {
                 TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedDependency, now);
@@ -155,7 +155,7 @@ namespace Geumeum.Combat
                 return;
             }
 
-            // 6. 현재 패링·구르기·공격 행동 잠금 확인
+            // 6. 현재 패링, 구르기, 공격 행동 잠금 확인
             if ((_roll.IsRolling) || (IsActionInProgress(now)))
             {
                 TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedBusy, now);
@@ -311,7 +311,7 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            // 같은 공격자의 이전 번호는 재사용·순서 역전으로 보고 거부한다.
+            // 같은 공격자의 이전 번호는 재사용, 순서 역전으로 보고 거부한다.
             // 공격자별 비교라 다른 공격자가 같은 번호를 써도 서로 방해하지 않는다
             if ((_lastIdByAttacker.TryGetValue(key.AttackerNetId, out uint lastWindowId)) && (key.WindowId <= lastWindowId))
             {
@@ -374,7 +374,7 @@ namespace Geumeum.Combat
 
         /// <summary>
         /// 공격이 취소되거나 공격자가 사라졌을 때 창을 즉시 닫는다. 현재 활성 창과 정확히
-        /// 일치할 때만 닫는다 — 늦게 끝난 이전 공격이 새 창을 닫아서는 안 된다
+        /// 일치할 때만 닫는다 - 늦게 끝난 이전 공격이 새 창을 닫아서는 안 된다
         /// </summary>
         [Server]
         public void CloseParryWindow(ParryWindowKey key)

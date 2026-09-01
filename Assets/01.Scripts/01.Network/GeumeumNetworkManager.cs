@@ -13,7 +13,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Network
 {
-    /// <summary> 호스트 생성 · 접속 · 해제를 관리하는 Mirror NetworkManager. 최대 3인, 플레이어 프리팹 등록과 연결 수명만 담당 </summary>
+    /// <summary> 호스트 생성, 접속, 해제를 관리하는 Mirror NetworkManager. 최대 3인, 플레이어 프리팹 등록과 연결 수명만 담당 </summary>
     public class GeumeumNetworkManager : NetworkManager
     {
         /****************************************
@@ -62,7 +62,7 @@ namespace Geumeum.Network
         *              Server Lifecycle
         ****************************************/
 
-        // Mirror의 StartServer · StartHost는 virtual이 아니라 가로챌 수 없다.
+        // Mirror의 StartServer, StartHost는 virtual이 아니라 가로챌 수 없다.
         // 대신 서버가 열린 직후 여기서 검사하고, 실패하면 로비를 열지 않고 곧바로 닫는다
         public override void OnStartServer()
         {

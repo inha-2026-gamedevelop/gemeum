@@ -32,7 +32,7 @@ namespace Geumeum.Data
         [Header("패링")]
         [SerializeField] private float _parryStartupDuration    = 0.05f; // 선딜(초)
         [SerializeField] private float _parryWindowDuration     = 0.32f; // 기본 판정 창(초)
-        [SerializeField] private float _parryWindowDurationMax  = 0.48f; // 특성 · 장비로 확대되는 상한(초)
+        [SerializeField] private float _parryWindowDurationMax  = 0.48f; // 특성, 장비로 확대되는 상한(초)
         [SerializeField] private float _parryRecoveryDuration   = 0.35f; // 실패 시 후딜(초)
         [SerializeField] private float _parryStaminaCost        = 15f;
         [SerializeField] private float _parryInvincibleDuration = 0.3f;  // 성공 시 무적(초)

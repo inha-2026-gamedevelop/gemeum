@@ -47,7 +47,7 @@ namespace Geumeum.Network
         public RunPhase   Phase          => _phase;
         public RunOutcome Outcome        => _outcome;
 
-        /// <summary> 드랍 가중치 · 잡귀 강화 배수의 키. Phase에서 파생되므로 따로 동기화하지 않는다 </summary>
+        /// <summary> 드랍 가중치, 잡귀 강화 배수의 키. Phase에서 파생되므로 따로 동기화하지 않는다 </summary>
         public int FieldLevel
         {
             get
@@ -85,7 +85,7 @@ namespace Geumeum.Network
         {
             ServerInstance = this;
 
-            // 같은 씬에서 StopHost→StartHost로 재시작해도 이전 런의 phase·시각이 남지 않게 한다
+            // 같은 씬에서 StopHost->StartHost로 재시작해도 이전 런의 phase, 시각이 남지 않게 한다
             ServerResetState();
 
             // 부트 게이트를 통과했으면 반드시 초기화되어 있다, 아니면 타임라인이 비어 StartRun이 막힌다
@@ -134,7 +134,7 @@ namespace Geumeum.Network
         }
 
         /// <summary>
-        /// 시간 초과 · 이탈 · 전멸 · 보스 처치 중 어느 경로가 먼저 와도 Result로 한 번만 확정하는
+        /// 시간 초과, 이탈, 전멸, 보스 처치 중 어느 경로가 먼저 와도 Result로 한 번만 확정하는
         /// 단일 종료 경로다. 첫 호출만 outcome을 커밋하고 이후 호출은 값을 바꾸지 않는다
         /// </summary>
         [Server]
@@ -149,7 +149,7 @@ namespace Geumeum.Network
             StopTick();
             CommitPhase(RunPhase.Result);
 
-            // 등록은 그대로 두고 이동·AI·자원 회복 tick만 멈춘다. 새 런 시작 때만 다시 켠다
+            // 등록은 그대로 두고 이동, AI, 자원 회복 tick만 멈춘다. 새 런 시작 때만 다시 켠다
             AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(false);
             return true;
         }
@@ -164,7 +164,7 @@ namespace Geumeum.Network
             }
         }
 
-        /// <summary> 같은 씬에서 서버가 재시작해도 이전 런의 phase·시각·outcome이 남지 않게 한다 </summary>
+        /// <summary> 같은 씬에서 서버가 재시작해도 이전 런의 phase, 시각, outcome이 남지 않게 한다 </summary>
         [Server]
         public void ServerResetState()
         {
@@ -253,7 +253,7 @@ namespace Geumeum.Network
 
             if (!GameEventBus.HasInstance)
             {
-                Debug.LogError($"[RunManager] GameEventBus가 없어 {previous} → {next} 전환을 알리지 못했다", this);
+                Debug.LogError($"[RunManager] GameEventBus가 없어 {previous} -> {next} 전환을 알리지 못했다", this);
                 return;
             }
 

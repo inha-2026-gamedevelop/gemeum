@@ -1,6 +1,6 @@
 namespace Geumeum.Common
 {
-    /// <summary> 런이 끝난 원인. Result 진입 이유마다 점수·UI가 다르게 반응할 수 있도록 서버가 하나만 확정한다 </summary>
+    /// <summary> 런이 끝난 원인. Result 진입 이유마다 점수, UI가 다르게 반응할 수 있도록 서버가 하나만 확정한다 </summary>
     public enum RunOutcome
     {
         None        = 0, // 아직 끝나지 않았다

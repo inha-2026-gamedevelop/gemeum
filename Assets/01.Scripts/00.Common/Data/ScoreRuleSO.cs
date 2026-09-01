@@ -15,7 +15,7 @@ namespace Geumeum.Data
         ****************************************/
 
         // TODO(민성): 점수 구성을 기획서 기준으로 교체한다
-        // 보스 처치 · 잡귀 처치 수 · 무사망 보너스 · 사망 감점 항목이 아직 없다
+        // 보스 처치, 잡귀 처치 수, 무사망 보너스, 사망 감점 항목이 아직 없다
         [Header("배점")]
         [SerializeField] private int   _remainingHealthScore    = 1;           // 파티 남은 HP 총합 1당
         [SerializeField] private float _remainingTimeScore      = 200f / 60f;  // 남은 시간 1초당, 기획의 분당 200점

@@ -12,7 +12,7 @@ namespace Geumeum.Network
 {
     /// <summary>
     /// 서버 전용 공용 시뮬레이션 틱. 등록된 콜백을 우선순위 순서로 매 틱 실행한다.
-    /// RunManager는 phase·타이머 책임만 유지하고, 플레이어·AI·투사체 실행 순서는 여기서 관리한다.
+    /// RunManager는 phase, 타이머 책임만 유지하고, 플레이어, AI, 투사체 실행 순서는 여기서 관리한다.
     /// Rigidbody 조작은 물리 스텝 안에서만 안전하므로 FixedUpdate를 틱 경계로 삼는다.
     /// 물리 주기는 ProjectSettings의 Fixed Timestep이며 SERVER_TICK_INTERVAL과 같은 값으로 맞춰 둔다
     /// </summary>
@@ -34,7 +34,7 @@ namespace Geumeum.Network
 
         private readonly List<TickCallback>     _callbacks       = new List<TickCallback>();
 
-        // 순회 중 등록·해제가 섞이면 우선순위가 무시되거나 콜백이 그 틱에서 스킵된다.
+        // 순회 중 등록, 해제가 섞이면 우선순위가 무시되거나 콜백이 그 틱에서 스킵된다.
         // 등록은 다음 FixedUpdate 시작에서 일괄 반영하고, 해제는 즉시 무효 표시만 한 뒤
         // 순회가 끝난 다음 목록에서 지운다
         private readonly List<TickCallback>     _pendingAdds     = new List<TickCallback>();
@@ -144,7 +144,7 @@ namespace Geumeum.Network
 
         /// <summary>
         /// 등록을 건드리지 않고 전체 gameplay tick만 멱등하게 껐다 켠다.
-        /// Result 확정 뒤 이동·AI·자원 회복을 한 번에 멈추고, 새 런 시작 때만 다시 켠다
+        /// Result 확정 뒤 이동, AI, 자원 회복을 한 번에 멈추고, 새 런 시작 때만 다시 켠다
         /// </summary>
         [Server]
         public void SetSimulationEnabled(bool isEnabled)

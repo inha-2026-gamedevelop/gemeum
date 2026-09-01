@@ -11,16 +11,16 @@ using Geumeum.Data;
 namespace Geumeum.Network
 {
     /// <summary>
-    /// 서버 부트 게이트와 에디터 검사 메뉴가 함께 쓰는 데이터·씬 구성 검사 규칙.
+    /// 서버 부트 게이트와 에디터 검사 메뉴가 함께 쓰는 데이터, 씬 구성 검사 규칙.
     /// 두 곳이 각자 다른 항목을 검사하면 에디터 검사를 통과한 씬이 실제 부트에서는 걸러지지 않은 채 열릴 수 있다
     /// </summary>
     public static class GeumeumBootValidator
     {
-        /// <summary> 씬 필수 구성 검사 범위. Dev 씬은 로비·정산 없이 전투만 켜는 경우가 있어 완화된 프로필을 쓴다 </summary>
+        /// <summary> 씬 필수 구성 검사 범위. Dev 씬은 로비, 정산 없이 전투만 켜는 경우가 있어 완화된 프로필을 쓴다 </summary>
         public enum SceneProfile
         {
             Main,     // 실제 플레이 씬, 로비부터 결과까지 전체 경로가 있어야 한다
-            DevScene, // 전투 확인용 Dev 씬, 네트워크·이벤트·틱 스케줄러만 있으면 된다
+            DevScene, // 전투 확인용 Dev 씬, 네트워크, 이벤트, 틱 스케줄러만 있으면 된다
         }
 
         private const string EDITOR_ONLY_TAG = "EditorOnly";
@@ -29,7 +29,7 @@ namespace Geumeum.Network
         *                 Data
         ****************************************/
 
-        /// <summary> 런 상태 머신·레벨 곡선·스폰 구성이 서버를 열 수 있는 값인지 검사한다 </summary>
+        /// <summary> 런 상태 머신, 레벨 곡선, 스폰 구성이 서버를 열 수 있는 값인지 검사한다 </summary>
         public static void ValidateData(BarrierPhaseSO barrier, LevelCurveSO levelCurve, SpawnConfigSO spawn, List<string> failures)
         {
             ValidateBarrier(barrier, failures);
@@ -48,7 +48,7 @@ namespace Geumeum.Network
             RunPhaseTimeline timeline = RunTimelineBuilder.Build(barrier);
             if (!timeline.Validate(barrier.RunTimeLimitSeconds, out string error))
             {
-                failures.Add("결계 단계 데이터가 런 상태 머신 계약을 어긴다 — " + error);
+                failures.Add("결계 단계 데이터가 런 상태 머신 계약을 어긴다 - " + error);
             }
         }
 

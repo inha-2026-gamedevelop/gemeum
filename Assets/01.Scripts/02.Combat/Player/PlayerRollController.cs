@@ -11,7 +11,7 @@ using Geumeum.Network;
 
 namespace Geumeum.Combat
 {
-    /// <summary> 구르기 요청 검증·방향·지속 시간·무적 전이를 소유한다 </summary>
+    /// <summary> 구르기 요청 검증, 방향, 지속 시간, 무적 전이를 소유한다 </summary>
     public class PlayerRollController : NetworkBehaviour
     {
         /****************************************

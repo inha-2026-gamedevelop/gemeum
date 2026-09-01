@@ -45,7 +45,7 @@ namespace Geumeum.Combat
         *              Public API
         ****************************************/
 
-        /// <summary> PlayerWeapon·PlayerAppearance의 SyncVar 훅이 값이 바뀔 때마다 호출한다. 순서는 상관없다 </summary>
+        /// <summary> PlayerWeapon, PlayerAppearance의 SyncVar 훅이 값이 바뀔 때마다 호출한다. 순서는 상관없다 </summary>
         public void Refresh()
         {
             if ((_weapon == null) || (!_weapon.HasWeapon) || (_appearance == null) || (_appearance.ActiveModel == null))

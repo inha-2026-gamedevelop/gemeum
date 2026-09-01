@@ -70,7 +70,7 @@ namespace Geumeum.Combat
         *              SyncVar Hooks
         ****************************************/
 
-        /// <summary> 서버·클라이언트 모두에서 값이 바뀔 때 호출된다, 판정에는 관여하지 않는다 </summary>
+        /// <summary> 서버, 클라이언트 모두에서 값이 바뀔 때 호출된다, 판정에는 관여하지 않는다 </summary>
         private void OnAppearanceChanged(AppearanceKind oldAppearance, AppearanceKind newAppearance)
         {
             RefreshAppearance();

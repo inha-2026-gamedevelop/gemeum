@@ -15,7 +15,7 @@ using Geumeum.Network;
 namespace Geumeum.EditorTools
 {
     /// <summary>
-    /// 툴바의 그믐 · 씬 · 검사 메뉴.
+    /// 툴바의 그믐, 씬, 검사 메뉴.
     /// 서버 부트 게이트가 잡아내는 데이터 결함을 Play 모드에 들어가기 전에 먼저 확인한다
     /// </summary>
     public static class GeumeumCheckMenu
@@ -93,7 +93,7 @@ namespace Geumeum.EditorTools
 
             database.CollectMissingReferences(G_Problems);
 
-            // 서버 부트 게이트와 같은 규칙을 쓴다 — 여기서 통과해도 부트에서 걸리면 검사 의미가 없다
+            // 서버 부트 게이트와 같은 규칙을 쓴다 - 여기서 통과해도 부트에서 걸리면 검사 의미가 없다
             GeumeumBootValidator.ValidateData(database.Barrier, database.LevelCurve, database.Spawn, G_Problems);
 
             Report("런 데이터 검사", null);
@@ -105,7 +105,7 @@ namespace Geumeum.EditorTools
         {
             G_Problems.Clear();
 
-            // Main만 로비·런 매니저·프레임 기록기까지 요구한다, 그 외 씬은 Dev 프로필로 완화한다
+            // Main만 로비, 런 매니저, 프레임 기록기까지 요구한다, 그 외 씬은 Dev 프로필로 완화한다
             bool isMain = (EditorSceneManager.GetActiveScene().name == Constants.Scene.MAIN);
             var profile = isMain ? GeumeumBootValidator.SceneProfile.Main : GeumeumBootValidator.SceneProfile.DevScene;
             GeumeumBootValidator.ValidateScene(profile, G_Problems);
@@ -145,7 +145,7 @@ namespace Geumeum.EditorTools
         {
             if (fatalMessage != null)
             {
-                Debug.LogError("[그믐] " + title + " 실패 — " + fatalMessage);
+                Debug.LogError("[그믐] " + title + " 실패 - " + fatalMessage);
                 EditorUtility.DisplayDialog(title, fatalMessage, "확인");
                 return;
             }

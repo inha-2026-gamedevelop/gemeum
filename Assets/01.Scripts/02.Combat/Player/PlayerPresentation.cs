@@ -21,7 +21,7 @@ namespace Geumeum.Combat
         ****************************************/
 
         // 서버가 확정한 표현 상태. 원격 관전자는 이 값만 본다.
-        // SyncVar는 값이 바뀔 때만 전송하므로 정지·직진 구간에서는 대역폭을 쓰지 않는다
+        // SyncVar는 값이 바뀔 때만 전송하므로 정지, 직진 구간에서는 대역폭을 쓰지 않는다
         [SyncVar] private Vector2 _serverFacing = Vector2.up;
         [SyncVar] private float   _serverSpeed  = 0f;
 

@@ -61,7 +61,7 @@ namespace Geumeum.Data
             if (_database == null)
             {
                 throw new System.InvalidOperationException(
-                    "[GameDB] 초기화 전에 접근했다. @Managers에 GameDBBootstrap이 있는지, 그리고 Awake가 아니라 Start · OnStartServer 이후에 읽는지 확인할 것");
+                    "[GameDB] 초기화 전에 접근했다. @Managers에 GameDBBootstrap이 있는지, 그리고 Awake가 아니라 Start, OnStartServer 이후에 읽는지 확인할 것");
             }
 
             return _database;

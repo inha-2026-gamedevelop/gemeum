@@ -17,7 +17,7 @@ namespace Geumeum.Network
     /// <summary>
     /// 런 구간별 프레임 시간을 모아 CSV로 남긴다.
     /// 리슨 서버라 호스트가 3인분을 지므로, 호스트와 클라이언트를 같은 구간에서 비교해야 부하를 판단할 수 있다.
-    /// 프레임 시간은 표본 배열이 아니라 히스토그램에 누적한다 — 저장 비용이 측정 시간에 비례하면
+    /// 프레임 시간은 표본 배열이 아니라 히스토그램에 누적한다 - 저장 비용이 측정 시간에 비례하면
     /// 자동 저장이 스스로 프레임을 끊어 측정값을 오염시킨다
     /// </summary>
     public class FrameRecorder : MonoBehaviour
@@ -240,10 +240,10 @@ namespace Geumeum.Network
             string cap       = (_targetFrameRate > 0) ? (_targetFrameRate + " FPS 상한") : "상한 없음";
             string nl        = Environment.NewLine;
 
-            _overlayText = ResolveRole() + " · " + ResolvePhase()
+            _overlayText = ResolveRole() + ", " + ResolvePhase()
                 + nl + currentMs.ToString("F1") + " ms  (" + (1000f / Mathf.Max(currentMs, 0.001f)).ToString("F0") + " FPS)"
-                + nl + state + " · " + cap
-                + nl + Screen.width + "x" + Screen.height + "   F9 저장 · F10 표시";
+                + nl + state + ", " + cap
+                + nl + Screen.width + "x" + Screen.height + "   F9 저장, F10 표시";
         }
 
         /// <summary> 지금까지 누적한 통계를 CSV로 남긴다. 비용은 측정 시간과 무관하다 </summary>

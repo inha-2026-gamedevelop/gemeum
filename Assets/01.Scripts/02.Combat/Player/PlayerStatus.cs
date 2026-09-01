@@ -12,7 +12,7 @@ using Geumeum.Network;
 namespace Geumeum.Combat
 {
     /// <summary>
-    /// 플레이어 HP · 스태미나 · 신력 · 생명 상태의 원본. IDamageable 구현.
+    /// 플레이어 HP, 스태미나, 신력, 생명 상태의 원본. IDamageable 구현.
     /// 다른 컴포넌트는 이 값을 직접 대입하지 않고 여기의 서버 API를 호출한다
     /// </summary>
     public class PlayerStatus : NetworkBehaviour, IDamageable
@@ -26,11 +26,11 @@ namespace Geumeum.Combat
         [SyncVar] private float           _stamina      = 0f;
         [SyncVar] private float           _spirit       = 0f;
         [SyncVar] private PlayerLifeState _lifeState    = PlayerLifeState.Alive;
-        [SyncVar] private bool            _isInvincible = false; // 구르기 · 패링 성공처럼 생명 상태는 그대로인 일시 무적
+        [SyncVar] private bool            _isInvincible = false; // 구르기, 패링 성공처럼 생명 상태는 그대로인 일시 무적
 
         private double _lastStaminaSpendServerTime = -1.0; // 서버 전용, 회복 시작을 늦추는 기준 시각
 
-        // 구르기 · 패링 등 여러 출처가 각자 bool을 껐다 켜면 먼저 끝난 출처가 더 긴 다른 출처의
+        // 구르기, 패링 등 여러 출처가 각자 bool을 껐다 켜면 먼저 끝난 출처가 더 긴 다른 출처의
         // 무적까지 해제한다. 만료 시각 하나만 소유하고 각 출처는 max로만 연장한다
         private double _invincibleUntilServerTime = 0.0; // 서버 전용
 
@@ -148,7 +148,7 @@ namespace Geumeum.Combat
                 return;
             }
 
-            // 구르기 · 패링 성공 무적은 생명 상태를 바꾸지 않는 일시 상태라 별도로 확인한다
+            // 구르기, 패링 성공 무적은 생명 상태를 바꾸지 않는 일시 상태라 별도로 확인한다
             if (_isInvincible)
             {
                 return;
@@ -208,7 +208,7 @@ namespace Geumeum.Combat
         }
 
         /// <summary>
-        /// 구르기 · 패링 성공처럼 생명 상태와 무관한 일시 무적을 만료 시각까지 연장한다.
+        /// 구르기, 패링 성공처럼 생명 상태와 무관한 일시 무적을 만료 시각까지 연장한다.
         /// 여러 출처가 동시에 걸려 있어도 가장 늦게 끝나는 시각만 남는다. 서버에서만 호출한다
         /// </summary>
         [Server]

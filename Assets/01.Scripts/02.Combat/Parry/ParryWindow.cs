@@ -9,7 +9,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Combat
 {
-    /// <summary> 서버가 공격별 패링 창의 식별·대상·시간·소비 상태를 보관하는 값 </summary>
+    /// <summary> 서버가 공격별 패링 창의 식별, 대상, 시간, 소비 상태를 보관하는 값 </summary>
     public sealed class ParryWindow
     {
         /****************************************
@@ -44,7 +44,7 @@ namespace Geumeum.Combat
         *              Constructors
         ****************************************/
 
-        /// <summary> 서버가 확인한 공격 소스와 대상·시간으로 창을 만든다 </summary>
+        /// <summary> 서버가 확인한 공격 소스와 대상, 시간으로 창을 만든다 </summary>
         public ParryWindow(
             uint windowId,
             uint attackerNetId,
@@ -74,9 +74,9 @@ namespace Geumeum.Combat
         ****************************************/
 
         /// <summary>
-        /// 레코드를 지워도 되는 시점인지 확인한다. EndServerTime이 아니라 ImpactTime 기준이다 —
+        /// 레코드를 지워도 되는 시점인지 확인한다. EndServerTime이 아니라 ImpactTime 기준이다 -
         /// EndServerTime 직후 지우면 지연으로 늦게 도착한 CmdParry가 판정도 못 받고 버려진다.
-        /// 실제 성공 판정은 ParryJudge가 StartServerTime·EndServerTime으로 별도로 가른다
+        /// 실제 성공 판정은 ParryJudge가 StartServerTime, EndServerTime으로 별도로 가른다
         /// </summary>
         public bool IsExpired(double serverTime)
         {

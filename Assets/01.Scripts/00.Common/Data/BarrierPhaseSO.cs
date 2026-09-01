@@ -11,7 +11,7 @@ using Geumeum.Common;
 namespace Geumeum.Data
 {
     /// <summary>
-    /// 결계 단계별 시간 · 반경 · 피해량.
+    /// 결계 단계별 시간, 반경, 피해량.
     /// 각 파트가 시간을 따로 계산해 자기 상태를 바꾸지 않도록 구간 전환 시각도 여기 하나에 모은다
     /// </summary>
     [CreateAssetMenu(fileName = "BarrierPhaseSO", menuName = "Geumeum/BarrierPhaseSO")]
@@ -27,7 +27,7 @@ namespace Geumeum.Data
             public RunPhase Phase;
             public float    StartSeconds;    // 런 시작 기준 경과 시간(초)
             public float    EndSeconds;      // 이 시각에 다음 단계로 전환
-            public int      FieldLevel;      // 드랍 가중치 · 강화 배수의 키
+            public int      FieldLevel;      // 드랍 가중치, 강화 배수의 키
             public float    RadiusRatio;     // 최대 반경 대비 목표 반경
             public float    DamagePerSecond; // 결계 밖 지속 피해
             public bool     AppliesWeakened; // 쇠약, 회복 효율 감소

@@ -12,7 +12,7 @@ using UnityEngine;
 namespace Geumeum.EditorTools
 {
     /// <summary>
-    /// 툴바의 그믐 · 빌드 메뉴. 빌드 옵션을 사람마다 다르게 잡지 않도록 한 곳에 고정한다.
+    /// 툴바의 그믐, 빌드 메뉴. 빌드 옵션을 사람마다 다르게 잡지 않도록 한 곳에 고정한다.
     /// 개발 빌드에만 DEVELOPMENT_BUILD가 정의되어 FrameRecorder 같은 측정 도구가 함께 들어간다
     /// </summary>
     public static class GeumeumBuildMenu
@@ -31,7 +31,7 @@ namespace Geumeum.EditorTools
         private const string EXECUTABLE_NAME = "gemeum.exe";
 
         // 3인 테스트 실행 스크립트. 빌드 폴더째로 팀원에게 전달해도 바로 접속할 수 있게 같이 넣는다.
-        // 릴리스에는 넣지 않는다 — 실행 인자로 자동 접속하는 경로는 개발 빌드에만 있다
+        // 릴리스에는 넣지 않는다 - 실행 인자로 자동 접속하는 경로는 개발 빌드에만 있다
         private const string TOOLS_DIR = "tools";
 
         private static readonly string[] DEVELOPMENT_EXTRA_FILES =
@@ -118,7 +118,7 @@ namespace Geumeum.EditorTools
                 CopyExtraFiles(Path.GetDirectoryName(path));
             }
 
-            UnityEngine.Debug.Log($"[그믐] {outputDir} 빌드 성공 — {summary.totalTime.TotalSeconds:F1}초, "
+            UnityEngine.Debug.Log($"[그믐] {outputDir} 빌드 성공 - {summary.totalTime.TotalSeconds:F1}초, "
                 + $"{summary.totalSize / 1048576f:F1}MB, 씬 {scenes.Length}개\n{path}");
         }
 

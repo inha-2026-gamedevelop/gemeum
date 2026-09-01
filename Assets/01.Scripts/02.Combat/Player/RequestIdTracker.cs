@@ -1,6 +1,6 @@
 namespace Geumeum.Combat
 {
-    /// <summary> 단발 요청의 중복·역순 적용을 막는 순수 RequestId 상태 </summary>
+    /// <summary> 단발 요청의 중복, 역순 적용을 막는 순수 RequestId 상태 </summary>
     public struct RequestIdTracker
     {
         /****************************************
