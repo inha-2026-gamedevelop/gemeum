@@ -16,6 +16,11 @@ namespace Geumeum.Common
 
             // 클라가 보낸 입력 시각은 신뢰하지 않는다
             public const float MAX_INPUT_DELTA_TIME  = 0.1f;  // 입력 하나로 진행시킬 수 있는 최대 시간(초)
+            // 패링 창이 닫히고 타격이 확정되기까지의 여유(초). 밸런스가 아니라 네트워크 계약값으로,
+            // 150ms 지연과 60Hz 서버 틱에서도 판정이 타격보다 먼저 끝나도록 잡은 값이다.
+            // 조정할 때는 docs/unity/PARRY_SYSTEM_DESIGN.md 3.1절을 함께 고친다
+            public const float PARRY_RESOLUTION_LEAD = 0.18f;
+
             public const float MAX_INPUT_TIME_BEHIND = 0.5f;  // 이만큼 이상 과거인 입력 시각은 잘라낸다(초)
             public const float MAX_INPUT_TIME_AHEAD  = 0.05f; // 이보다 앞서면 서버 현재 시각으로 클램프(초)
 

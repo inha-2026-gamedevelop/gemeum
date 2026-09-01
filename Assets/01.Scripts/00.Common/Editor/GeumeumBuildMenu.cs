@@ -30,6 +30,16 @@ namespace Geumeum.EditorTools
         private const string RELEASE_DIR     = "Release";
         private const string EXECUTABLE_NAME = "gemeum.exe";
 
+        // 3인 테스트 실행 스크립트. 빌드 폴더째로 팀원에게 전달해도 바로 접속할 수 있게 같이 넣는다.
+        // 릴리스에는 넣지 않는다 — 실행 인자로 자동 접속하는 경로는 개발 빌드에만 있다
+        private const string TOOLS_DIR = "tools";
+
+        private static readonly string[] DEVELOPMENT_EXTRA_FILES =
+        {
+            "run-host.bat",
+            "run-client.bat",
+        };
+
         private const int ORDER_DEVELOPMENT = 0;
         private const int ORDER_RELEASE     = 1;
         private const int ORDER_OPEN_BUILD  = 20;
@@ -103,8 +113,39 @@ namespace Geumeum.EditorTools
                 return;
             }
 
+            if (outputDir == DEVELOPMENT_DIR)
+            {
+                CopyExtraFiles(Path.GetDirectoryName(path));
+            }
+
             UnityEngine.Debug.Log($"[그믐] {outputDir} 빌드 성공 — {summary.totalTime.TotalSeconds:F1}초, "
                 + $"{summary.totalSize / 1048576f:F1}MB, 씬 {scenes.Length}개\n{path}");
+        }
+
+        // 복사에 실패해도 빌드 자체는 성공이다. 막지 않고 경고만 남긴다
+        private static void CopyExtraFiles(string outputPath)
+        {
+            string toolsPath = Path.Combine(ProjectRoot(), TOOLS_DIR);
+
+            for (int i = 0; i < DEVELOPMENT_EXTRA_FILES.Length; ++i)
+            {
+                string source = Path.Combine(toolsPath, DEVELOPMENT_EXTRA_FILES[i]);
+
+                if (!File.Exists(source))
+                {
+                    UnityEngine.Debug.LogWarning($"[그믐] 빌드에 넣을 파일이 없다: {source}");
+                    continue;
+                }
+
+                try
+                {
+                    File.Copy(source, Path.Combine(outputPath, DEVELOPMENT_EXTRA_FILES[i]), true);
+                }
+                catch (IOException exception)
+                {
+                    UnityEngine.Debug.LogWarning($"[그믐] {DEVELOPMENT_EXTRA_FILES[i]} 복사 실패: {exception.Message}");
+                }
+            }
         }
 
         private static string[] EnabledScenes()
