@@ -22,6 +22,7 @@ namespace Geumeum.Combat
         private PlayerStatus              _status;
         private ParryController           _parry;
         private PlayerAnimationController _animation;
+        private PlayerPresentation        _presentation;
 
         private uint             _localRequestId = 0;
         private RequestIdTracker _requestIds;
@@ -49,7 +50,8 @@ namespace Geumeum.Combat
             _movement  = GetComponent<PlayerController>();
             _status    = GetComponent<PlayerStatus>();
             _parry     = GetComponent<ParryController>();
-            _animation = GetComponent<PlayerAnimationController>();
+            _animation    = GetComponent<PlayerAnimationController>();
+            _presentation = GetComponent<PlayerPresentation>();
         }
 
         private void Update()
@@ -119,8 +121,16 @@ namespace Geumeum.Combat
                 return;
             }
 
+            _rollDirection = ResolveServerDirection(requestedDirection);
+
+            // 방향을 진행 여부보다 먼저 확정한다. 같은 배치로 도착해야 관전자가 구르기 첫 프레임부터
+            // 서버가 정한 방향으로 재생한다. 순서를 바꾸면 직전 방향으로 한 프레임 구르고 꺾인다
+            if (_presentation != null)
+            {
+                _presentation.ServerSetFacing(_rollDirection);
+            }
+
             _isRolling                   = true;
-            _rollDirection               = ResolveServerDirection(requestedDirection);
             _rollEndServerTime           = now + combat.RollTotalDuration;
             _rollInvincibleEndServerTime = now + combat.RollInvincibleDuration;
 
