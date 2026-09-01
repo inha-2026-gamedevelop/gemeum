@@ -2,6 +2,9 @@
 using System;
 using System.Collections.Generic;
 
+// 프로젝트 내부
+using Geumeum.Common;
+
 namespace Geumeum.Network
 {
     /// <summary>

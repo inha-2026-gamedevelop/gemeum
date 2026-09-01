@@ -12,7 +12,6 @@ using Mirror;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
-using Geumeum.Network;
 
 namespace Geumeum.AI
 {

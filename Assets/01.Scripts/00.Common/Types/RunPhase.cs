@@ -1,4 +1,4 @@
-namespace Geumeum.Network
+namespace Geumeum.Common
 {
     /// <summary>
     /// 런 상태 머신의 단계. RunManager가 서버에서만 전환하고 SyncVar로 배포한다.
