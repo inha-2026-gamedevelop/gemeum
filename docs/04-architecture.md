@@ -58,11 +58,32 @@ Assets/
 ├ 10.InputSystem/   Input Action 에셋 (입력은 Input Manager로 받는다, 5.6장)
 ├ 11.Timeline/      연출 타임라인 (집중개발 4~5주차부터)
 ├ 12.Materials/     머티리얼 (모델 · 캐릭터별 하위 폴더)
-├ 99.ThirdParty/    구매 에셋 원본 — 수정 금지, 커스텀은 밖으로 복사
+├ 98.FreeAssets/    무료 에셋 원본 (플러그인 · 애니메이션 등) — 수정 금지, 커밋 대상
+├ 99.ThirdParty/    구매 에셋 원본 — 수정 금지, 커밋 제외(.gitignore)
 └ Mirror/           Mirror 패키지 — 수정 금지
 ```
 
-- `99.ThirdParty/`와 `Mirror/`는 읽기 전용으로 취급한다. 구매 에셋의 머티리얼 · 프리팹을 고치고 싶으면 자기 파트 폴더로 **복사한 뒤** 수정한다 ([씬·에셋 안전](unity/SCENE_AND_ASSET_SAFETY.md)).
+- `98.FreeAssets/`, `99.ThirdParty/`, `Mirror/`는 읽기 전용으로 취급한다. 외부 에셋의 머티리얼 · 프리팹을 고치고 싶으면 자기 파트 폴더로 **복사한 뒤** 수정한다 ([씬·에셋 안전](unity/SCENE_AND_ASSET_SAFETY.md)).
+
+### 2.1 98과 99를 나누는 이유
+
+둘 다 외부 에셋이지만 **git 취급이 정반대**라서 폴더를 분리한다.
+
+| | `98.FreeAssets/` | `99.ThirdParty/` |
+|---|---|---|
+| 취득 | 무료 배포 | 유료 구매 |
+| git | **커밋한다** (바이너리는 LFS) | `.gitignore` 제외 |
+| 팀원 준비 | clone하면 끝 | 각자 자기 계정으로 내려받아 설치 |
+
+유료 에셋은 라이선스가 구매 계정에 묶여 저장소에 올릴 수 없다. 그래서 받지 않은 팀원은 씬이 깨진 채로 열린다 — Gaia 지형에서 실제로 겪은 문제다. 무료 에셋은 그 제약이 없으므로 **커밋해서 전원이 같은 GUID를 갖게 한다.** 각자 따로 임포트하면 GUID가 갈려 프리팹 · 씬 참조가 끊어질 수 있다.
+
+무료 에셋을 넣을 때 지킬 것:
+
+- **에셋 하나당 폴더 하나.** 파일을 `98.FreeAssets/` 바로 아래 흩뿌리지 않는다.
+- **`.meta`를 통째로 같이 커밋한다.** 하나라도 빠지면 GUID가 새로 발급돼 참조가 끊어진다.
+- **바이너리가 `.gitattributes`의 LFS 대상 확장자인지 먼저 확인한다.** 대상이 아니면서 5MB를 넘으면 LFS 대상에 추가할지 검토한다 — `.github/scripts/check_lfs.py`가 PR에서 검사한다.
+- **라이선스 근거를 `docs/licenses/`에 남긴다** ([씬·에셋 안전 4장](unity/SCENE_AND_ASSET_SAFETY.md)). 무료라고 상업 이용까지 무료인 것은 아니다.
+- 데모 씬이 딸려 와도 `ProjectSettings/EditorBuildSettings.asset`에 추가하지 않는다.
 - Gaia Terrain 데이터는 테크니컬 아트만 수정한다 ([기술 구현 2.3](03-technical-design.md)).
 
 ---
@@ -212,15 +233,19 @@ Main.unity
 │  │                           서버가 Rigidbody 속도로 이동시키고 Y는 중력에 맡긴다
 │  ├ PlayerMotionModel.cs  C#  [현재] 서버와 클라 예측이 공유하는 순수 이동 계산
 │  ├ PlayerMoveInput.cs    C#  [현재] 순서 · 추정 서버 시각을 포함한 입력 스냅샷
-│  ├ PlayerPrediction.cs   MB  [현재] 로컬 입력 버퍼 · 서버 스냅샷 재조정
+│  ├ PlayerPrediction.cs   MB  [현재] 매 프레임 로컬 예측 · 미확인 입력 버퍼 · 3단계 재조정
+│  │                           (데드존 · 지수 수렴 · 즉시 스냅)
 │  ├ PlayerActionGate.cs   C#  [현재] phase·생명 상태 공통 검증. [계획] 쿨다운·자원 추가
-│  ├ PlayerAnimationController.cs MB [현재] 동기화된 위치 변화만 관찰해 재생하는 표현 전용
+│  ├ PlayerPresentation.cs MB  [현재] 방향 · 속도를 명시적으로 보관하는 표현 상태.
+│  │                           서버는 수락한 이동, 소유 클라는 입력, 원격은 SyncVar
+│  ├ PlayerAnimationController.cs MB [현재] PlayerPresentation을 읽어 LateUpdate에서
+│  │                           VisualPivot을 회전시키는 표현 전용. 위치 차분을 쓰지 않는다
 │  ├ PlayerLifeState.cs    enum [현재] Alive · Downed · Spectating · ReviveInvulnerable
 │  ├ PlayerStatus.cs       NB  [현재] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable
 │  ├ PlayerWeapon.cs       NB  [현재] 현재 무기 SyncVar(초기 1회 배분). [계획] 서버 전투용
 │  │                           장비 snapshot 추가
-│  ├ PlayerAppearance.cs   MB  [현재] 무기 SyncVar 훅으로 직업별 모델을 켜는 표현 전용 컴포넌트.
-│  │                           지금은 검(차사) 모델만 바인딩, 활·방울은 모델 도착 후 연결
+│  ├ PlayerAppearance.cs   MB  [현재] AppearanceKind SyncVar 훅으로 외형 모델을 켜는 표현 전용.
+│  │                           차사 · 신궁 · 무녀 3종 바인딩 완료. 무기와는 무관하다
 │  ├ PlayerAttack.cs       NB  [계획] 공격의 유일한 클라이언트 Command 진입점. 무기당 기본 공격
 │  │                           1종만 받고, 연사·관통·치유·버프 변형은 서버가 TalentController
 │  │                           상태에서 스스로 산출한다 (클라이언트가 슬롯을 고르지 않는다)
@@ -480,20 +505,22 @@ Assets/02.Prefabs/
 **Player.prefab 컴포넌트 구성**:
 
 ```
-[현재 — 2026-08-31]
+[현재 — 2026-09-01]
 Player.prefab
-├ NetworkIdentity / NetworkTransformReliable
-├ PlayerController / ParryController
+├ NetworkIdentity / NetworkTransformReliable(syncRotation 꺼짐)
+├ PlayerController / ParryController / ParryGauge
 ├ PlayerStatus / PlayerWeapon / PlayerAppearance
-├ PlayerPrediction / PlayerAnimationController
+├ PlayerPrediction / PlayerPresentation / PlayerAnimationController / PlayerRollController
 ├ CapsuleCollider / Rigidbody
-└ 자식: Chisa(차사) 모델 · Animator — 활 · 방울 모델은 아직 없음
+└ VisualPivot                   표현용 Yaw만 적용, 물리 · 네트워크 루트는 회전하지 않는다
+   ├ Chasa_Art · Singung_Art · Munyeo_Art   모델별 축 보정을 로컬 회전으로 유지
+   └ Chisa(비활성)                          교체 전 외부 에셋, 바인딩하지 않는다
 
 [계획 — 단계별 추가]
 ├ PlayerAttack / InteractionController
-├ ParryGauge / ArrowLauncher(서버 전용)
+├ ArrowLauncher(서버 전용)
 ├ InventoryController / TalentController
-└ 자식: CameraRig 앵커, 신궁 · 무녀 모델(PlayerAppearance 바인딩 추가)
+└ VisualPivot 자식: CameraRig 앵커
 ```
 
 `ArrowLauncher`는 클라이언트 Command를 받지 않고 `BowAbility`의 서버 스폰 요청만 수행한다.

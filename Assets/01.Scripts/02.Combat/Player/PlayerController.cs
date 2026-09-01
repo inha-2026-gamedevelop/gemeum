@@ -27,6 +27,7 @@ namespace Geumeum.Combat
 
         private Rigidbody                _rigidbody;
         private PlayerPrediction         _prediction;
+        private PlayerPresentation       _presentation;
         private PlayerStatus             _status;
         private PlayerRollController     _roll;
         private NetworkTransformReliable _networkTransform;
@@ -61,6 +62,7 @@ namespace Geumeum.Combat
         {
             _rigidbody        = GetComponent<Rigidbody>();
             _prediction       = GetComponent<PlayerPrediction>();
+            _presentation     = GetComponent<PlayerPresentation>();
             _status           = GetComponent<PlayerStatus>();
             _roll             = GetComponent<PlayerRollController>();
             _networkTransform = GetComponent<NetworkTransformReliable>();
@@ -81,6 +83,33 @@ namespace Geumeum.Combat
 
             _prediction.SetSuspended(isServerDrivenMotion);
 
+            // 구르기처럼 서버가 방향을 정하는 구간에는 로컬 표현도 서버 값을 따른다.
+            // 안 그러면 구르는 방향이 관전자와 자기 화면에서 달라진다
+            if ((_presentation != null) && (isServerDrivenMotion))
+            {
+                _presentation.ClientReleaseLocalState();
+            }
+
+            Vector2 moveAxis = new Vector2(
+                Input.GetAxisRaw(Constants.Player.AXIS_HORIZONTAL),
+                Input.GetAxisRaw(Constants.Player.AXIS_VERTICAL));
+
+            Vector2 moveDirection = Vector2.ClampMagnitude(moveAxis, 1f);
+            bool    sprintHeld    = Input.GetKey(Constants.Player.KEY_SPRINT);
+
+            // 예측은 매 프레임, 발신은 30Hz다. 발신 주기에만 위치를 옮기면 프레임이 아무리 빨라도
+            // 화면상 30Hz 계단으로 끊긴다. 호스트는 스스로가 서버라 지연이 없어 예측이 필요 없다
+            if (!isServer)
+            {
+                _prediction.Advance(moveDirection, sprintHeld, Time.deltaTime, ResolveMoveSpeed);
+
+                // 방향·속도 표현은 서버 왕복을 기다리지 않는다. 기다리면 방향 전환이 지연으로 느껴진다
+                if ((_presentation != null) && (!isServerDrivenMotion))
+                {
+                    _presentation.ClientPredictMotion(moveDirection, ResolveMoveSpeed(sprintHeld));
+                }
+            }
+
             double now = NetworkTime.time;
             if ((now - _lastInputSendTime) < Constants.Network.PLAYER_INPUT_SEND_INTERVAL)
             {
@@ -89,22 +118,17 @@ namespace Geumeum.Combat
 
             _lastInputSendTime = now;
 
-            Vector2 moveAxis = new Vector2(
-                Input.GetAxisRaw(Constants.Player.AXIS_HORIZONTAL),
-                Input.GetAxisRaw(Constants.Player.AXIS_VERTICAL));
-
             PlayerMoveInput input = new PlayerMoveInput
             {
-                MoveDirection             = Vector2.ClampMagnitude(moveAxis, 1f),
-                SprintHeld                = Input.GetKey(Constants.Player.KEY_SPRINT),
+                MoveDirection             = moveDirection,
+                SprintHeld                = sprintHeld,
                 ClientEstimatedServerTime = now,
                 Sequence                  = ++_localSequence,
             };
 
-            // 호스트는 스스로가 서버라 지연이 없다, 별도 예측이 필요 없다
             if (!isServer)
             {
-                _prediction.Predict(input, ResolveMoveSpeed);
+                _prediction.RecordInput(input);
             }
 
             CmdSendMoveInput(input);
@@ -130,10 +154,13 @@ namespace Geumeum.Combat
 
         public override void OnStartClient()
         {
-            // 원격 인스턴스의 물리가 서버 스냅샷·로컬 예측과 위치를 두고 싸우지 않게 한다
+            // 원격 인스턴스의 물리가 서버 스냅샷·로컬 예측과 위치를 두고 싸우지 않게 한다.
+            // 보간 책임도 하나만 남긴다 — 원격은 NetworkTransform, 자기 캐릭터는 PlayerPrediction이다.
+            // Rigidbody 보간까지 남으면 같은 프레임에 두 계층이 Transform을 밀어 떨림이 된다
             if ((!isServer) && (_rigidbody != null))
             {
-                _rigidbody.isKinematic = true;
+                _rigidbody.isKinematic   = true;
+                _rigidbody.interpolation = RigidbodyInterpolation.None;
             }
         }
 
@@ -221,6 +248,13 @@ namespace Geumeum.Combat
             }
 
             ApplyPlanarVelocity(direction, speed);
+
+            // 서버가 실제로 수락한 이동을 표현 상태로 확정한다. 관전자는 이 값으로 방향과 속도를 그린다
+            if (_presentation != null)
+            {
+                _presentation.ServerSetMotion(direction, speed);
+            }
+
             UpdateOwnerSnapshot(direction, speed, fixedDeltaTime);
         }
 

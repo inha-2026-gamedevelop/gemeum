@@ -134,14 +134,24 @@
 소유 플레이어의 입력 예측·마지막 처리 sequence·재조정은 별도 `PlayerPrediction` 계약으로 처리하며,
 `NetworkTransform` 자체에 맡기지 않는다.
 
-**5. 호스트는 지연이 0이다.**
+**보간 책임은 한 계층만 갖는다.** 원격 인스턴스는 `NetworkTransform`, 소유 클라이언트는 `PlayerPrediction`이다.
+비서버 인스턴스의 Rigidbody는 `isKinematic = true`와 함께 `interpolation = None`으로 둔다 —
+두 계층이 같은 프레임에 Transform을 밀면 떨림이 된다.
+
+**5. 화면 표현을 Transform 위치 차분으로 역산하지 않는다.**
+위치에는 서버 이동·스냅샷 보간·재조정 보정이 섞여 들어온다. 이걸 이동 방향으로 되돌리면
+서버가 위치를 뒤로 보정한 순간 모델이 뒤를 본다.
+방향·속도는 `PlayerPresentation`이 역할별 소스에서 받아 보관하고, 회전은 물리 루트가 아니라
+`VisualPivot`에만 적용한다. 루트 회전을 쓰지 않으므로 `syncRotation`은 꺼 둔다.
+
+**6. 호스트는 지연이 0이다.**
 호스트에서만 테스트하면 지연 관련 결함을 절대 못 찾는다. [멀티플레이 테스트 절차](../ai/04_MULTIPLAYER_TEST_PROTOCOL.md) 참조.
 
-**6. `syncInterval`을 오브젝트 종류마다 다르게 잡는다.**
+**7. `syncInterval`을 오브젝트 종류마다 다르게 잡는다.**
 기본값 그대로 두면 잡귀 22마리가 플레이어와 같은 주기로 3연결에 전송된다.
 조작 대상인 플레이어는 촘촘하게, 잡귀처럼 보간으로 메울 수 있는 것은 성기게 잡는다. 값은 `Constants.Network`에 있다.
 
-**7. `GameEventBus`는 네트워크가 아니다.**
+**8. `GameEventBus`는 네트워크가 아니다.**
 호스트 프로세스에서 발행한 이벤트는 원격 클라이언트에 전달되지 않는다. 지속 상태는
 `SyncVar`/`SyncList`, 전체 일회성 결과는 `ClientRpc`, 개인 결과는 `TargetRpc`로 별도 전달한다.
 

@@ -50,6 +50,7 @@
 | [씬 · 에셋 안전](../unity/SCENE_AND_ASSET_SAFETY.md) | 씬 · `.meta` · LFS를 다룰 때 |
 | [밸런스 데이터 작업](../unity/BALANCE_DATA_WORKFLOW.md) | 수치를 만들거나 바꿀 때 |
 | [엔지니어링 패턴](../unity/UNITY_ENGINEERING_PATTERNS.md) | 성능 · 수명 문제가 실제로 생겼을 때 |
+| [LOD · 컬링 현황](../unity/LOD_AND_CULLING.md) | 컬링 · LOD가 이미 적용됐는지 확인할 때 |
 
 ---
 

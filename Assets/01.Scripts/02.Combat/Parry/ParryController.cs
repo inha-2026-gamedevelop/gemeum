@@ -25,6 +25,12 @@ namespace Geumeum.Combat
         private readonly Dictionary<uint, ParryWindow> _windowsById          = new Dictionary<uint, ParryWindow>();
         private readonly Dictionary<uint, uint>        _activeByAttacker     = new Dictionary<uint, uint>();
         private readonly Dictionary<uint, uint>        _lastIdByAttacker     = new Dictionary<uint, uint>();
+        // TODO: 몬스터 공격이 OpenParryWindow를 호출하게 되면 _seenWindowIds를 제거한다.
+        //       창을 열 때마다 커지는 영구 집합이라 장시간 전투에서 계속 자라고,
+        //       공격자마다 windowId를 1부터 발급하면 두 번째 공격자의 창이 중복으로 판정돼 조용히 버려진다.
+        //       재사용 방어는 _lastIdByAttacker 단조 증가 비교로 충분하고,
+        //       번호 충돌은 _windowsById.ContainsKey로 열려 있는 창에 대해서만 막으면 된다.
+        //       지금은 공격 소스가 없어 검증할 수 없으므로 바꾸지 않는다
         private readonly HashSet<uint>                 _seenWindowIds        = new HashSet<uint>();
         private readonly List<uint>                    _expiredWindowIds     = new List<uint>();
 

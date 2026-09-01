@@ -64,6 +64,7 @@
 | 수치를 만들거나 바꾼다 | [밸런스 데이터 작업](unity/BALANCE_DATA_WORKFLOW.md) |
 | 3인 접속 테스트를 해야 한다 | [멀티플레이 테스트](ai/04_MULTIPLAYER_TEST_PROTOCOL.md) |
 | 프레임이 떨어지거나 코루틴이 꼬였다 | [엔지니어링 패턴](unity/UNITY_ENGINEERING_PATTERNS.md) |
+| LOD · 오클루전 컬링이 켜져 있는지 확인한다 | [LOD · 컬링 현황](unity/LOD_AND_CULLING.md) |
 | 밸런스 수치가 궁금하다 | [게임 디자인](02-game-design.md) |
 | 왜 이렇게 설계했는지 궁금하다 | [기술 설계](03-technical-design.md) |
 | 2026-08-29 서버·플레이어 문서가 무엇 때문에 바뀌었는지 본다 | [아키텍처 동기화 기록](architecture-sync-2026-08-29.md) |

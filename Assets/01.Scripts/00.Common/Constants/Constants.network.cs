@@ -22,7 +22,11 @@ namespace Geumeum.Common
             // syncInterval(상태 전송 주기)과 별개다, 이동 snapshot을 보내는 주기 — 프로토타입 시작값
             public const float PLAYER_INPUT_SEND_INTERVAL = 1f / 30f; // 이동 입력 발신 주기(초)
             public const float PLAYER_INPUT_EXPIRY        = 0.25f;   // 이 이상 새 입력이 없으면 0 입력으로 간주(초)
-            public const float PLAYER_RECONCILE_THRESHOLD = 0.1f;    // 예측 위치와 서버 스냅샷의 오차 허용치(m)
+            // 재조정 3단계. 이 아래는 클라이언트 값을 그대로 보여 주고, 중간 구간은 서서히 서버 쪽으로
+            // 수렴시키며, 상한을 넘으면 즉시 서버 위치로 바꾼다. 매 스냅샷마다 순간이동시키면 튄다
+            public const float PLAYER_RECONCILE_THRESHOLD   = 0.1f;  // 이 이하 오차는 보정하지 않는다(m)
+            public const float PLAYER_RECONCILE_SNAP        = 2f;    // 이 이상 벌어지면 즉시 서버 위치로(m)
+            public const float PLAYER_RECONCILE_SMOOTH_TIME = 0.08f; // 중간 구간의 수렴 시간 상수(초)
 
             // 서버가 위치를 움직이지 않는 구간에도 스냅샷이 끊기면 소유 클라이언트의 재조정 ACK가
             // 같이 끊겨 예측 위치가 되돌아올 방법이 없고 미확인 입력도 비워지지 않는다

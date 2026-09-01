@@ -15,15 +15,15 @@ MonoBehaviour:
   Speed: 24
   NightSpeed: 24
   UpdateInterval: 0.03
-  TimeOfDay: 28800
-  TimeOfDayLabel: 08:00 AM
-  Year: 2017
-  Month: 3
-  Day: 13
+  TimeOfDay: 43200
+  TimeOfDayLabel: "12:00 \uC624\uD6C4"
+  Year: 2026
+  Month: 9
+  Day: 1
   AdjustDateWhenDayEnds: 1
-  TimeZoneOffsetSeconds: -21600
-  Latitude: 44
-  Longitude: -111.79239654541016
+  TimeZoneOffsetSeconds: 32400
+  Latitude: 37.56650161743164
+  Longitude: 126.97799682617188
   AxisTilt: 23.439
   DayDawnDuskNightGradient:
     serializedVersion: 2
