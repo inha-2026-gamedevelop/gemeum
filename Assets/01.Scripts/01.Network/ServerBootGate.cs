@@ -3,11 +3,13 @@ using System.Collections.Generic;
 
 // Unity
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 // 서드파티
 using Mirror;
 
 // 프로젝트 내부
+using Geumeum.Common;
 using Geumeum.Data;
 
 namespace Geumeum.Network
@@ -37,6 +39,7 @@ namespace Geumeum.Network
             ValidateTransport(manager, failures);
             ValidatePlayerPrefab(manager, failures);
             ValidateSpawnPrefabs(manager, failures);
+            ValidateSceneSetup(failures);
 
             return (failures.Count == 0);
         }
@@ -49,18 +52,15 @@ namespace Geumeum.Network
                 return;
             }
 
-            BarrierPhaseSO barrier = GameDB.Barrier;
-            if (barrier == null)
-            {
-                failures.Add("GameDB에 결계 단계 데이터가 없다");
-                return;
-            }
+            GeumeumBootValidator.ValidateData(GameDB.Barrier, GameDB.LevelCurve, GameDB.Spawn, failures);
+        }
 
-            RunPhaseTimeline timeline = RunTimelineBuilder.Build(barrier);
-            if (!timeline.Validate(barrier.RunTimeLimitSeconds, out string error))
-            {
-                failures.Add($"결계 단계 데이터가 런 상태 머신 계약을 어긴다 — {error}");
-            }
+        // Main은 로비부터 정산까지 전체 경로를 요구하고, 그 외 씬(Dev_Combat 등)은 전투 확인용 완화 프로필을 쓴다
+        private static void ValidateSceneSetup(List<string> failures)
+        {
+            bool isMain = (SceneManager.GetActiveScene().name == Constants.Scene.MAIN);
+            var profile = isMain ? GeumeumBootValidator.SceneProfile.Main : GeumeumBootValidator.SceneProfile.DevScene;
+            GeumeumBootValidator.ValidateScene(profile, failures);
         }
 
         private static void ValidateTransport(NetworkManager manager, List<string> failures)
