@@ -206,7 +206,21 @@ namespace Geumeum.Combat
                 return; // 과거·중복 입력은 버린다, 위치를 보정하지 않는다
             }
 
+            // NaN/Infinity가 섞이면 ClampMagnitude의 크기 비교가 전부 false가 되어 그대로 통과하고,
+            // Rigidbody.linearVelocity에 들어가 그 순간부터 물리 상태가 영구히 깨진다
+            if ((!IsFinite(input.MoveDirection.x)) || (!IsFinite(input.MoveDirection.y)))
+            {
+                return;
+            }
+
             input.MoveDirection = Vector2.ClampMagnitude(input.MoveDirection, 1f); // 클라 입력 크기를 신뢰하지 않는다
+
+            // 정상적으로는 30Hz 발신·60Hz 드레인이라 한두 개만 쌓인다. 폭주 전송으로 큐가
+            // 무한히 자라는 것을 막기 위해 상한을 넘으면 가장 오래된 값부터 버린다
+            while (_serverInputBuffer.Count >= Constants.Network.PLAYER_SERVER_INPUT_BUFFER_MAX)
+            {
+                _serverInputBuffer.Dequeue();
+            }
 
             _lastAcceptedSequence        = input.Sequence;
             _lastInputReceivedServerTime = NetworkTime.time;
@@ -356,6 +370,11 @@ namespace Geumeum.Combat
             }
 
             return sprintHeld ? GameDB.Combat.RunSpeed : GameDB.Combat.WalkSpeed;
+        }
+
+        private static bool IsFinite(float value)
+        {
+            return (!float.IsNaN(value)) && (!float.IsInfinity(value));
         }
     }
 }

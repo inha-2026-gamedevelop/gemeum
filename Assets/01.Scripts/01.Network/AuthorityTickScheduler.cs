@@ -32,10 +32,17 @@ namespace Geumeum.Network
         *                Fields
         ****************************************/
 
-        private readonly List<TickCallback> _callbacks = new List<TickCallback>();
+        private readonly List<TickCallback>     _callbacks       = new List<TickCallback>();
 
-        private bool _isSorted  = true;
-        private bool _isTicking = false;
+        // 순회 중 등록·해제가 섞이면 우선순위가 무시되거나 콜백이 그 틱에서 스킵된다.
+        // 등록은 다음 FixedUpdate 시작에서 일괄 반영하고, 해제는 즉시 무효 표시만 한 뒤
+        // 순회가 끝난 다음 목록에서 지운다
+        private readonly List<TickCallback>     _pendingAdds     = new List<TickCallback>();
+        private readonly HashSet<Action<float>> _pendingRemovals = new HashSet<Action<float>>();
+
+        private bool _isSorted             = true;
+        private bool _isTicking            = false;
+        private bool _isSimulationEnabled  = true; // Result 확정 뒤 멱등하게 전체 gameplay tick을 정지한다
 
         /****************************************
         *              Properties
@@ -51,9 +58,16 @@ namespace Geumeum.Network
         // 물리 스텝이 곧 서버 틱이다. Rigidbody를 만지는 콜백이 여기 밖에서 돌면 이동이 물리와 어긋난다
         private void FixedUpdate()
         {
-            if (!_isTicking)
+            if ((!_isTicking) || (!_isSimulationEnabled))
             {
                 return;
+            }
+
+            if (_pendingAdds.Count > 0)
+            {
+                _callbacks.AddRange(_pendingAdds);
+                _pendingAdds.Clear();
+                _isSorted = false;
             }
 
             if (!_isSorted)
@@ -64,7 +78,19 @@ namespace Geumeum.Network
 
             for (int i = 0; i < _callbacks.Count; ++i)
             {
-                _callbacks[i].Callback.Invoke(Time.fixedDeltaTime);
+                Action<float> callback = _callbacks[i].Callback;
+                if (_pendingRemovals.Contains(callback))
+                {
+                    continue; // 이번 틱 중 해제 요청된 콜백, 이미 무효라 호출하지 않는다
+                }
+
+                callback.Invoke(Time.fixedDeltaTime);
+            }
+
+            if (_pendingRemovals.Count > 0)
+            {
+                _callbacks.RemoveAll(entry => _pendingRemovals.Contains(entry.Callback));
+                _pendingRemovals.Clear();
             }
         }
 
@@ -74,14 +100,17 @@ namespace Geumeum.Network
 
         public override void OnStartServer()
         {
-            ServerInstance = this;
-            _isTicking     = true;
+            ServerInstance         = this;
+            _isTicking             = true;
+            _isSimulationEnabled   = true;
         }
 
         public override void OnStopServer()
         {
             _isTicking = false;
             _callbacks.Clear();
+            _pendingAdds.Clear();
+            _pendingRemovals.Clear();
 
             if (ServerInstance == this)
             {
@@ -93,24 +122,34 @@ namespace Geumeum.Network
         *              Server API
         ****************************************/
 
-        /// <summary> 우선순위가 낮을수록 먼저 실행된다. deltaTime은 물리 고정 스텝이 전달된다 </summary>
+        /// <summary>
+        /// 우선순위가 낮을수록 먼저 실행된다. deltaTime은 물리 고정 스텝이 전달된다.
+        /// 순회 도중 호출해도 이번 틱에는 반영되지 않고 다음 FixedUpdate부터 실행된다
+        /// </summary>
         [Server]
         public void Register(int priority, Action<float> callback)
         {
-            _callbacks.Add(new TickCallback { Priority = priority, Callback = callback });
-            _isSorted = false;
+            _pendingAdds.Add(new TickCallback { Priority = priority, Callback = callback });
         }
 
+        /// <summary>
+        /// 순회 도중 호출해도 그 자리에서 즉시 무효 처리되어 이번 틱에 더 이상 실행되지 않고,
+        /// 실제 목록 정리는 순회가 끝난 뒤 한 번에 한다
+        /// </summary>
         [Server]
         public void Unregister(Action<float> callback)
         {
-            for (int i = _callbacks.Count - 1; i >= 0; --i)
-            {
-                if (_callbacks[i].Callback == callback)
-                {
-                    _callbacks.RemoveAt(i);
-                }
-            }
+            _pendingRemovals.Add(callback);
+        }
+
+        /// <summary>
+        /// 등록을 건드리지 않고 전체 gameplay tick만 멱등하게 껐다 켠다.
+        /// Result 확정 뒤 이동·AI·자원 회복을 한 번에 멈추고, 새 런 시작 때만 다시 켠다
+        /// </summary>
+        [Server]
+        public void SetSimulationEnabled(bool isEnabled)
+        {
+            _isSimulationEnabled = isEnabled;
         }
     }
 }

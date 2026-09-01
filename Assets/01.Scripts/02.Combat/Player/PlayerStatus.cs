@@ -30,6 +30,10 @@ namespace Geumeum.Combat
 
         private double _lastStaminaSpendServerTime = -1.0; // 서버 전용, 회복 시작을 늦추는 기준 시각
 
+        // 구르기 · 패링 등 여러 출처가 각자 bool을 껐다 켜면 먼저 끝난 출처가 더 긴 다른 출처의
+        // 무적까지 해제한다. 만료 시각 하나만 소유하고 각 출처는 max로만 연장한다
+        private double _invincibleUntilServerTime = 0.0; // 서버 전용
+
         /****************************************
         *              Properties
         ****************************************/
@@ -100,6 +104,11 @@ namespace Geumeum.Combat
             if (IsDead || !GameDB.IsInitialized)
             {
                 return;
+            }
+
+            if ((_isInvincible) && (NetworkTime.time >= _invincibleUntilServerTime))
+            {
+                _isInvincible = false;
             }
 
             CombatConfigSO combat = GameDB.Combat;
@@ -173,6 +182,18 @@ namespace Geumeum.Combat
             return true;
         }
 
+        /// <summary> 패링 성공 보상처럼 스태미나를 즉시 최대치로 채운다. 서버에서만 호출한다 </summary>
+        [Server]
+        public void RestoreStaminaToMax()
+        {
+            if (!GameDB.IsInitialized)
+            {
+                return;
+            }
+
+            _stamina = GameDB.Combat.StaminaMax;
+        }
+
         /// <summary> 신력이 충분할 때만 원자적으로 차감한다. 자연 회복 시간에는 영향을 주지 않는다 </summary>
         [Server]
         public bool TrySpendSpirit(float amount)
@@ -186,11 +207,15 @@ namespace Geumeum.Combat
             return true;
         }
 
-        /// <summary> 구르기 · 패링 성공처럼 생명 상태와 무관한 일시 무적을 켜고 끈다. 서버에서만 호출한다 </summary>
+        /// <summary>
+        /// 구르기 · 패링 성공처럼 생명 상태와 무관한 일시 무적을 만료 시각까지 연장한다.
+        /// 여러 출처가 동시에 걸려 있어도 가장 늦게 끝나는 시각만 남는다. 서버에서만 호출한다
+        /// </summary>
         [Server]
-        public void SetInvincible(bool isInvincible)
+        public void GrantTimedInvincibility(double untilServerTime)
         {
-            _isInvincible = isInvincible;
+            _invincibleUntilServerTime = System.Math.Max(_invincibleUntilServerTime, untilServerTime);
+            _isInvincible               = true;
         }
     }
 }

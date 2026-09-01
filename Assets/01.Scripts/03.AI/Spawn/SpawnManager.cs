@@ -55,11 +55,28 @@ namespace Geumeum.AI
 
         public override void OnStartServer()
         {
+            // 같은 씬에서 StopHost→StartHost로 재시작하면 이전 런의 생존 목록·카운트가 이
+            // 컴포넌트 인스턴스에 그대로 남아 새 런이 이미 죽은 netId를 살아 있다고 본다
+            ServerResetState();
+
             FindClusters();
             FindBarrierCenter();
 
             GameEventBus.Instance.Subscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
             GameEventBus.Instance.Subscribe<EnemyDiedEvent>(HandleEnemyDied);
+        }
+
+        /// <summary> 이전 런의 클러스터 점유·생존 카운트·respawn 코루틴을 모두 비운다 </summary>
+        [Server]
+        private void ServerResetState()
+        {
+            StopRespawnRoutine();
+
+            _aliveNetIdsByCluster.Clear();
+            _clusterByNetId.Clear();
+            _totalAliveCount = 0;
+            _isPhaseActive   = false;
+            _currentPhase    = default;
         }
 
         public override void OnStopServer()
