@@ -88,6 +88,7 @@ git checkout feature/{자기이름}
 | [씬 · 에셋 안전](docs/unity/SCENE_AND_ASSET_SAFETY.md) | 씬 충돌, `.meta`, LFS |
 | [밸런스 데이터 작업](docs/unity/BALANCE_DATA_WORKFLOW.md) | ScriptableObject 운용 |
 | [엔지니어링 패턴](docs/unity/UNITY_ENGINEERING_PATTERNS.md) | Tick 수명, 캐싱, 코루틴 |
+| [LOD · 컬링 현황](docs/unity/LOD_AND_CULLING.md) | LOD, 오클루전 컬링, 배칭 적용 상태 |
 
 ### AI 협업
 
