@@ -4,7 +4,7 @@ namespace Geumeum.Common
     public enum EnemyKind
     {
         Heokkaebi = 0, // 허깨비, 기본 근접
-        Changgwi  = 1, // 창귀, 돌진 후 경직
+        Changgwi  = 1, // 창귀, 돌진 후 패링 가능
         Aekgwi    = 2, // 액귀, 원거리 저주 투사체
     }
 }
