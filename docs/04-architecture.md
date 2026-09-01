@@ -144,7 +144,9 @@ Main.unity
 ## 4. 스크립트 폴더 · 클래스 배치
 
 `Assets/01.Scripts/` 아래 전체 구조. **폴더 = 네임스페이스 = 소유권**이 항상 일치해야 한다.
-클래스 옆 표기: `NB` = NetworkBehaviour, `MB` = MonoBehaviour, `C#` = 순수 C# 클래스, `SO` = ScriptableObject, `enum` = 열거형, `static` = 정적 클래스.
+클래스 옆 표기: `NM` = Mirror NetworkManager, `NB` = NetworkBehaviour, `MB` = MonoBehaviour, `C#` = 순수 C# 클래스, `SO` = ScriptableObject, `enum` = 열거형, `static` = 정적 클래스.
+
+`[계획]` 항목의 구현 계약은 기능별 상세 설계에 있다 — [PlayerAttack](unity/PLAYER_ATTACK_DESIGN.md) · [보스](unity/BOSS_DESIGN.md) · [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) · [몬스터 패링 연결](unity/MONSTER_PARRY_LINK_DESIGN.md) · [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md).
 
 ### 4.0 00.Common — 공용 (소유: 팀장, 변경은 팀 공지 후)
 
@@ -198,7 +200,7 @@ Main.unity
 
 ```
 01.Network/                namespace Geumeum.Network
-├ GeumeumNetworkManager.cs NB  Mirror NetworkManager 상속. 호스트 생성 · 접속 · 해제,
+├ GeumeumNetworkManager.cs NM  Mirror NetworkManager 상속. 호스트 생성 · 접속 · 해제,
 │                              최대 3명. 플레이어 프리팹 등록과 연결 수명만 담당
 ├ ServerBootGate.cs        static GameDB · 런 타임라인 · Transport · 네트워크 프리팹 검사
 ├ LobbyController.cs       NB  3명 준비 상태와 런 시작 요청을 서버에서 관리. 런 시작 시
@@ -235,8 +237,8 @@ Main.unity
 │  ├ PlayerMoveInput.cs    C#  [현재] 순서 · 추정 서버 시각을 포함한 입력 스냅샷
 │  ├ PlayerPrediction.cs   MB  [현재] 매 프레임 로컬 예측 · 미확인 입력 버퍼 · 3단계 재조정
 │  │                           (데드존 · 지수 수렴 · 즉시 스냅)
-│  ├ PlayerActionGate.cs   C#  [현재] phase·생명 상태 공통 검증. [계획] 쿨다운·자원 추가
-│  ├ PlayerPresentation.cs MB  [현재] 방향 · 속도를 명시적으로 보관하는 표현 상태.
+│  ├ PlayerActionGate.cs   C#  [현재] phase · 생명 상태 · 무기 · 진행 중 행동 · 쿨다운 · 자원 공통 검증
+│  ├ PlayerPresentation.cs NB  [현재] 방향 · 속도를 명시적으로 보관하는 표현 상태.
 │  │                           서버는 수락한 이동, 소유 클라는 입력, 원격은 SyncVar
 │  ├ PlayerAnimationController.cs MB [현재] PlayerPresentation을 읽어 LateUpdate에서
 │  │                           VisualPivot을 회전시키는 표현 전용. 위치 차분을 쓰지 않는다
@@ -244,7 +246,7 @@ Main.unity
 │  ├ PlayerStatus.cs       NB  [현재] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable
 │  ├ PlayerWeapon.cs       NB  [현재] 현재 무기 SyncVar(초기 1회 배분). [계획] 서버 전투용
 │  │                           장비 snapshot 추가
-│  ├ PlayerAppearance.cs   MB  [현재] AppearanceKind SyncVar 훅으로 외형 모델을 켜는 표현 전용.
+│  ├ PlayerAppearance.cs   NB  [현재] AppearanceKind SyncVar 훅으로 외형 모델을 켜는 표현 전용.
 │  │                           차사 · 신궁 · 무녀 3종 바인딩 완료. 무기와는 무관하다
 │  ├ PlayerAttack.cs       NB  [계획] 공격의 유일한 클라이언트 Command 진입점. 무기당 기본 공격
 │  │                           1종만 받고, 연사·관통·치유·버프 변형은 서버가 TalentController
@@ -260,7 +262,8 @@ Main.unity
 │  │                           window ID는 공격자별 단조 증가 uint, 대상당 활성 창 1개
 │  │                           (새 창이 이전 미소비 창을 무효화)
 │  ├ ParryJudge.cs         C#  [현재] 시간 창 참·거짓만 계산하는 순수 판정
-│  └ ParryGauge.cs         NB  [계획] 플레이어 보유 게이지 SyncVar와 1회 치명 소비
+│  └ ParryGauge.cs         NB  [현재] 게이지 SyncVar와 누적 · 소비 · 리셋 서버 API.
+│                              [계획] 치명 배율 roll과 PlayerAttack 연결
 ├ Arrow/
 │  ├ ArrowLauncher.cs      NB  [계획] BowAbility가 호출하는 서버 전용 스폰 실행기, Command 없음
 │  ├ ArrowProjectile.cs    NB  [계획] 서버 권위 궤적·명중·관통
@@ -549,7 +552,7 @@ Combat ✕ AI ✕ Systems 상호 직접 참조 금지 — Common의 인터페이
 | 인터페이스 | 구현 | 호출 |
 |---|---|---|
 | `IDamageable` | PlayerStatus, EnemyStatus, BossStatus | 공격 판정 · 결계 피해 · 투사체 |
-| `IParryable` | 창귀 돌진, 보스 패링 가능 패턴 | ParryJudge |
+| `IParryable` | 창귀 돌진, 보스 패링 가능 패턴 | ParryController |
 | `IInteractable` | ShopKeeper, DroppedItem | 플레이어 상호작용 입력 |
 | `ICombatFeedback` | CombatFeedbackImpl | 전투 타이밍 → 로컬 연출 |
 
