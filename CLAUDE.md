@@ -65,7 +65,7 @@
 - 다른 파트의 `Assets/01.Scripts/` 폴더
 - `.gitattributes`, `.gitignore`, `.github/`
 - 네트워크 권위 경계를 바꾸는 변경
-- 구매 에셋 원본 (`Assets/99.ThirdParty/`)
+- 외부 에셋 원본 (`Assets/98.FreeAssets/` 무료 · 커밋 대상, `Assets/99.ThirdParty/` 구매 · 커밋 제외)
 - 파일 삭제, 대량 이동, 이름 일괄 변경
 
 ### 수정 금지

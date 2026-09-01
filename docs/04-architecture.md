@@ -58,11 +58,32 @@ Assets/
 ├ 10.InputSystem/   Input Action 에셋 (입력은 Input Manager로 받는다, 5.6장)
 ├ 11.Timeline/      연출 타임라인 (집중개발 4~5주차부터)
 ├ 12.Materials/     머티리얼 (모델 · 캐릭터별 하위 폴더)
-├ 99.ThirdParty/    구매 에셋 원본 — 수정 금지, 커스텀은 밖으로 복사
+├ 98.FreeAssets/    무료 에셋 원본 (플러그인 · 애니메이션 등) — 수정 금지, 커밋 대상
+├ 99.ThirdParty/    구매 에셋 원본 — 수정 금지, 커밋 제외(.gitignore)
 └ Mirror/           Mirror 패키지 — 수정 금지
 ```
 
-- `99.ThirdParty/`와 `Mirror/`는 읽기 전용으로 취급한다. 구매 에셋의 머티리얼 · 프리팹을 고치고 싶으면 자기 파트 폴더로 **복사한 뒤** 수정한다 ([씬·에셋 안전](unity/SCENE_AND_ASSET_SAFETY.md)).
+- `98.FreeAssets/`, `99.ThirdParty/`, `Mirror/`는 읽기 전용으로 취급한다. 외부 에셋의 머티리얼 · 프리팹을 고치고 싶으면 자기 파트 폴더로 **복사한 뒤** 수정한다 ([씬·에셋 안전](unity/SCENE_AND_ASSET_SAFETY.md)).
+
+### 2.1 98과 99를 나누는 이유
+
+둘 다 외부 에셋이지만 **git 취급이 정반대**라서 폴더를 분리한다.
+
+| | `98.FreeAssets/` | `99.ThirdParty/` |
+|---|---|---|
+| 취득 | 무료 배포 | 유료 구매 |
+| git | **커밋한다** (바이너리는 LFS) | `.gitignore` 제외 |
+| 팀원 준비 | clone하면 끝 | 각자 자기 계정으로 내려받아 설치 |
+
+유료 에셋은 라이선스가 구매 계정에 묶여 저장소에 올릴 수 없다. 그래서 받지 않은 팀원은 씬이 깨진 채로 열린다 — Gaia 지형에서 실제로 겪은 문제다. 무료 에셋은 그 제약이 없으므로 **커밋해서 전원이 같은 GUID를 갖게 한다.** 각자 따로 임포트하면 GUID가 갈려 프리팹 · 씬 참조가 끊어질 수 있다.
+
+무료 에셋을 넣을 때 지킬 것:
+
+- **에셋 하나당 폴더 하나.** 파일을 `98.FreeAssets/` 바로 아래 흩뿌리지 않는다.
+- **`.meta`를 통째로 같이 커밋한다.** 하나라도 빠지면 GUID가 새로 발급돼 참조가 끊어진다.
+- **바이너리가 `.gitattributes`의 LFS 대상 확장자인지 먼저 확인한다.** 대상이 아니면서 5MB를 넘으면 LFS 대상에 추가할지 검토한다 — `.github/scripts/check_lfs.py`가 PR에서 검사한다.
+- **라이선스 근거를 `docs/licenses/`에 남긴다** ([씬·에셋 안전 4장](unity/SCENE_AND_ASSET_SAFETY.md)). 무료라고 상업 이용까지 무료인 것은 아니다.
+- 데모 씬이 딸려 와도 `ProjectSettings/EditorBuildSettings.asset`에 추가하지 않는다.
 - Gaia Terrain 데이터는 테크니컬 아트만 수정한다 ([기술 구현 2.3](03-technical-design.md)).
 
 ---

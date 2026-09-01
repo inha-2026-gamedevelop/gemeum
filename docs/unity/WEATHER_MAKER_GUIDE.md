@@ -10,7 +10,7 @@
 
 ## 0. 소유권 먼저 확인
 
-- 에셋 원본(`Assets/99.ThirdParty/Background/WeatherMaker/`)은 **수정 금지** — [씬·에셋 안전 §4](SCENE_AND_ASSET_SAFETY.md#4-구매-에셋) 참조. 설정은 프리팹 인스턴스와 프로필(ScriptableObject)로만 한다.
+- 에셋 원본(`Assets/99.ThirdParty/Background/WeatherMaker/`)은 **수정 금지** — [씬·에셋 안전 §4](SCENE_AND_ASSET_SAFETY.md#4-외부-에셋) 참조. 설정은 프리팹 인스턴스와 프로필(ScriptableObject)로만 한다.
 - 실제 세팅 작업이 `Assets/00.Scenes/Main.unity`(통합 씬)를 건드린다. Main.unity는 **통합 담당자만** 수정 가능 — 자기 파트 `Dev_*.unity`에서 먼저 검증하고, Main.unity 반영은 통합 담당자 승인 후 진행한다. 자세한 절차는 [씬·에셋 안전 §1](SCENE_AND_ASSET_SAFETY.md#1-씬-소유권).
 
 ---

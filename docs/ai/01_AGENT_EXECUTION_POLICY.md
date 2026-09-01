@@ -33,7 +33,7 @@
 | 다른 파트의 `Assets/01.Scripts/` 폴더 | 병행 작업과 충돌 |
 | 네트워크 권위 경계 변경 | 여러 시스템에 파급 |
 | `.gitattributes` LFS 대상 추가 | 소급 적용 안 됨, 팀 전체 영향 |
-| `Assets/99.ThirdParty/` 구매 에셋 원본 | 업데이트 시 변경분 소실 |
+| `Assets/98.FreeAssets/` · `Assets/99.ThirdParty/` 외부 에셋 원본 | 업데이트 시 변경분 소실 |
 | 파일 삭제, 대량 이동, 이름 일괄 변경 | 복구 어려움 |
 | Git commit · push | 명시 요청 시에만 |
 | 스코프 확장 (보스 추가, 신규 시스템) | 팀 합의 사항 |

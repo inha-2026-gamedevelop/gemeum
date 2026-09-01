@@ -17,7 +17,7 @@ description: 코드 변경이 다른 파트/담당자 소유 영역과 접촉할
 - 요청자 본인 파트가 아닌 `Assets/01.Scripts/` 하위 폴더 (예: 네트워크·전투 담당이 `03.AI/`를 고침)
 - `.gitattributes`, `.gitignore`, `.github/` 등 저장소 공용 설정
 - 네트워크 권위 경계를 바꾸는 변경 (서버 판정 ↔ 클라 로컬 처리 전환)
-- 구매 에셋 원본 (`Assets/99.ThirdParty/`, `Assets/Mirror/` 등)
+- 외부 에셋 원본 (`Assets/98.FreeAssets/`, `Assets/99.ThirdParty/`, `Assets/Mirror/` 등)
 - 파일 삭제, 대량 이동, 이름 일괄 변경
 - 다른 사람의 작업 씬 (`Dev_*.unity`)
 

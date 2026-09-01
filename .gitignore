@@ -17,7 +17,8 @@ Assets/StreamingAssets/aa/*
 # Gaia 런타임 캐시 (Terrain 원본은 커밋 대상)
 Assets/Gaia User Data/Sessions/*/Backups/
 
-# 구매·무료 에셋 (라이선스상 커밋하지 않음 — 각자 로컬에 설치)
+# 구매 에셋 (라이선스가 구매 계정에 묶여 커밋 불가 — 각자 로컬에 설치)
+# 무료 에셋은 Assets/98.FreeAssets/에 넣고 커밋한다. 여기 적지 말 것 — docs/04-architecture.md 2.1
 Assets/99.ThirdParty/
 Assets/99.ThirdParty.meta
 Assets/AssetStoreTools/
