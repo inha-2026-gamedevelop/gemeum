@@ -24,8 +24,9 @@ namespace Geumeum.Network
         *                Fields
         ****************************************/
 
-        [SyncVar] private float    _elapsedSeconds = 0f;
-        [SyncVar] private RunPhase _phase          = RunPhase.Lobby;
+        [SyncVar] private float      _elapsedSeconds = 0f;
+        [SyncVar] private RunPhase   _phase          = RunPhase.Lobby;
+        [SyncVar] private RunOutcome _outcome        = RunOutcome.None;
 
         private RunPhaseTimeline _timeline               = null;  // 서버 전용
         private double           _runStartServerTime     = 0.0;   // 서버 전용, NetworkTime.time 기준
@@ -42,10 +43,11 @@ namespace Geumeum.Network
         /// <summary> 서버 프로세스의 인스턴스, 클라이언트에서는 null이다 </summary>
         public static RunManager ServerInstance { get; private set; }
 
-        public float    ElapsedSeconds => _elapsedSeconds;
-        public RunPhase Phase          => _phase;
+        public float      ElapsedSeconds => _elapsedSeconds;
+        public RunPhase   Phase          => _phase;
+        public RunOutcome Outcome        => _outcome;
 
-        /// <summary> 드랍 가중치 · 잡귀 강화 배수의 키. Phase에서 파생되므로 따로 동기화하지 않는다 </summary>
+        /// <summary> 드랍 가중치, 잡귀 강화 배수의 키. Phase에서 파생되므로 따로 동기화하지 않는다 </summary>
         public int FieldLevel
         {
             get
@@ -82,6 +84,9 @@ namespace Geumeum.Network
         public override void OnStartServer()
         {
             ServerInstance = this;
+
+            // 같은 씬에서 StopHost->StartHost로 재시작해도 이전 런의 phase, 시각이 남지 않게 한다
+            ServerResetState();
 
             // 부트 게이트를 통과했으면 반드시 초기화되어 있다, 아니면 타임라인이 비어 StartRun이 막힌다
             _timeline = GameDB.IsInitialized ? RunTimelineBuilder.Build(GameDB.Barrier) : RunTimelineBuilder.Build(null);
@@ -120,24 +125,56 @@ namespace Geumeum.Network
             _runStartServerTime     = NetworkTime.time;
             _previousElapsedSeconds = 0f;
             _elapsedSeconds         = 0f;
+            _outcome                = RunOutcome.None;
+
+            AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(true);
 
             CommitPhase(firstPhase);
             StartTick();
         }
 
-        /// <summary> 이탈 · 전멸처럼 런을 더 진행할 수 없을 때 Result로 한 번만 확정한다 </summary>
+        /// <summary>
+        /// 시간 초과, 이탈, 전멸, 보스 처치 중 어느 경로가 먼저 와도 Result로 한 번만 확정하는
+        /// 단일 종료 경로다. 첫 호출만 outcome을 커밋하고 이후 호출은 값을 바꾸지 않는다
+        /// </summary>
+        [Server]
+        public bool TryFinishRun(RunOutcome outcome)
+        {
+            if ((_phase == RunPhase.Result) || (outcome == RunOutcome.None))
+            {
+                return false;
+            }
+
+            _outcome = outcome;
+            StopTick();
+            CommitPhase(RunPhase.Result);
+
+            // 등록은 그대로 두고 이동, AI, 자원 회복 tick만 멈춘다. 새 런 시작 때만 다시 켠다
+            AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(false);
+            return true;
+        }
+
+        /// <summary> 이탈처럼 런을 더 진행할 수 없을 때 Result로 확정한다 </summary>
         [Server]
         public void AbortRun(string reason)
         {
-            // 아직 시작하지 않았거나 이미 확정된 런은 다시 끝내지 않는다
-            if ((_phase == RunPhase.Lobby) || (_phase == RunPhase.Result))
+            if (TryFinishRun(RunOutcome.PlayerLeft))
             {
-                return;
+                Debug.Log($"[RunManager] 런 중단: {reason}");
             }
+        }
 
-            Debug.Log($"[RunManager] 런 중단: {reason}");
+        /// <summary> 같은 씬에서 서버가 재시작해도 이전 런의 phase, 시각, outcome이 남지 않게 한다 </summary>
+        [Server]
+        public void ServerResetState()
+        {
             StopTick();
-            CommitPhase(RunPhase.Result);
+
+            _phase                  = RunPhase.Lobby;
+            _outcome                = RunOutcome.None;
+            _elapsedSeconds         = 0f;
+            _previousElapsedSeconds = 0f;
+            _runStartServerTime     = 0.0;
         }
 
         /****************************************
@@ -183,7 +220,7 @@ namespace Geumeum.Network
                 // TODO(민성): 보스 사망으로도 Result에 들어가야 한다, 보스 파트 연결 시 추가
                 if (isTimeUp)
                 {
-                    CommitPhase(RunPhase.Result);
+                    TryFinishRun(RunOutcome.TimeExpired);
                     break;
                 }
 
@@ -216,7 +253,7 @@ namespace Geumeum.Network
 
             if (!GameEventBus.HasInstance)
             {
-                Debug.LogError($"[RunManager] GameEventBus가 없어 {previous} → {next} 전환을 알리지 못했다", this);
+                Debug.LogError($"[RunManager] GameEventBus가 없어 {previous} -> {next} 전환을 알리지 못했다", this);
                 return;
             }
 

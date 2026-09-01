@@ -9,7 +9,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Combat
 {
-    /// <summary> 서버가 공격별 패링 창의 식별·대상·시간·소비 상태를 보관하는 값 </summary>
+    /// <summary> 서버가 공격별 패링 창의 식별, 대상, 시간, 소비 상태를 보관하는 값 </summary>
     public sealed class ParryWindow
     {
         /****************************************
@@ -31,6 +31,10 @@ namespace Geumeum.Combat
         /// <summary> 서버 판정 창 종료 시각 </summary>
         public double EndServerTime { get; }
 
+        /// <summary> 공격이 실제로 타격을 확정하는 시각. 레코드는 이 시각까지 살아 있어야
+        /// 지연으로 늦게 도착한 CmdParry도 EndServerTime 기준으로 정상 판정받을 수 있다 </summary>
+        public double ImpactTime { get; }
+
         /// <summary> 성공 결과가 이미 적용되었는지 여부 </summary>
         public bool Consumed { get; private set; }
 
@@ -40,13 +44,14 @@ namespace Geumeum.Combat
         *              Constructors
         ****************************************/
 
-        /// <summary> 서버가 확인한 공격 소스와 대상·시간으로 창을 만든다 </summary>
+        /// <summary> 서버가 확인한 공격 소스와 대상, 시간으로 창을 만든다 </summary>
         public ParryWindow(
             uint windowId,
             uint attackerNetId,
             uint targetNetId,
             double startServerTime,
             double endServerTime,
+            double impactTime,
             IParryable source)
         {
             if (source == null)
@@ -59,6 +64,7 @@ namespace Geumeum.Combat
             TargetNetId     = targetNetId;
             StartServerTime = startServerTime;
             EndServerTime   = endServerTime;
+            ImpactTime      = impactTime;
             Source          = source;
             Consumed        = false;
         }
@@ -67,10 +73,14 @@ namespace Geumeum.Combat
         *                Methods
         ****************************************/
 
-        /// <summary> 종료 시각이 지난 창인지 확인한다 </summary>
+        /// <summary>
+        /// 레코드를 지워도 되는 시점인지 확인한다. EndServerTime이 아니라 ImpactTime 기준이다 -
+        /// EndServerTime 직후 지우면 지연으로 늦게 도착한 CmdParry가 판정도 못 받고 버려진다.
+        /// 실제 성공 판정은 ParryJudge가 StartServerTime, EndServerTime으로 별도로 가른다
+        /// </summary>
         public bool IsExpired(double serverTime)
         {
-            return serverTime > EndServerTime;
+            return serverTime > ImpactTime;
         }
 
         /// <summary> 아직 소비되지 않은 창을 한 번만 소비한다 </summary>

@@ -10,7 +10,7 @@ using Mirror;
 namespace Geumeum.Network
 {
     /// <summary>
-    /// 실행 인자로 호스트 · 클라이언트를 바로 시작한다. 3대에서 반복 테스트할 때
+    /// 실행 인자로 호스트, 클라이언트를 바로 시작한다. 3대에서 반복 테스트할 때
     /// 매번 HUD에 IP를 타이핑하지 않게 하려는 것이고, 개발 빌드와 에디터에서만 동작한다
     /// </summary>
     public class NetworkLaunchArgs : MonoBehaviour

@@ -37,7 +37,7 @@ namespace Geumeum.Common
             Strength      = strength;
         }
 
-        /// <summary> 결계 · 환경처럼 가해자가 없는 피해 </summary>
+        /// <summary> 결계, 환경처럼 가해자가 없는 피해 </summary>
         public static DamageInfo FromEnvironment(float amount)
         {
             return new DamageInfo(amount, NO_ATTACKER, HitStrength.Light);

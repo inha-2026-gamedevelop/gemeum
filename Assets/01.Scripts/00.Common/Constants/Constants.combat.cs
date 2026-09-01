@@ -2,10 +2,10 @@ namespace Geumeum.Common
 {
     public static partial class Constants
     {
-        /// <summary> 전투 계약값. 판정 창 · 피해량 같은 밸런스 수치는 CombatConfigSO에 있다 </summary>
+        /// <summary> 전투 계약값. 판정 창, 피해량 같은 밸런스 수치는 CombatConfigSO에 있다 </summary>
         public static class Combat
         {
-            public const int WEAPON_KIND_COUNT = 3; // 무기 배분 · 옵션 풀 배열 크기와 연동
+            public const int WEAPON_KIND_COUNT = 3; // 무기 배분, 옵션 풀 배열 크기와 연동
             public const int ENEMY_KIND_COUNT  = 3; // 구성 비율 배열 크기와 연동
             public const int ITEM_GRADE_COUNT  = 4; // 드랍 가중치 배열 크기와 연동
             public const int FIELD_LEVEL_COUNT = 4; // 0은 개활, 3은 보스 보상

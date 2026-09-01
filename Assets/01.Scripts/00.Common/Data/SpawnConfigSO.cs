@@ -5,12 +5,12 @@ using System;
 using UnityEngine;
 
 // 프로젝트 내부
-using Geumeum.Network;
+using Geumeum.Common;
 
 namespace Geumeum.Data
 {
     /// <summary>
-    /// 구간별 동시 존재 수 · 구성 비율 · 리스폰 주기.
+    /// 구간별 동시 존재 수, 구성 비율, 리스폰 주기.
     /// 스폰이 없는 구간은 항목 자체를 두지 않는다, 결계 데이터와 달리 전 구간을 채우지 않아도 정상이다
     /// </summary>
     [CreateAssetMenu(fileName = "SpawnConfigSO", menuName = "Geumeum/SpawnConfigSO")]

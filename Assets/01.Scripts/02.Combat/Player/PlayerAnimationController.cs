@@ -7,9 +7,9 @@ using Geumeum.Data;
 namespace Geumeum.Combat
 {
     /// <summary>
-    /// 새 네트워크 값을 만들지 않고, 이미 동기화된 transform.position(서버 권위 또는 로컬 예측)의
-    /// 변화량만 관찰해 애니메이션을 재생하는 표현 전용 컴포넌트. 소유·원격·호스트 인스턴스가
-    /// 각자 자신이 보는 위치로 독립 재생하므로 별도 동기화가 필요 없다. 판정에는 관여하지 않는다
+    /// PlayerPresentation이 확정한 표현 상태(이동 속도, 바라보는 방향)를 읽어 애니메이션을
+    /// 재생하는 표현 전용 컴포넌트. 새 네트워크 값을 만들지 않고, 소유, 원격, 호스트 인스턴스가
+    /// 각자 자기 화면에서 독립 재생하므로 별도 동기화가 필요 없다. 판정에는 관여하지 않는다
     /// </summary>
     public class PlayerAnimationController : MonoBehaviour
     {
@@ -68,7 +68,7 @@ namespace Geumeum.Combat
             }
 
             // 위치 차분이 아니라 명시적 표현 상태를 읽는다.
-            // 재조정 보정으로 생긴 뒤·옆 방향 변위를 이동으로 오인하지 않는다
+            // 재조정 보정으로 생긴 뒤, 옆 방향 변위를 이동으로 오인하지 않는다
             float smoothing = 1f - Mathf.Exp(-Time.deltaTime / SPEED_SMOOTH_TIME);
             _smoothedSpeed  = Mathf.Lerp(_smoothedSpeed, _presentation.MoveSpeed, smoothing);
 
@@ -171,7 +171,7 @@ namespace Geumeum.Combat
 
         /// <summary>
         /// 블렌드 트리 문턱값(0=정지, 1=걷기, 2=달리기)에 맞춰 실제 속도를 정규화한다.
-        /// CombatConfigSO의 걷기 · 달리기 속도가 밸런스 조정으로 바뀌어도 애니메이터 자산을 다시 만들 필요가 없다
+        /// CombatConfigSO의 걷기, 달리기 속도가 밸런스 조정으로 바뀌어도 애니메이터 자산을 다시 만들 필요가 없다
         /// </summary>
         private static float NormalizeSpeed(float speed)
         {

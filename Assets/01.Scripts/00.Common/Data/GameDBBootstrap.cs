@@ -21,7 +21,7 @@ namespace Geumeum.Data
         ****************************************/
 
         // 다른 컴포넌트보다 먼저 Awake를 돌리기 위한 보조 장치일 뿐이다.
-        // 소비 컴포넌트는 여전히 Awake가 아니라 Start · OnStartServer 이후에 GameDB를 읽어야 한다
+        // 소비 컴포넌트는 여전히 Awake가 아니라 Start, OnStartServer 이후에 GameDB를 읽어야 한다
         private const int EXECUTION_ORDER = -10000;
 
         private static readonly List<string> _missingReferences = new List<string>();

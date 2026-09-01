@@ -500,6 +500,20 @@ Gaia 기본 지형(사실적 자연) + 여러 출처의 건축 에셋 + 저승 �
 | 항목 | 상태 |
 |---|---|
 | 데디케이티드 서버 전환 여부 | 추후 검토 |
-| 공용 권위 시뮬레이션 틱 | `RunManager.CoServerTick`은 런 시계·phase 전용으로 구현됨. 플레이어·AI·투사체의 고정 실행 순서를 같은 루프에 넣을지 별도 스케줄러로 둘지는 미정 |
-| 애니메이션 에셋 소싱 | 미정 |
+| ~~공용 권위 시뮬레이션 틱~~ | **결정됨(2026-09-02 갱신).** 별도 스케줄러로 확정 — `AuthorityTickScheduler`가 `FixedUpdate`에서 우선순위 순으로 실행하며 `Constants.Network`의 `TICK_PRIORITY_MOVEMENT`(0) · `TICK_PRIORITY_AI`(100) · projectile(200) · ability(300)이 순서를 소유한다. `PlayerStatus` · `PlayerController` · `EnemyController`가 실제로 등록한다. 투사체는 아직 이 틱을 우회하므로 편입이 남았다 |
+| ~~애니메이션 에셋 소싱~~ | **설계됨(2026-09-02 갱신).** [애니메이션 파이프라인 설계](unity/ANIMATION_PIPELINE_DESIGN.md)가 Humanoid 리타게팅 · Override Controller · 서버 cue · 소싱 상한을 확정했다. 실제 구매 · 라이선스 확정만 남았다 |
 | 빌드 배포 방식 (테스트용) | 미정 |
+
+### 8.1 기능별 상세 설계 (2026-09-02 편입)
+
+아래 다섯 문서가 미구현 기능의 구현 계약을 확정한다. 파트별 기술 스펙(4장)이 "무엇을"이라면, 이 문서들은 "어떻게"다.
+
+| 문서 | 확정 범위 | 담당 |
+|---|---|---|
+| [몬스터 공격 → 패링 창 연결](unity/MONSTER_PARRY_LINK_DESIGN.md) | 창귀 돌진이 패링 창을 여는 수직 슬라이스, 최소 텔레그래프 | 몬스터 · 보스 |
+| [PlayerAttack 공통 계약](unity/PLAYER_ATTACK_DESIGN.md) | 검 · 활 · 방울 공통 공격 계약, 서버 권위 화살 | 네트워크 · 전투 |
+| [보스 설계](unity/BOSS_DESIGN.md) | 보스 1마리 2페이즈, 실행 템플릿 4개 · 데이터 항목 8개 | 몬스터 · 보스 |
+| [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) | 결계 축소 · 피해, 4칸 인벤토리, 드랍 · 노잣돈 · 객주 | 게임플레이 시스템 |
+| [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md) | 리타게팅, Override Controller, 서버 cue, 에셋 소싱 | 테크니컬 아트 |
+
+각 문서는 목표 · 권위 경계 · 구조 · 데이터 · 흐름 · 구현 순서 · 검증 · 대안 · 비용의 9절 형식이며, 서버/클라이언트 경계와 M0~M3 검증 기준을 포함한다.

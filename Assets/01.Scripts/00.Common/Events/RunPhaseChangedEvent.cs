@@ -1,4 +1,4 @@
-namespace Geumeum.Network
+namespace Geumeum.Common
 {
     /// <summary>
     /// 런 단계가 바뀔 때 서버가 발행한다.

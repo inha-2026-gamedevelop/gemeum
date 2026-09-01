@@ -15,7 +15,7 @@ using Geumeum.Network;
 namespace Geumeum.Combat
 {
     /// <summary>
-    /// 이동 입력을 일정 주기로 서버에 보내고, 서버가 순서·충돌을 검증한 뒤 위치를 확정한다.
+    /// 이동 입력을 일정 주기로 서버에 보내고, 서버가 순서, 충돌을 검증한 뒤 위치를 확정한다.
     /// 서버는 Rigidbody 속도로 이동시키고 Y는 중력에 맡기며, 물리 스텝에서만 값을 만진다.
     /// 소유 클라이언트는 로컬 예측 후 서버 스냅샷으로 재조정하고, 원격 클라이언트는 NetworkTransform 보간만 쓴다
     /// </summary>
@@ -75,7 +75,7 @@ namespace Geumeum.Combat
                 return;
             }
 
-            // 구르기는 서버가 방향·속도를 대신 정하고, 쓰러진 뒤에는 서버가 이동을 아예 거부한다.
+            // 구르기는 서버가 방향, 속도를 대신 정하고, 쓰러진 뒤에는 서버가 이동을 아예 거부한다.
             // 두 구간에서 로컬 예측을 계속하면 서버 위치와 벌어지기만 해 재조정이 고무줄이 된다.
             // 서버 phase는 소유 클라이언트가 알 수 없으므로 클라이언트가 아는 상태만 본다
             bool isServerDrivenMotion = (((_roll != null) && (_roll.IsRolling))
@@ -103,7 +103,7 @@ namespace Geumeum.Combat
             {
                 _prediction.Advance(moveDirection, sprintHeld, Time.deltaTime, ResolveMoveSpeed);
 
-                // 방향·속도 표현은 서버 왕복을 기다리지 않는다. 기다리면 방향 전환이 지연으로 느껴진다
+                // 방향, 속도 표현은 서버 왕복을 기다리지 않는다. 기다리면 방향 전환이 지연으로 느껴진다
                 if ((_presentation != null) && (!isServerDrivenMotion))
                 {
                     _presentation.ClientPredictMotion(moveDirection, ResolveMoveSpeed(sprintHeld));
@@ -154,8 +154,8 @@ namespace Geumeum.Combat
 
         public override void OnStartClient()
         {
-            // 원격 인스턴스의 물리가 서버 스냅샷·로컬 예측과 위치를 두고 싸우지 않게 한다.
-            // 보간 책임도 하나만 남긴다 — 원격은 NetworkTransform, 자기 캐릭터는 PlayerPrediction이다.
+            // 원격 인스턴스의 물리가 서버 스냅샷, 로컬 예측과 위치를 두고 싸우지 않게 한다.
+            // 보간 책임도 하나만 남긴다 - 원격은 NetworkTransform, 자기 캐릭터는 PlayerPrediction이다.
             // Rigidbody 보간까지 남으면 같은 프레임에 두 계층이 Transform을 밀어 떨림이 된다
             if ((!isServer) && (_rigidbody != null))
             {
@@ -203,10 +203,24 @@ namespace Geumeum.Combat
         {
             if (input.Sequence <= _lastAcceptedSequence)
             {
-                return; // 과거·중복 입력은 버린다, 위치를 보정하지 않는다
+                return; // 과거, 중복 입력은 버린다, 위치를 보정하지 않는다
+            }
+
+            // NaN/Infinity가 섞이면 ClampMagnitude의 크기 비교가 전부 false가 되어 그대로 통과하고,
+            // Rigidbody.linearVelocity에 들어가 그 순간부터 물리 상태가 영구히 깨진다
+            if ((!IsFinite(input.MoveDirection.x)) || (!IsFinite(input.MoveDirection.y)))
+            {
+                return;
             }
 
             input.MoveDirection = Vector2.ClampMagnitude(input.MoveDirection, 1f); // 클라 입력 크기를 신뢰하지 않는다
+
+            // 정상적으로는 30Hz 발신, 60Hz 드레인이라 한두 개만 쌓인다. 폭주 전송으로 큐가
+            // 무한히 자라는 것을 막기 위해 상한을 넘으면 가장 오래된 값부터 버린다
+            while (_serverInputBuffer.Count >= Constants.Network.PLAYER_SERVER_INPUT_BUFFER_MAX)
+            {
+                _serverInputBuffer.Dequeue();
+            }
 
             _lastAcceptedSequence        = input.Sequence;
             _lastInputReceivedServerTime = NetworkTime.time;
@@ -287,7 +301,7 @@ namespace Geumeum.Combat
         }
 
         /// <summary>
-        /// XZ만 속도로 지정하고 Y는 건드리지 않는다. 낙하·경사·충돌은 물리에 맡긴다.
+        /// XZ만 속도로 지정하고 Y는 건드리지 않는다. 낙하, 경사, 충돌은 물리에 맡긴다.
         /// 속도 x 고정 스텝이 PlayerMotionModel의 변위와 같아 클라이언트 예측과 어긋나지 않는다
         /// </summary>
         private void ApplyPlanarVelocity(Vector2 moveDirection, float moveSpeed)
@@ -306,7 +320,7 @@ namespace Geumeum.Combat
 
             if (isMoving != _wasMovingLastTick)
             {
-                TargetMoveSnapshot(_rigidbody.position, _lastProcessedSequence); // 이동·정지 전이를 즉시 확정한다
+                TargetMoveSnapshot(_rigidbody.position, _lastProcessedSequence); // 이동, 정지 전이를 즉시 확정한다
                 _snapshotElapsed   = 0f;
                 _wasMovingLastTick = isMoving;
                 return;
@@ -356,6 +370,11 @@ namespace Geumeum.Combat
             }
 
             return sprintHeld ? GameDB.Combat.RunSpeed : GameDB.Combat.WalkSpeed;
+        }
+
+        private static bool IsFinite(float value)
+        {
+            return (!float.IsNaN(value)) && (!float.IsInfinity(value));
         }
     }
 }

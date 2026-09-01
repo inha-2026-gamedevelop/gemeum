@@ -56,7 +56,7 @@ namespace Geumeum.Data
             return false;
         }
 
-        /// <summary> 필드 레벨 · 등급의 가중치, 해당 필드 레벨이 없으면 0 </summary>
+        /// <summary> 필드 레벨, 등급의 가중치, 해당 필드 레벨이 없으면 0 </summary>
         public float GetWeight(int fieldLevel, ItemGrade grade)
         {
             if (!TryGetEntry(fieldLevel, out FieldLevelEntry entry))

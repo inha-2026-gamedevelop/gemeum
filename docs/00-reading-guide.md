@@ -69,9 +69,28 @@
 | 왜 이렇게 설계했는지 궁금하다 | [기술 설계](03-technical-design.md) |
 | 2026-08-29 서버·플레이어 문서가 무엇 때문에 바뀌었는지 본다 | [아키텍처 동기화 기록](architecture-sync-2026-08-29.md) |
 | 일정 · 스코프가 궁금하다 | [시스템 기획서](01-system-design.md) |
+| **내가 맡은 기능을 이제 구현한다** | 아래 "기능별 상세 설계" 표 |
 | "이거 어느 문서에 있더라" | [프로젝트 지식 맵](ai/07_PROJECT_KNOWLEDGE_MAP.md) |
 | AI에게 작업을 시킨다 | [작업 브리프](ai/02_TASK_BRIEF_TEMPLATE.md) |
 | AI가 "다 됐다"고 했다 | [검증 플레이북](ai/03_VERIFICATION_PLAYBOOK.md) |
+
+---
+
+## 기능별 상세 설계
+
+아직 만들지 않은 기능의 **구현 계약**이다. 담당 기능을 시작할 때 해당 문서 하나만 끝까지 읽으면 된다.
+각 문서는 목표 · 권위 경계 · 구조 · 데이터 · 흐름 · 구현 순서 · 검증 · 대안 · 비용의 9절 형식으로 같다.
+
+| 문서 | 무엇을 확정하나 | 담당 파트 |
+|---|---|---|
+| [패링 시스템](unity/PARRY_SYSTEM_DESIGN.md) | 판정 시각 모델, `ParryController` 계약, 게이지 **(상당 부분 구현됨)** | 네트워크 · 전투 |
+| [몬스터 공격 → 패링 창 연결](unity/MONSTER_PARRY_LINK_DESIGN.md) | 창귀 돌진이 패링 창을 여는 수직 슬라이스와 최소 텔레그래프 | 몬스터 · 보스 |
+| [PlayerAttack 공통 계약](unity/PLAYER_ATTACK_DESIGN.md) | 검 · 활 · 방울 공통 공격 계약, 서버 권위 화살 | 네트워크 · 전투 |
+| [보스 설계](unity/BOSS_DESIGN.md) | 보스 1마리 2페이즈, 실행 템플릿 4개와 데이터 항목 8개 | 몬스터 · 보스 |
+| [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) | 결계 축소 · 피해, 4칸 인벤토리, 드랍 · 노잣돈 · 객주 | 게임플레이 시스템 |
+| [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md) | Humanoid 리타게팅, Override Controller, 서버 cue와 에셋 소싱 | 테크니컬 아트 |
+
+이 여섯 문서는 **설계일 뿐 구현 현황이 아니다.** 무엇이 실제로 들어갔는지는 [프로젝트 구조 설계서](04-architecture.md)의 `[현재]` 표기를 본다.
 
 ---
 

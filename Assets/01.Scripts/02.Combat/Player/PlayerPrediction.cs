@@ -145,14 +145,14 @@ namespace Geumeum.Combat
             Vector3 correction      = rebasedPosition - transform.position;
             float   error           = correction.magnitude;
 
-            // 1단계 — 오차가 작으면 클라이언트 값을 그대로 둔다
+            // 1단계 - 오차가 작으면 클라이언트 값을 그대로 둔다
             if (error <= Constants.Network.PLAYER_RECONCILE_THRESHOLD)
             {
                 _correctionRemaining = Vector3.zero;
                 return;
             }
 
-            // 3단계 — 텔레포트·부활처럼 크게 벌어졌으면 서서히 따라가도 계속 어긋난다
+            // 3단계 - 텔레포트, 부활처럼 크게 벌어졌으면 서서히 따라가도 계속 어긋난다
             if (error >= Constants.Network.PLAYER_RECONCILE_SNAP)
             {
                 transform.position   = rebasedPosition;
@@ -160,7 +160,7 @@ namespace Geumeum.Combat
                 return;
             }
 
-            // 2단계 — 그 사이는 Advance가 매 프레임 조금씩 밀어 넣는다
+            // 2단계 - 그 사이는 Advance가 매 프레임 조금씩 밀어 넣는다
             _correctionRemaining = correction;
         }
 

@@ -5,7 +5,7 @@ namespace Geumeum.Common
 {
     public static partial class Constants
     {
-        /// <summary> 플레이어 입력 · 판정 계약값. 이동 속도 같은 밸런스 수치는 CombatConfigSO에 있다 </summary>
+        /// <summary> 플레이어 입력, 판정 계약값. 이동 속도 같은 밸런스 수치는 CombatConfigSO에 있다 </summary>
         public static class Player
         {
             // ProjectSettings/InputManager.asset의 축 이름

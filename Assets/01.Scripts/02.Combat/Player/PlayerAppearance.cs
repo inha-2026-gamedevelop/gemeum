@@ -39,6 +39,7 @@ namespace Geumeum.Combat
         [SyncVar(hook = nameof(OnHasAppearanceChanged))] private bool           _hasAppearance = false;
 
         private PlayerAnimationController _animation;
+        private PlayerWeaponVisual        _weaponVisual;
 
         private AppearanceKind _appliedAppearance    = default;
         private bool           _hasAppliedAppearance = false;
@@ -52,20 +53,24 @@ namespace Geumeum.Combat
 
         public AppearanceKind Appearance => _appearance;
 
+        /// <summary> 지금 켜져 있는 외형 모델 루트. 무기 시각화가 오른손 뼈를 찾을 때 쓴다 </summary>
+        public GameObject ActiveModel { get; private set; }
+
         /****************************************
         *              Unity Event
         ****************************************/
 
         private void Awake()
         {
-            _animation = GetComponent<PlayerAnimationController>();
+            _animation    = GetComponent<PlayerAnimationController>();
+            _weaponVisual = GetComponent<PlayerWeaponVisual>();
         }
 
         /****************************************
         *              SyncVar Hooks
         ****************************************/
 
-        /// <summary> 서버·클라이언트 모두에서 값이 바뀔 때 호출된다, 판정에는 관여하지 않는다 </summary>
+        /// <summary> 서버, 클라이언트 모두에서 값이 바뀔 때 호출된다, 판정에는 관여하지 않는다 </summary>
         private void OnAppearanceChanged(AppearanceKind oldAppearance, AppearanceKind newAppearance)
         {
             RefreshAppearance();
@@ -161,10 +166,16 @@ namespace Geumeum.Combat
 
             _appliedAppearance    = appearance;
             _hasAppliedAppearance = true;
+            ActiveModel           = matchedModel;
 
             if (_animation != null)
             {
                 _animation.RefreshAnimator();
+            }
+
+            if (_weaponVisual != null)
+            {
+                _weaponVisual.Refresh();
             }
         }
     }

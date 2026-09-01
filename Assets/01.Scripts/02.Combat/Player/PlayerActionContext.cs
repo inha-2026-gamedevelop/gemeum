@@ -1,5 +1,5 @@
 // 프로젝트 내부
-using Geumeum.Network;
+using Geumeum.Common;
 
 namespace Geumeum.Combat
 {

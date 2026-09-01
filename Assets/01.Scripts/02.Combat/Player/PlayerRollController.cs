@@ -11,7 +11,7 @@ using Geumeum.Network;
 
 namespace Geumeum.Combat
 {
-    /// <summary> 구르기 요청 검증·방향·지속 시간·무적 전이를 소유한다 </summary>
+    /// <summary> 구르기 요청 검증, 방향, 지속 시간, 무적 전이를 소유한다 </summary>
     public class PlayerRollController : NetworkBehaviour
     {
         /****************************************
@@ -30,9 +30,8 @@ namespace Geumeum.Combat
         [SyncVar(hook = nameof(OnRollingChanged))] private bool _isRolling = false;
 
         // 서버 전용
-        private Vector2 _rollDirection               = Vector2.zero;
-        private double  _rollEndServerTime           = 0.0;
-        private double  _rollInvincibleEndServerTime = 0.0;
+        private Vector2 _rollDirection     = Vector2.zero;
+        private double  _rollEndServerTime = 0.0;
 
         /****************************************
         *              Properties
@@ -130,11 +129,10 @@ namespace Geumeum.Combat
                 _presentation.ServerSetFacing(_rollDirection);
             }
 
-            _isRolling                   = true;
-            _rollEndServerTime           = now + combat.RollTotalDuration;
-            _rollInvincibleEndServerTime = now + combat.RollInvincibleDuration;
+            _isRolling         = true;
+            _rollEndServerTime = now + combat.RollTotalDuration;
 
-            _status.SetInvincible(true);
+            _status.GrantTimedInvincibility(now + combat.RollInvincibleDuration);
         }
 
         /****************************************
@@ -150,19 +148,11 @@ namespace Geumeum.Combat
                 return;
             }
 
-            if ((_status.IsInvincible) && (now >= _rollInvincibleEndServerTime))
-            {
-                _status.SetInvincible(false);
-            }
-
+            // 무적 만료는 PlayerStatus가 만료 시각으로 직접 판단한다. 구르기가 먼저 끝나도
+            // 같은 시각에 걸린 다른 출처(패링 등)의 무적을 끄지 않는다
             if ((!canMove) || (now >= _rollEndServerTime))
             {
                 _isRolling = false;
-
-                if (_status.IsInvincible)
-                {
-                    _status.SetInvincible(false); // 구르기 도중 사망 등으로 끝나면 무적도 같이 끈다
-                }
             }
         }
 

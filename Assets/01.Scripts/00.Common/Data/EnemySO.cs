@@ -55,7 +55,7 @@ namespace Geumeum.Data
             public string PrefixName;
             public float  HealthMultiplier;
             public float  AttackMultiplier;
-            public float  RewardMultiplier; // 경험치 · 노잣돈 공통
+            public float  RewardMultiplier; // 경험치, 노잣돈 공통
         }
 
         /****************************************

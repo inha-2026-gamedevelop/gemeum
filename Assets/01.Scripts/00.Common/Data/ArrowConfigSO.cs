@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Geumeum.Data
 {
-    /// <summary> 화살 발사각 보정 · 유도 수치 </summary>
+    /// <summary> 화살 발사각 보정, 유도 수치 </summary>
     [CreateAssetMenu(fileName = "ArrowConfigSO", menuName = "Geumeum/ArrowConfigSO")]
     public class ArrowConfigSO : ScriptableObject
     {

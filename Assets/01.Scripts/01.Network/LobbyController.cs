@@ -41,8 +41,11 @@ namespace Geumeum.Network
         [Tooltip("접속하면 자동으로 준비 상태로 만든다. 로비 UI가 아직 없는 Dev 씬 테스트 전용, Main.unity에서는 반드시 꺼 둔다")]
         [SerializeField] private bool _devAutoReady = false;
 
-        [Tooltip("런을 시작하는 데 필요한 인원. 혼자 이동·모션을 확인하려고 낮추는 Dev 씬 전용 값이고, Main.unity에서는 반드시 3으로 둔다")]
+        [Tooltip("런을 시작하는 데 필요한 인원. 혼자 이동, 모션을 확인하려고 낮추는 Dev 씬 전용 값이고, Main.unity에서는 반드시 3으로 둔다")]
         [SerializeField] private int _devMinPlayers = Constants.Network.MAX_PLAYERS;
+
+        [Tooltip("무기를 무작위 배분하지 않고 전원에게 검을 준다. 패링처럼 검 전용 기능을 혼자 테스트할 때 쓰는 Dev 씬 전용 값이고, Main.unity에서는 반드시 꺼 둔다")]
+        [SerializeField] private bool _devForceSword = false;
 
         private readonly SyncList<LobbySlot> _slots = new SyncList<LobbySlot>();
 
@@ -346,14 +349,24 @@ namespace Geumeum.Network
                 return false;
             }
 
-            // 접속 순서나 이름이 아니라 서버 난수로 순열을 만든다
-            for (int i = weapons.Length - 1; i > 0; --i)
+            if (_devForceSword)
             {
-                int swapIndex = _serverRandom.Next(i + 1);
+                for (int i = 0; i < weapons.Length; ++i)
+                {
+                    weapons[i] = WeaponKind.Sword;
+                }
+            }
+            else
+            {
+                // 접속 순서나 이름이 아니라 서버 난수로 순열을 만든다
+                for (int i = weapons.Length - 1; i > 0; --i)
+                {
+                    int swapIndex = _serverRandom.Next(i + 1);
 
-                WeaponKind temp    = weapons[i];
-                weapons[i]         = weapons[swapIndex];
-                weapons[swapIndex] = temp;
+                    WeaponKind temp    = weapons[i];
+                    weapons[i]         = weapons[swapIndex];
+                    weapons[swapIndex] = temp;
+                }
             }
 
             for (int i = 0; i < _slots.Count; ++i)
@@ -379,7 +392,7 @@ namespace Geumeum.Network
         }
 
         // 로비에서 고른 외형은 그대로 두고, 고르지 않은 사람에게만 남은 외형을 준다.
-        // 무기와 달리 섞지 않는다 — 고른 사람의 선택을 뒤집지 않기 위해서다
+        // 무기와 달리 섞지 않는다 - 고른 사람의 선택을 뒤집지 않기 위해서다
         [Server]
         private bool TryResolveAppearances(AppearanceKind[] appearances, out AppearanceKind[] resolved)
         {

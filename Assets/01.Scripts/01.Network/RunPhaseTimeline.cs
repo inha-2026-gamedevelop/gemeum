@@ -2,6 +2,9 @@
 using System;
 using System.Collections.Generic;
 
+// 프로젝트 내부
+using Geumeum.Common;
+
 namespace Geumeum.Network
 {
     /// <summary>
@@ -14,7 +17,7 @@ namespace Geumeum.Network
         *                Types
         ****************************************/
 
-        /// <summary> 구간 하나의 시간 경계. 반경 · 피해량은 이 레이어가 알 필요가 없다 </summary>
+        /// <summary> 구간 하나의 시간 경계. 반경, 피해량은 이 레이어가 알 필요가 없다 </summary>
         public readonly struct Segment
         {
             public RunPhase Phase        { get; }
@@ -35,7 +38,7 @@ namespace Geumeum.Network
 
         private const float TIME_EPSILON = 0.001f; // 인스펙터 입력값의 부동소수 오차 허용치(초)
 
-        // 런 데이터가 가져야 하는 구간과 순서. Lobby · Result는 런 데이터 밖의 세션 상태다
+        // 런 데이터가 가져야 하는 구간과 순서. Lobby, Result는 런 데이터 밖의 세션 상태다
         private static readonly RunPhase[] G_RequiredOrder =
         {
             RunPhase.Farming,
@@ -91,7 +94,7 @@ namespace Geumeum.Network
                 float gap = _segments[i].StartSeconds - _segments[i - 1].EndSeconds;
                 if ((gap > TIME_EPSILON) || (gap < -TIME_EPSILON))
                 {
-                    error = $"{_segments[i - 1].Phase}와 {_segments[i].Phase} 사이가 이어지지 않는다: {_segments[i - 1].EndSeconds} → {_segments[i].StartSeconds}";
+                    error = $"{_segments[i - 1].Phase}와 {_segments[i].Phase} 사이가 이어지지 않는다: {_segments[i - 1].EndSeconds} -> {_segments[i].StartSeconds}";
                     return false;
                 }
             }
@@ -100,7 +103,7 @@ namespace Geumeum.Network
             float limitGap       = lastEndSeconds - runTimeLimitSeconds;
             if ((limitGap > TIME_EPSILON) || (limitGap < -TIME_EPSILON))
             {
-                error = $"마지막 구간 종료가 런 제한 시간과 다르다: {lastEndSeconds} ≠ {runTimeLimitSeconds}";
+                error = $"마지막 구간 종료가 런 제한 시간과 다르다: {lastEndSeconds} != {runTimeLimitSeconds}";
                 return false;
             }
 

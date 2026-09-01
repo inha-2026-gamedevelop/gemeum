@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Geumeum.Data
 {
-    /// <summary> 보스 페이즈별 패턴 · 쿨다운 · 예고 정보. 페이즈 클래스는 선택과 전환만 하고 수치는 여기서 읽는다 </summary>
+    /// <summary> 보스 페이즈별 패턴, 쿨다운, 예고 정보. 페이즈 클래스는 선택과 전환만 하고 수치는 여기서 읽는다 </summary>
     [CreateAssetMenu(fileName = "BossPatternSO", menuName = "Geumeum/BossPatternSO")]
     public class BossPatternSO : ScriptableObject
     {
@@ -38,7 +38,7 @@ namespace Geumeum.Data
         *                Fields
         ****************************************/
 
-        // TODO(민성): 보스 HP · 페이즈 수 · 패턴 세부는 전부 미정, AI 파트가 확정 후 채운다
+        // TODO(민성): 보스 HP, 페이즈 수, 패턴 세부는 전부 미정, AI 파트가 확정 후 채운다
         [Header("보스")]
         [SerializeField] private float _maxHealth = 0f;
 

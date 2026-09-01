@@ -17,11 +17,11 @@ namespace Geumeum.Data
         *                Fields
         ****************************************/
 
-        [Header("네트워크 · 전투")]
+        [Header("네트워크, 전투")]
         [SerializeField] private CombatConfigSO _combat;
         [SerializeField] private ArrowConfigSO  _arrow;
 
-        [Header("AI · 보스")]
+        [Header("AI, 보스")]
         [SerializeField] private EnemySO        _enemy;
         [SerializeField] private BarrierPhaseSO _barrier;
         [SerializeField] private SpawnConfigSO  _spawn;
