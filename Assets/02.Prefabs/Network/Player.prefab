@@ -58,6 +58,7 @@ GameObject:
   - component: {fileID: -876890030373372519}
   - component: {fileID: -8642913932917621867}
   - component: {fileID: 8453312051497649988}
+  - component: {fileID: 9067144143854285685}
   m_Layer: 9
   m_Name: Player
   m_TagString: Untagged
@@ -333,6 +334,19 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+--- !u!114 &9067144143854285685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1766fba1f2f2856419e74ba3190a11f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.PlayerWeaponVisual
+  _swordModelSource: {fileID: 919132149155446097, guid: 5744b4c87eb38e3408125a17d7417503, type: 3}
 --- !u!1001 &1331680180131862316
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -44,6 +44,9 @@ namespace Geumeum.Network
         [Tooltip("런을 시작하는 데 필요한 인원. 혼자 이동·모션을 확인하려고 낮추는 Dev 씬 전용 값이고, Main.unity에서는 반드시 3으로 둔다")]
         [SerializeField] private int _devMinPlayers = Constants.Network.MAX_PLAYERS;
 
+        [Tooltip("무기를 무작위 배분하지 않고 전원에게 검을 준다. 패링처럼 검 전용 기능을 혼자 테스트할 때 쓰는 Dev 씬 전용 값이고, Main.unity에서는 반드시 꺼 둔다")]
+        [SerializeField] private bool _devForceSword = false;
+
         private readonly SyncList<LobbySlot> _slots = new SyncList<LobbySlot>();
 
         private System.Random _serverRandom = null; // 서버 전용, 역할 배분의 유일한 난수원
@@ -346,14 +349,24 @@ namespace Geumeum.Network
                 return false;
             }
 
-            // 접속 순서나 이름이 아니라 서버 난수로 순열을 만든다
-            for (int i = weapons.Length - 1; i > 0; --i)
+            if (_devForceSword)
             {
-                int swapIndex = _serverRandom.Next(i + 1);
+                for (int i = 0; i < weapons.Length; ++i)
+                {
+                    weapons[i] = WeaponKind.Sword;
+                }
+            }
+            else
+            {
+                // 접속 순서나 이름이 아니라 서버 난수로 순열을 만든다
+                for (int i = weapons.Length - 1; i > 0; --i)
+                {
+                    int swapIndex = _serverRandom.Next(i + 1);
 
-                WeaponKind temp    = weapons[i];
-                weapons[i]         = weapons[swapIndex];
-                weapons[swapIndex] = temp;
+                    WeaponKind temp    = weapons[i];
+                    weapons[i]         = weapons[swapIndex];
+                    weapons[swapIndex] = temp;
+                }
             }
 
             for (int i = 0; i < _slots.Count; ++i)

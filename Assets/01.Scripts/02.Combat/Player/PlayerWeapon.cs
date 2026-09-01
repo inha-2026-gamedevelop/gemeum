@@ -19,8 +19,10 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
-        [SyncVar] private WeaponKind _weapon    = default;
-        [SyncVar] private bool       _hasWeapon = false;
+        [SyncVar(hook = nameof(OnWeaponChanged))]    private WeaponKind _weapon    = default;
+        [SyncVar(hook = nameof(OnHasWeaponChanged))] private bool       _hasWeapon = false;
+
+        private PlayerWeaponVisual _weaponVisual;
 
         /****************************************
         *              Properties
@@ -30,6 +32,31 @@ namespace Geumeum.Combat
         public bool HasWeapon => _hasWeapon;
 
         public WeaponKind Weapon => _weapon;
+
+        /****************************************
+        *              Unity Event
+        ****************************************/
+
+        private void Awake()
+        {
+            _weaponVisual = GetComponent<PlayerWeaponVisual>();
+        }
+
+        /****************************************
+        *              SyncVar Hooks
+        ****************************************/
+
+        // 외형(PlayerAppearance)이 오른손 뼈를 켜는 시점과 무기 SyncVar 도착 순서가 보장되지 않아
+        // 두 훅 모두 무기 시각화를 다시 시도한다. PlayerAppearance의 이중 훅과 같은 이유다
+        private void OnWeaponChanged(WeaponKind oldWeapon, WeaponKind newWeapon)
+        {
+            RefreshWeaponVisual();
+        }
+
+        private void OnHasWeaponChanged(bool oldHasWeapon, bool newHasWeapon)
+        {
+            RefreshWeaponVisual();
+        }
 
         /****************************************
         *              Server API
@@ -51,6 +78,18 @@ namespace Geumeum.Combat
             _weapon    = weapon;
             _hasWeapon = true;
             return true;
+        }
+
+        /****************************************
+        *                Methods
+        ****************************************/
+
+        private void RefreshWeaponVisual()
+        {
+            if (_weaponVisual != null)
+            {
+                _weaponVisual.Refresh();
+            }
         }
     }
 }
