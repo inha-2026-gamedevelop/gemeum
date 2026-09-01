@@ -1,5 +1,6 @@
 // Unity
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Geumeum.UI
 {
@@ -16,6 +17,9 @@ namespace Geumeum.UI
         [Header("패널")]
         [SerializeField] private GameObject _pressAnyKeyPanel;
         [SerializeField] private GameObject _menuPanel;
+
+        [Header("메뉴가 열릴 때 선택할 항목")]
+        [SerializeField] private GameObject _firstMenuItem;
 
         /****************************************
         *              Unity Event
@@ -59,7 +63,27 @@ namespace Geumeum.UI
             _pressAnyKeyPanel.SetActive(false);
             _menuPanel.SetActive(true);
 
+            SelectFirstMenuItem();
+
             enabled = false;
+        }
+
+        // 선택된 항목이 없으면 EventSystem이 방향키 입력을 어디에도 전달하지 못한다
+        private void SelectFirstMenuItem()
+        {
+            if (_firstMenuItem == null)
+            {
+                Debug.LogWarning("[TitleScreenController] 첫 메뉴 항목이 비어 있다, 방향키로 이동할 수 없다", this);
+                return;
+            }
+
+            if (EventSystem.current == null)
+            {
+                Debug.LogWarning("[TitleScreenController] 씬에 EventSystem이 없다", this);
+                return;
+            }
+
+            EventSystem.current.SetSelectedGameObject(_firstMenuItem);
         }
     }
 }
