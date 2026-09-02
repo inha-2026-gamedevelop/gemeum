@@ -139,6 +139,12 @@ namespace Geumeum.Network
             IsAdmissionLocked = true;
         }
 
+        /// <summary> 런이 끝나 로비로 돌아갈 때 입장을 다시 연다. RunManager만 호출한다 </summary>
+        public void UnlockAdmission()
+        {
+            IsAdmissionLocked = false;
+        }
+
         /****************************************
         *                Methods
         ****************************************/

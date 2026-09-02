@@ -1,5 +1,6 @@
 // System
 using System;
+using System.Collections.Generic;
 
 // Unity
 using UnityEngine;
@@ -51,6 +52,11 @@ namespace Geumeum.Network
 
         private System.Random _serverRandom = null; // 서버 전용, 역할 배분의 유일한 난수원
 
+        // 이탈한 사람이 서 있던 자리다. 재접속한 플레이어를 스폰 지점이 아니라 여기로 되돌린다.
+        // connectionId는 재접속 때 새로 발급되어 같은 사람을 알아볼 수 없으므로 자리만 선입선출로 물려준다,
+        // 두 명 이상이 동시에 빠지면 누가 어느 자리를 받을지는 보장하지 않는다
+        private readonly Queue<Vector3> _vacatedPositions = new Queue<Vector3>();
+
         /****************************************
         *              Properties
         ****************************************/
@@ -69,6 +75,7 @@ namespace Geumeum.Network
             ServerInstance = this;
             _serverRandom  = new System.Random();
             _slots.Clear();
+            _vacatedPositions.Clear();
         }
 
         public override void OnStopServer()
@@ -107,6 +114,8 @@ namespace Geumeum.Network
                 Appearance    = default,
             });
 
+            RestoreVacatedPosition(conn);
+
             if (_devAutoReady)
             {
                 SetSlotReady(conn.connectionId, true);
@@ -127,7 +136,59 @@ namespace Geumeum.Network
                 return;
             }
 
+            RememberVacatedPosition(conn);
             _slots.RemoveAt(index);
+        }
+
+        /// <summary>
+        /// 런이 끝나 로비로 돌아올 때 남아 있는 슬롯의 준비, 무기, 외형을 비운다.
+        /// 슬롯 자체는 지우지 않는다, 접속을 유지한 사람은 그대로 다음 런에 참가한다.
+        /// RunManager만 호출한다
+        /// </summary>
+        [Server]
+        public void ServerResetForNewRun()
+        {
+            for (int i = 0; i < _slots.Count; ++i)
+            {
+                LobbySlot slot = _slots[i];
+
+                slot.IsReady       = false;
+                slot.HasWeapon     = false;
+                slot.Weapon        = default;
+                slot.HasAppearance = false;
+                slot.Appearance    = default;
+
+                _slots[i] = slot;
+
+                // 슬롯 플래그만 비우면 플레이어 컴포넌트에는 직전 런의 확정이 남아
+                // 다음 AssignRoles가 "이미 역할이 확정되어 있다"로 거부하고 런이 열리지 않는다
+                if (TryFindPlayerComponent(slot.ConnectionId, out PlayerWeapon weapon))
+                {
+                    weapon.ServerClearForNewRun();
+                }
+
+                if (TryFindPlayerComponent(slot.ConnectionId, out PlayerAppearance appearance))
+                {
+                    appearance.ServerClearForNewRun();
+                }
+
+                // 직전 런에서 쓰러진 사람은 이걸 안 하면 다음 런에서도 Downed로 남아 아무 행동도 못 한다
+                if (TryFindPlayerComponent(slot.ConnectionId, out PlayerStatus status))
+                {
+                    status.ServerResetForNewRun();
+                }
+            }
+
+            if (!_devAutoReady)
+            {
+                return;
+            }
+
+            // SetSlotReady가 매번 TryStartRun을 부르지만 정원이 찼을 때만 통과하므로 마지막 한 번만 연다
+            for (int i = 0; i < _slots.Count; ++i)
+            {
+                SetSlotReady(_slots[i].ConnectionId, true);
+            }
         }
 
         /// <summary> 배분된 무기를 조회한다, 런 시작 전에는 false </summary>
@@ -439,6 +500,52 @@ namespace Geumeum.Network
             }
 
             return true;
+        }
+
+        // 이탈 직전의 자리를 남긴다.
+        // Mirror는 OnServerDisconnect보다 먼저 NetworkServer.connections에서 연결을 지우므로
+        // connectionId로 되찾을 수 없다. 아직 identity가 살아 있는 conn을 직접 받아 읽는다
+        [Server]
+        private void RememberVacatedPosition(NetworkConnectionToClient conn)
+        {
+            if ((conn == null) || (conn.identity == null))
+            {
+                return;
+            }
+
+            if (!conn.identity.TryGetComponent(out PlayerController controller))
+            {
+                return;
+            }
+
+            _vacatedPositions.Enqueue(controller.transform.position);
+            Debug.Log($"[LobbyController] connectionId={conn.connectionId}의 이탈 직전 자리를 남겼다: {controller.transform.position}");
+        }
+
+        // 새로 들어온 사람을 비어 있던 자리로 되돌린다. 남은 자리가 없으면 스폰 지점 그대로 둔다
+        [Server]
+        private void RestoreVacatedPosition(NetworkConnectionToClient conn)
+        {
+            if (_vacatedPositions.Count == 0)
+            {
+                return;
+            }
+
+            if ((conn == null) || (conn.identity == null))
+            {
+                Debug.LogWarning("[LobbyController] 플레이어 오브젝트가 없어 이탈 직전 자리로 되돌리지 못했다", this);
+                return;
+            }
+
+            if (!conn.identity.TryGetComponent(out PlayerController controller))
+            {
+                return;
+            }
+
+            Vector3 position = _vacatedPositions.Dequeue();
+            controller.ServerTeleport(position);
+
+            Debug.Log($"[LobbyController] connectionId={conn.connectionId}를 이탈 직전 자리로 되돌렸다: {position}");
         }
 
         // 연결의 플레이어 오브젝트에서 컴포넌트를 찾는다

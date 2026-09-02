@@ -54,26 +54,10 @@ namespace Geumeum.Combat
 
         public override void OnStartServer()
         {
-            // Awake가 아니라 여기서 읽어야 GameDBBootstrap 이후가 보장된다
-            if (!GameDB.IsInitialized)
+            if (!TryApplyStartingState())
             {
-                Debug.LogError("[PlayerStatus] GameDB가 초기화되지 않아 초기 상태를 정할 수 없다", this);
                 return;
             }
-
-            if (!GameDB.LevelCurve.TryGetLevel(Constants.Combat.START_LEVEL, out LevelCurveSO.LevelEntry entry))
-            {
-                Debug.LogError($"[PlayerStatus] 레벨 {Constants.Combat.START_LEVEL}의 곡선 항목이 없다", this);
-                return;
-            }
-
-            CombatConfigSO combat = GameDB.Combat;
-
-            _maxHealth = entry.MaxHealth;
-            _health    = _maxHealth;
-            _stamina   = combat.StaminaMax;
-            _spirit    = combat.SpiritMax;
-            _lifeState = PlayerLifeState.Alive;
 
             if (AuthorityTickScheduler.ServerInstance == null)
             {
@@ -92,6 +76,51 @@ namespace Geumeum.Combat
             }
 
             AuthorityTickScheduler.ServerInstance.Unregister(ServerRegenTick);
+        }
+
+        /****************************************
+        *              Server API
+        ****************************************/
+
+        /// <summary>
+        /// 런이 끝나 로비로 돌아갈 때 HP, 스태미나, 신력, 생명 상태를 시작값으로 되돌린다.
+        /// LobbyController만 호출한다. 이걸 안 하면 직전 런에서 쓰러진 사람이 다음 런에서도
+        /// Downed로 남아 PlayerActionGate가 모든 행동을 막는다
+        /// </summary>
+        [Server]
+        public void ServerResetForNewRun()
+        {
+            _isInvincible               = false;
+            _invincibleUntilServerTime  = 0.0;
+            _lastStaminaSpendServerTime = -1.0;
+
+            TryApplyStartingState();
+        }
+
+        // 스폰 직후와 런 재시작이 같은 시작값을 쓰도록 한곳에 모은다
+        private bool TryApplyStartingState()
+        {
+            // Awake가 아니라 여기서 읽어야 GameDBBootstrap 이후가 보장된다
+            if (!GameDB.IsInitialized)
+            {
+                Debug.LogError("[PlayerStatus] GameDB가 초기화되지 않아 초기 상태를 정할 수 없다", this);
+                return false;
+            }
+
+            if (!GameDB.LevelCurve.TryGetLevel(Constants.Combat.START_LEVEL, out LevelCurveSO.LevelEntry entry))
+            {
+                Debug.LogError($"[PlayerStatus] 레벨 {Constants.Combat.START_LEVEL}의 곡선 항목이 없다", this);
+                return false;
+            }
+
+            CombatConfigSO combat = GameDB.Combat;
+
+            _maxHealth = entry.MaxHealth;
+            _health    = _maxHealth;
+            _stamina   = combat.StaminaMax;
+            _spirit    = combat.SpiritMax;
+            _lifeState = PlayerLifeState.Alive;
+            return true;
         }
 
         /****************************************

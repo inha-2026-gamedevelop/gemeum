@@ -80,6 +80,16 @@ namespace Geumeum.Combat
             return true;
         }
 
+        /// <summary>
+        /// 런이 끝나 로비로 돌아갈 때 배분을 되돌린다. LobbyController만 호출한다.
+        /// 확정 여부만 내리고 무기 값은 남긴다, 다음 배분이 값을 덮어쓴다
+        /// </summary>
+        [Server]
+        public void ServerClearForNewRun()
+        {
+            _hasWeapon = false;
+        }
+
         /****************************************
         *                Methods
         ****************************************/

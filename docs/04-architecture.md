@@ -204,7 +204,9 @@ Main.unity
 │                              최대 3명. 플레이어 프리팹 등록과 연결 수명만 담당
 ├ ServerBootGate.cs        static GameDB · 런 타임라인 · Transport · 네트워크 프리팹 검사
 ├ LobbyController.cs       NB  3명 준비 상태와 런 시작 요청을 서버에서 관리. 런 시작 시
-│                              검·활·방울을 중복 없이 배분하고, 이후 신규 접속·재접속 거부
+│                              검·활·방울을 중복 없이 배분하고, 이후 신규 접속·재접속 거부.
+│                              런이 끝나 로비로 돌아오면 슬롯·역할 확정을 비우고 입장을 다시 연다.
+│                              이탈자의 마지막 위치를 기억해 재접속자를 그 자리에 되돌린다
 ├ RunManager.cs            NB  런 상태 머신 + 경과 시간 → 5장. 프로젝트의 심장
 ├ RunPhase.cs              C#  enum { Lobby, Farming, Shrink1, Shrink2, Shrink3, Boss, Result }
 │                              직렬화되므로 명시값 고정, 재배열 금지
@@ -413,6 +415,7 @@ UI는 게임 상태를 **읽기만** 한다. UI에서 상태를 직접 바꾸는
 RunManager : NetworkBehaviour
 ├ SyncVar  float ElapsedSeconds     서버가 관리하는 유일한 경과 시간 원본
 ├ SyncVar  RunPhase Phase           Lobby → Farming → Shrink1 → Shrink2 → Shrink3 → Boss → Result
+│                                   Result → Lobby 만 역방향 (런 재시작, 2026-09-02)
 ├ local    RunPhaseChangedEvent     GameEventBus로 서버 프로세스 내부 구간 전환 통지
 └ int      FieldLevel               Phase에서 파생 — 드랍 가중치 · 잡귀 강화 배수의 키
 ```
@@ -433,10 +436,27 @@ RunManager : NetworkBehaviour
 | `Shrink2` | 실시간 20:00 | 실시간 29:30 | 결계 축소·객주 개방, FieldLevel 2 |
 | `Shrink3` | 실시간 29:30 | 실시간 30:00 | 보스맵 이동, 신규 잡귀 스폰 중단, FieldLevel 3 |
 | `Boss` | 실시간 30:00 | 보스 사망 또는 실시간 40:00 | 결계 피해 종료, 보스 전투 또는 시간 초과 실패 |
-| `Result` | 승리·실패·전멸·이탈 | 정산 완료 | 점수 계산, 성공 런만 리더보드 등록 |
+| `Result` | 승리·실패·전멸·이탈 | 정산 완료 후 `Lobby` 복귀 | 점수 계산, 성공 런만 리더보드 등록 |
 
 `57cb59d`에서 실제로 구현된 전환은 타임라인 경계·시간 초과·런 중 이탈이다.
 보스 사망, 전멸, 종료 사유, 점수 정산과 결계·스폰 구독자 side effect는 아직 구현 계약이다.
+
+#### Result → Lobby 복귀 [현재]
+
+`Result`는 종착점이 아니다. 도달하고 `Constants.Network.RESULT_TO_LOBBY_SECONDS` 뒤에
+`RunManager.ServerReturnToLobby`가 `Lobby`로 되돌린다. 같은 프레임에 되돌리지 않는 이유는
+SyncVar가 마지막 값만 보내 클라이언트가 `Result`를 아예 수신하지 못하기 때문이다.
+
+복귀 시 서버가 하는 일은 셋이다. 입장 잠금 해제, 로비 슬롯의 준비·무기·외형 플래그 초기화,
+플레이어의 `PlayerWeapon`·`PlayerAppearance` 역할 확정과 `PlayerStatus` 시작값 복원.
+플레이어 컴포넌트까지 되돌리지 않으면 다음 런의 역할 배분이 "이미 확정됨"으로 거부된다.
+
+전환 자체는 `RunManager` 안에서 전진 전용 가드(`CommitPhase`)와 실제 커밋(`SetPhase`)을
+나눠 처리한다. 역방향은 `SetPhase`만 허용하므로 런 시계가 지나간 경계를 되돌릴 수는 없다.
+outcome은 여전히 `TryFinishRun`이 한 번만 커밋한다.
+
+`SpawnManager`의 생존 잡귀 정리는 아직 없다 [계획]. 한 서버 세션에서 두 번째 런을 열면
+이전 런의 잡귀가 남는다.
 
 `FieldLevel 3`은 일반 잡귀 드랍에 사용하지 않고 보스 처치 후 팀 보상에 한 번만 사용한다. `Result`로 전환하면 모든 입력·드랍·구매 요청을 거부한다.
 
@@ -596,7 +616,7 @@ _combatFeedback.PlayCritical(multiplier);
 | 잡귀 · 보스 AI, 결계 | 서버 | EnemyBrain*, BossPhase*, BarrierController |
 | 드랍 · 노잣돈 · 소유권 · 경험치 | 서버 | EquipmentGenerator, CurrencyManager, GrowthManager |
 | 사망 · 부활 · 전멸 감지 | 서버 | ReviveController |
-| 런 종료 · `Result` 커밋 | 서버 | RunManager |
+| 런 종료 · `Result` 커밋 · `Lobby` 복귀 | 서버 | RunManager |
 | 조명 · 카메라 · 이펙트 · 사운드 · UI | 클라 로컬 | 05.Art, 06.UI, CameraRig |
 | 보스 예고 장판 · 결계선 · 액귀 투사체 | **서버가 이벤트, 클라가 렌더링** | BossPatternTelegraph 등 |
 

@@ -32,6 +32,7 @@ namespace Geumeum.Network
         private double           _runStartServerTime     = 0.0;   // 서버 전용, NetworkTime.time 기준
         private float            _previousElapsedSeconds = 0f;    // 서버 전용, 이번 틱에 지나간 경계를 가려낸다
         private Coroutine        _tickRoutine            = null;
+        private Coroutine        _returnRoutine          = null;   // 서버 전용, Result -> Lobby 복귀 대기
 
         private readonly List<RunPhase> _enteredBuffer = new List<RunPhase>();
         private WaitForSeconds          _tickWait      = null;
@@ -95,6 +96,7 @@ namespace Geumeum.Network
         public override void OnStopServer()
         {
             StopTick();
+            StopReturnToLobby();
 
             if (ServerInstance == this)
             {
@@ -140,7 +142,8 @@ namespace Geumeum.Network
         [Server]
         public bool TryFinishRun(RunOutcome outcome)
         {
-            if ((_phase == RunPhase.Result) || (outcome == RunOutcome.None))
+            // 로비에서의 이탈은 끝낼 런이 없다. 여기서 막지 않으면 시작도 안 한 런이 Result로 확정된다
+            if ((_phase == RunPhase.Lobby) || (_phase == RunPhase.Result) || (outcome == RunOutcome.None))
             {
                 return false;
             }
@@ -151,6 +154,8 @@ namespace Geumeum.Network
 
             // 등록은 그대로 두고 이동, AI, 자원 회복 tick만 멈춘다. 새 런 시작 때만 다시 켠다
             AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(false);
+
+            StartReturnToLobby();
             return true;
         }
 
@@ -169,6 +174,7 @@ namespace Geumeum.Network
         public void ServerResetState()
         {
             StopTick();
+            StopReturnToLobby();
 
             _phase                  = RunPhase.Lobby;
             _outcome                = RunOutcome.None;
@@ -177,9 +183,70 @@ namespace Geumeum.Network
             _runStartServerTime     = 0.0;
         }
 
+        /// <summary>
+        /// Result로 끝난 런을 로비 상태로 되돌린다. 입장 잠금을 풀고 로비 슬롯의 준비 상태를 비워
+        /// 서버를 껐다 켜지 않고도 다음 런을 시작할 수 있게 한다. _outcome은 지우지 않는다,
+        /// 다음 StartRun이 None으로 되돌리므로 그때까지는 직전 런의 결과를 읽을 수 있다
+        /// </summary>
+        [Server]
+        public void ServerReturnToLobby()
+        {
+            if (_phase != RunPhase.Result)
+            {
+                return;
+            }
+
+            StopReturnToLobby();
+
+            _elapsedSeconds         = 0f;
+            _previousElapsedSeconds = 0f;
+            _runStartServerTime     = 0.0;
+
+            SetPhase(RunPhase.Lobby);
+
+            GeumeumNetworkManager manager = NetworkManager.singleton as GeumeumNetworkManager;
+            if (manager == null)
+            {
+                Debug.LogError("[RunManager] GeumeumNetworkManager를 찾지 못해 입장 잠금을 풀지 못했다", this);
+            }
+            else
+            {
+                manager.UnlockAdmission();
+            }
+
+            LobbyController.ServerInstance?.ServerResetForNewRun();
+            Debug.Log("[RunManager] 로비로 복귀했다, 입장 잠금 해제");
+        }
+
         /****************************************
         *                Methods
         ****************************************/
+
+        private void StartReturnToLobby()
+        {
+            StopReturnToLobby();
+            _returnRoutine = StartCoroutine(CoReturnToLobby());
+        }
+
+        private void StopReturnToLobby()
+        {
+            if (_returnRoutine == null)
+            {
+                return;
+            }
+
+            StopCoroutine(_returnRoutine);
+            _returnRoutine = null;
+        }
+
+        // Result를 같은 프레임에 Lobby로 덮으면 SyncVar가 마지막 값만 보내 클라이언트가 Result를 못 본다
+        private IEnumerator CoReturnToLobby()
+        {
+            yield return new WaitForSeconds(Constants.Network.RESULT_TO_LOBBY_SECONDS);
+
+            _returnRoutine = null;
+            ServerReturnToLobby();
+        }
 
         private void StartTick()
         {
@@ -240,10 +307,22 @@ namespace Geumeum.Network
             }
         }
 
-        // 상태를 먼저 커밋한 뒤 서버 로컬 이벤트를 한 번만 발행한다
+        // 런 진행 중의 전진 전환이다. 시계로 지나간 경계만 커밋하므로 뒤로는 가지 않는다
         private void CommitPhase(RunPhase next)
         {
             if (next <= _phase)
+            {
+                return;
+            }
+
+            SetPhase(next);
+        }
+
+        // 상태를 먼저 커밋한 뒤 서버 로컬 이벤트를 한 번만 발행한다.
+        // Result -> Lobby 복귀는 유일한 역방향 전환이라 CommitPhase의 전진 조건을 거치지 않는다
+        private void SetPhase(RunPhase next)
+        {
+            if (next == _phase)
             {
                 return;
             }

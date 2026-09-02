@@ -195,6 +195,32 @@ namespace Geumeum.Combat
         }
 
         /****************************************
+        *              Server API
+        ****************************************/
+
+        /// <summary>
+        /// 서버 위치를 즉시 옮기고 소유 클라이언트에 스냅샷을 보낸다.
+        /// 재접속한 사람을 끊기 직전 자리로 되돌릴 때 LobbyController가 호출한다
+        /// </summary>
+        [Server]
+        public void ServerTeleport(Vector3 position)
+        {
+            if (_rigidbody == null)
+            {
+                transform.position = position;
+                return;
+            }
+
+            // 남은 속도를 그대로 두면 도착 직후 이전 진행 방향으로 밀린다
+            _rigidbody.linearVelocity = Vector3.zero;
+            _rigidbody.position       = position;
+            transform.position        = position;
+
+            // 재조정 상한(PLAYER_RECONCILE_SNAP)을 넘는 거리라 클라이언트는 보간 없이 즉시 맞춘다
+            TargetMoveSnapshot(position, _lastProcessedSequence);
+        }
+
+        /****************************************
         *              Commands
         ****************************************/
 
