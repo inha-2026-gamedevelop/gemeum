@@ -1,7 +1,7 @@
 # PlayerAttack — 플레이어 기본 공격 설계
 
 > 상태: **구현됨.** L1 통과, 근접 경로만 L2 통과, 원거리와 L3는 미검증
-> 기준 코드: `0718185` (feature/Minsung, 2026-09-03)
+> 기준 코드: `8cfc8cd` (feature/Minsung, 2026-09-03)
 > 관련: [프로젝트 구조 설계서](../04-architecture.md) · [네트워크 권위](NETWORK_AUTHORITY.md) · [검증 플레이북](../ai/03_VERIFICATION_PLAYBOOK.md)
 
 이 문서는 **지금 저장소에 있는 코드**를 기술한다. 2026-09-01 외부 감사와 함께 받은 설계 산출물이
@@ -50,7 +50,7 @@ Command는 소유 플레이어 오브젝트에서만 보내고 서버에서 실�
 | 치명 게이지 | `ParryGauge.Gauge` 확인과 `ServerTryConsume()` | SyncVar로 UI 표현 | 다음 검 공격 1회 규칙 |
 | 근접 hit와 피해 | 서버 물리 world에서 수행 후 `IDamageable.TakeDamage` | 없음 | AI와 HP 결과가 갈리면 안 된다 |
 | 화살 생성·이동·명중·수명 | `ArrowProjectile`가 서버 스폰·틱·파괴 | 스폰된 화살을 `NetworkTransformUnreliable`로 받아 그린다 | 런타임 네트워크 오브젝트는 서버가 `NetworkServer.Spawn`한다 |
-| 공격 시작 표현 | **없음** | **없음** | 7.4절, 공격 RPC와 애니메이션이 아직 없다 |
+| 공격 시작 표현 | **없음** | **없음** | 7.2절, 공격 RPC와 애니메이션이 아직 없다 |
 
 ---
 
@@ -224,7 +224,7 @@ private AttackReach _swingReach;
 `PlayerAttack.Update`가 `isLocalPlayer`일 때만 `_attackKey` 입력을 읽고
 `CmdRequestAttack(_nextRequestId++)`을 보낸다. 로컬 예측 표현은 없다.
 
-서버는 다음 순서로 검사한다. **한 조건이라도 실패하면 조용히 `return`한다** — 7.4절.
+서버는 다음 순서로 검사한다. **한 조건이라도 실패하면 조용히 `return`한다** — 7.2절.
 
 1. `RequestIdTracker.TryAccept` — 0, 중복, 역순 차단
 2. `GameDB.IsInitialized`, `_status`, `_weapon` null 검사
@@ -281,14 +281,16 @@ cosHalf = cos(MeleeAngle / 2)
    - 수평 방향(`y = 0`)으로 `Dot(forward, dir) >= cosHalf`인지 확인 — **구만 쓰면 등 뒤도 맞는다**
    - `root`에서 `IDamageable`을 찾는다. 콜라이더가 자식에 붙어 있는 경우가 있다
    - `IsDead`면 건너뛴다
+   - **이미 맞은 `netId`면 건너뛴다.** 몸 하나에 콜라이더가 여럿이면 한 번 휘두르기에 여러 번 맞는다.
+     화살과 같은 canonical 루트 `netId` 규칙이고 `_hitNetIds`를 휘두르기마다 `Clear()`해 재사용한다
    - `TakeDamage(MeleeBasePower × multiplier, netId, Critical 또는 Light)`
 4. **한 대라도 맞았을 때만** `ParryGauge.ServerTryConsume()`
 
 `HitStrength.Critical`을 함께 넘겨 아트가 표현을 다르게 줄 수 있게 했다.
 
-**게이지 소비 규칙: 빗나가면 보존한다.** 패링 세 번으로 모은 보상이 빗나감 한 번에 사라지면
-아까워서 안 쓰게 된다. 기획서에 "다음 공격"이라고만 되어 있어 이쪽을 골랐다.
-원본 설계는 반대였다(8장). `hitCount > 0` 조건 하나라 뒤집기 쉽다.
+**게이지 소비 규칙: 빗나가면 보존한다. 2026-09-03 확정.** 패링 세 번으로 모은 보상이 빗나감 한 번에
+사라지면 아까워서 안 쓰게 된다. 기획서에 "다음 공격"이라고만 되어 있어 이쪽을 골랐고
+원본 설계(빗나가도 소비)는 채택하지 않는다 — 8장.
 
 **원거리에는 치명을 붙이지 않았다.** 기획서 1장이 게이지를 검 전용 상태로 정하고 있고,
 근접 판정에 오는 무기는 지금 검뿐이다.
@@ -354,6 +356,8 @@ _targetMask              → 런타임 3072 확인
 - 회귀 — 잡귀 HP가 10 깎이는가
 - 패링 3회 성공(35 × 3 → 100 상한) 뒤 공격의 피해가 2.0 ~ 3.0배인가
 - **빗나갔을 때 게이지가 남아 있는가** — 남기는 쪽으로 정했다
+- 대상 중복 제거는 **지금 관찰할 수 없다.** 잡귀 3종이 루트 콜라이더 하나씩이라 증상 자체가
+  안 나온다. 다부위 적이나 보스가 들어올 때 함께 본다
 
 **원거리 (활, 신궁)**
 - 총구(높이 1.2, 전방 0.6)에서 나가 자기 몸에 걸리지 않는가
@@ -377,32 +381,12 @@ _targetMask              → 런타임 3072 확인
 
 우선순위 순이다.
 
-### 7.1 `RequestIdTracker`가 상태를 기억하지 못한다 — 결함
-
-```csharp
-private readonly RequestIdTracker _requestIds = new RequestIdTracker();
-```
-
-`RequestIdTracker`는 가변 `struct`인데 필드가 `readonly`다. C#은 `readonly` 구조체 필드의
-인스턴스 메서드를 부를 때 방어 복사본을 만들므로 `TryAccept`가 올린 `_lastAcceptedRequestId`가
-**원본에 남지 않는다.** 결과적으로 0이 아닌 모든 `requestId`가 통과한다.
-
-정상 클라이언트는 ID를 단조 증가시키므로 체감 증상이 없지만, 중복과 역순을 막으려고 넣은
-방어가 실제로는 동작하지 않는다. `readonly`를 지우면 된다. **미수정.**
-
-### 7.2 근접 판정에 대상 중복 제거가 없다
-
-화살은 `netId`로 한 번만 세는데 근접은 그 처리가 없다. 몸통, 발, 무기처럼 한 적에 콜라이더가
-여럿 달려 있으면 **한 번 휘두르기에 여러 번 피해를 준다.**
-
-지금 잡귀 3종은 루트에 콜라이더 하나씩이라 증상이 없다. 보스나 다부위 적이 들어오면 드러난다.
-
-### 7.3 화살이 벽을 통과한다
+### 7.1 화살이 벽을 통과한다
 
 `_targetMask`가 Enemy와 Boss뿐이라 지형과 장애물이 `SphereCast` 후보에 없다. 벽 뒤의 적을
 그대로 맞힌다. 환경 레이어를 마스크에 넣고 먼저 만나면 종료하는 처리가 필요하다.
 
-### 7.4 공격 표현이 전혀 없다
+### 7.2 공격 표현이 전혀 없다
 
 공격 시작을 알리는 `ClientRpc`가 없고 `PlayerAnimationController`에도 공격 트리거가 없다.
 `PlayRoll`만 있다. 지금은 판정만 돌고 모션과 이펙트가 없다.
@@ -410,17 +394,17 @@ private readonly RequestIdTracker _requestIds = new RequestIdTracker();
 거부 결과를 소유자에게 알리는 `TargetRpc`도 없어 클라이언트는 자기 요청이 왜 씹혔는지 모른다.
 예측 표현이 생기면 blend-out 시점을 알기 위해 필요해진다.
 
-### 7.5 무기 손 위치가 미조정
+### 7.3 무기 손 위치가 미조정
 
 `Player.prefab → PlayerWeaponVisual → _bindings` 3개가 전부 0이라 무기가 몸통에 파묻힌다.
 부착 자체는 정상이다. 눈으로 맞추는 작업이라 코드로 정할 수 없다.
 
-### 7.6 화살 sweep 버퍼 포화 처리가 없다
+### 7.4 화살 sweep 버퍼 포화 처리가 없다
 
 `RaycastHit[8]`이 가득 차면 가까운 대상이 누락됐는지 알 수 없는데 지금은 그냥 8개만 처리한다.
 진단 카운터도 없다.
 
-### 7.7 옛 이름이 남아 있다
+### 7.5 옛 이름이 남아 있다
 
 `CharacterKind`로 타입만 바꿨고 `CmdSelectAppearance`, `_appearance`, `HasAppearance`,
 프리팹에 직렬화된 `Appearance` 필드가 옛 이름 그대로다. 직렬화가 걸려 있어
@@ -441,11 +425,11 @@ private readonly RequestIdTracker _requestIds = new RequestIdTracker();
 | 검 수치 | 0.20 / 0.35 / 15 / 2.4 m / 100° | 0.12 / 0.28 / 12 / 2.2 m / 90° | 어느 쪽도 기획 근거가 없는 프로토타입 값이다. SO에 있어 교체가 싸다 |
 | 쿨다운, Active 구간 | 있음 | 없음 (선딜, 후딜만) | 후딜이 곧 다음 공격까지의 간격이라 콤보가 없는 지금은 구분이 결과를 바꾸지 않는다 |
 | 게이지 API | `ServerTryConsume(out float multiplier)` | `ServerTryConsume()` bool, 배수는 `PlayerAttack`이 뽑는다 | 기존 API가 이미 있었고 소비하는 쪽만 없었다. 시그니처를 바꾸지 않고 연결했다 |
-| **게이지 소비 규칙** | **빗나가도 정확히 한 번 소비** | **빗나가면 보존** | 5.3절. 되돌리는 비용이 가장 싼 항목이다 |
+| **게이지 소비 규칙** | **빗나가도 정확히 한 번 소비** | **빗나가면 보존** | 5.3절. 2026-09-03 확정, 뒤집지 않는다 |
 | request 내용 | `RequestId` + `AimDirection` + `CandidateTargetNetId` | `requestId`만 | 락온이 없어 후보 ID가 쓸 데가 없고, 방향은 서버가 읽으면 검증이 필요 없다 |
-| 결과 통지 | `AbilityResultCode` 10종 + `TargetRpc` | 없음, 조용히 `return` | 7.4절. 예측 표현이 없어 아직 받을 쪽이 없다 |
+| 결과 통지 | `AbilityResultCode` 10종 + `TargetRpc` | 없음, 조용히 `return` | 7.2절. 예측 표현이 없어 아직 받을 쪽이 없다 |
 | 화살 수명 | 절대 만료 시각 비교 | `deltaTime` 누적 | 서버 물리 스텝이 고정이라 결과가 같다 |
-| 화살 장애물 | 벽을 만나면 종료 | 통과 | 7.3절, 미구현 |
+| 화살 장애물 | 벽을 만나면 종료 | 통과 | 7.1절, 미구현 |
 | 공격력 원본 | `WeaponCombatSnapshot` 또는 `EquipmentSO` bridge | `CombatConfigSO`의 base power | 4.5절. 04가 들어오면 대체 |
 | 틱 우선순위 | `TICK_PRIORITY_ABILITY(300)` | `PlayerController`의 `MOVEMENT(0)` 틱에 얹음 | 3.3절. 이동을 확정하는 같은 틱에서 판정해야 위치가 흔들리지 않는다 |
 | `AuthorityTickScheduler` 보강 | pending-add, 즉시 무효 표시, 순회 뒤 정리 | **그대로 구현됨** | 갈라지지 않은 유일한 선행 항목이다 |
@@ -486,15 +470,21 @@ context 구조체 셋이 사용처 하나씩만 가진 채 남는다.
 
 순서는 위험도 순이다.
 
-1. **`RequestIdTracker`의 `readonly` 제거** (7.1). 한 단어이고 권위 방어가 걸려 있다
-2. **게이지 소비 규칙 확정** (8장). 지금은 보존, 원본 설계는 소비. `hitCount > 0` 하나다
-3. **몰아서 테스트** (6장). L2 원거리와 L3 전부
-4. **근접 중복 제거** (7.2). 보스가 들어오기 전에
-5. **화살 장애물 처리** (7.3)
-6. **공격 애니메이션과 표현** (7.4). 클립 준비 여부 확인이 선행
-7. **옛 이름 정리** `Appearance → Character` (7.7). 직렬화가 걸려 있어 테스트 전에 넣어야 한다
-8. **락온과 화살 유도**. 락온 대상을 정하는 시스템이 생긴 뒤 기획서 4.1을 붙인다
-9. **방울 기본 공격**. 치유와 버프 설계가 선행
+1. **옛 이름 정리** `Appearance → Character` (7.5). 직렬화가 걸려 있어 테스트 전에 넣어야 한다
+2. **몰아서 테스트** (6장). L2 원거리와 L3 전부
+3. **화살 장애물 처리** (7.1)
+4. **공격 애니메이션과 표현** (7.2). 클립 준비 여부 확인이 선행
+5. **락온과 화살 유도**. 락온 대상을 정하는 시스템이 생긴 뒤 기획서 4.1을 붙인다
+6. **방울 기본 공격**. 치유와 버프 설계가 선행
+
+### 2026-09-03에 닫힌 것
+
+- **`RequestIdTracker`의 `readonly` 제거.** 가변 `struct` 필드가 `readonly`라 메서드 호출마다
+  방어 복사본이 만들어져 `_lastAcceptedRequestId`가 원본에 남지 않았다. 0이 아닌 모든 `requestId`가
+  통과하고 있었다 — 중복과 역순 차단이 이제 실제로 동작한다
+- **근접 대상 중복 제거.** 화살과 같은 canonical 루트 `netId` 규칙을 `ApplyMeleeHit`에 붙였다.
+  한 적에 콜라이더가 여럿이면 한 번 휘두르기에 여러 번 맞던 것을 막는다 — 5.3절
+- **게이지 소비 규칙을 보존으로 확정.** 원본 설계(빗나가도 소비)는 채택하지 않는다 — 5.3절, 8장
 
 ---
 
