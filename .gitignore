@@ -67,6 +67,7 @@ crashlytics-build.properties
 .env
 *.local
 .claude/docs
+.claude/handover
 *.zip
 .mcp.json
 /Assets/Screenshots
