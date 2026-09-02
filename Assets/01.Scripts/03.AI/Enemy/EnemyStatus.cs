@@ -32,6 +32,9 @@ namespace Geumeum.AI
         private float _attackRange         = 0f;
         private float _windupDuration      = 0f;
         private float _attackCooldown      = 0f;
+        private float _patrolRadius        = 0f;
+        private float _patrolIdleDuration  = 0f;
+        private float _patrolWalkDuration  = 0f;
         private float _chargeSpeed         = 0f;
         private float _chargeDistance      = 0f;
         private float _chargeHitRadius     = 0f;
@@ -39,6 +42,9 @@ namespace Geumeum.AI
         private float _parryWindowDuration = 0f;
         private float _projectileSpeed     = 0f;
         private float _retreatRange        = 0f;
+        private int   _hitsToKnockback     = 0;
+        private float _knockbackDuration   = 0f;
+        private int   _hitCount            = 0;
         private bool  _isDead              = false;
 
         /****************************************
@@ -52,6 +58,9 @@ namespace Geumeum.AI
         public float     AttackRange         => _attackRange;
         public float     WindupDuration      => _windupDuration;
         public float     AttackCooldown      => _attackCooldown;
+        public float     PatrolRadius        => _patrolRadius;
+        public float     PatrolIdleDuration  => _patrolIdleDuration;
+        public float     PatrolWalkDuration  => _patrolWalkDuration;
         public float     ChargeSpeed         => _chargeSpeed;
         public float     ChargeDistance      => _chargeDistance;
         public float     ChargeHitRadius     => _chargeHitRadius;
@@ -59,9 +68,19 @@ namespace Geumeum.AI
         public float     ParryWindowDuration => _parryWindowDuration;
         public float     ProjectileSpeed     => _projectileSpeed;
         public float     RetreatRange        => _retreatRange;
+        public float     KnockbackDuration   => _knockbackDuration;
 
         /// <summary> 사망 시 서버에서 발생한다, killerNetId를 전달한다. 이벤트 발행 · 오브젝트 정리는 EnemyController가 한다 </summary>
         public event Action<uint> Died;
+
+        /// <summary> 치명타가 아닌 모든 피격에서 발생한다, attackerNetId 전달. 인지 범위 밖이어도 공격자를 강제 인식시키는 데 쓴다 </summary>
+        public event Action<uint> Damaged;
+
+        /// <summary> 넉백 문턱에 못 미친 일반 피격, 경직 여부는 EnemyController가 Brain 상태를 보고 정한다 </summary>
+        public event Action HitLanded;
+
+        /// <summary> 일반 피격이 HitsToKnockback만큼 누적되면 발생한다 </summary>
+        public event Action Knockback;
 
         /****************************************
         *              Server API
@@ -92,6 +111,9 @@ namespace Geumeum.AI
             _attackRange         = stat.AttackRange;
             _windupDuration      = stat.WindupDuration;
             _attackCooldown      = stat.AttackCooldown;
+            _patrolRadius        = stat.PatrolRadius;
+            _patrolIdleDuration  = stat.PatrolIdleDuration;
+            _patrolWalkDuration  = stat.PatrolWalkDuration;
             _chargeSpeed         = stat.ChargeSpeed;
             _chargeDistance      = stat.ChargeDistance;
             _chargeHitRadius     = stat.ChargeHitRadius;
@@ -99,7 +121,10 @@ namespace Geumeum.AI
             _parryWindowDuration = stat.ParryWindowDuration;
             _projectileSpeed     = stat.ProjectileSpeed;
             _retreatRange        = stat.RetreatRange;
+            _hitsToKnockback     = stat.HitsToKnockback;
+            _knockbackDuration   = stat.KnockbackDuration;
             _health              = _maxHealth;
+            _hitCount            = 0;
             _isDead              = false;
         }
 
@@ -122,7 +147,32 @@ namespace Geumeum.AI
             if (_health <= Constants.Combat.HEALTH_EPSILON)
             {
                 Die(damage.AttackerNetId);
+                return;
             }
+
+            Damaged?.Invoke(damage.AttackerNetId);
+            RegisterHit();
+        }
+
+        /// <summary> 패링 성공 등 넉백을 즉시 강제할 때 호출한다, 일반 피격 누적과 별도 경로다 </summary>
+        [Server]
+        public void ResetHitCount()
+        {
+            _hitCount = 0;
+        }
+
+        [Server]
+        private void RegisterHit()
+        {
+            ++_hitCount;
+            if (_hitCount >= _hitsToKnockback)
+            {
+                _hitCount = 0;
+                Knockback?.Invoke();
+                return;
+            }
+
+            HitLanded?.Invoke();
         }
 
         [Server]

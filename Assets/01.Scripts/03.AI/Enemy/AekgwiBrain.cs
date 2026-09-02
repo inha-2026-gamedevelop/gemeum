@@ -1,6 +1,9 @@
 // Unity
 using UnityEngine;
 
+// 프로젝트 내부
+using Geumeum.Common;
+
 namespace Geumeum.AI
 {
     /// <summary>
@@ -18,16 +21,22 @@ namespace Geumeum.AI
             Idle,      // 대상 없음 또는 인지 범위 밖
             Chase,     // 인지 범위 안, 시전 사거리 밖 — 접근 필요
             Retreat,   // 시전 사거리 안이지만 대상이 너무 가까움 — 거리를 벌린다
+            Return,    // 스폰 지점 기준 리시 범위를 벗어나 추적을 포기하고 복귀 중
             Telegraph, // 사거리 유지 구간, 선딜 진행 중
             Cast,      // 선딜 끝, 이번 틱에 투사체 발사
             Cooldown,  // 시전 직후 재시전 대기
+            Stagger,   // 비공격 상태에서 일반 피격을 당해 경직
+            Knockback, // 피격 누적 문턱 도달 또는 패링당해 넉백
         }
 
         /****************************************
         *                Fields
         ****************************************/
 
-        private const float RETREAT_MARGIN = 1.5f; // 후퇴 목적지를 RetreatRange보다 이만큼 더 벌려 왕복 떨림을 막는다
+        private const float RETREAT_MARGIN   = 1.5f; // 후퇴 목적지를 RetreatRange보다 이만큼 더 벌려 왕복 떨림을 막는다
+        private const float ARRIVAL_EPSILON  = 0.3f; // 복귀 목적지(스폰 지점) 도달 판정 여유
+
+        private readonly Vector3 _spawnPosition; // 리시 판정과 복귀 목적지의 기준점
 
         private BrainState _state       = BrainState.Idle;
         private float      _stateTimer  = 0f;
@@ -39,17 +48,26 @@ namespace Geumeum.AI
 
         public BrainState State => _state;
 
-        public override bool ShouldChase     => (_state == BrainState.Chase) || (_state == BrainState.Retreat);
+        public override bool ShouldChase     => (_state == BrainState.Chase) || (_state == BrainState.Retreat) || (_state == BrainState.Return);
         public override bool ShouldAttackNow => _state == BrainState.Cast;
         public override bool IsRangedAttack  => true;
 
-        public override Vector3? ChaseDestinationOverride => (_state == BrainState.Retreat) ? _retreatDestination : (Vector3?)null;
+        public override Vector3? ChaseDestinationOverride =>
+            (_state == BrainState.Retreat) ? _retreatDestination :
+            (_state == BrainState.Return)  ? _spawnPosition : (Vector3?)null;
+
+        public override bool IsAttackCommitted => (_state == BrainState.Telegraph) || (_state == BrainState.Cast);
+
+        public override EnemyVisualState VisualState => ToVisualState(_state);
 
         /****************************************
         *              Constructor
         ****************************************/
 
-        public AekgwiBrain(Transform self, EnemyStatus status) : base(self, status) { }
+        public AekgwiBrain(Transform self, EnemyStatus status) : base(self, status)
+        {
+            _spawnPosition = self.position;
+        }
 
         /****************************************
         *                Methods
@@ -73,6 +91,9 @@ namespace Geumeum.AI
                 case BrainState.Retreat:
                     TickRetreat();
                     break;
+                case BrainState.Return:
+                    TickReturn();
+                    break;
                 case BrainState.Telegraph:
                     TickTelegraph(deltaTime);
                     break;
@@ -82,7 +103,48 @@ namespace Geumeum.AI
                 case BrainState.Cooldown:
                     TickCooldown(deltaTime);
                     break;
+                case BrainState.Stagger:
+                    TickStagger(deltaTime);
+                    break;
+                case BrainState.Knockback:
+                    TickKnockback(deltaTime);
+                    break;
             }
+        }
+
+        /// <summary> 비공격 상태에서 일반 피격을 당하면 EnemyController가 호출한다 </summary>
+        public override void EnterStagger()
+        {
+            if (Status.IsDead || (_state == BrainState.Knockback))
+            {
+                return; // 넉백 중에는 더 약한 경직으로 덮어쓰지 않는다
+            }
+
+            _state      = BrainState.Stagger;
+            _stateTimer = 0f;
+        }
+
+        /// <summary> 피격 누적 문턱 도달 시 EnemyController가 호출한다 </summary>
+        public override void EnterKnockback()
+        {
+            if (Status.IsDead)
+            {
+                return;
+            }
+
+            _state      = BrainState.Knockback;
+            _stateTimer = 0f;
+        }
+
+        /// <summary> 인지 범위 밖에서 공격당했을 때 EnemyController가 호출한다 </summary>
+        public override void ForceAggro()
+        {
+            if (Status.IsDead || (_state != BrainState.Idle))
+            {
+                return; // 이미 다른 행동 중이면 끼어들지 않는다
+            }
+
+            _state = BrainState.Chase;
         }
 
         private void TickIdle()
@@ -101,6 +163,12 @@ namespace Geumeum.AI
 
         private void TickChase()
         {
+            if (IsBeyondLeash())
+            {
+                EnterReturn();
+                return;
+            }
+
             if (!EvaluateRange())
             {
                 return;
@@ -115,6 +183,12 @@ namespace Geumeum.AI
 
         private void TickRetreat()
         {
+            if (IsBeyondLeash())
+            {
+                EnterReturn();
+                return;
+            }
+
             if (!EvaluateRange())
             {
                 return;
@@ -124,6 +198,27 @@ namespace Geumeum.AI
             if (distance >= Status.RetreatRange)
             {
                 EnterCastBand(distance);
+            }
+        }
+
+        /// <summary> 스폰 지점 기준 리시(AggroRange) 밖으로 나갔으면 true, 추적을 포기하고 복귀시킨다 </summary>
+        private bool IsBeyondLeash()
+        {
+            return Vector3.Distance(Self.position, _spawnPosition) > Status.AggroRange;
+        }
+
+        private void EnterReturn()
+        {
+            Target      = null; // 복귀 중에는 새 타겟도 무시한다, 스폰 지점에 도착해야 다시 인지한다
+            _state      = BrainState.Return;
+            _stateTimer = 0f;
+        }
+
+        private void TickReturn()
+        {
+            if (Vector3.Distance(Self.position, _spawnPosition) <= ARRIVAL_EPSILON)
+            {
+                _state = BrainState.Idle;
             }
         }
 
@@ -188,6 +283,41 @@ namespace Geumeum.AI
 
             _state      = BrainState.Telegraph;
             _stateTimer = 0f;
+        }
+
+        private void TickStagger(float deltaTime)
+        {
+            _stateTimer += deltaTime;
+            if (_stateTimer >= Status.StaggerDuration)
+            {
+                _state = BrainState.Idle;
+            }
+        }
+
+        private void TickKnockback(float deltaTime)
+        {
+            _stateTimer += deltaTime;
+            if (_stateTimer >= Status.KnockbackDuration)
+            {
+                _state = BrainState.Idle;
+            }
+        }
+
+        private static EnemyVisualState ToVisualState(BrainState state)
+        {
+            switch (state)
+            {
+                case BrainState.Idle:      return EnemyVisualState.Idle;
+                case BrainState.Chase:     return EnemyVisualState.Move;
+                case BrainState.Retreat:   return EnemyVisualState.Move;
+                case BrainState.Return:    return EnemyVisualState.Move;
+                case BrainState.Telegraph: return EnemyVisualState.Telegraph;
+                case BrainState.Cast:      return EnemyVisualState.Attack;
+                case BrainState.Cooldown:  return EnemyVisualState.Recovery;
+                case BrainState.Stagger:   return EnemyVisualState.Stagger;
+                case BrainState.Knockback: return EnemyVisualState.Knockback;
+                default:                   return EnemyVisualState.Idle;
+            }
         }
     }
 }

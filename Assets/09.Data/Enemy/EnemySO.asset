@@ -27,8 +27,10 @@ MonoBehaviour:
     ChargeSpeed: 0
     ChargeDistance: 0
     ChargeHitRadius: 0
-    StaggerDuration: 0
     ParryWindowDuration: 0
+    StaggerDuration: 0.5
+    HitsToKnockback: 3
+    KnockbackDuration: 1
   - Kind: 1
     DisplayName: "\uCC3D\uADC0"
     MaxHealth: 260
@@ -38,13 +40,18 @@ MonoBehaviour:
     CurrencyMax: 30
     AggroRange: 9
     AttackRange: 6
-    WindupDuration: 0.6
-    AttackCooldown: 2
+    WindupDuration: 1.5
+    AttackCooldown: 3.8
+    PatrolRadius: 5
+    PatrolIdleDuration: 2
+    PatrolWalkDuration: 2
     ChargeSpeed: 9
     ChargeDistance: 7
-    ChargeHitRadius: 1.3
-    StaggerDuration: 1.8
+    ChargeHitRadius: 2.5
     ParryWindowDuration: 0.32
+    StaggerDuration: 0.8
+    HitsToKnockback: 3
+    KnockbackDuration: 4.6
   - Kind: 2
     DisplayName: "\uC561\uADC0"
     MaxHealth: 140
@@ -59,8 +66,10 @@ MonoBehaviour:
     ChargeSpeed: 0
     ChargeDistance: 0
     ChargeHitRadius: 0
-    StaggerDuration: 0
     ParryWindowDuration: 0
+    StaggerDuration: 0.5
+    HitsToKnockback: 3
+    KnockbackDuration: 1
     ProjectileSpeed: 10
     RetreatRange: 4
   _enhances:

@@ -34,12 +34,21 @@ namespace Geumeum.Data
             public float WindupDuration; // 공격 전 선딜 시간(초)
             public float AttackCooldown; // 공격 후 재공격까지 대기 시간(초)
 
+            // 탐색 모드 전용(스폰 지점 배회), 배회하지 않는 종류는 0으로 둔다
+            public float PatrolRadius;       // 스폰 지점 기준 랜덤 이동 반경
+            public float PatrolIdleDuration; // 탐색 모드 제자리 대기 시간(초)
+            public float PatrolWalkDuration; // 탐색 모드 이동 지속 시간(초)
+
             // 돌진형 전용, 돌진하지 않는 종류는 0으로 둔다
             public float ChargeSpeed;      // 돌진 중 이동 속도
             public float ChargeDistance;   // 돌진 최대 거리
             public float ChargeHitRadius;  // 돌진 중 이 거리 안으로 들어오면 명중 판정
-            public float StaggerDuration;  // 패링당했을 때 경직 시간(초)
             public float ParryWindowDuration; // 패링 판정 창 길이(초), 패링 불가 공격은 0
+
+            // 피격 반응 공통
+            public float StaggerDuration;   // 비공격 상태에서 일반 피격 시 경직 시간(초)
+            public int   HitsToKnockback;   // 이 횟수만큼 일반 피격이 누적되면 넉백
+            public float KnockbackDuration; // 넉백(3회 누적 또는 패링 성공) 지속 시간(초)
 
             // 원거리형 전용, 원거리가 아닌 종류는 0으로 둔다
             public float ProjectileSpeed; // 저주 투사체 비행 속도
