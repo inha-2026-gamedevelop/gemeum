@@ -1,3 +1,6 @@
+// System
+using System.Collections.Generic;
+
 // Unity
 using UnityEngine;
 
@@ -60,7 +63,8 @@ namespace Geumeum.Combat
         private ParryController      _parry;
         private ParryGauge           _gauge;
 
-        private readonly RequestIdTracker _requestIds = new RequestIdTracker();
+        // readonly로 두면 메서드 호출마다 방어 복사본이 만들어져 수락 기록이 남지 않는다
+        private RequestIdTracker _requestIds = new RequestIdTracker();
 
         // 판정 시각과 다음 공격이 가능해지는 시각. 서버 시간 기준이다
         private double      _hitServerTime      = 0d;
@@ -71,7 +75,8 @@ namespace Geumeum.Combat
         private uint _nextRequestId = 1u;
 
         // 매번 새로 만들면 공격마다 GC 할당이 생긴다
-        private readonly Collider[] _hitBuffer = new Collider[16];
+        private readonly Collider[] _hitBuffer = new Collider[Constants.Combat.HIT_QUERY_BUFFER_SIZE];
+        private readonly List<uint> _hitNetIds = new List<uint>(Constants.Combat.HIT_QUERY_BUFFER_SIZE);
 
         /****************************************
         *              Public API
@@ -265,6 +270,8 @@ namespace Geumeum.Combat
             float multiplier = (isCritical) ? Random.Range(combat.CriticalMultiplierMin, combat.CriticalMultiplierMax) : 1f;
             int   hitCount   = 0;
 
+            _hitNetIds.Clear();
+
             int count = Physics.OverlapSphereNonAlloc(origin, combat.MeleeRange, _hitBuffer, _targetMask);
 
             for (int i = 0; i < count; ++i)
@@ -289,7 +296,9 @@ namespace Geumeum.Combat
                 }
 
                 // 콜라이더가 자식에 붙어 있는 경우가 있어 root에서 계약을 찾는다
-                if (!hit.transform.root.TryGetComponent(out IDamageable damageable))
+                Transform root = hit.transform.root;
+
+                if (!root.TryGetComponent(out IDamageable damageable))
                 {
                     continue;
                 }
@@ -298,6 +307,19 @@ namespace Geumeum.Combat
                 {
                     continue;
                 }
+
+                // 몸 하나에 콜라이더가 여럿이면 한 번 휘두르기에 여러 번 맞는다. netId로 한 번만 센다
+                if (!root.TryGetComponent(out NetworkIdentity identity))
+                {
+                    continue;
+                }
+
+                if (_hitNetIds.Contains(identity.netId))
+                {
+                    continue;
+                }
+
+                _hitNetIds.Add(identity.netId);
 
                 damageable.TakeDamage(new DamageInfo(
                     combat.MeleeBasePower * multiplier,
