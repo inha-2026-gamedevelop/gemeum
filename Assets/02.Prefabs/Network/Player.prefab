@@ -397,7 +397,7 @@ MonoBehaviour:
   _attackKey: 323
   _targetMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 3072
 --- !u!1001 &1331680180131862316
 PrefabInstance:
   m_ObjectHideFlags: 0
