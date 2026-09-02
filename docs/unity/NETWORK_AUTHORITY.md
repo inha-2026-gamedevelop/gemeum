@@ -155,6 +155,37 @@
 호스트 프로세스에서 발행한 이벤트는 원격 클라이언트에 전달되지 않는다. 지속 상태는
 `SyncVar`/`SyncList`, 전체 일회성 결과는 `ClientRpc`, 개인 결과는 `TargetRpc`로 별도 전달한다.
 
+**9. Mirror의 정적 연결 이벤트에 `+=`로 구독하면 조용히 지워진다.**
+
+`NetworkManager`가 서버·클라이언트를 시작할 때 이 이벤트들을 **대입으로 덮어쓴다.**
+
+```csharp
+// Mirror/Core/NetworkManager.cs
+NetworkServer.OnConnectedEvent    = OnServerConnectInternal;   // += 가 아니다
+NetworkServer.OnDisconnectedEvent = OnServerDisconnect;
+NetworkClient.OnConnectedEvent    = OnClientConnectInternal;
+NetworkClient.OnDisconnectedEvent = OnClientDisconnectInternal;
+```
+
+밖에서 `+=`로 걸어 둔 구독은 `StartHost`/`StartClient`가 불리는 순간 통째로 사라진다.
+**예외도 경고도 없다.** 이벤트가 한 번도 오지 않는 것으로만 드러나므로 원인을 찾기 어렵다.
+
+2026-09-02에 이 함정으로 Steam 세션 단계가 `Ready`로 넘어가지 않았다. 3PC 테스트 로그에서
+`Connection established` 뒤에 단계 전환 로그가 없는 것을 보고서야 찾았다.
+
+**대신 `NetworkManager`를 상속해 콜백을 오버라이드하고, 거기서 프로젝트 이벤트를 다시 낸다.**
+
+```csharp
+public override void OnClientConnect()
+{
+    base.OnClientConnect();
+    ClientConnected?.Invoke();
+}
+```
+
+`GeumeumNetworkManager`가 `ClientConnected`·`ClientDisconnected`를 이 방식으로 제공한다.
+연결 수명을 알아야 하는 코드는 Mirror의 정적 이벤트가 아니라 이쪽을 구독한다.
+
 ### 트랜스포트
 
 Mirror 기본은 **KCP Transport**다. UDP 기반이라 지연이 낮고 별도 설정이 거의 없다.
@@ -217,6 +248,7 @@ Mirror 기본은 **KCP Transport**다. UDP 기반이라 지연이 낮고 별도 
 - [ ] 클라이언트가 게임 결과에 영향을 주는 값을 스스로 계산하지 않는다
 - [ ] 서버가 표현용 값(색, 이펙트 파라미터)을 브로드캐스트하지 않는다
 - [ ] 판정 로직이 `IsHost` 분기 안에 직접 박히지 않았다
+- [ ] Mirror의 정적 연결 이벤트에 `+=`로 구독하지 않았다 (5.5절 함정 9)
 - [ ] 3인 접속 상태에서 테스트했다
 - [ ] 호스트와 클라이언트 양쪽 시점에서 확인했다
 
