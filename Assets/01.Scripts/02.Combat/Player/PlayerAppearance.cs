@@ -25,7 +25,7 @@ namespace Geumeum.Combat
         [Serializable]
         private struct AppearanceModelBinding
         {
-            public AppearanceKind Appearance;
+            public CharacterKind Appearance;
             public GameObject     Model;
         }
 
@@ -35,13 +35,13 @@ namespace Geumeum.Combat
 
         [SerializeField] private AppearanceModelBinding[] _bindings = Array.Empty<AppearanceModelBinding>();
 
-        [SyncVar(hook = nameof(OnAppearanceChanged))]    private AppearanceKind _appearance    = default;
+        [SyncVar(hook = nameof(OnAppearanceChanged))]    private CharacterKind _appearance    = default;
         [SyncVar(hook = nameof(OnHasAppearanceChanged))] private bool           _hasAppearance = false;
 
         private PlayerAnimationController _animation;
         private PlayerWeaponVisual        _weaponVisual;
 
-        private AppearanceKind _appliedAppearance    = default;
+        private CharacterKind _appliedAppearance    = default;
         private bool           _hasAppliedAppearance = false;
 
         /****************************************
@@ -51,7 +51,7 @@ namespace Geumeum.Combat
         /// <summary> 런 시작 전에는 외형이 확정되지 않는다, 기본값을 선택 결과로 읽지 않도록 이 값을 먼저 본다 </summary>
         public bool HasAppearance => _hasAppearance;
 
-        public AppearanceKind Appearance => _appearance;
+        public CharacterKind Appearance => _appearance;
 
         /// <summary> 지금 켜져 있는 외형 모델 루트. 무기 시각화가 오른손 뼈를 찾을 때 쓴다 </summary>
         public GameObject ActiveModel { get; private set; }
@@ -71,7 +71,7 @@ namespace Geumeum.Combat
         ****************************************/
 
         /// <summary> 서버, 클라이언트 모두에서 값이 바뀔 때 호출된다, 판정에는 관여하지 않는다 </summary>
-        private void OnAppearanceChanged(AppearanceKind oldAppearance, AppearanceKind newAppearance)
+        private void OnAppearanceChanged(CharacterKind oldAppearance, CharacterKind newAppearance)
         {
             RefreshAppearance();
         }
@@ -93,7 +93,7 @@ namespace Geumeum.Combat
         /// 이미 확정된 뒤의 재호출은 거부한다, 런 도중 외형이 바뀌면 파티원 식별이 흔들린다
         /// </summary>
         [Server]
-        public bool ServerSetAppearance(AppearanceKind appearance)
+        public bool ServerSetAppearance(CharacterKind appearance)
         {
             if (_hasAppearance)
             {
@@ -135,7 +135,7 @@ namespace Geumeum.Combat
         /// 외형에 매칭되는 모델만 켠다. 매칭되는 모델이 없으면 현재 외형을 보존한다.
         /// 새 외형이 준비되지 않은 상태에서 기존 모델부터 끄면 플레이어가 통째로 사라지기 때문이다
         /// </summary>
-        private void ApplyAppearance(AppearanceKind appearance)
+        private void ApplyAppearance(CharacterKind appearance)
         {
             // 외형과 확정 여부 두 SyncVar가 각각 훅을 걸고 있어 같은 외형으로 두 번 들어올 수 있다
             if ((_hasAppliedAppearance) && (_appliedAppearance == appearance))

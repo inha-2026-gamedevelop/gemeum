@@ -23,7 +23,7 @@ namespace Geumeum.Network
         public bool           HasWeapon;
         public WeaponKind     Weapon;
         public bool           HasAppearance;
-        public AppearanceKind Appearance;
+        public CharacterKind Appearance;
     }
 
     /// <summary>
@@ -43,7 +43,7 @@ namespace Geumeum.Network
             public readonly bool           HasWeapon;
             public readonly WeaponKind     Weapon;
             public readonly bool           HasAppearance;
-            public readonly AppearanceKind Appearance;
+            public readonly CharacterKind Appearance;
 
             public VacatedSeat(Vector3 position, in LobbySlot slot)
             {

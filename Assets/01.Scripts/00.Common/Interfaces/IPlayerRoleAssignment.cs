@@ -13,7 +13,7 @@ namespace Geumeum.Common
         /// 무기와 외형을 함께 확정한다. 한쪽만 적용된 상태를 남기지 않으려고
         /// 둘 다 확정 가능한지 먼저 확인한 뒤에 적용한다
         /// </summary>
-        bool TryCommitRole(WeaponKind weapon, AppearanceKind appearance);
+        bool TryCommitRole(WeaponKind weapon, CharacterKind appearance);
 
         /// <summary> 런이 끝나 로비로 돌아갈 때 확정을 되돌린다. 다음 런의 재배분을 위해 필요하다 </summary>
         void ClearRole();

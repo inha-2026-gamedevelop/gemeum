@@ -22,9 +22,9 @@ namespace Geumeum.Network
             public readonly bool           HasWeapon;
             public readonly WeaponKind     Weapon;
             public readonly bool           HasAppearance;
-            public readonly AppearanceKind Appearance;
+            public readonly CharacterKind Appearance;
 
-            public RoleRequest(bool hasWeapon, WeaponKind weapon, bool hasAppearance, AppearanceKind appearance)
+            public RoleRequest(bool hasWeapon, WeaponKind weapon, bool hasAppearance, CharacterKind appearance)
             {
                 HasWeapon     = hasWeapon;
                 Weapon        = weapon;
@@ -54,7 +54,7 @@ namespace Geumeum.Network
             Random                     serverRandom,
             bool                       forceSword,
             out WeaponKind[]           weapons,
-            out AppearanceKind[]       appearances,
+            out CharacterKind[]       appearances,
             out FailureKind            failure,
             out int                    failedIndex)
         {
@@ -70,7 +70,7 @@ namespace Geumeum.Network
             }
 
             WeaponKind[]     weaponPool     = (WeaponKind[])     Enum.GetValues(typeof(WeaponKind));
-            AppearanceKind[] appearancePool = (AppearanceKind[]) Enum.GetValues(typeof(AppearanceKind));
+            CharacterKind[] appearancePool = (CharacterKind[]) Enum.GetValues(typeof(CharacterKind));
 
             if (weaponPool.Length < requests.Count)
             {
@@ -90,115 +90,48 @@ namespace Geumeum.Network
                 return false;
             }
 
-            if (!TryResolveWeapons(requests, weaponPool, serverRandom, forceSword, out weapons, out failure, out failedIndex))
-            {
-                weapons     = null;
-                appearances = null;
-                return false;
-            }
+            weapons = ResolveWeapons(appearances, forceSword);
 
             return true;
         }
 
-        // 이미 가진 무기는 그대로 두고, 없는 사람에게만 남은 무기를 무작위로 준다.
-        // 재접속 복구에서 직전 런의 직업이 그대로 이어지도록 하려는 것이다
-        private static bool TryResolveWeapons(
-            IReadOnlyList<RoleRequest> requests,
-            WeaponKind[]               pool,
-            Random                     serverRandom,
-            bool                       forceSword,
-            out WeaponKind[]           resolved,
-            out FailureKind            failure,
-            out int                    failedIndex)
+        // 무기는 캐릭터가 정한다. 로비에서 캐릭터를 중복 없이 고르므로 무기도 자연히 중복되지 않는다.
+        // 따로 배분하지 않으니 재접속 복구에서도 같은 캐릭터면 같은 무기가 그대로 돌아온다
+        private static WeaponKind[] ResolveWeapons(CharacterKind[] characters, bool forceSword)
         {
-            resolved    = new WeaponKind[requests.Count];
-            failure     = FailureKind.None;
-            failedIndex = -1;
+            var resolved = new WeaponKind[characters.Length];
 
-            // Dev 설정은 이어받은 무기보다 우선한다, 검 하나로 고정해 두고 보는 용도다
-            if (forceSword)
+            for (int i = 0; i < resolved.Length; ++i)
             {
-                for (int i = 0; i < resolved.Length; ++i)
-                {
-                    resolved[i] = WeaponKind.Sword;
-                }
-
-                return true;
+                // Dev 설정은 검 하나로 고정해 두고 보는 용도다
+                resolved[i] = forceSword ? WeaponKind.Sword : ToWeapon(characters[i]);
             }
 
-            bool[] isTaken = new bool[pool.Length];
+            return resolved;
+        }
 
-            for (int i = 0; i < requests.Count; ++i)
+        /// <summary> 캐릭터에 딸린 무기. 두 enum은 같은 숫자가 같은 직업을 가리키도록 맞춰져 있다 </summary>
+        public static WeaponKind ToWeapon(CharacterKind character)
+        {
+            switch (character)
             {
-                if (!requests[i].HasWeapon)
-                {
-                    continue;
-                }
-
-                int index = Array.IndexOf(pool, requests[i].Weapon);
-
-                if ((index < 0) || (isTaken[index]))
-                {
-                    failure     = FailureKind.InvalidWeapon;
-                    failedIndex = i;
-                    return false;
-                }
-
-                isTaken[index] = true;
-                resolved[i]    = requests[i].Weapon;
+                case CharacterKind.Chasa:   return WeaponKind.Sword;
+                case CharacterKind.Singung: return WeaponKind.Bow;
+                case CharacterKind.Munyeo:  return WeaponKind.Bell;
+                default:                    return WeaponKind.Sword;
             }
-
-            List<WeaponKind> free = new List<WeaponKind>(pool.Length);
-            for (int i = 0; i < pool.Length; ++i)
-            {
-                if (!isTaken[i])
-                {
-                    free.Add(pool[i]);
-                }
-            }
-
-            // 접속 순서나 이름이 아니라 서버 난수로 순열을 만든다
-            for (int i = free.Count - 1; i > 0; --i)
-            {
-                int swapIndex = serverRandom.Next(i + 1);
-
-                WeaponKind temp = free[i];
-                free[i]         = free[swapIndex];
-                free[swapIndex] = temp;
-            }
-
-            int nextFree = 0;
-            for (int i = 0; i < requests.Count; ++i)
-            {
-                if (requests[i].HasWeapon)
-                {
-                    continue;
-                }
-
-                if (nextFree >= free.Count)
-                {
-                    failure     = FailureKind.NoFreeWeapon;
-                    failedIndex = i;
-                    return false;
-                }
-
-                resolved[i] = free[nextFree];
-                ++nextFree;
-            }
-
-            return true;
         }
 
         // 로비에서 고른 외형은 그대로 두고, 고르지 않은 사람에게만 남은 외형을 준다.
         // 무기와 달리 섞지 않는다 - 고른 사람의 선택을 뒤집지 않기 위해서다
         private static bool TryResolveAppearances(
             IReadOnlyList<RoleRequest> requests,
-            AppearanceKind[]           pool,
-            out AppearanceKind[]       resolved,
+            CharacterKind[]           pool,
+            out CharacterKind[]       resolved,
             out FailureKind            failure,
             out int                    failedIndex)
         {
-            resolved    = new AppearanceKind[requests.Count];
+            resolved    = new CharacterKind[requests.Count];
             failure     = FailureKind.None;
             failedIndex = -1;
 

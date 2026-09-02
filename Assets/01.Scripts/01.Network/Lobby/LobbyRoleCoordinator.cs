@@ -102,7 +102,7 @@ namespace Geumeum.Network
                     _serverRandom,
                     _devForceSword,
                     out WeaponKind[]     weapons,
-                    out AppearanceKind[] appearances,
+                    out CharacterKind[] appearances,
                     out LobbyRoleAllocator.FailureKind failure,
                     out int              failedIndex))
             {

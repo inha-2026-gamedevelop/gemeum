@@ -55,7 +55,7 @@ namespace Geumeum.Combat
         /// 둘 다 확정 가능한지 먼저 확인하고, 그래도 실패하면 앞서 적용한 것을 되돌린다
         /// </summary>
         [Server]
-        public bool TryCommitRole(WeaponKind weapon, AppearanceKind appearance)
+        public bool TryCommitRole(WeaponKind weapon, CharacterKind appearance)
         {
             if ((_weapon == null) || (_appearance == null))
             {

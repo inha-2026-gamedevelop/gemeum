@@ -152,7 +152,7 @@ namespace Geumeum.Network
         /// 고르지 않은 채 런이 시작되면 서버가 남은 외형을 배정한다
         /// </summary>
         [Command(requiresAuthority = false)]
-        public void CmdSelectAppearance(AppearanceKind appearance, NetworkConnectionToClient sender = null)
+        public void CmdSelectAppearance(CharacterKind appearance, NetworkConnectionToClient sender = null)
         {
             if ((sender == null) || (IsAdmissionLocked()))
             {
@@ -160,7 +160,7 @@ namespace Geumeum.Network
             }
 
             // 클라이언트가 보낸 값은 신뢰하지 않는다, 정의되지 않은 enum 값이 슬롯에 들어가면 모델 바인딩이 어긋난다
-            if (!Enum.IsDefined(typeof(AppearanceKind), appearance))
+            if (!Enum.IsDefined(typeof(CharacterKind), appearance))
             {
                 Debug.LogWarning($"[LobbyController] 정의되지 않은 외형 선택을 무시했다: connectionId={sender.connectionId}, appearance={appearance}", this);
                 return;
