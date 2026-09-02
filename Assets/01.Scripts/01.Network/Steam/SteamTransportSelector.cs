@@ -41,6 +41,19 @@ namespace Geumeum.Network
         public bool IsSteamPath { get; private set; } = false;
 
         /****************************************
+        *              Public API
+        ****************************************/
+
+        /// <summary>
+        /// 이 트랜스포트가 Steam 경로인지. 신원 소스 선택과 부트 게이트의 짝 검사가 같은 답을 써야 해서
+        /// 판정을 여기 하나로 모았다, 두 곳이 갈리면 게이트를 통과한 조합이 런타임에 어긋난다
+        /// </summary>
+        public static bool IsSteamTransport(Transport transport)
+        {
+            return (transport is FizzySteamworks);
+        }
+
+        /****************************************
         *              Unity Event
         ****************************************/
 

@@ -38,5 +38,7 @@ namespace Geumeum.Network
         AdmissionLocked = 3, // 런이 진행 중이라 새 사람을 받지 않는다
         DuplicateId     = 4, // 같은 신원이 이미 붙어 있다
         LobbyFull       = 5, // 정원이 찼다
+        NotLobbyMember  = 6, // Steam 로비 멤버가 아니다
+        StaleSession    = 7, // 세션 nonce가 다르다, 이전 호스트의 접속 정보로 보인다
     }
 }

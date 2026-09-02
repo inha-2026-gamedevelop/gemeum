@@ -96,7 +96,7 @@ namespace Geumeum.Network
                 return;
             }
 
-            bool   isSteamTransport = (manager.transport != null) && (manager.transport.GetType().Name.Contains("Fizzy"));
+            bool   isSteamTransport = SteamTransportSelector.IsSteamTransport(manager.transport);
             string expected         = isSteamTransport ? "Steam" : "Dev";
 
             if (!string.Equals(identity, expected, StringComparison.Ordinal))
