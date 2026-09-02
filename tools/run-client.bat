@@ -14,6 +14,12 @@ set "PORT=%~2"
 if "%PORT%"=="" set "PORT=7777"
 
 if "%IP%"=="" set /p "IP=호스트 IP를 입력한다 (예: 118.37.238.46): "
+
+rem 재접속해도 같은 사람으로 알아보려면 신원이 고정되어야 한다.
+rem connectionId는 재접속마다 바뀌므로 신원으로 쓸 수 없다
+set "PLATFORMID=%~3"
+if "%PLATFORMID%"=="" set /p "PLATFORMID=이 클라이언트의 번호 (1001, 1002, 1003 등): "
+if "%PLATFORMID%"=="" set "PLATFORMID=1001"
 if "%IP%"=="" (
     echo IP가 없어 종료한다.
     pause
@@ -39,7 +45,7 @@ echo   %IP%:%PORT% 로 접속한다 ^(UDP^)
 echo   3명이 모두 접속해야 런이 시작된다.
 echo.
 
-start "" "%EXE%" -client %IP% -port %PORT% -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "%LOGDIR%\client.log"
+start "" "%EXE%" -client %IP% -port %PORT% -platformid %PLATFORMID% -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "%LOGDIR%\client.log"
 echo 클라이언트를 시작했다. 로그: %LOGDIR%\client.log
 exit /b 0
 

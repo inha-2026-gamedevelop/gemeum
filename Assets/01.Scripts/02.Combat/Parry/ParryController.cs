@@ -140,9 +140,10 @@ namespace Geumeum.Combat
 
             CombatConfigSO combat = GameDB.Combat;
             RunPhase       phase  = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
+            bool           paused = ((RunManager.ServerInstance != null) && (RunManager.ServerInstance.IsPaused));
 
             // 4. RunPhase + PlayerLifeState
-            if (!PlayerActionGate.CanAct(phase, _status.LifeState))
+            if (!PlayerActionGate.CanAct(phase, _status.LifeState, paused))
             {
                 TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedState, now);
                 return;

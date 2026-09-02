@@ -16,6 +16,9 @@ namespace Geumeum.Combat
         /// <summary> 현재 생명 상태 </summary>
         public PlayerLifeState LifeState { get; }
 
+        /// <summary> 이탈자를 기다리며 런이 얼어 있다 </summary>
+        public bool IsPaused { get; }
+
         /// <summary> 행동에 필요한 무기를 장착했는지 여부 </summary>
         public bool HasRequiredWeapon { get; }
 
@@ -42,6 +45,7 @@ namespace Geumeum.Combat
         public PlayerActionContext(
             RunPhase phase,
             PlayerLifeState lifeState,
+            bool isPaused,
             bool hasRequiredWeapon,
             bool isActionInProgress,
             double serverTime,
@@ -51,6 +55,7 @@ namespace Geumeum.Combat
         {
             Phase                 = phase;
             LifeState             = lifeState;
+            IsPaused              = isPaused;
             HasRequiredWeapon     = hasRequiredWeapon;
             IsActionInProgress    = isActionInProgress;
             ServerTime            = serverTime;

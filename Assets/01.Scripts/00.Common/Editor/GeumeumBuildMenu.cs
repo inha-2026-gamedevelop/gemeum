@@ -38,7 +38,15 @@ namespace Geumeum.EditorTools
         {
             "run-host.bat",
             "run-client.bat",
+            "run-steam-host.bat",
+            "run-steam-client.bat",
+            "show-steam-host-id.ps1",
+            "show-steam-client-result.ps1",
         };
+
+        // SteamAPI.Init은 exe 옆의 이 파일에서 AppID를 읽는다. 없으면 Steam 경로가 초기화에서 막힌다.
+        // tools가 아니라 프로젝트 루트에 있어 따로 복사한다. 릴리스에는 넣지 않는다 - 실제 AppID로 출시하면 불필요하다
+        private const string STEAM_APPID_FILE = "steam_appid.txt";
 
         private const int ORDER_DEVELOPMENT = 0;
         private const int ORDER_RELEASE     = 1;
@@ -127,24 +135,30 @@ namespace Geumeum.EditorTools
         {
             string toolsPath = Path.Combine(ProjectRoot(), TOOLS_DIR);
 
+            CopyIfExists(Path.Combine(ProjectRoot(), STEAM_APPID_FILE), Path.Combine(outputPath, STEAM_APPID_FILE));
+
             for (int i = 0; i < DEVELOPMENT_EXTRA_FILES.Length; ++i)
             {
                 string source = Path.Combine(toolsPath, DEVELOPMENT_EXTRA_FILES[i]);
+                CopyIfExists(source, Path.Combine(outputPath, DEVELOPMENT_EXTRA_FILES[i]));
+            }
+        }
 
-                if (!File.Exists(source))
-                {
-                    UnityEngine.Debug.LogWarning($"[그믐] 빌드에 넣을 파일이 없다: {source}");
-                    continue;
-                }
+        private static void CopyIfExists(string source, string destination)
+        {
+            if (!File.Exists(source))
+            {
+                UnityEngine.Debug.LogWarning($"[그믐] 빌드에 넣을 파일이 없다: {source}");
+                return;
+            }
 
-                try
-                {
-                    File.Copy(source, Path.Combine(outputPath, DEVELOPMENT_EXTRA_FILES[i]), true);
-                }
-                catch (IOException exception)
-                {
-                    UnityEngine.Debug.LogWarning($"[그믐] {DEVELOPMENT_EXTRA_FILES[i]} 복사 실패: {exception.Message}");
-                }
+            try
+            {
+                File.Copy(source, destination, true);
+            }
+            catch (IOException exception)
+            {
+                UnityEngine.Debug.LogWarning($"[그믐] {Path.GetFileName(source)} 복사 실패: {exception.Message}");
             }
         }
 

@@ -59,6 +59,7 @@ GameObject:
   - component: {fileID: -8642913932917621867}
   - component: {fileID: 8453312051497649988}
   - component: {fileID: 9067144143854285685}
+  - component: {fileID: 9146201717757255985}
   m_Layer: 9
   m_Name: Player
   m_TagString: Untagged
@@ -95,7 +96,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
   sceneId: 0
-  _assetId: 1563421951
+  _assetId: 0
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
@@ -346,7 +347,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1766fba1f2f2856419e74ba3190a11f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.PlayerWeaponVisual
-  _swordModelSource: {fileID: 919132149155446097, guid: 5744b4c87eb38e3408125a17d7417503, type: 3}
+  _bindings:
+  - Weapon: 0
+    ModelSource: {fileID: 5440681128991838293, guid: 7cbdbf45ed1096442b9ea4937807b987, type: 3}
+    LocalPosition: {x: 0, y: 0, z: 0}
+    LocalEuler: {x: 0, y: 0, z: 0}
+    LocalScale: {x: 1, y: 1, z: 1}
+  - Weapon: 1
+    ModelSource: {fileID: 4323518947930549456, guid: df04cd600bc61fd4495e0ff65b7a6e23, type: 3}
+    LocalPosition: {x: 0, y: 0, z: 0}
+    LocalEuler: {x: 0, y: 0, z: 0}
+    LocalScale: {x: 1, y: 1, z: 1}
+  - Weapon: 2
+    ModelSource: {fileID: 5874793521582390674, guid: 7ec68a1ad808c6548aa108e066deab1f, type: 3}
+    LocalPosition: {x: 0, y: 0, z: 0}
+    LocalEuler: {x: 0, y: 0, z: 0}
+    LocalScale: {x: 1, y: 1, z: 1}
+--- !u!114 &9146201717757255985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2067ce5722badf4ab0d0ecc0381f2c9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.PlayerRunAgent
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1001 &1331680180131862316
 PrefabInstance:
   m_ObjectHideFlags: 0

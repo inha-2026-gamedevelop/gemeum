@@ -25,6 +25,9 @@ namespace Geumeum.Network
         [Tooltip("이 키로 호스트를 시작한다. NetworkManagerHUD 없이 붙기 위한 Dev 씬 전용이고, Main.unity에서는 None으로 둔다")]
         [SerializeField] private KeyCode _devStartHostKey = KeyCode.None;
 
+        [Tooltip("일시정지된 런을 포기한다. UI가 붙기 전까지 호스트가 대기를 끊는 유일한 수단이다")]
+        [SerializeField] private KeyCode _devAbandonRunKey = KeyCode.None;
+
         /****************************************
         *              Properties
         ****************************************/
@@ -46,6 +49,8 @@ namespace Geumeum.Network
         {
             base.Update();
 
+            TryAbandonPausedRun();
+
             if ((_devStartHostKey == KeyCode.None) || isNetworkActive)
             {
                 return;
@@ -56,6 +61,29 @@ namespace Geumeum.Network
                 Debug.Log($"[GeumeumNetworkManager] Dev 단축키({_devStartHostKey})로 호스트를 시작한다");
                 StartHost();
             }
+        }
+
+        // UI가 붙기 전까지 호스트가 대기를 끊는 유일한 수단이다
+        private void TryAbandonPausedRun()
+        {
+            if ((_devAbandonRunKey == KeyCode.None) || (!NetworkServer.active))
+            {
+                return;
+            }
+
+            if (!Input.GetKeyDown(_devAbandonRunKey))
+            {
+                return;
+            }
+
+            RunManager run = RunManager.ServerInstance;
+            if ((run == null) || (!run.IsPaused))
+            {
+                return;
+            }
+
+            Debug.Log($"[GeumeumNetworkManager] Dev 단축키({_devAbandonRunKey})로 대기 중인 런을 포기한다");
+            run.AbortRun("호스트가 대기를 끊었다");
         }
 
         /****************************************
@@ -90,16 +118,13 @@ namespace Geumeum.Network
 
         public override void OnServerConnect(NetworkConnectionToClient conn)
         {
-            // 런이 시작된 뒤의 신규 접속과 재접속은 받지 않는다
-            if (IsAdmissionLocked)
-            {
-                Debug.Log($"[GeumeumNetworkManager] 런 진행 중이라 접속을 거부한다: connectionId={conn.connectionId}");
-                conn.Disconnect();
-                return;
-            }
-
+            // 입장 잠금과 신원 검증은 GeumeumAuthenticator가 한다.
+            // Mirror 96은 인증에 성공한 연결만 여기로 보내므로 여기서 다시 막지 않는다
             base.OnServerConnect(conn);
-            Debug.Log($"[GeumeumNetworkManager] 접속: connectionId={conn.connectionId}, 현재 인원={numPlayers}");
+
+            // TODO(민성): 0단계 스파이크 관측용이다. Steam 경로에서 address가 SteamID64로 오는지 확인한 뒤 정리한다.
+            // 이 값이 기대와 다르면 플랫폼 ID 설계 전체를 다시 잡아야 한다
+            Debug.Log($"[GeumeumNetworkManager] 접속: connectionId={conn.connectionId}, address={conn.address}, 현재 인원={numPlayers}");
         }
 
         public override void OnServerAddPlayer(NetworkConnectionToClient conn)
@@ -124,7 +149,9 @@ namespace Geumeum.Network
                 LobbyController.ServerInstance.ServerRemoveSlot(conn);
             }
 
-            AbortRunOnLeave(conn);
+            GeumeumAuthenticator.ServerInstance?.ServerForget(conn.connectionId);
+
+            PauseRunOnLeave(conn);
 
             base.OnServerDisconnect(conn);
         }
@@ -137,6 +164,12 @@ namespace Geumeum.Network
         public void LockAdmission()
         {
             IsAdmissionLocked = true;
+        }
+
+        /// <summary> 런이 끝나 로비로 돌아갈 때 입장을 다시 연다. RunManager만 호출한다 </summary>
+        public void UnlockAdmission()
+        {
+            IsAdmissionLocked = false;
         }
 
         /****************************************
@@ -157,15 +190,21 @@ namespace Geumeum.Network
             StopServer();
         }
 
-        // 런 도중 누가 빠지면 남은 런을 중단하고 리더보드에 기록하지 않는다
-        private void AbortRunOnLeave(NetworkConnectionToClient conn)
+        // 런 도중 누가 빠지면 끝내지 않고 얼린다. 보스전 30분을 진행하다 한 명이 튕겼다고
+        // 런을 버리면 복구가 아니라 손실이다. 돌아올 수 있도록 입장도 다시 연다
+        private void PauseRunOnLeave(NetworkConnectionToClient conn)
         {
             if (RunManager.ServerInstance == null)
             {
                 return;
             }
 
-            RunManager.ServerInstance.AbortRun($"connectionId={conn.connectionId} 이탈");
+            if (!RunManager.ServerInstance.PauseRun($"connectionId={conn.connectionId} 이탈"))
+            {
+                return; // 로비였거나 이미 멈춰 있다
+            }
+
+            UnlockAdmission();
         }
     }
 }

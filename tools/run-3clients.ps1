@@ -8,13 +8,26 @@
 
 param(
     [int]    $Count = 3,
-    [string] $ExePath = "Builds\Windows\Gemeum.exe",
+    [string] $ExePath = "",
     [switch] $Kill
 )
 
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+
+# 실행 인자(-platformid 등)는 개발 빌드에서만 동작한다. NetworkLaunchArgs가 DEVELOPMENT_BUILD로 감싸여 있다
+if ([string]::IsNullOrEmpty($ExePath))
+{
+    $candidates = @('Builds\Development\gemeum.exe', 'Builds\Windows64\Gemeum.exe')
+    foreach ($candidate in $candidates)
+    {
+        if (Test-Path (Join-Path $repoRoot $candidate)) { $ExePath = $candidate; break }
+    }
+
+    if ([string]::IsNullOrEmpty($ExePath)) { $ExePath = $candidates[0] }
+}
+
 $exe      = Join-Path $repoRoot $ExePath
 $procName = [System.IO.Path]::GetFileNameWithoutExtension($exe)
 
@@ -36,7 +49,8 @@ if ($Kill)
 if (-not (Test-Path $exe))
 {
     Write-Output "빌드를 찾을 수 없다: $exe"
-    Write-Output "Unity에서 Build를 먼저 실행할 것"
+    Write-Output "Unity에서 [그믐 - 빌드 - 개발용 빌드]를 먼저 실행할 것"
+    Write-Output "릴리스 빌드로는 -platformid 같은 실행 인자가 동작하지 않는다"
     return
 }
 
@@ -75,7 +89,7 @@ $top = $screen.Y + [int](($screen.Height - $winH) / 2)
 
 Write-Output "화면 $($screen.Width)x$($screen.Height), 창 ${winW}x${winH} $Count개"
 
-$logDir = Join-Path $repoRoot 'build\logs'
+$logDir = Join-Path (Split-Path -Parent $exe) 'logs'
 if (-not (Test-Path $logDir))
 {
     New-Item -ItemType Directory -Path $logDir -Force | Out-Null
@@ -85,12 +99,18 @@ $started = @()
 for ($i = 0; $i -lt $Count; $i++)
 {
     $log = Join-Path $logDir "client$i.log"
+    # 창마다 고정된 신원을 준다. 없으면 재접속 때 다른 사람으로 취급되어
+    # 자리와 역할 복구가 동작하지 않는다. 값은 창 순서에 묶여 다시 켜도 같다
+    $platformId = 1001 + $i
+
     $launchArgs = @(
+        '-platformid', "$platformId",
         '-screen-fullscreen', '0',
         '-screen-width',  "$winW",
         '-screen-height', "$winH",
         '-logFile', $log
     )
+    Write-Output "  $i 번 창 platformId=$platformId"
     $started += Start-Process -FilePath $exe -ArgumentList $launchArgs -PassThru
     Start-Sleep -Milliseconds 500
 }

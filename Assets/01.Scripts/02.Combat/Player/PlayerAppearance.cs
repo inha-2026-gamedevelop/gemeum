@@ -106,6 +106,17 @@ namespace Geumeum.Combat
             return true;
         }
 
+        /// <summary>
+        /// 런이 끝나 로비로 돌아갈 때 확정을 되돌린다. LobbyController만 호출한다.
+        /// RefreshAppearance는 확정되지 않은 상태에서 아무것도 하지 않으므로 모델은 그대로 남는다,
+        /// 로비에서 캐릭터가 사라지지 않게 하려는 의도다
+        /// </summary>
+        [Server]
+        public void ServerClearForNewRun()
+        {
+            _hasAppearance = false;
+        }
+
         /****************************************
         *                Methods
         ****************************************/

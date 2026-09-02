@@ -184,12 +184,16 @@ Main.unity
 ├ Types/                   namespace Geumeum.Common — 파트 공용 열거형·값 타입
 │  ├ DamageInfo.cs         struct 서버가 확정한 피해량 · 공격자 netId · HitStrength
 │  ├ HitStrength.cs        enum 타격감 강도 (Light · Heavy · Critical)
-│  └ WeaponKind.cs         enum 무기 종류 = 직업 (Sword · Bow · Bell)
+│  ├ WeaponKind.cs         enum 무기 종류 = 직업 (Sword · Bow · Bell)
+│  └ PlayerPlatformId.cs   struct 재접속에도 유지되는 신원. Steam은 SteamID64, 개발은 실행 인자값
 └ Interfaces/              namespace Geumeum.Common — 파트 간 경계 → 8장
    ├ IDamageable.cs        피해를 받을 수 있는 대상 (플레이어 · 잡귀 · 보스)
    ├ IParryable.cs         패링당할 수 있는 공격의 계약
    ├ IInteractable.cs      상호작용 대상 (객주, 드랍 아이템)
    ├ ICombatFeedback.cs    타격감 호출부 (전투가 호출, 아트가 구현) → 8.3
+   ├ IPlayerRoleAssignment.cs 무기 · 외형을 원자적으로 확정하는 계약. 로비가 Combat 타입을
+                              직접 참조하지 않도록 하는 경계다
+   ├ IPlayerRunLifecycle.cs   런 경계에서 플레이어를 옮기고 상태를 되돌리는 계약
    └ CombatFeedbackLocator.cs static ICombatFeedback 등록·조회. 기본값은 아무것도 하지
                               않는 NullCombatFeedback → 8.3
 ```
@@ -203,8 +207,22 @@ Main.unity
 ├ GeumeumNetworkManager.cs NM  Mirror NetworkManager 상속. 호스트 생성 · 접속 · 해제,
 │                              최대 3명. 플레이어 프리팹 등록과 연결 수명만 담당
 ├ ServerBootGate.cs        static GameDB · 런 타임라인 · Transport · 네트워크 프리팹 검사
-├ LobbyController.cs       NB  3명 준비 상태와 런 시작 요청을 서버에서 관리. 런 시작 시
-│                              검·활·방울을 중복 없이 배분하고, 이후 신규 접속·재접속 거부
+├ LobbyController.cs       NB  준비 상태와 런 시작 게이트. 슬롯 저장과 역할 배분을 아래 두 곳에
+│                              맡기고 외부에는 기존 API를 그대로 노출하는 파사드를 겸한다
+├ GeumeumAuthenticator.cs  NA  접속 승인 게이트. 빌드, 신원, 입장 잠금, 중복 신원을 한 번에 본다.
+│                              Mirror 96은 인증 성공 후에만 OnServerConnect를 부르므로
+│                              입장 검증이 여기 있다 [현재]
+├ Identity/
+│  ├ IPlayerIdentitySource.cs  원격 연결 -> PlatformId. 트랜스포트마다 신원 출처가 달라 여기서 갈린다
+│  ├ DevIdentitySource.cs   MB 개발 KCP 경로. 클라가 보낸 값을 그대로 믿으므로 개발 빌드 밖에서 거부한다
+│  └ AuthMessages.cs        struct 인증 요청, 응답, 거부 사유. 형식은 2단계에서 확정했다
+├ Lobby/
+│  ├ LobbyRoster.cs        NB  슬롯 목록(SyncList) 소유, 신원 해석, 이탈 자리 보존과 반환
+│  ├ LobbyRoleCoordinator.cs NB 배분기 호출, 역할 확정, 런 리셋, 일시정지 재개 시 역할 복원
+│  └ LobbySlot.cs          struct 네트워크 직렬화 값 타입. PlatformId가 슬롯의 키다
+├ LobbyRoleAllocator.cs    C#  무기 셔플과 외형 충돌 해결만 담는 순수 계산기. Mirror와
+│                              UnityEngine에 의존하지 않아 접속 없이 결과를 검증할 수 있다.
+│                              이미 가진 무기·외형은 보존해 재접속 후에도 직업이 바뀌지 않는다
 ├ RunManager.cs            NB  런 상태 머신 + 경과 시간 → 5장. 프로젝트의 심장
 ├ RunPhase.cs              C#  enum { Lobby, Farming, Shrink1, Shrink2, Shrink3, Boss, Result }
 │                              직렬화되므로 명시값 고정, 재배열 금지
@@ -413,6 +431,8 @@ UI는 게임 상태를 **읽기만** 한다. UI에서 상태를 직접 바꾸는
 RunManager : NetworkBehaviour
 ├ SyncVar  float ElapsedSeconds     서버가 관리하는 유일한 경과 시간 원본
 ├ SyncVar  RunPhase Phase           Lobby → Farming → Shrink1 → Shrink2 → Shrink3 → Boss → Result
+│                                   Result → Lobby 만 역방향 (런 재시작, 2026-09-02)
+├ SyncVar  bool IsPaused            이탈자를 기다리며 얼어 있다. phase와 직교한다
 ├ local    RunPhaseChangedEvent     GameEventBus로 서버 프로세스 내부 구간 전환 통지
 └ int      FieldLevel               Phase에서 파생 — 드랍 가중치 · 잡귀 강화 배수의 키
 ```
@@ -433,10 +453,57 @@ RunManager : NetworkBehaviour
 | `Shrink2` | 실시간 20:00 | 실시간 29:30 | 결계 축소·객주 개방, FieldLevel 2 |
 | `Shrink3` | 실시간 29:30 | 실시간 30:00 | 보스맵 이동, 신규 잡귀 스폰 중단, FieldLevel 3 |
 | `Boss` | 실시간 30:00 | 보스 사망 또는 실시간 40:00 | 결계 피해 종료, 보스 전투 또는 시간 초과 실패 |
-| `Result` | 승리·실패·전멸·이탈 | 정산 완료 | 점수 계산, 성공 런만 리더보드 등록 |
+| `Result` | 승리·실패·전멸·이탈 대기 종료 | 정산 완료 후 `Lobby` 복귀 | 점수 계산, 성공 런만 리더보드 등록 |
 
 `57cb59d`에서 실제로 구현된 전환은 타임라인 경계·시간 초과·런 중 이탈이다.
 보스 사망, 전멸, 종료 사유, 점수 정산과 결계·스폰 구독자 side effect는 아직 구현 계약이다.
+
+#### 슬롯의 키는 connectionId가 아니라 PlatformId다 [현재]
+
+`connectionId`는 재접속마다 새로 발급되어 같은 사람을 알아볼 수 없다. 그래서 슬롯과 이탈 자리 보존은
+`PlayerPlatformId`로 키를 잡는다. Steam 빌드는 FizzySteamworks가 `conn.address`로 주는 SteamID64를,
+개발 KCP 경로는 실행 인자 `-platformid`를 쓴다.
+
+**개발 경로에서 `-platformid`를 주지 않으면 자리와 역할이 복구되지 않는다.** 호스트는 `connectionId`가
+항상 0이라 고정값을 쓸 수 있지만 원격은 그렇지 않다. `DevIdentitySource`가 이 경우 경고를 남기고,
+`tools/run-3clients.ps1`과 `run-client.bat`이 창마다 고정 신원을 넘긴다.
+
+신원으로 키를 잡으면서 두 명 이상이 동시에 이탈해도 각자 자기 자리로 돌아온다.
+예전 선입선출 큐에서는 돌아오는 순서에 따라 자리가 뒤바뀔 수 있었다.
+
+#### 이탈은 런을 끝내지 않는다 - 일시정지 [현재]
+
+런 도중 누가 빠지면 `Result`로 확정하지 않고 `RunManager.PauseRun`이 세계를 얼린다.
+보스전 30분을 진행하다 한 명이 튕겼다고 런을 버리면 복구가 아니라 손실이기 때문이다.
+멈춰 있는 동안 phase와 경과 시간이 그대로 보존되고, 입장 잠금이 풀려 이탈자가 돌아올 수 있다.
+
+일시정지는 `RunPhase` 값이 아니라 **별도 SyncVar**다. 보스전에서 멈췄다 보스전으로 돌아오므로
+phase와 직교하고, `RunPhase`에 값을 더하면 전진 전용 가드와 타임라인 순서 의미가 깨진다.
+
+- 정지: 서버 시뮬레이션(`AuthorityTickScheduler`)과 런 시계를 멈춘다
+- 입력: `PlayerActionGate.CanAct`가 `isPaused`를 함께 보므로 남은 사람도 움직이지 않는다
+- 예측: `IsPaused`가 SyncVar라 소유 클라이언트도 읽고 로컬 예측을 중단한다. 안 그러면 재개 때 되돌아간다
+- 재개: 돌아온 사람이 두고 간 자리와 역할을 물려받고, 멈춰 있던 시간만큼 시계를 밀어 경과 시간을 보존한다
+- 포기: 대기를 끊으면 그때 `PlayerLeft`로 확정하고 아래 복귀 경로를 탄다
+
+기다리는 시간에 제한은 없다 [현재]. 남은 인원이 대기를 끊는 UI는 아직 없어 Dev 단축키로만 가능하다 [계획].
+
+#### Result → Lobby 복귀 [현재]
+
+`Result`는 종착점이 아니다. 도달하고 `Constants.Network.RESULT_TO_LOBBY_SECONDS` 뒤에
+`RunManager.ServerReturnToLobby`가 `Lobby`로 되돌린다. 같은 프레임에 되돌리지 않는 이유는
+SyncVar가 마지막 값만 보내 클라이언트가 `Result`를 아예 수신하지 못하기 때문이다.
+
+복귀 시 서버가 하는 일은 셋이다. 입장 잠금 해제, 로비 슬롯의 준비·무기·외형 플래그 초기화,
+플레이어의 `PlayerWeapon`·`PlayerAppearance` 역할 확정과 `PlayerStatus` 시작값 복원.
+플레이어 컴포넌트까지 되돌리지 않으면 다음 런의 역할 배분이 "이미 확정됨"으로 거부된다.
+
+전환 자체는 `RunManager` 안에서 전진 전용 가드(`CommitPhase`)와 실제 커밋(`SetPhase`)을
+나눠 처리한다. 역방향은 `SetPhase`만 허용하므로 런 시계가 지나간 경계를 되돌릴 수는 없다.
+outcome은 여전히 `TryFinishRun`이 한 번만 커밋한다.
+
+`SpawnManager`의 생존 잡귀 정리는 아직 없다 [계획]. 한 서버 세션에서 두 번째 런을 열면
+이전 런의 잡귀가 남는다.
 
 `FieldLevel 3`은 일반 잡귀 드랍에 사용하지 않고 보스 처치 후 팀 보상에 한 번만 사용한다. `Result`로 전환하면 모든 입력·드랍·구매 요청을 거부한다.
 
@@ -479,7 +546,12 @@ Assets/09.Data/
 └ DayCycle/DayCycleSO.asset   ← 유일하게 네트워크와 무관한 순수 로컬 리소스
 ```
 
-`GameDBBootstrap`만 `Resources/GameDB.asset`을 로드해 `GameDB.Initialize()`를 호출한다. `@Managers`의 초기화 순서는 `GameDBBootstrap` → `GameEventBus` → 네트워크 매니저이며, 소비 컴포넌트는 `Awake`의 필드 초기화식이 아니라 `Start`·`OnStartServer` 이후에 GameDB를 읽는다. 루트 DB나 필수 참조가 없으면 조용히 기본값으로 진행하지 않고 초기화 오류로 중단한다. 서버와 클라이언트는 같은 빌드의 GameDB를 사용한다.
+`GameDBBootstrap`만 `Resources/GameDB.asset`을 로드해 `GameDB.Initialize()`를 호출한다.
+호출 시점은 `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]`로 **씬 로드보다 앞이다.** `@Managers`에는
+`NetworkIdentity`가 있어 Mirror가 서버를 열 때까지 오브젝트를 비활성으로 두는데, 그 위의 `Awake`에서
+초기화하면 `ServerBootGate`가 서버를 열기 전에 빈 GameDB를 보게 되어 순환이 된다(실행 인자로 호스트를
+자동 시작하는 개발 빌드에서 드러났다). 컴포넌트의 `Awake`도 같은 경로를 호출하지만 이미 채워져 있으면
+아무것도 하지 않는다. 소비 컴포넌트는 `Awake`의 필드 초기화식이 아니라 `Start`·`OnStartServer` 이후에 GameDB를 읽는다. 루트 DB나 필수 참조가 없으면 조용히 기본값으로 진행하지 않고 초기화 오류로 중단한다. 서버와 클라이언트는 같은 빌드의 GameDB를 사용한다.
 
 새 데이터 도메인 추가 절차: [기술 구현 3.1](03-technical-design.md)에 항목 추가 → `*SO` 클래스 → `GameDatabaseSO` 참조 → `GameDB` 프로퍼티 → 에셋 생성 ([밸런스 데이터 작업](unity/BALANCE_DATA_WORKFLOW.md)).
 
@@ -596,7 +668,7 @@ _combatFeedback.PlayCritical(multiplier);
 | 잡귀 · 보스 AI, 결계 | 서버 | EnemyBrain*, BossPhase*, BarrierController |
 | 드랍 · 노잣돈 · 소유권 · 경험치 | 서버 | EquipmentGenerator, CurrencyManager, GrowthManager |
 | 사망 · 부활 · 전멸 감지 | 서버 | ReviveController |
-| 런 종료 · `Result` 커밋 | 서버 | RunManager |
+| 런 종료 · `Result` 커밋 · 일시정지 · `Lobby` 복귀 | 서버 | RunManager |
 | 조명 · 카메라 · 이펙트 · 사운드 · UI | 클라 로컬 | 05.Art, 06.UI, CameraRig |
 | 보스 예고 장판 · 결계선 · 액귀 투사체 | **서버가 이벤트, 클라가 렌더링** | BossPatternTelegraph 등 |
 

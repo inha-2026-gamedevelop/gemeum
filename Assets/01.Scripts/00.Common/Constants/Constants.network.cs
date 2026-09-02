@@ -7,6 +7,11 @@ namespace Geumeum.Common
         {
             public const int MAX_PLAYERS = 3; // 접속 정원
 
+            // 런이 Result로 확정된 뒤 로비로 되돌아가기까지 두는 시간(초). 이 사이에 클라이언트가
+            // Result phase를 실제로 수신한다, 0으로 두면 같은 프레임에 Lobby로 덮여 전달되지 않는다.
+            // UI 파트가 붙으면 자동 복귀 대신 남은 인원의 선택으로 바꾼다
+            public const float RESULT_TO_LOBBY_SECONDS = 5f;
+
             public const float SERVER_TICK_INTERVAL   = 1f / 60f; // 서버 판정 틱 간격(초)
             public const float RUN_TIME_SYNC_INTERVAL = 0.5f;     // 경과 시간 동기화 주기(초), 클라는 이 사이를 보간한다
 

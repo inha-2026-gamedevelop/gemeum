@@ -28,10 +28,16 @@ namespace Geumeum.Network
         [SyncVar] private RunPhase   _phase          = RunPhase.Lobby;
         [SyncVar] private RunOutcome _outcome        = RunOutcome.None;
 
+        // 일시정지는 phase가 아니라 별도 상태다. 보스전에서 멈췄다 보스전으로 돌아오므로
+        // RunPhase에 값을 더하면 전진 전용 가드와 타임라인 순서 의미가 깨진다
+        [SyncVar] private bool _isPaused = false;
+
         private RunPhaseTimeline _timeline               = null;  // 서버 전용
         private double           _runStartServerTime     = 0.0;   // 서버 전용, NetworkTime.time 기준
         private float            _previousElapsedSeconds = 0f;    // 서버 전용, 이번 틱에 지나간 경계를 가려낸다
         private Coroutine        _tickRoutine            = null;
+        private Coroutine        _returnRoutine          = null;   // 서버 전용, Result -> Lobby 복귀 대기
+        private double           _pauseStartServerTime   = 0.0;    // 서버 전용, 멈춘 시각. 재개할 때 시계를 이만큼 민다
 
         private readonly List<RunPhase> _enteredBuffer = new List<RunPhase>();
         private WaitForSeconds          _tickWait      = null;
@@ -42,6 +48,12 @@ namespace Geumeum.Network
 
         /// <summary> 서버 프로세스의 인스턴스, 클라이언트에서는 null이다 </summary>
         public static RunManager ServerInstance { get; private set; }
+
+        /// <summary> 서버와 클라이언트 양쪽에서 읽는 인스턴스. 판정이 아니라 표현과 예측 차단에만 쓴다 </summary>
+        public static RunManager LocalInstance { get; private set; }
+
+        /// <summary> 이탈자를 기다리며 세계가 얼어 있다. 시계도 멈춘다 </summary>
+        public bool IsPaused => _isPaused;
 
         public float      ElapsedSeconds => _elapsedSeconds;
         public RunPhase   Phase          => _phase;
@@ -81,9 +93,23 @@ namespace Geumeum.Network
         *              Server Callbacks
         ****************************************/
 
+        public override void OnStartClient()
+        {
+            LocalInstance = this;
+        }
+
+        public override void OnStopClient()
+        {
+            if (LocalInstance == this)
+            {
+                LocalInstance = null;
+            }
+        }
+
         public override void OnStartServer()
         {
             ServerInstance = this;
+            LocalInstance  = this; // 호스트가 아닌 전용 서버에서는 OnStartClient가 오지 않는다
 
             // 같은 씬에서 StopHost->StartHost로 재시작해도 이전 런의 phase, 시각이 남지 않게 한다
             ServerResetState();
@@ -95,6 +121,7 @@ namespace Geumeum.Network
         public override void OnStopServer()
         {
             StopTick();
+            StopReturnToLobby();
 
             if (ServerInstance == this)
             {
@@ -140,17 +167,65 @@ namespace Geumeum.Network
         [Server]
         public bool TryFinishRun(RunOutcome outcome)
         {
-            if ((_phase == RunPhase.Result) || (outcome == RunOutcome.None))
+            // 로비에서의 이탈은 끝낼 런이 없다. 여기서 막지 않으면 시작도 안 한 런이 Result로 확정된다
+            if ((_phase == RunPhase.Lobby) || (_phase == RunPhase.Result) || (outcome == RunOutcome.None))
             {
                 return false;
             }
 
-            _outcome = outcome;
+            _outcome  = outcome;
+            _isPaused = false; // 얼어 있던 채로 끝날 수 있다, 남겨 두면 다음 런까지 따라간다
+
             StopTick();
             CommitPhase(RunPhase.Result);
 
             // 등록은 그대로 두고 이동, AI, 자원 회복 tick만 멈춘다. 새 런 시작 때만 다시 켠다
             AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(false);
+
+            StartReturnToLobby();
+            return true;
+        }
+
+        /// <summary>
+        /// 이탈한 사람을 기다리며 런을 얼린다. Result로 확정하지 않으므로 phase와 경과 시간이 보존된다.
+        /// 보스전 도중에 멈췄다면 재개도 보스전에서 이어진다
+        /// </summary>
+        [Server]
+        public bool PauseRun(string reason)
+        {
+            if ((_isPaused) || (_phase == RunPhase.Lobby) || (_phase == RunPhase.Result))
+            {
+                return false;
+            }
+
+            _isPaused             = true;
+            _pauseStartServerTime = NetworkTime.time;
+
+            StopTick();
+            AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(false);
+
+            Debug.Log($"[RunManager] 런을 일시정지했다: {reason}, phase={_phase}, 경과={_elapsedSeconds:F1}초");
+            return true;
+        }
+
+        /// <summary> 기다리던 사람이 돌아와 런을 재개한다. 멈춰 있던 시간만큼 시계를 밀어 경과 시간을 보존한다 </summary>
+        [Server]
+        public bool ResumeRun()
+        {
+            if (!_isPaused)
+            {
+                return false;
+            }
+
+            // 시계는 NetworkTime.time에서 역산하므로, 시작 시각을 멈춘 만큼 미뤄야 경과 시간이 그대로다
+            _runStartServerTime += (NetworkTime.time - _pauseStartServerTime);
+            _pauseStartServerTime = 0.0;
+            _isPaused             = false;
+
+            AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(true);
+            StartTick();
+
+            Debug.Log($"[RunManager] 런을 재개했다: phase={_phase}, 경과={_elapsedSeconds:F1}초");
             return true;
         }
 
@@ -169,17 +244,81 @@ namespace Geumeum.Network
         public void ServerResetState()
         {
             StopTick();
+            StopReturnToLobby();
 
             _phase                  = RunPhase.Lobby;
             _outcome                = RunOutcome.None;
+            _isPaused               = false;
+            _pauseStartServerTime   = 0.0;
             _elapsedSeconds         = 0f;
             _previousElapsedSeconds = 0f;
             _runStartServerTime     = 0.0;
         }
 
+        /// <summary>
+        /// Result로 끝난 런을 로비 상태로 되돌린다. 입장 잠금을 풀고 로비 슬롯의 준비 상태를 비워
+        /// 서버를 껐다 켜지 않고도 다음 런을 시작할 수 있게 한다. _outcome은 지우지 않는다,
+        /// 다음 StartRun이 None으로 되돌리므로 그때까지는 직전 런의 결과를 읽을 수 있다
+        /// </summary>
+        [Server]
+        public void ServerReturnToLobby()
+        {
+            if (_phase != RunPhase.Result)
+            {
+                return;
+            }
+
+            StopReturnToLobby();
+
+            _elapsedSeconds         = 0f;
+            _previousElapsedSeconds = 0f;
+            _runStartServerTime     = 0.0;
+
+            SetPhase(RunPhase.Lobby);
+
+            GeumeumNetworkManager manager = NetworkManager.singleton as GeumeumNetworkManager;
+            if (manager == null)
+            {
+                Debug.LogError("[RunManager] GeumeumNetworkManager를 찾지 못해 입장 잠금을 풀지 못했다", this);
+            }
+            else
+            {
+                manager.UnlockAdmission();
+            }
+
+            LobbyController.ServerInstance?.ServerResetForNewRun();
+            Debug.Log("[RunManager] 로비로 복귀했다, 입장 잠금 해제");
+        }
+
         /****************************************
         *                Methods
         ****************************************/
+
+        private void StartReturnToLobby()
+        {
+            StopReturnToLobby();
+            _returnRoutine = StartCoroutine(CoReturnToLobby());
+        }
+
+        private void StopReturnToLobby()
+        {
+            if (_returnRoutine == null)
+            {
+                return;
+            }
+
+            StopCoroutine(_returnRoutine);
+            _returnRoutine = null;
+        }
+
+        // Result를 같은 프레임에 Lobby로 덮으면 SyncVar가 마지막 값만 보내 클라이언트가 Result를 못 본다
+        private IEnumerator CoReturnToLobby()
+        {
+            yield return new WaitForSeconds(Constants.Network.RESULT_TO_LOBBY_SECONDS);
+
+            _returnRoutine = null;
+            ServerReturnToLobby();
+        }
 
         private void StartTick()
         {
@@ -240,10 +379,22 @@ namespace Geumeum.Network
             }
         }
 
-        // 상태를 먼저 커밋한 뒤 서버 로컬 이벤트를 한 번만 발행한다
+        // 런 진행 중의 전진 전환이다. 시계로 지나간 경계만 커밋하므로 뒤로는 가지 않는다
         private void CommitPhase(RunPhase next)
         {
             if (next <= _phase)
+            {
+                return;
+            }
+
+            SetPhase(next);
+        }
+
+        // 상태를 먼저 커밋한 뒤 서버 로컬 이벤트를 한 번만 발행한다.
+        // Result -> Lobby 복귀는 유일한 역방향 전환이라 CommitPhase의 전진 조건을 거치지 않는다
+        private void SetPhase(RunPhase next)
+        {
+            if (next == _phase)
             {
                 return;
             }

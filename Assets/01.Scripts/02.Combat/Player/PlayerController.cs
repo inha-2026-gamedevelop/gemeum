@@ -75,11 +75,15 @@ namespace Geumeum.Combat
                 return;
             }
 
-            // 구르기는 서버가 방향, 속도를 대신 정하고, 쓰러진 뒤에는 서버가 이동을 아예 거부한다.
-            // 두 구간에서 로컬 예측을 계속하면 서버 위치와 벌어지기만 해 재조정이 고무줄이 된다.
-            // 서버 phase는 소유 클라이언트가 알 수 없으므로 클라이언트가 아는 상태만 본다
+            // 구르기는 서버가 방향, 속도를 대신 정하고, 쓰러진 뒤에는 서버가 이동을 아예 거부하며,
+            // 일시정지 중에는 서버 시뮬레이션 자체가 멈춘다. 이 구간에서 로컬 예측을 계속하면
+            // 서버 위치와 벌어지기만 해 재조정이 고무줄이 된다.
+            // 일시정지는 SyncVar라 소유 클라이언트도 읽을 수 있다
+            bool isPaused = ((RunManager.LocalInstance != null) && (RunManager.LocalInstance.IsPaused));
+
             bool isServerDrivenMotion = (((_roll != null) && (_roll.IsRolling))
-                || ((_status != null) && (_status.IsDead)));
+                || ((_status != null) && (_status.IsDead))
+                || (isPaused));
 
             _prediction.SetSuspended(isServerDrivenMotion);
 
@@ -195,6 +199,32 @@ namespace Geumeum.Combat
         }
 
         /****************************************
+        *              Server API
+        ****************************************/
+
+        /// <summary>
+        /// 서버 위치를 즉시 옮기고 소유 클라이언트에 스냅샷을 보낸다.
+        /// 재접속한 사람을 끊기 직전 자리로 되돌릴 때 LobbyController가 호출한다
+        /// </summary>
+        [Server]
+        public void ServerTeleport(Vector3 position)
+        {
+            if (_rigidbody == null)
+            {
+                transform.position = position;
+                return;
+            }
+
+            // 남은 속도를 그대로 두면 도착 직후 이전 진행 방향으로 밀린다
+            _rigidbody.linearVelocity = Vector3.zero;
+            _rigidbody.position       = position;
+            transform.position        = position;
+
+            // 재조정 상한(PLAYER_RECONCILE_SNAP)을 넘는 거리라 클라이언트는 보간 없이 즉시 맞춘다
+            TargetMoveSnapshot(position, _lastProcessedSequence);
+        }
+
+        /****************************************
         *              Commands
         ****************************************/
 
@@ -238,8 +268,9 @@ namespace Geumeum.Combat
             DrainInputBuffer();
 
             RunPhase        phase     = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
+            bool            isPaused  = ((RunManager.ServerInstance != null) && (RunManager.ServerInstance.IsPaused));
             PlayerLifeState lifeState = (_status != null) ? _status.LifeState : PlayerLifeState.Alive;
-            bool            canMove   = PlayerActionGate.CanAct(phase, lifeState);
+            bool            canMove   = PlayerActionGate.CanAct(phase, lifeState, isPaused);
             double          now       = NetworkTime.time;
 
             if (_roll != null)

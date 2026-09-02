@@ -260,6 +260,10 @@ GameObject:
   - component: {fileID: 80988257}
   - component: {fileID: 80988260}
   - component: {fileID: 80988261}
+  - component: {fileID: 80988263}
+  - component: {fileID: 80988262}
+  - component: {fileID: 80988265}
+  - component: {fileID: 80988264}
   m_Layer: 0
   m_Name: '@Network'
   m_TagString: Untagged
@@ -321,7 +325,7 @@ MonoBehaviour:
   maxConnections: 100
   disconnectInactiveConnections: 0
   disconnectInactiveTimeout: 60
-  authenticator: {fileID: 0}
+  authenticator: {fileID: 80988264}
   playerPrefab: {fileID: 3550045087523702412, guid: 8f5c9810227dfc2479ff5353eba9047d, type: 3}
   autoCreatePlayer: 1
   playerSpawnMethod: 1
@@ -342,6 +346,7 @@ MonoBehaviour:
   evaluationInterval: 3
   timeInterpolationGui: 0
   _devStartHostKey: 282
+  _devAbandonRunKey: 284
 --- !u!4 &80988259
 Transform:
   m_ObjectHideFlags: 0
@@ -383,6 +388,67 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77898bbb5d550cb4695c6537fe285833, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.NetworkLaunchArgs
+--- !u!114 &80988262
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 80988256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08b3bbec8a44a5e4490cbfd725eed4c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.SteamTransportSelector
+  _steamTransport: {fileID: 80988263}
+--- !u!114 &80988263
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 80988256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6e55fca1f4e4844593a3dd65a3ecb39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FizzySteamworks::Mirror.FizzySteam.FizzySteamworks
+  Channels: 0200000001000000
+  Timeout: 25
+  AllowSteamRelay: 1
+  UseNextGenSteamNetworking: 1
+--- !u!114 &80988264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 80988256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a77349c9743340a43a374fcaf4d2ccfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.GeumeumAuthenticator
+  OnServerAuthenticated:
+    m_PersistentCalls:
+      m_Calls: []
+  OnClientAuthenticated:
+    m_PersistentCalls:
+      m_Calls: []
+  _buildId: dev
+  _identitySourceBehaviour: {fileID: 80988265}
+--- !u!114 &80988265
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 80988256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5bd998b29842aa54ab2fdfcc2e584668, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.DevIdentitySource
 --- !u!1 &97160430
 GameObject:
   m_ObjectHideFlags: 0
@@ -838,6 +904,8 @@ GameObject:
   - component: {fileID: 328390364}
   - component: {fileID: 328390363}
   - component: {fileID: 328390367}
+  - component: {fileID: 328390369}
+  - component: {fileID: 328390368}
   m_Layer: 0
   m_Name: '@Managers'
   m_TagString: Untagged
@@ -903,8 +971,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   _devAutoReady: 1
-  _devMinPlayers: 1
-  _devForceSword: 1
+  _devMinPlayers: 3
 --- !u!114 &328390365
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -949,6 +1016,37 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+--- !u!114 &328390368
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 328390360}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f07f966441a0e84f9e423c0870f74e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.LobbyRoleCoordinator
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _devForceSword: 0
+--- !u!114 &328390369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 328390360}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b160ce53276f7e4d9a8a0830d2bb525, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.LobbyRoster
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1 &415473198
 GameObject:
   m_ObjectHideFlags: 0
@@ -988,6 +1086,50 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 3, y: 0, z: -3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &664478288
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 664478290}
+  - component: {fileID: 664478289}
+  m_Layer: 0
+  m_Name: '@Steam'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &664478289
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 664478288}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca98360392c98304e8909019b3b08456, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SteamManager
+--- !u!4 &664478290
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 664478288}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1585,3 +1727,4 @@ SceneRoots:
   - {fileID: 216532109}
   - {fileID: 970351608}
   - {fileID: 742261464}
+  - {fileID: 664478290}

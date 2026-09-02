@@ -8,32 +8,17 @@ using UnityEngine;
 using Mirror;
 
 // 프로젝트 내부
-using Geumeum.Combat;
 using Geumeum.Common;
 
 namespace Geumeum.Network
 {
     /// <summary>
-    /// 로비의 준비 상태와 런 시작 게이트.
-    /// 정확히 3명이 준비되어야 시작하고, 시작 순간 입장을 잠근 뒤 무기를 중복 없이 배분한다
+    /// 로비의 준비 상태와 런 시작 게이트. 정확히 3명이 준비되어야 시작한다.
+    /// 슬롯 저장은 LobbyRoster가, 역할 배분은 LobbyRoleCoordinator가 맡고
+    /// 여기서는 두 곳을 잇는 파사드 역할도 겸한다
     /// </summary>
     public class LobbyController : NetworkBehaviour
     {
-        /****************************************
-        *                Types
-        ****************************************/
-
-        /// <summary> 로비 슬롯 하나. 외형은 로비에서 고르고, 무기는 런 시작 시점에만 채워진다 </summary>
-        public struct LobbySlot
-        {
-            public int            ConnectionId;
-            public bool           IsReady;
-            public bool           HasWeapon;
-            public WeaponKind     Weapon;
-            public bool           HasAppearance;
-            public AppearanceKind Appearance;
-        }
-
         /****************************************
         *                Fields
         ****************************************/
@@ -44,21 +29,12 @@ namespace Geumeum.Network
         [Tooltip("런을 시작하는 데 필요한 인원. 혼자 이동, 모션을 확인하려고 낮추는 Dev 씬 전용 값이고, Main.unity에서는 반드시 3으로 둔다")]
         [SerializeField] private int _devMinPlayers = Constants.Network.MAX_PLAYERS;
 
-        [Tooltip("무기를 무작위 배분하지 않고 전원에게 검을 준다. 패링처럼 검 전용 기능을 혼자 테스트할 때 쓰는 Dev 씬 전용 값이고, Main.unity에서는 반드시 꺼 둔다")]
-        [SerializeField] private bool _devForceSword = false;
-
-        private readonly SyncList<LobbySlot> _slots = new SyncList<LobbySlot>();
-
-        private System.Random _serverRandom = null; // 서버 전용, 역할 배분의 유일한 난수원
-
         /****************************************
         *              Properties
         ****************************************/
 
         /// <summary> 서버 프로세스의 인스턴스, 클라이언트에서는 null이다 </summary>
         public static LobbyController ServerInstance { get; private set; }
-
-        public int SlotCount => _slots.Count;
 
         /****************************************
         *              Server Callbacks
@@ -67,8 +43,6 @@ namespace Geumeum.Network
         public override void OnStartServer()
         {
             ServerInstance = this;
-            _serverRandom  = new System.Random();
-            _slots.Clear();
         }
 
         public override void OnStopServer()
@@ -87,25 +61,25 @@ namespace Geumeum.Network
         [Server]
         public void ServerAddSlot(NetworkConnectionToClient conn)
         {
-            if (conn == null)
+            LobbyRoster roster = LobbyRoster.ServerInstance;
+            if (roster == null)
+            {
+                Debug.LogError("[LobbyController] 로스터가 없어 슬롯을 만들지 못했다", this);
+                return;
+            }
+
+            if (!roster.ServerAddSlot(conn))
             {
                 return;
             }
 
-            if (TryFindSlotIndex(conn.connectionId, out int _))
+            roster.ServerRestoreVacatedSeat(conn);
+
+            // 얼어 있는 런에 돌아온 것이면 로비 준비 절차를 거치지 않는다, 하던 런을 이어서 재개한다
+            if (TryResumePausedRun(conn))
             {
                 return;
             }
-
-            _slots.Add(new LobbySlot
-            {
-                ConnectionId  = conn.connectionId,
-                IsReady       = false,
-                HasWeapon     = false,
-                Weapon        = default,
-                HasAppearance = false,
-                Appearance    = default,
-            });
 
             if (_devAutoReady)
             {
@@ -117,26 +91,40 @@ namespace Geumeum.Network
         [Server]
         public void ServerRemoveSlot(NetworkConnectionToClient conn)
         {
-            if (conn == null)
+            LobbyRoster.ServerInstance?.ServerRemoveSlot(conn);
+        }
+
+        /// <summary> 런이 끝나 로비로 돌아올 때 준비 상태와 역할 확정을 되돌린다. RunManager만 호출한다 </summary>
+        [Server]
+        public void ServerResetForNewRun()
+        {
+            LobbyRoleCoordinator.ServerInstance?.ServerResetForNewRun();
+
+            if (!_devAutoReady)
             {
                 return;
             }
 
-            if (!TryFindSlotIndex(conn.connectionId, out int index))
+            LobbyRoster roster = LobbyRoster.ServerInstance;
+            if (roster == null)
             {
                 return;
             }
 
-            _slots.RemoveAt(index);
+            // SetSlotReady가 매번 TryStartRun을 부르지만 정원이 찼을 때만 통과하므로 마지막 한 번만 연다
+            for (int i = 0; i < roster.SlotCount; ++i)
+            {
+                SetSlotReady(roster.GetSlot(i).ConnectionId, true);
+            }
         }
 
         /// <summary> 배분된 무기를 조회한다, 런 시작 전에는 false </summary>
         public bool TryGetWeapon(int connectionId, out WeaponKind weapon)
         {
-            if ((TryFindSlotIndex(connectionId, out int index)) && (_slots[index].HasWeapon))
+            LobbyRoster roster = LobbyRoster.ServerInstance;
+            if (roster != null)
             {
-                weapon = _slots[index].Weapon;
-                return true;
+                return roster.TryGetWeapon(connectionId, out weapon);
             }
 
             weapon = default;
@@ -151,12 +139,7 @@ namespace Geumeum.Network
         [Command(requiresAuthority = false)]
         public void CmdSetReady(bool isReady, NetworkConnectionToClient sender = null)
         {
-            if (sender == null)
-            {
-                return;
-            }
-
-            if (IsAdmissionLocked())
+            if ((sender == null) || (IsAdmissionLocked()))
             {
                 return;
             }
@@ -171,12 +154,7 @@ namespace Geumeum.Network
         [Command(requiresAuthority = false)]
         public void CmdSelectAppearance(AppearanceKind appearance, NetworkConnectionToClient sender = null)
         {
-            if (sender == null)
-            {
-                return;
-            }
-
-            if (IsAdmissionLocked())
+            if ((sender == null) || (IsAdmissionLocked()))
             {
                 return;
             }
@@ -188,30 +166,32 @@ namespace Geumeum.Network
                 return;
             }
 
-            if (!TryFindSlotIndex(sender.connectionId, out int index))
+            LobbyRoster roster = LobbyRoster.ServerInstance;
+            if ((roster == null) || (!roster.TryFindSlotIndex(sender.connectionId, out int index)))
             {
                 Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 외형 선택을 무시했다: connectionId={sender.connectionId}", this);
                 return;
             }
 
             // 3인칭 오버숄더라 같은 외형이 둘이면 파티원을 구분할 수 없다
-            for (int i = 0; i < _slots.Count; ++i)
+            for (int i = 0; i < roster.SlotCount; ++i)
             {
                 if (i == index)
                 {
                     continue;
                 }
 
-                if ((_slots[i].HasAppearance) && (_slots[i].Appearance == appearance))
+                LobbySlot other = roster.GetSlot(i);
+                if ((other.HasAppearance) && (other.Appearance == appearance))
                 {
                     return;
                 }
             }
 
-            LobbySlot slot     = _slots[index];
+            LobbySlot slot     = roster.GetSlot(index);
             slot.HasAppearance = true;
             slot.Appearance    = appearance;
-            _slots[index]      = slot;
+            roster.SetSlot(index, slot);
         }
 
         /****************************************
@@ -222,20 +202,21 @@ namespace Geumeum.Network
         [Server]
         private void SetSlotReady(int connectionId, bool isReady)
         {
-            if (!TryFindSlotIndex(connectionId, out int index))
+            LobbyRoster roster = LobbyRoster.ServerInstance;
+            if ((roster == null) || (!roster.TryFindSlotIndex(connectionId, out int index)))
             {
                 Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 준비 요청을 무시했다: connectionId={connectionId}", this);
                 return;
             }
 
-            LobbySlot slot = _slots[index];
+            LobbySlot slot = roster.GetSlot(index);
             if (slot.IsReady == isReady)
             {
                 return;
             }
 
-            slot.IsReady  = isReady;
-            _slots[index] = slot;
+            slot.IsReady = isReady;
+            roster.SetSlot(index, slot);
 
             TryStartRun();
         }
@@ -244,9 +225,10 @@ namespace Geumeum.Network
         [Server]
         private void TryStartRun()
         {
-            if (RunManager.ServerInstance == null)
+            LobbyRoster roster = LobbyRoster.ServerInstance;
+            if ((roster == null) || (RunManager.ServerInstance == null))
             {
-                Debug.LogError("[LobbyController] RunManager가 없어 런을 시작할 수 없다", this);
+                Debug.LogError("[LobbyController] 로스터나 RunManager가 없어 런을 시작할 수 없다", this);
                 return;
             }
 
@@ -256,21 +238,21 @@ namespace Geumeum.Network
             }
 
             int requiredPlayers = ResolveRequiredPlayers();
-            if (_slots.Count != requiredPlayers)
+            if (roster.SlotCount != requiredPlayers)
             {
                 return;
             }
 
-            for (int i = 0; i < _slots.Count; ++i)
+            for (int i = 0; i < roster.SlotCount; ++i)
             {
-                if (!_slots[i].IsReady)
+                if (!roster.GetSlot(i).IsReady)
                 {
                     return;
                 }
             }
 
             // 무기와 외형이 세 명 모두에게 실제로 적용된 뒤에만 런을 연다
-            if (!AssignRoles())
+            if ((LobbyRoleCoordinator.ServerInstance == null) || (!LobbyRoleCoordinator.ServerInstance.ServerAssignRoles()))
             {
                 return;
             }
@@ -285,6 +267,33 @@ namespace Geumeum.Network
             RunManager.ServerInstance.StartRun();
         }
 
+        // 일시정지된 런에 인원이 다시 찼으면 역할을 되돌려 주고 재개한다
+        [Server]
+        private bool TryResumePausedRun(NetworkConnectionToClient conn)
+        {
+            RunManager run = RunManager.ServerInstance;
+            if ((run == null) || (!run.IsPaused))
+            {
+                return false;
+            }
+
+            LobbyRoleCoordinator.ServerInstance?.ServerRestoreRole(conn);
+
+            LobbyRoster roster          = LobbyRoster.ServerInstance;
+            int         requiredPlayers = ResolveRequiredPlayers();
+
+            if ((roster == null) || (roster.SlotCount < requiredPlayers))
+            {
+                int missing = (roster != null) ? (requiredPlayers - roster.SlotCount) : requiredPlayers;
+                Debug.Log($"[LobbyController] 아직 {missing}명을 더 기다린다");
+                return true;
+            }
+
+            LockAdmission();
+            run.ResumeRun();
+            return true;
+        }
+
         // 접속 정원(MAX_PLAYERS)은 그대로 두고 런 시작 조건만 낮춘다.
         // 잘못된 값이 들어오면 조용히 따르지 않고 기획값으로 되돌린다
         private int ResolveRequiredPlayers()
@@ -295,168 +304,6 @@ namespace Geumeum.Network
             }
 
             return _devMinPlayers;
-        }
-
-        // 무기와 외형을 한 번에 확정한다. 둘을 따로 적용하면 한쪽만 확정된 채 런이 열리지 않는 상태가 남는다
-        [Server]
-        private bool AssignRoles()
-        {
-            WeaponKind[]     weapons     = (WeaponKind[])     Enum.GetValues(typeof(WeaponKind));
-            AppearanceKind[] appearances = (AppearanceKind[]) Enum.GetValues(typeof(AppearanceKind));
-
-            if (weapons.Length < _slots.Count)
-            {
-                Debug.LogError($"[LobbyController] 무기 종류가 인원보다 적다: {weapons.Length} < {_slots.Count}", this);
-                return false;
-            }
-
-            if (appearances.Length < _slots.Count)
-            {
-                Debug.LogError($"[LobbyController] 외형 종류가 인원보다 적다: {appearances.Length} < {_slots.Count}", this);
-                return false;
-            }
-
-            // 한 명이라도 준비되지 않았으면 아무에게도 적용하지 않는다
-            PlayerWeapon[]     weaponTargets     = new PlayerWeapon[_slots.Count];
-            PlayerAppearance[] appearanceTargets = new PlayerAppearance[_slots.Count];
-
-            for (int i = 0; i < _slots.Count; ++i)
-            {
-                int connectionId = _slots[i].ConnectionId;
-
-                if (!TryFindPlayerComponent(connectionId, out weaponTargets[i]))
-                {
-                    Debug.LogError($"[LobbyController] connectionId={connectionId}의 PlayerWeapon을 찾지 못했다", this);
-                    return false;
-                }
-
-                if (!TryFindPlayerComponent(connectionId, out appearanceTargets[i]))
-                {
-                    Debug.LogError($"[LobbyController] connectionId={connectionId}의 PlayerAppearance를 찾지 못했다", this);
-                    return false;
-                }
-
-                // 적용 도중에 실패하면 되돌릴 수 없으므로 확정 가능 여부를 먼저 전부 확인한다
-                if ((weaponTargets[i].HasWeapon) || (appearanceTargets[i].HasAppearance))
-                {
-                    Debug.LogError($"[LobbyController] connectionId={connectionId}는 이미 역할이 확정되어 있다", this);
-                    return false;
-                }
-            }
-
-            if (!TryResolveAppearances(appearances, out AppearanceKind[] resolvedAppearances))
-            {
-                return false;
-            }
-
-            if (_devForceSword)
-            {
-                for (int i = 0; i < weapons.Length; ++i)
-                {
-                    weapons[i] = WeaponKind.Sword;
-                }
-            }
-            else
-            {
-                // 접속 순서나 이름이 아니라 서버 난수로 순열을 만든다
-                for (int i = weapons.Length - 1; i > 0; --i)
-                {
-                    int swapIndex = _serverRandom.Next(i + 1);
-
-                    WeaponKind temp    = weapons[i];
-                    weapons[i]         = weapons[swapIndex];
-                    weapons[swapIndex] = temp;
-                }
-            }
-
-            for (int i = 0; i < _slots.Count; ++i)
-            {
-                // 위에서 확정 가능 여부를 이미 확인했으므로 여기서 실패하면 상태가 어긋난 것이다.
-                // 절반만 적용된 채 런을 열지 않도록 막는다
-                if ((!weaponTargets[i].ServerSetInitialWeapon(weapons[i])) ||
-                    (!appearanceTargets[i].ServerSetAppearance(resolvedAppearances[i])))
-                {
-                    Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}에 역할을 확정하지 못했다", this);
-                    return false;
-                }
-
-                LobbySlot slot     = _slots[i];
-                slot.HasWeapon     = true;
-                slot.Weapon        = weapons[i];
-                slot.HasAppearance = true;
-                slot.Appearance    = resolvedAppearances[i];
-                _slots[i]          = slot;
-            }
-
-            return true;
-        }
-
-        // 로비에서 고른 외형은 그대로 두고, 고르지 않은 사람에게만 남은 외형을 준다.
-        // 무기와 달리 섞지 않는다 - 고른 사람의 선택을 뒤집지 않기 위해서다
-        [Server]
-        private bool TryResolveAppearances(AppearanceKind[] appearances, out AppearanceKind[] resolved)
-        {
-            resolved = new AppearanceKind[_slots.Count];
-
-            bool[] isTaken = new bool[appearances.Length];
-
-            for (int i = 0; i < _slots.Count; ++i)
-            {
-                if (!_slots[i].HasAppearance)
-                {
-                    continue;
-                }
-
-                int index = Array.IndexOf(appearances, _slots[i].Appearance);
-
-                // CmdSelectAppearance가 중복과 미정의 값을 막지만, 여기서 뚫리면 두 사람이 같은 모습이 된다
-                if ((index < 0) || (isTaken[index]))
-                {
-                    Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}의 외형 선택이 유효하지 않다: {_slots[i].Appearance}", this);
-                    return false;
-                }
-
-                isTaken[index] = true;
-                resolved[i]    = _slots[i].Appearance;
-            }
-
-            for (int i = 0; i < _slots.Count; ++i)
-            {
-                if (_slots[i].HasAppearance)
-                {
-                    continue;
-                }
-
-                int freeIndex = Array.IndexOf(isTaken, false);
-                if (freeIndex < 0)
-                {
-                    Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}에 줄 남은 외형이 없다", this);
-                    return false;
-                }
-
-                isTaken[freeIndex] = true;
-                resolved[i]        = appearances[freeIndex];
-            }
-
-            return true;
-        }
-
-        // 연결의 플레이어 오브젝트에서 컴포넌트를 찾는다
-        private bool TryFindPlayerComponent<T>(int connectionId, out T component) where T : Component
-        {
-            component = null;
-
-            if (!NetworkServer.connections.TryGetValue(connectionId, out NetworkConnectionToClient conn))
-            {
-                return false;
-            }
-
-            if (conn.identity == null)
-            {
-                return false;
-            }
-
-            return conn.identity.TryGetComponent(out component);
         }
 
         private void LockAdmission()
@@ -475,21 +322,6 @@ namespace Geumeum.Network
         {
             GeumeumNetworkManager manager = NetworkManager.singleton as GeumeumNetworkManager;
             return ((manager != null) && (manager.IsAdmissionLocked));
-        }
-
-        private bool TryFindSlotIndex(int connectionId, out int index)
-        {
-            for (int i = 0; i < _slots.Count; ++i)
-            {
-                if (_slots[i].ConnectionId == connectionId)
-                {
-                    index = i;
-                    return true;
-                }
-            }
-
-            index = -1;
-            return false;
         }
     }
 }

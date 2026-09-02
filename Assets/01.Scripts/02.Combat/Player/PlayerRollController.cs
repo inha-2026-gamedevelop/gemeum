@@ -96,6 +96,7 @@ namespace Geumeum.Combat
 
             double          now       = NetworkTime.time;
             RunPhase        phase     = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
+            bool            isPaused  = ((RunManager.ServerInstance != null) && (RunManager.ServerInstance.IsPaused));
             PlayerLifeState lifeState = _status.LifeState;
             CombatConfigSO  combat    = GameDB.Combat;
 
@@ -103,6 +104,7 @@ namespace Geumeum.Combat
             PlayerActionContext context = new PlayerActionContext(
                 phase,
                 lifeState,
+                isPaused,
                 true,
                 ((_isRolling) || (isOtherActionInProgress)),
                 now,
