@@ -13,10 +13,34 @@ namespace Geumeum.Combat
 {
     /// <summary>
     /// 플레이어의 기본 공격. 판정은 전부 서버에서 하고 클라이언트는 요청만 한다.
-    /// 입력을 그대로 믿으면 사람마다 다른 적이 죽는다
+    /// 입력을 그대로 믿으면 사람마다 다른 적이 죽는다.
+    /// 근접과 원거리는 선딜, 소모, 판정 방식이 달라 무기에서 경로를 갈라 쓴다
     /// </summary>
     public class PlayerAttack : NetworkBehaviour
     {
+        /****************************************
+        *                Types
+        ****************************************/
+
+        // 무기에서 뽑아낸 이번 공격의 조건. 게이트와 타이밍이 같은 값을 보게 묶어 둔다
+        private readonly struct AttackProfile
+        {
+            public readonly AttackReach Reach;
+            public readonly float       StartupDuration;
+            public readonly float       RecoveryDuration;
+            public readonly float       StaminaCost;
+
+            public AttackProfile(AttackReach reach, float startupDuration, float recoveryDuration, float staminaCost)
+            {
+                Reach            = reach;
+                StartupDuration  = startupDuration;
+                RecoveryDuration = recoveryDuration;
+                StaminaCost      = staminaCost;
+            }
+
+            public bool HasAttack => (Reach != AttackReach.None);
+        }
+
         /****************************************
         *                Fields
         ****************************************/
@@ -27,17 +51,22 @@ namespace Geumeum.Combat
         [Tooltip("판정 대상 레이어. 비워 두면 아무것도 맞지 않는다")]
         [SerializeField] private LayerMask _targetMask = ~0;
 
+        [Tooltip("원거리 무기가 쏘는 화살 프리팹. NetworkManager의 스폰 목록에도 등록되어 있어야 한다")]
+        [SerializeField] private ArrowProjectile _arrowPrefab;
+
         private PlayerStatus         _status;
         private PlayerWeapon         _weapon;
         private PlayerRollController _roll;
         private ParryController      _parry;
+        private ParryGauge           _gauge;
 
         private readonly RequestIdTracker _requestIds = new RequestIdTracker();
 
         // 판정 시각과 다음 공격이 가능해지는 시각. 서버 시간 기준이다
-        private double _hitServerTime      = 0d;
-        private double _recoveryServerTime = 0d;
-        private bool   _isSwinging         = false;
+        private double      _hitServerTime      = 0d;
+        private double      _recoveryServerTime = 0d;
+        private bool        _isSwinging         = false;
+        private AttackReach _swingReach         = AttackReach.None;
 
         private uint _nextRequestId = 1u;
 
@@ -64,6 +93,7 @@ namespace Geumeum.Combat
             _weapon = GetComponent<PlayerWeapon>();
             _roll   = GetComponent<PlayerRollController>();
             _parry  = GetComponent<ParryController>();
+            _gauge  = GetComponent<ParryGauge>();
         }
 
         private void Update()
@@ -95,22 +125,36 @@ namespace Geumeum.Combat
                 return;
             }
 
-            double         now    = NetworkTime.time;
-            CombatConfigSO combat = GameDB.Combat;
-
-            if (!CanStartAttack(now, combat))
+            // 배분 전에는 무기 값이 의미가 없다. 게이트도 막지만 여기서 읽지 않는 것이 먼저다
+            if (!_weapon.HasWeapon)
             {
                 return;
             }
 
-            if (!_status.TrySpendStamina(combat.AttackStaminaCost))
+            double         now     = NetworkTime.time;
+            CombatConfigSO combat  = GameDB.Combat;
+            AttackProfile  profile = ResolveProfile(_weapon.Weapon, combat);
+
+            // 방울처럼 기본 공격이 없는 무기는 요청 자체를 받지 않는다
+            if (!profile.HasAttack)
+            {
+                return;
+            }
+
+            if (!CanStartAttack(now, profile))
+            {
+                return;
+            }
+
+            if (!_status.TrySpendStamina(profile.StaminaCost))
             {
                 return;
             }
 
             _isSwinging         = true;
-            _hitServerTime      = now + combat.AttackStartupDuration;
-            _recoveryServerTime = _hitServerTime + combat.AttackRecoveryDuration;
+            _swingReach         = profile.Reach;
+            _hitServerTime      = now + profile.StartupDuration;
+            _recoveryServerTime = _hitServerTime + profile.RecoveryDuration;
         }
 
         /****************************************
@@ -141,15 +185,51 @@ namespace Geumeum.Combat
                 return;
             }
 
-            ApplyHit(GameDB.Combat);
+            CombatConfigSO combat = GameDB.Combat;
+
+            if (_swingReach == AttackReach.Ranged)
+            {
+                FireArrow(combat);
+            }
+            else
+            {
+                ApplyMeleeHit(combat);
+            }
+
             _isSwinging = false;
+            _swingReach = AttackReach.None;
         }
 
         /****************************************
         *                Methods
         ****************************************/
 
-        private bool CanStartAttack(double now, CombatConfigSO combat)
+        /// <summary> 무기가 판정 방식과 수치를 정한다. 캐릭터가 무기를 정하므로 곧 직업별 수치다 </summary>
+        private static AttackProfile ResolveProfile(WeaponKind weapon, CombatConfigSO combat)
+        {
+            switch (weapon.ToReach())
+            {
+                case AttackReach.Melee:
+                    return new AttackProfile(
+                        AttackReach.Melee,
+                        combat.MeleeStartupDuration,
+                        combat.MeleeRecoveryDuration,
+                        combat.MeleeStaminaCost);
+
+                case AttackReach.Ranged:
+                    return new AttackProfile(
+                        AttackReach.Ranged,
+                        combat.RangedStartupDuration,
+                        combat.RangedRecoveryDuration,
+                        combat.RangedStaminaCost);
+
+                default:
+                    // 방울, 치유와 버프 설계가 끝난 뒤 별도 작업으로 붙인다
+                    return default;
+            }
+        }
+
+        private bool CanStartAttack(double now, AttackProfile profile)
         {
             bool isOtherActionInProgress = ((_roll != null) && (_roll.IsRolling))
                 || ((_parry != null) && (_parry.IsActionInProgress(now)));
@@ -166,20 +246,26 @@ namespace Geumeum.Combat
                 now,
                 _recoveryServerTime,
                 _status.Stamina,
-                combat.AttackStaminaCost);
+                profile.StaminaCost);
 
             return PlayerActionGate.CanStartAction(context);
         }
 
         // 정면 부채꼴 안에 있는 대상만 맞춘다. 구를 통째로 쓰면 등 뒤의 적도 맞는다
         [Server]
-        private void ApplyHit(CombatConfigSO combat)
+        private void ApplyMeleeHit(CombatConfigSO combat)
         {
             Vector3 origin  = transform.position;
             Vector3 forward = transform.forward;
-            float   cosHalf = Mathf.Cos(combat.AttackAngle * 0.5f * Mathf.Deg2Rad);
+            float   cosHalf = Mathf.Cos(combat.MeleeAngle * 0.5f * Mathf.Deg2Rad);
 
-            int count = Physics.OverlapSphereNonAlloc(origin, combat.AttackRange, _hitBuffer, _targetMask);
+            // 배수를 휘두르기 한 번당 하나로 뽑아 부채꼴에 걸린 대상이 모두 같은 값을 받게 한다.
+            // 게이지는 검 전용이고 근접 판정에 오는 무기는 검뿐이라 여기서만 본다
+            bool  isCritical = IsCriticalReady(combat);
+            float multiplier = (isCritical) ? Random.Range(combat.CriticalMultiplierMin, combat.CriticalMultiplierMax) : 1f;
+            int   hitCount   = 0;
+
+            int count = Physics.OverlapSphereNonAlloc(origin, combat.MeleeRange, _hitBuffer, _targetMask);
 
             for (int i = 0; i < count; ++i)
             {
@@ -213,14 +299,60 @@ namespace Geumeum.Combat
                     continue;
                 }
 
-                damageable.TakeDamage(new DamageInfo(combat.AttackBasePower, netId, HitStrength.Light));
+                damageable.TakeDamage(new DamageInfo(
+                    combat.MeleeBasePower * multiplier,
+                    netId,
+                    (isCritical) ? HitStrength.Critical : HitStrength.Light));
+
+                ++hitCount;
             }
+
+            // 허공을 갈랐으면 게이지를 돌려준다. 패링을 세 번 성공해 얻은 보상이 빗나감 한 번에
+            // 사라지면 게이지를 쓰지 않고 아끼게 된다
+            if ((isCritical) && (hitCount > 0))
+            {
+                _gauge.ServerTryConsume();
+            }
+        }
+
+        /// <summary> 다음 근접 공격이 치명의 일격인가. 소비하지 않고 보기만 한다 </summary>
+        [Server]
+        private bool IsCriticalReady(CombatConfigSO combat)
+        {
+            return ((_gauge != null) && (_gauge.Gauge >= combat.ParryGaugeMax));
+        }
+
+        /// <summary>
+        /// 화살을 띄운다. 판정은 화살이 서버 틱을 돌며 직접 한다.
+        /// 락온이 아직 없어 기획서 4.2 비락온 규칙만 적용된다 - 발사각 보정 없이 구형 명중 보조만 있다
+        /// </summary>
+        [Server]
+        private void FireArrow(CombatConfigSO combat)
+        {
+            if (_arrowPrefab == null)
+            {
+                Debug.LogError("[PlayerAttack] 화살 프리팹이 비어 있어 원거리 공격이 나가지 않는다", this);
+                return;
+            }
+
+            Vector3 forward = transform.forward;
+
+            // 발밑이나 제 몸 안에서 나가면 첫 틱부터 자기 자신 근처를 훑는다
+            Vector3 origin = transform.position
+                + (Vector3.up * combat.RangedMuzzleHeight)
+                + (forward * combat.RangedMuzzleForward);
+
+            ArrowProjectile arrow = Instantiate(_arrowPrefab, origin, Quaternion.LookRotation(forward));
+            arrow.ServerInitialize(forward, combat.RangedBasePower, netId, _targetMask.value, GameDB.Arrow);
+
+            NetworkServer.Spawn(arrow.gameObject);
         }
 
         [Server]
         private void Cancel()
         {
             _isSwinging         = false;
+            _swingReach         = AttackReach.None;
             _recoveryServerTime = 0d;
         }
 

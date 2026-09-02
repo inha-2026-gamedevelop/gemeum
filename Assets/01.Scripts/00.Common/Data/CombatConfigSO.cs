@@ -1,5 +1,6 @@
 // Unity
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Geumeum.Data
 {
@@ -43,15 +44,31 @@ namespace Geumeum.Data
         [SerializeField] private float _criticalMultiplierMin    = 2.0f;
         [SerializeField] private float _criticalMultiplierMax    = 3.0f;
 
-        // 게임 디자인 문서에 근접 공격 수치표가 아직 없어 프로토타입 시작값으로 넣는다.
-        // 밸런싱은 여기 값만 고치면 되고 코드를 다시 빌드하지 않는다
-        [Header("공격")]
-        [SerializeField] private float _attackStartupDuration  = 0.12f; // 선딜(초)
-        [SerializeField] private float _attackRecoveryDuration = 0.28f; // 후딜(초), 이 동안 다음 공격 불가
-        [SerializeField] private float _attackStaminaCost      = 12f;
-        [SerializeField] private float _attackRange            = 2.2f;  // 판정 거리(m)
-        [SerializeField] private float _attackAngle            = 90f;   // 정면 기준 좌우 합산 각도(도)
-        [SerializeField] private float _attackBasePower        = 10f;   // 장비 보정 전 기본 공격력
+        // 게임 디자인 문서에 공격 수치표가 아직 없어 프로토타입 시작값으로 넣는다.
+        // 밸런싱은 여기 값만 고치면 되고 코드를 다시 빌드하지 않는다.
+        // FormerlySerializedAs는 근접, 원거리를 나누기 전 _attack* 이름으로 저장된 에셋 값을 잇는다
+        [Header("근접 공격")]
+        [FormerlySerializedAs("_attackStartupDuration")]
+        [SerializeField] private float _meleeStartupDuration  = 0.12f; // 선딜(초)
+        [FormerlySerializedAs("_attackRecoveryDuration")]
+        [SerializeField] private float _meleeRecoveryDuration = 0.28f; // 후딜(초), 이 동안 다음 공격 불가
+        [FormerlySerializedAs("_attackStaminaCost")]
+        [SerializeField] private float _meleeStaminaCost      = 12f;
+        [FormerlySerializedAs("_attackRange")]
+        [SerializeField] private float _meleeRange            = 2.2f;  // 판정 거리(m)
+        [FormerlySerializedAs("_attackAngle")]
+        [SerializeField] private float _meleeAngle            = 90f;   // 정면 기준 좌우 합산 각도(도)
+        [FormerlySerializedAs("_attackBasePower")]
+        [SerializeField] private float _meleeBasePower        = 10f;   // 장비 보정 전 기본 공격력
+
+        // 화살 비행, 유도, 명중 보조 수치는 ArrowConfigSO가 소유한다. 여기는 쏘는 쪽 수치만 둔다
+        [Header("원거리 공격")]
+        [SerializeField] private float _rangedStartupDuration  = 0.25f; // 선딜(초), 활을 당기는 시간이라 근접보다 길다
+        [SerializeField] private float _rangedRecoveryDuration = 0.35f; // 후딜(초)
+        [SerializeField] private float _rangedStaminaCost      = 8f;    // 거리를 두고 싸우는 대신 근접보다 싸다
+        [SerializeField] private float _rangedBasePower        = 8f;    // 장비 보정 전 기본 공격력
+        [SerializeField] private float _rangedMuzzleHeight     = 1.2f;  // 발사 지점 높이(m), 발밑에서 나가지 않게 한다
+        [SerializeField] private float _rangedMuzzleForward    = 0.6f;  // 발사 지점 전방 오프셋(m), 자기 몸에 걸리지 않게 한다
 
         // TODO(민성): 부활 수치를 어느 SO가 소유할지 팀에서 확정할 것
         [Header("부활")]
@@ -90,12 +107,19 @@ namespace Geumeum.Data
         public float CriticalMultiplierMin    => _criticalMultiplierMin;
         public float CriticalMultiplierMax    => _criticalMultiplierMax;
 
-        public float AttackStartupDuration  => _attackStartupDuration;
-        public float AttackRecoveryDuration => _attackRecoveryDuration;
-        public float AttackStaminaCost      => _attackStaminaCost;
-        public float AttackRange            => _attackRange;
-        public float AttackAngle            => _attackAngle;
-        public float AttackBasePower        => _attackBasePower;
+        public float MeleeStartupDuration  => _meleeStartupDuration;
+        public float MeleeRecoveryDuration => _meleeRecoveryDuration;
+        public float MeleeStaminaCost      => _meleeStaminaCost;
+        public float MeleeRange            => _meleeRange;
+        public float MeleeAngle            => _meleeAngle;
+        public float MeleeBasePower        => _meleeBasePower;
+
+        public float RangedStartupDuration  => _rangedStartupDuration;
+        public float RangedRecoveryDuration => _rangedRecoveryDuration;
+        public float RangedStaminaCost      => _rangedStaminaCost;
+        public float RangedBasePower        => _rangedBasePower;
+        public float RangedMuzzleHeight     => _rangedMuzzleHeight;
+        public float RangedMuzzleForward    => _rangedMuzzleForward;
 
         public float SpectateDuration         => _spectateDuration;
         public float ReviveHealthRatio        => _reviveHealthRatio;

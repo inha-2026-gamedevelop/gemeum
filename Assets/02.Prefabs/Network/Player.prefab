@@ -398,6 +398,7 @@ MonoBehaviour:
   _targetMask:
     serializedVersion: 2
     m_Bits: 3072
+  _arrowPrefab: {fileID: 8904445427746732927, guid: bf3ce04c1e31fd94c827740078a54665, type: 3}
 --- !u!1001 &1331680180131862316
 PrefabInstance:
   m_ObjectHideFlags: 0

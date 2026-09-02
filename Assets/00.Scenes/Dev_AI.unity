@@ -186,6 +186,7 @@ MonoBehaviour:
   playerSpawnMethod: 0
   spawnPrefabs:
   - {fileID: 3360524794612996174, guid: 74a9cc0af3d2a3f40b913df6e9c1903d, type: 3}
+  - {fileID: 2533346979541072793, guid: bf3ce04c1e31fd94c827740078a54665, type: 3}
   exceptionsDisconnect: 1
   snapshotSettings:
     bufferTimeMultiplier: 2
@@ -278,7 +279,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _buildId: dev
-  _identitySourceBehaviour: {fileID: 244729536}
+  _devIdentitySourceBehaviour: {fileID: 244729536}
+  _steamIdentitySourceBehaviour: {fileID: 0}
 --- !u!114 &244729538
 MonoBehaviour:
   m_ObjectHideFlags: 0
