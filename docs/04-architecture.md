@@ -184,7 +184,8 @@ Main.unity
 ├ Types/                   namespace Geumeum.Common — 파트 공용 열거형·값 타입
 │  ├ DamageInfo.cs         struct 서버가 확정한 피해량 · 공격자 netId · HitStrength
 │  ├ HitStrength.cs        enum 타격감 강도 (Light · Heavy · Critical)
-│  └ WeaponKind.cs         enum 무기 종류 = 직업 (Sword · Bow · Bell)
+│  ├ WeaponKind.cs         enum 무기 종류 = 직업 (Sword · Bow · Bell)
+│  └ PlayerPlatformId.cs   struct 재접속에도 유지되는 신원. Steam은 SteamID64, 개발은 실행 인자값
 └ Interfaces/              namespace Geumeum.Common — 파트 간 경계 → 8장
    ├ IDamageable.cs        피해를 받을 수 있는 대상 (플레이어 · 잡귀 · 보스)
    ├ IParryable.cs         패링당할 수 있는 공격의 계약
@@ -206,10 +207,19 @@ Main.unity
 ├ GeumeumNetworkManager.cs NM  Mirror NetworkManager 상속. 호스트 생성 · 접속 · 해제,
 │                              최대 3명. 플레이어 프리팹 등록과 연결 수명만 담당
 ├ ServerBootGate.cs        static GameDB · 런 타임라인 · Transport · 네트워크 프리팹 검사
-├ LobbyController.cs       NB  3명 준비 상태와 런 시작 요청을 서버에서 관리. 배분 계산은
-│                              LobbyRoleAllocator에, 적용은 Common 계약에 맡기고 여기서는
-│                              슬롯 수명과 런 시작 게이트만 소유한다.
-│                              이탈자가 두고 간 자리와 역할을 기억해 재접속자에게 물려준다
+├ LobbyController.cs       NB  준비 상태와 런 시작 게이트. 슬롯 저장과 역할 배분을 아래 두 곳에
+│                              맡기고 외부에는 기존 API를 그대로 노출하는 파사드를 겸한다
+├ GeumeumAuthenticator.cs  NA  접속 승인 게이트. 빌드, 신원, 입장 잠금, 중복 신원을 한 번에 본다.
+│                              Mirror 96은 인증 성공 후에만 OnServerConnect를 부르므로
+│                              입장 검증이 여기 있다 [현재]
+├ Identity/
+│  ├ IPlayerIdentitySource.cs  원격 연결 -> PlatformId. 트랜스포트마다 신원 출처가 달라 여기서 갈린다
+│  ├ DevIdentitySource.cs   MB 개발 KCP 경로. 클라가 보낸 값을 그대로 믿으므로 개발 빌드 밖에서 거부한다
+│  └ AuthMessages.cs        struct 인증 요청, 응답, 거부 사유. 형식은 2단계에서 확정했다
+├ Lobby/
+│  ├ LobbyRoster.cs        NB  슬롯 목록(SyncList) 소유, 신원 해석, 이탈 자리 보존과 반환
+│  ├ LobbyRoleCoordinator.cs NB 배분기 호출, 역할 확정, 런 리셋, 일시정지 재개 시 역할 복원
+│  └ LobbySlot.cs          struct 네트워크 직렬화 값 타입. PlatformId가 슬롯의 키다
 ├ LobbyRoleAllocator.cs    C#  무기 셔플과 외형 충돌 해결만 담는 순수 계산기. Mirror와
 │                              UnityEngine에 의존하지 않아 접속 없이 결과를 검증할 수 있다.
 │                              이미 가진 무기·외형은 보존해 재접속 후에도 직업이 바뀌지 않는다
@@ -447,6 +457,19 @@ RunManager : NetworkBehaviour
 
 `57cb59d`에서 실제로 구현된 전환은 타임라인 경계·시간 초과·런 중 이탈이다.
 보스 사망, 전멸, 종료 사유, 점수 정산과 결계·스폰 구독자 side effect는 아직 구현 계약이다.
+
+#### 슬롯의 키는 connectionId가 아니라 PlatformId다 [현재]
+
+`connectionId`는 재접속마다 새로 발급되어 같은 사람을 알아볼 수 없다. 그래서 슬롯과 이탈 자리 보존은
+`PlayerPlatformId`로 키를 잡는다. Steam 빌드는 FizzySteamworks가 `conn.address`로 주는 SteamID64를,
+개발 KCP 경로는 실행 인자 `-platformid`를 쓴다.
+
+**개발 경로에서 `-platformid`를 주지 않으면 자리와 역할이 복구되지 않는다.** 호스트는 `connectionId`가
+항상 0이라 고정값을 쓸 수 있지만 원격은 그렇지 않다. `DevIdentitySource`가 이 경우 경고를 남기고,
+`tools/run-3clients.ps1`과 `run-client.bat`이 창마다 고정 신원을 넘긴다.
+
+신원으로 키를 잡으면서 두 명 이상이 동시에 이탈해도 각자 자기 자리로 돌아온다.
+예전 선입선출 큐에서는 돌아오는 순서에 따라 자리가 뒤바뀔 수 있었다.
 
 #### 이탈은 런을 끝내지 않는다 - 일시정지 [현재]
 

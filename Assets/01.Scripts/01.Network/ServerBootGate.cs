@@ -1,4 +1,5 @@
 // System
+using System;
 using System.Collections.Generic;
 
 // Unity
@@ -37,6 +38,7 @@ namespace Geumeum.Network
 
             ValidateGameDatabase(failures);
             ValidateTransport(manager, failures);
+            ValidateAuthenticator(manager, failures);
             ValidatePlayerPrefab(manager, failures);
             ValidateSpawnPrefabs(manager, failures);
             ValidateSceneSetup(failures);
@@ -68,6 +70,38 @@ namespace Geumeum.Network
             if (manager.transport == null)
             {
                 failures.Add("트랜스포트가 비어 있다");
+            }
+        }
+
+        // 트랜스포트와 신원 소스가 어긋나면 인증기가 신원을 엉뚱한 곳에서 얻는다.
+        // KCP는 클라이언트가 보낸 값을, Steam은 conn.address를 쓰므로 짝이 맞아야 한다
+        private static void ValidateAuthenticator(NetworkManager manager, List<string> failures)
+        {
+            if (manager.authenticator == null)
+            {
+                failures.Add("인증기가 연결되지 않았다, 신원 없이 접속을 받게 된다");
+                return;
+            }
+
+            if (!(manager.authenticator is GeumeumAuthenticator authenticator))
+            {
+                failures.Add($"인증기가 GeumeumAuthenticator가 아니다: {manager.authenticator.GetType().Name}");
+                return;
+            }
+
+            string identity = authenticator.IdentityLabel;
+            if (string.IsNullOrEmpty(identity))
+            {
+                failures.Add("인증기에 신원 소스가 연결되지 않았다");
+                return;
+            }
+
+            bool   isSteamTransport = (manager.transport != null) && (manager.transport.GetType().Name.Contains("Fizzy"));
+            string expected         = isSteamTransport ? "Steam" : "Dev";
+
+            if (!string.Equals(identity, expected, StringComparison.Ordinal))
+            {
+                failures.Add($"트랜스포트와 신원 소스의 짝이 맞지 않는다: 트랜스포트={manager.transport.GetType().Name}, 신원={identity}, 기대={expected}");
             }
         }
 

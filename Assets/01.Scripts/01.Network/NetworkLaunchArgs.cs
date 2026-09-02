@@ -15,6 +15,12 @@ namespace Geumeum.Network
     /// </summary>
     public class NetworkLaunchArgs : MonoBehaviour
     {
+        /// <summary>
+        /// 개발 경로에서 인증기가 실어 보낼 신원. 출시 빌드에서는 항상 0이고 Steam이 신원을 정한다.
+        /// 인증기가 Awake보다 늦게 읽을 수 있어 정적 값으로 둔다
+        /// </summary>
+        public static ulong RequestedPlatformId { get; private set; } = 0UL;
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 
         /****************************************
@@ -25,6 +31,7 @@ namespace Geumeum.Network
         private const string ARG_SERVER = "-server";
         private const string ARG_CLIENT = "-client"; // 뒤에 접속할 주소가 온다
         private const string ARG_PORT   = "-port";   // 뒤에 포트 번호가 온다
+        private const string ARG_PLATFORM_ID = "-platformid"; // 뒤에 신원으로 쓸 숫자가 온다
 
         /****************************************
         *              Unity Event
@@ -42,6 +49,7 @@ namespace Geumeum.Network
 
             string[] args = Environment.GetCommandLineArgs();
 
+            ApplyPlatformId(args);
             ApplyPort(args);
 
             if (TryFindValue(args, ARG_CLIENT, out string address))
@@ -69,6 +77,24 @@ namespace Geumeum.Network
         /****************************************
         *                Methods
         ****************************************/
+
+        // 사람마다 다른 값을 줘야 재접속 슬롯 복구를 검증할 수 있다. 안 주면 인증기가 연결 번호로 대신 만든다
+        private void ApplyPlatformId(string[] args)
+        {
+            if (!TryFindValue(args, ARG_PLATFORM_ID, out string raw))
+            {
+                return;
+            }
+
+            if (!ulong.TryParse(raw, out ulong value))
+            {
+                Debug.LogWarning($"[NetworkLaunchArgs] {ARG_PLATFORM_ID} 값이 숫자가 아니다: {raw}", this);
+                return;
+            }
+
+            RequestedPlatformId = value;
+            Debug.Log($"[NetworkLaunchArgs] 신원을 {value}로 지정했다");
+        }
 
         // 포트는 트랜스포트가 소유한다. 호스트와 클라이언트가 같은 값을 써야 하므로 시작 전에 맞춘다
         private void ApplyPort(string[] args)

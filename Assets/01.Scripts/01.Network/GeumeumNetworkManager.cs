@@ -118,14 +118,8 @@ namespace Geumeum.Network
 
         public override void OnServerConnect(NetworkConnectionToClient conn)
         {
-            // 런이 시작된 뒤의 신규 접속과 재접속은 받지 않는다
-            if (IsAdmissionLocked)
-            {
-                Debug.Log($"[GeumeumNetworkManager] 런 진행 중이라 접속을 거부한다: connectionId={conn.connectionId}");
-                conn.Disconnect();
-                return;
-            }
-
+            // 입장 잠금과 신원 검증은 GeumeumAuthenticator가 한다.
+            // Mirror 96은 인증에 성공한 연결만 여기로 보내므로 여기서 다시 막지 않는다
             base.OnServerConnect(conn);
 
             // TODO(민성): 0단계 스파이크 관측용이다. Steam 경로에서 address가 SteamID64로 오는지 확인한 뒤 정리한다.
@@ -154,6 +148,8 @@ namespace Geumeum.Network
             {
                 LobbyController.ServerInstance.ServerRemoveSlot(conn);
             }
+
+            GeumeumAuthenticator.ServerInstance?.ServerForget(conn.connectionId);
 
             PauseRunOnLeave(conn);
 

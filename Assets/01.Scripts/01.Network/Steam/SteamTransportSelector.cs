@@ -8,10 +8,6 @@ using UnityEngine;
 using Mirror;
 using Mirror.FizzySteam;
 
-#if !DISABLESTEAMWORKS
-using Steamworks;
-#endif
-
 namespace Geumeum.Network
 {
     /// <summary>
@@ -92,19 +88,14 @@ namespace Geumeum.Network
         // 0단계 스파이크의 관측 지점이다. 자기 SteamID를 알아야 다른 PC가 -client 인자로 접속할 수 있다
         private void LogSteamIdentity()
         {
-#if DISABLESTEAMWORKS
-            Debug.LogError("[SteamTransportSelector] 이 플랫폼에서는 Steamworks가 비활성이다", this);
-#else
-            if (!SteamManager.Initialized)
+            if (!SteamLocalUser.TryGetSteamId(out ulong steamId))
             {
                 Debug.LogError("[SteamTransportSelector] Steam 초기화에 실패했다, Steam 클라이언트 실행과 steam_appid.txt를 확인할 것", this);
                 return;
             }
 
-            CSteamID steamId = SteamUser.GetSteamID();
-            Debug.Log($"[SteamTransportSelector] Steam 초기화 성공, 내 SteamID64={steamId.m_SteamID}, 이름={SteamFriends.GetPersonaName()}");
-            Debug.Log($"[SteamTransportSelector] 다른 PC에서 접속하려면 실행 인자에 -steam -client {steamId.m_SteamID} 를 준다");
-#endif
+            Debug.Log($"[SteamTransportSelector] Steam 초기화 성공, 내 SteamID64={steamId}");
+            Debug.Log($"[SteamTransportSelector] 다른 PC에서 접속하려면 실행 인자에 -steam -client {steamId} 를 준다");
         }
 
         private static bool HasFlag(string[] args, string flag)
