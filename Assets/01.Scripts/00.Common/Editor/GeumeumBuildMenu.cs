@@ -30,19 +30,11 @@ namespace Geumeum.EditorTools
         private const string RELEASE_DIR     = "Release";
         private const string EXECUTABLE_NAME = "gemeum.exe";
 
-        // 3인 테스트 실행 스크립트. 빌드 폴더째로 팀원에게 전달해도 바로 접속할 수 있게 같이 넣는다.
+        // 3인 테스트 실행 스크립트. 빌드 폴더째로 팀원에게 전달해도 바로 접속할 수 있게 통째로 넣는다.
+        // 목록을 두지 않고 폴더째 넣는 이유는, 스크립트를 새로 만들 때마다 여기를 고치는 것을 잊으면
+        // 빌드에만 빠진 채로 전달되어 원인을 찾기 어렵기 때문이다.
         // 릴리스에는 넣지 않는다 - 실행 인자로 자동 접속하는 경로는 개발 빌드에만 있다
         private const string TOOLS_DIR = "tools";
-
-        private static readonly string[] DEVELOPMENT_EXTRA_FILES =
-        {
-            "run-host.bat",
-            "run-client.bat",
-            "run-steam-host.bat",
-            "run-steam-client.bat",
-            "show-steam-host-id.ps1",
-            "show-steam-client-result.ps1",
-        };
 
         // SteamAPI.Init은 exe 옆의 이 파일에서 AppID를 읽는다. 없으면 Steam 경로가 초기화에서 막힌다.
         // tools가 아니라 프로젝트 루트에 있어 따로 복사한다. 릴리스에는 넣지 않는다 - 실제 AppID로 출시하면 불필요하다
@@ -133,15 +125,36 @@ namespace Geumeum.EditorTools
         // 복사에 실패해도 빌드 자체는 성공이다. 막지 않고 경고만 남긴다
         private static void CopyExtraFiles(string outputPath)
         {
-            string toolsPath = Path.Combine(ProjectRoot(), TOOLS_DIR);
-
             CopyIfExists(Path.Combine(ProjectRoot(), STEAM_APPID_FILE), Path.Combine(outputPath, STEAM_APPID_FILE));
 
-            for (int i = 0; i < DEVELOPMENT_EXTRA_FILES.Length; ++i)
+            int copied = CopyTools(Path.Combine(ProjectRoot(), TOOLS_DIR), outputPath);
+            UnityEngine.Debug.Log($"[그믐] 실행 스크립트 {copied}개를 빌드 폴더에 넣었다");
+        }
+
+        // 배치 파일이 exe 옆에서 자기를 찾으므로 하위 폴더 구조를 그대로 유지한다
+        private static int CopyTools(string toolsPath, string outputPath)
+        {
+            if (!Directory.Exists(toolsPath))
             {
-                string source = Path.Combine(toolsPath, DEVELOPMENT_EXTRA_FILES[i]);
-                CopyIfExists(source, Path.Combine(outputPath, DEVELOPMENT_EXTRA_FILES[i]));
+                UnityEngine.Debug.LogWarning($"[그믐] 실행 스크립트 폴더가 없다: {toolsPath}");
+                return 0;
             }
+
+            int copied = 0;
+            foreach (string source in Directory.GetFiles(toolsPath, "*", SearchOption.AllDirectories))
+            {
+                string relative    = source.Substring(toolsPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                string destination = Path.Combine(outputPath, relative);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(destination));
+
+                if (TryCopy(source, destination))
+                {
+                    ++copied;
+                }
+            }
+
+            return copied;
         }
 
         private static void CopyIfExists(string source, string destination)
@@ -152,13 +165,20 @@ namespace Geumeum.EditorTools
                 return;
             }
 
+            TryCopy(source, destination);
+        }
+
+        private static bool TryCopy(string source, string destination)
+        {
             try
             {
                 File.Copy(source, destination, true);
+                return true;
             }
             catch (IOException exception)
             {
                 UnityEngine.Debug.LogWarning($"[그믐] {Path.GetFileName(source)} 복사 실패: {exception.Message}");
+                return false;
             }
         }
 
