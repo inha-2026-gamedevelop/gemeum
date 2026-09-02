@@ -21,6 +21,7 @@ namespace Geumeum.Combat
         private PlayerController          _movement;
         private PlayerStatus              _status;
         private ParryController           _parry;
+        private PlayerAttack              _attack;
         private PlayerAnimationController _animation;
         private PlayerPresentation        _presentation;
 
@@ -49,6 +50,7 @@ namespace Geumeum.Combat
             _movement  = GetComponent<PlayerController>();
             _status    = GetComponent<PlayerStatus>();
             _parry     = GetComponent<ParryController>();
+            _attack    = GetComponent<PlayerAttack>();
             _animation    = GetComponent<PlayerAnimationController>();
             _presentation = GetComponent<PlayerPresentation>();
         }
@@ -100,7 +102,8 @@ namespace Geumeum.Combat
             PlayerLifeState lifeState = _status.LifeState;
             CombatConfigSO  combat    = GameDB.Combat;
 
-            bool isOtherActionInProgress = ((_parry != null) && (_parry.IsActionInProgress(now)));
+            bool isOtherActionInProgress = ((_parry != null) && (_parry.IsActionInProgress(now)))
+                || ((_attack != null) && (_attack.IsActionInProgress(now)));
             PlayerActionContext context = new PlayerActionContext(
                 phase,
                 lifeState,

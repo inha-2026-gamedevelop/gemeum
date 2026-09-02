@@ -38,6 +38,7 @@ namespace Geumeum.Combat
         private PlayerWeapon         _weapon;
         private PlayerRollController _roll;
         private ParryGauge           _gauge;
+        private PlayerAttack         _attack;
 
         private uint             _localRequestId     = 0;
         private ParryWindowKey   _clientActiveWindow = default;
@@ -58,6 +59,7 @@ namespace Geumeum.Combat
             _weapon = GetComponent<PlayerWeapon>();
             _roll   = GetComponent<PlayerRollController>();
             _gauge  = GetComponent<ParryGauge>();
+            _attack = GetComponent<PlayerAttack>();
         }
 
         private void Update()
@@ -157,7 +159,8 @@ namespace Geumeum.Combat
             }
 
             // 6. 현재 패링, 구르기, 공격 행동 잠금 확인
-            if ((_roll.IsRolling) || (IsActionInProgress(now)))
+            if ((_roll.IsRolling) || (IsActionInProgress(now))
+                || ((_attack != null) && (_attack.IsActionInProgress(now))))
             {
                 TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedBusy, now);
                 return;
