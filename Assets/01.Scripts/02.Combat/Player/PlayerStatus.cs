@@ -21,11 +21,11 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
-        [SyncVar] private float           _health       = 0f;
-        [SyncVar] private float           _maxHealth    = 0f;
-        [SyncVar] private float           _stamina      = 0f;
-        [SyncVar] private float           _spirit       = 0f;
-        [SyncVar] private PlayerLifeState _lifeState    = PlayerLifeState.Alive;
+        [SyncVar(hook = nameof(OnHealthChanged))]    private float           _health    = 0f;
+        [SyncVar(hook = nameof(OnMaxHealthChanged))] private float           _maxHealth = 0f;
+        [SyncVar(hook = nameof(OnStaminaChanged))]   private float           _stamina   = 0f;
+        [SyncVar(hook = nameof(OnSpiritChanged))]    private float           _spirit    = 0f;
+        [SyncVar(hook = nameof(OnLifeStateChanged))] private PlayerLifeState _lifeState = PlayerLifeState.Alive;
         [SyncVar] private bool            _isInvincible = false; // 구르기, 패링 성공처럼 생명 상태는 그대로인 일시 무적
 
         private double _lastStaminaSpendServerTime = -1.0; // 서버 전용, 회복 시작을 늦추는 기준 시각
@@ -48,9 +48,97 @@ namespace Geumeum.Combat
         /// <summary> 관전 중이거나 쓰러진 상태. 부활 무적은 살아 있는 것으로 센다 </summary>
         public bool IsDead => ((_lifeState == PlayerLifeState.Downed) || (_lifeState == PlayerLifeState.Spectating));
 
+        /// <summary>
+        /// 이 화면의 주인. UI가 체력 바를 누구 것으로 그릴지 여기서 정한다.
+        /// 관전 중에도 자기 인스턴스는 그대로 남으므로 바뀌지 않는다
+        /// </summary>
+        public static PlayerStatus Local { get; private set; }
+
+        /****************************************
+        *                Events
+        ****************************************/
+
+        // UI가 매 프레임 값을 훑지 않게 변화 시점에만 알린다. 클라이언트에서만 발생한다
+        /// <summary> 체력이 바뀌었다. (현재, 최대) </summary>
+        public event System.Action<float, float> HealthChanged;
+
+        /// <summary> 스태미나가 바뀌었다. (현재, 최대) </summary>
+        public event System.Action<float, float> StaminaChanged;
+
+        /// <summary> 정신력이 바뀌었다. (현재, 최대) </summary>
+        public event System.Action<float, float> SpiritChanged;
+
+        /// <summary> 생명 상태가 바뀌었다 </summary>
+        public event System.Action<PlayerLifeState> LifeStateChanged;
+
         /****************************************
         *              Server Callbacks
         ****************************************/
+
+        public override void OnStartLocalPlayer()
+        {
+            Local = this;
+
+            // 구독 시점이 값 도착보다 늦을 수 있다. UI가 처음부터 올바른 값을 그리도록 한 번 흘려 준다
+            RaiseAll();
+        }
+
+        public override void OnStopLocalPlayer()
+        {
+            if (Local == this)
+            {
+                Local = null;
+            }
+        }
+
+        /****************************************
+        *              SyncVar Hooks
+        ****************************************/
+
+        private void OnHealthChanged(float oldValue, float newValue)
+        {
+            HealthChanged?.Invoke(newValue, _maxHealth);
+        }
+
+        private void OnMaxHealthChanged(float oldValue, float newValue)
+        {
+            HealthChanged?.Invoke(_health, newValue);
+        }
+
+        private void OnStaminaChanged(float oldValue, float newValue)
+        {
+            StaminaChanged?.Invoke(newValue, GetStaminaMax());
+        }
+
+        private void OnSpiritChanged(float oldValue, float newValue)
+        {
+            SpiritChanged?.Invoke(newValue, GetSpiritMax());
+        }
+
+        private void OnLifeStateChanged(PlayerLifeState oldValue, PlayerLifeState newValue)
+        {
+            LifeStateChanged?.Invoke(newValue);
+        }
+
+        /// <summary> 지금 값을 그대로 한 번 더 알린다. UI가 뒤늦게 구독했을 때 쓴다 </summary>
+        public void RaiseAll()
+        {
+            HealthChanged?.Invoke(_health, _maxHealth);
+            StaminaChanged?.Invoke(_stamina, GetStaminaMax());
+            SpiritChanged?.Invoke(_spirit, GetSpiritMax());
+            LifeStateChanged?.Invoke(_lifeState);
+        }
+
+        // 최대치는 동기화 대상이 아니라 데이터다. 세 클라이언트가 같은 GameDB를 읽는다
+        private static float GetStaminaMax()
+        {
+            return GameDB.IsInitialized ? GameDB.Combat.StaminaMax : 0f;
+        }
+
+        private static float GetSpiritMax()
+        {
+            return GameDB.IsInitialized ? GameDB.Combat.SpiritMax : 0f;
+        }
 
         public override void OnStartServer()
         {

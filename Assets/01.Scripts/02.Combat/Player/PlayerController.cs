@@ -30,6 +30,7 @@ namespace Geumeum.Combat
         private PlayerPresentation       _presentation;
         private PlayerStatus             _status;
         private PlayerRollController     _roll;
+        private PlayerAttack             _attack;
         private NetworkTransformReliable _networkTransform;
 
         private double _lastInputSendTime = 0.0;
@@ -65,6 +66,7 @@ namespace Geumeum.Combat
             _presentation     = GetComponent<PlayerPresentation>();
             _status           = GetComponent<PlayerStatus>();
             _roll             = GetComponent<PlayerRollController>();
+            _attack           = GetComponent<PlayerAttack>();
             _networkTransform = GetComponent<NetworkTransformReliable>();
         }
 
@@ -276,6 +278,12 @@ namespace Geumeum.Combat
             if (_roll != null)
             {
                 _roll.ServerUpdateState(now, canMove);
+            }
+
+            // 공격 판정도 같은 틱에서 진행한다. Update에서 돌리면 물리 스텝과 어긋나 판정 위치가 흔들린다
+            if (_attack != null)
+            {
+                _attack.ServerUpdateState(now);
             }
 
             Vector2 direction = Vector2.zero;

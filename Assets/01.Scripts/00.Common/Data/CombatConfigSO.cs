@@ -43,6 +43,16 @@ namespace Geumeum.Data
         [SerializeField] private float _criticalMultiplierMin    = 2.0f;
         [SerializeField] private float _criticalMultiplierMax    = 3.0f;
 
+        // 게임 디자인 문서에 근접 공격 수치표가 아직 없어 프로토타입 시작값으로 넣는다.
+        // 밸런싱은 여기 값만 고치면 되고 코드를 다시 빌드하지 않는다
+        [Header("공격")]
+        [SerializeField] private float _attackStartupDuration  = 0.12f; // 선딜(초)
+        [SerializeField] private float _attackRecoveryDuration = 0.28f; // 후딜(초), 이 동안 다음 공격 불가
+        [SerializeField] private float _attackStaminaCost      = 12f;
+        [SerializeField] private float _attackRange            = 2.2f;  // 판정 거리(m)
+        [SerializeField] private float _attackAngle            = 90f;   // 정면 기준 좌우 합산 각도(도)
+        [SerializeField] private float _attackBasePower        = 10f;   // 장비 보정 전 기본 공격력
+
         // TODO(민성): 부활 수치를 어느 SO가 소유할지 팀에서 확정할 것
         [Header("부활")]
         [SerializeField] private float _spectateDuration         = 30f;  // 사망 후 관전(초)
@@ -79,6 +89,13 @@ namespace Geumeum.Data
         public float ParryGaugeGainPerSuccess => _parryGaugeGainPerSuccess;
         public float CriticalMultiplierMin    => _criticalMultiplierMin;
         public float CriticalMultiplierMax    => _criticalMultiplierMax;
+
+        public float AttackStartupDuration  => _attackStartupDuration;
+        public float AttackRecoveryDuration => _attackRecoveryDuration;
+        public float AttackStaminaCost      => _attackStaminaCost;
+        public float AttackRange            => _attackRange;
+        public float AttackAngle            => _attackAngle;
+        public float AttackBasePower        => _attackBasePower;
 
         public float SpectateDuration         => _spectateDuration;
         public float ReviveHealthRatio        => _reviveHealthRatio;
