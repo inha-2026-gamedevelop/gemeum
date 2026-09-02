@@ -523,7 +523,12 @@ Assets/09.Data/
 └ DayCycle/DayCycleSO.asset   ← 유일하게 네트워크와 무관한 순수 로컬 리소스
 ```
 
-`GameDBBootstrap`만 `Resources/GameDB.asset`을 로드해 `GameDB.Initialize()`를 호출한다. `@Managers`의 초기화 순서는 `GameDBBootstrap` → `GameEventBus` → 네트워크 매니저이며, 소비 컴포넌트는 `Awake`의 필드 초기화식이 아니라 `Start`·`OnStartServer` 이후에 GameDB를 읽는다. 루트 DB나 필수 참조가 없으면 조용히 기본값으로 진행하지 않고 초기화 오류로 중단한다. 서버와 클라이언트는 같은 빌드의 GameDB를 사용한다.
+`GameDBBootstrap`만 `Resources/GameDB.asset`을 로드해 `GameDB.Initialize()`를 호출한다.
+호출 시점은 `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]`로 **씬 로드보다 앞이다.** `@Managers`에는
+`NetworkIdentity`가 있어 Mirror가 서버를 열 때까지 오브젝트를 비활성으로 두는데, 그 위의 `Awake`에서
+초기화하면 `ServerBootGate`가 서버를 열기 전에 빈 GameDB를 보게 되어 순환이 된다(실행 인자로 호스트를
+자동 시작하는 개발 빌드에서 드러났다). 컴포넌트의 `Awake`도 같은 경로를 호출하지만 이미 채워져 있으면
+아무것도 하지 않는다. 소비 컴포넌트는 `Awake`의 필드 초기화식이 아니라 `Start`·`OnStartServer` 이후에 GameDB를 읽는다. 루트 DB나 필수 참조가 없으면 조용히 기본값으로 진행하지 않고 초기화 오류로 중단한다. 서버와 클라이언트는 같은 빌드의 GameDB를 사용한다.
 
 새 데이터 도메인 추가 절차: [기술 구현 3.1](03-technical-design.md)에 항목 추가 → `*SO` 클래스 → `GameDatabaseSO` 참조 → `GameDB` 프로퍼티 → 에셋 생성 ([밸런스 데이터 작업](unity/BALANCE_DATA_WORKFLOW.md)).
 

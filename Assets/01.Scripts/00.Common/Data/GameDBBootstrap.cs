@@ -30,14 +30,37 @@ namespace Geumeum.Data
         *              Unity Event
         ****************************************/
 
+        // @Managers에는 NetworkIdentity가 있어 Mirror가 서버를 열 때까지 오브젝트를 비활성으로 둔다.
+        // 그 위의 Awake는 StartHost보다 늦게 돌아 부트 게이트가 빈 GameDB를 보게 된다.
+        // GameDB는 GameObject가 필요 없는 정적 데이터이므로 씬 로드 전에 먼저 채운다
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void InitializeBeforeSceneLoad()
+        {
+            TryInitialize(null);
+        }
+
         private void Awake()
         {
+            TryInitialize(this);
+        }
+
+        /****************************************
+        *                Methods
+        ****************************************/
+
+        // 씬 로드 전 호출과 Awake가 같은 경로를 쓴다. 이미 채워져 있으면 아무것도 하지 않는다
+        private static void TryInitialize(Object context)
+        {
+            if (GameDB.IsInitialized)
+            {
+                return;
+            }
+
             GameDatabaseSO database = Resources.Load<GameDatabaseSO>(Constants.ResourcePath.GAME_DB);
 
             if (database == null)
             {
-                Debug.LogError($"[GameDBBootstrap] Resources/{Constants.ResourcePath.GAME_DB}.asset을 찾지 못했다, 게임을 진행할 수 없다", this);
-                enabled = false;
+                Debug.LogError($"[GameDBBootstrap] Resources/{Constants.ResourcePath.GAME_DB}.asset을 찾지 못했다, 게임을 진행할 수 없다", context);
                 return;
             }
 
@@ -45,11 +68,11 @@ namespace Geumeum.Data
             if (_missingReferences.Count > 0)
             {
                 Debug.LogError($"[GameDBBootstrap] GameDB의 참조가 비어 있다: {string.Join(", ", _missingReferences)}", database);
-                enabled = false;
                 return;
             }
 
             GameDB.Initialize(database);
+
         }
     }
 }
