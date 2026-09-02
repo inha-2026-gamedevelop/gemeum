@@ -9,7 +9,6 @@ using UnityEngine;
 using Mirror;
 
 // 프로젝트 내부
-using Geumeum.Combat;
 using Geumeum.Common;
 
 namespace Geumeum.Network
@@ -50,12 +49,32 @@ namespace Geumeum.Network
 
         private readonly SyncList<LobbySlot> _slots = new SyncList<LobbySlot>();
 
+        /// <summary> 이탈자가 두고 간 자리와 역할. 재접속자가 물려받는다 </summary>
+        private readonly struct VacatedSeat
+        {
+            public readonly Vector3        Position;
+            public readonly bool           HasWeapon;
+            public readonly WeaponKind     Weapon;
+            public readonly bool           HasAppearance;
+            public readonly AppearanceKind Appearance;
+
+            public VacatedSeat(Vector3 position, in LobbySlot slot)
+            {
+                Position      = position;
+                HasWeapon     = slot.HasWeapon;
+                Weapon        = slot.Weapon;
+                HasAppearance = slot.HasAppearance;
+                Appearance    = slot.Appearance;
+            }
+        }
+
         private System.Random _serverRandom = null; // 서버 전용, 역할 배분의 유일한 난수원
 
-        // 이탈한 사람이 서 있던 자리다. 재접속한 플레이어를 스폰 지점이 아니라 여기로 되돌린다.
-        // connectionId는 재접속 때 새로 발급되어 같은 사람을 알아볼 수 없으므로 자리만 선입선출로 물려준다,
-        // 두 명 이상이 동시에 빠지면 누가 어느 자리를 받을지는 보장하지 않는다
-        private readonly Queue<Vector3> _vacatedPositions = new Queue<Vector3>();
+        // 이탈한 사람이 두고 간 자리와 역할이다. 재접속한 플레이어에게 그대로 물려줘
+        // 잠깐 끊겼다 돌아와도 있던 자리에서 같은 직업으로 이어지게 한다.
+        // connectionId는 재접속 때 새로 발급되어 같은 사람을 알아볼 수 없으므로 선입선출로 물려준다,
+        // 두 명 이상이 동시에 빠지면 누가 어느 것을 받을지는 보장하지 않는다
+        private readonly Queue<VacatedSeat> _vacatedSeats = new Queue<VacatedSeat>();
 
         /****************************************
         *              Properties
@@ -75,7 +94,7 @@ namespace Geumeum.Network
             ServerInstance = this;
             _serverRandom  = new System.Random();
             _slots.Clear();
-            _vacatedPositions.Clear();
+            _vacatedSeats.Clear();
         }
 
         public override void OnStopServer()
@@ -114,12 +133,55 @@ namespace Geumeum.Network
                 Appearance    = default,
             });
 
-            RestoreVacatedPosition(conn);
+            RestoreVacatedSeat(conn);
+
+            // 얼어 있는 런에 돌아온 것이면 로비 준비 절차를 거치지 않는다, 하던 런을 이어서 재개한다
+            if (TryResumePausedRun(conn))
+            {
+                return;
+            }
 
             if (_devAutoReady)
             {
                 SetSlotReady(conn.connectionId, true);
             }
+        }
+
+        // 일시정지된 런에 인원이 다시 찼으면 역할을 되돌려 주고 재개한다
+        [Server]
+        private bool TryResumePausedRun(NetworkConnectionToClient conn)
+        {
+            RunManager run = RunManager.ServerInstance;
+            if ((run == null) || (!run.IsPaused))
+            {
+                return false;
+            }
+
+            // 런이 이미 돌고 있으므로 AssignRoles를 기다릴 수 없다, 돌아온 사람만 즉시 확정한다
+            if (!TryFindSlotIndex(conn.connectionId, out int index))
+            {
+                return false;
+            }
+
+            LobbySlot slot = _slots[index];
+            if ((slot.HasWeapon) && (slot.HasAppearance) && (conn.identity != null)
+                && (conn.identity.TryGetComponent(out IPlayerRoleAssignment role)) && (!role.HasRole))
+            {
+                if (!role.TryCommitRole(slot.Weapon, slot.Appearance))
+                {
+                    Debug.LogError($"[LobbyController] connectionId={conn.connectionId}의 역할을 되돌려 주지 못했다", this);
+                }
+            }
+
+            if (_slots.Count < ResolveRequiredPlayers())
+            {
+                Debug.Log($"[LobbyController] 아직 {ResolveRequiredPlayers() - _slots.Count}명을 더 기다린다");
+                return true;
+            }
+
+            LockAdmission();
+            run.ResumeRun();
+            return true;
         }
 
         /// <summary> 이탈한 플레이어의 슬롯을 지운다. GeumeumNetworkManager만 호출한다 </summary>
@@ -136,7 +198,7 @@ namespace Geumeum.Network
                 return;
             }
 
-            RememberVacatedPosition(conn);
+            RememberVacatedSeat(conn, _slots[index]);
             _slots.RemoveAt(index);
         }
 
@@ -152,30 +214,22 @@ namespace Geumeum.Network
             {
                 LobbySlot slot = _slots[i];
 
-                slot.IsReady       = false;
-                slot.HasWeapon     = false;
-                slot.Weapon        = default;
-                slot.HasAppearance = false;
-                slot.Appearance    = default;
+                slot.IsReady = false;
+                _slots[i]    = slot;
 
-                _slots[i] = slot;
-
-                // 슬롯 플래그만 비우면 플레이어 컴포넌트에는 직전 런의 확정이 남아
-                // 다음 AssignRoles가 "이미 역할이 확정되어 있다"로 거부하고 런이 열리지 않는다
-                if (TryFindPlayerComponent(slot.ConnectionId, out PlayerWeapon weapon))
+                // 슬롯의 무기와 외형은 일부러 남긴다. 다음 배분이 같은 값을 그대로 재확정해
+                // 잠깐 끊겼다 돌아와도 직업이 바뀌지 않는다.
+                // 반대로 플레이어 쪽 확정은 반드시 풀어야 한다, 안 그러면
+                // 다음 배분이 "이미 역할이 확정되어 있다"로 거부하고 런이 열리지 않는다
+                if (TryFindPlayerComponent(slot.ConnectionId, out IPlayerRoleAssignment role))
                 {
-                    weapon.ServerClearForNewRun();
-                }
-
-                if (TryFindPlayerComponent(slot.ConnectionId, out PlayerAppearance appearance))
-                {
-                    appearance.ServerClearForNewRun();
+                    role.ClearRole();
                 }
 
                 // 직전 런에서 쓰러진 사람은 이걸 안 하면 다음 런에서도 Downed로 남아 아무 행동도 못 한다
-                if (TryFindPlayerComponent(slot.ConnectionId, out PlayerStatus status))
+                if (TryFindPlayerComponent(slot.ConnectionId, out IPlayerRunLifecycle lifecycle))
                 {
-                    status.ServerResetForNewRun();
+                    lifecycle.ResetForNewRun();
                 }
             }
 
@@ -358,84 +412,56 @@ namespace Geumeum.Network
             return _devMinPlayers;
         }
 
-        // 무기와 외형을 한 번에 확정한다. 둘을 따로 적용하면 한쪽만 확정된 채 런이 열리지 않는 상태가 남는다
+        // 배분 계산은 LobbyRoleAllocator가 하고, 여기서는 적용과 슬롯 갱신만 한다.
+        // 한 명이라도 확정에 실패하면 아무에게도 적용하지 않는다
         [Server]
         private bool AssignRoles()
         {
-            WeaponKind[]     weapons     = (WeaponKind[])     Enum.GetValues(typeof(WeaponKind));
-            AppearanceKind[] appearances = (AppearanceKind[]) Enum.GetValues(typeof(AppearanceKind));
-
-            if (weapons.Length < _slots.Count)
-            {
-                Debug.LogError($"[LobbyController] 무기 종류가 인원보다 적다: {weapons.Length} < {_slots.Count}", this);
-                return false;
-            }
-
-            if (appearances.Length < _slots.Count)
-            {
-                Debug.LogError($"[LobbyController] 외형 종류가 인원보다 적다: {appearances.Length} < {_slots.Count}", this);
-                return false;
-            }
-
-            // 한 명이라도 준비되지 않았으면 아무에게도 적용하지 않는다
-            PlayerWeapon[]     weaponTargets     = new PlayerWeapon[_slots.Count];
-            PlayerAppearance[] appearanceTargets = new PlayerAppearance[_slots.Count];
+            IPlayerRoleAssignment[] targets = new IPlayerRoleAssignment[_slots.Count];
+            LobbyRoleAllocator.RoleRequest[] requests = new LobbyRoleAllocator.RoleRequest[_slots.Count];
 
             for (int i = 0; i < _slots.Count; ++i)
             {
                 int connectionId = _slots[i].ConnectionId;
 
-                if (!TryFindPlayerComponent(connectionId, out weaponTargets[i]))
+                if (!TryFindPlayerComponent(connectionId, out targets[i]))
                 {
-                    Debug.LogError($"[LobbyController] connectionId={connectionId}의 PlayerWeapon을 찾지 못했다", this);
-                    return false;
-                }
-
-                if (!TryFindPlayerComponent(connectionId, out appearanceTargets[i]))
-                {
-                    Debug.LogError($"[LobbyController] connectionId={connectionId}의 PlayerAppearance를 찾지 못했다", this);
+                    Debug.LogError($"[LobbyController] connectionId={connectionId}의 역할 확정 창구를 찾지 못했다", this);
                     return false;
                 }
 
                 // 적용 도중에 실패하면 되돌릴 수 없으므로 확정 가능 여부를 먼저 전부 확인한다
-                if ((weaponTargets[i].HasWeapon) || (appearanceTargets[i].HasAppearance))
+                if (targets[i].HasRole)
                 {
                     Debug.LogError($"[LobbyController] connectionId={connectionId}는 이미 역할이 확정되어 있다", this);
                     return false;
                 }
+
+                requests[i] = new LobbyRoleAllocator.RoleRequest(
+                    _slots[i].HasWeapon,
+                    _slots[i].Weapon,
+                    _slots[i].HasAppearance,
+                    _slots[i].Appearance);
             }
 
-            if (!TryResolveAppearances(appearances, out AppearanceKind[] resolvedAppearances))
+            if (!LobbyRoleAllocator.TryAllocate(
+                    requests,
+                    _serverRandom,
+                    _devForceSword,
+                    out WeaponKind[]     weapons,
+                    out AppearanceKind[] appearances,
+                    out LobbyRoleAllocator.FailureKind failure,
+                    out int              failedIndex))
             {
+                LogAllocationFailure(failure, failedIndex);
                 return false;
-            }
-
-            if (_devForceSword)
-            {
-                for (int i = 0; i < weapons.Length; ++i)
-                {
-                    weapons[i] = WeaponKind.Sword;
-                }
-            }
-            else
-            {
-                // 접속 순서나 이름이 아니라 서버 난수로 순열을 만든다
-                for (int i = weapons.Length - 1; i > 0; --i)
-                {
-                    int swapIndex = _serverRandom.Next(i + 1);
-
-                    WeaponKind temp    = weapons[i];
-                    weapons[i]         = weapons[swapIndex];
-                    weapons[swapIndex] = temp;
-                }
             }
 
             for (int i = 0; i < _slots.Count; ++i)
             {
                 // 위에서 확정 가능 여부를 이미 확인했으므로 여기서 실패하면 상태가 어긋난 것이다.
                 // 절반만 적용된 채 런을 열지 않도록 막는다
-                if ((!weaponTargets[i].ServerSetInitialWeapon(weapons[i])) ||
-                    (!appearanceTargets[i].ServerSetAppearance(resolvedAppearances[i])))
+                if (!targets[i].TryCommitRole(weapons[i], appearances[i]))
                 {
                     Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}에 역할을 확정하지 못했다", this);
                     return false;
@@ -445,111 +471,112 @@ namespace Geumeum.Network
                 slot.HasWeapon     = true;
                 slot.Weapon        = weapons[i];
                 slot.HasAppearance = true;
-                slot.Appearance    = resolvedAppearances[i];
+                slot.Appearance    = appearances[i];
                 _slots[i]          = slot;
             }
 
             return true;
         }
 
-        // 로비에서 고른 외형은 그대로 두고, 고르지 않은 사람에게만 남은 외형을 준다.
-        // 무기와 달리 섞지 않는다 - 고른 사람의 선택을 뒤집지 않기 위해서다
-        [Server]
-        private bool TryResolveAppearances(AppearanceKind[] appearances, out AppearanceKind[] resolved)
+        // 배분기는 UnityEngine을 모르므로 실패 사유만 돌려준다. 로그 문구는 여기서 정한다
+        private void LogAllocationFailure(LobbyRoleAllocator.FailureKind failure, int failedIndex)
         {
-            resolved = new AppearanceKind[_slots.Count];
+            bool hasSlot        = ((failedIndex >= 0) && (failedIndex < _slots.Count));
+            int  connectionId   = hasSlot ? _slots[failedIndex].ConnectionId : -1;
 
-            bool[] isTaken = new bool[appearances.Length];
-
-            for (int i = 0; i < _slots.Count; ++i)
+            switch (failure)
             {
-                if (!_slots[i].HasAppearance)
-                {
-                    continue;
-                }
+                case LobbyRoleAllocator.FailureKind.NotEnoughWeapons:
+                    Debug.LogError($"[LobbyController] 무기 종류가 인원({_slots.Count})보다 적다", this);
+                    break;
 
-                int index = Array.IndexOf(appearances, _slots[i].Appearance);
+                case LobbyRoleAllocator.FailureKind.NotEnoughLooks:
+                    Debug.LogError($"[LobbyController] 외형 종류가 인원({_slots.Count})보다 적다", this);
+                    break;
 
-                // CmdSelectAppearance가 중복과 미정의 값을 막지만, 여기서 뚫리면 두 사람이 같은 모습이 된다
-                if ((index < 0) || (isTaken[index]))
-                {
-                    Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}의 외형 선택이 유효하지 않다: {_slots[i].Appearance}", this);
-                    return false;
-                }
+                case LobbyRoleAllocator.FailureKind.InvalidAppearance:
+                    Debug.LogError($"[LobbyController] connectionId={connectionId}의 외형 선택이 유효하지 않다", this);
+                    break;
 
-                isTaken[index] = true;
-                resolved[i]    = _slots[i].Appearance;
+                case LobbyRoleAllocator.FailureKind.NoFreeAppearance:
+                    Debug.LogError($"[LobbyController] connectionId={connectionId}에 줄 남은 외형이 없다", this);
+                    break;
+
+                case LobbyRoleAllocator.FailureKind.InvalidWeapon:
+                    Debug.LogError($"[LobbyController] connectionId={connectionId}가 이어받은 무기가 유효하지 않다", this);
+                    break;
+
+                case LobbyRoleAllocator.FailureKind.NoFreeWeapon:
+                    Debug.LogError($"[LobbyController] connectionId={connectionId}에 줄 남은 무기가 없다", this);
+                    break;
+
+                default:
+                    Debug.LogError("[LobbyController] 역할 배분에 실패했다", this);
+                    break;
             }
-
-            for (int i = 0; i < _slots.Count; ++i)
-            {
-                if (_slots[i].HasAppearance)
-                {
-                    continue;
-                }
-
-                int freeIndex = Array.IndexOf(isTaken, false);
-                if (freeIndex < 0)
-                {
-                    Debug.LogError($"[LobbyController] connectionId={_slots[i].ConnectionId}에 줄 남은 외형이 없다", this);
-                    return false;
-                }
-
-                isTaken[freeIndex] = true;
-                resolved[i]        = appearances[freeIndex];
-            }
-
-            return true;
         }
 
-        // 이탈 직전의 자리를 남긴다.
+        // 이탈 직전의 자리와 역할을 남긴다.
         // Mirror는 OnServerDisconnect보다 먼저 NetworkServer.connections에서 연결을 지우므로
         // connectionId로 되찾을 수 없다. 아직 identity가 살아 있는 conn을 직접 받아 읽는다
         [Server]
-        private void RememberVacatedPosition(NetworkConnectionToClient conn)
+        private void RememberVacatedSeat(NetworkConnectionToClient conn, in LobbySlot slot)
         {
             if ((conn == null) || (conn.identity == null))
             {
                 return;
             }
 
-            if (!conn.identity.TryGetComponent(out PlayerController controller))
+            if (!conn.identity.TryGetComponent(out IPlayerRunLifecycle lifecycle))
             {
                 return;
             }
 
-            _vacatedPositions.Enqueue(controller.transform.position);
-            Debug.Log($"[LobbyController] connectionId={conn.connectionId}의 이탈 직전 자리를 남겼다: {controller.transform.position}");
+            _vacatedSeats.Enqueue(new VacatedSeat(lifecycle.Position, slot));
+            Debug.Log($"[LobbyController] connectionId={conn.connectionId}의 이탈 직전 자리와 역할을 남겼다: {lifecycle.Position}, {slot.Weapon}");
         }
 
-        // 새로 들어온 사람을 비어 있던 자리로 되돌린다. 남은 자리가 없으면 스폰 지점 그대로 둔다
+        // 새로 들어온 사람에게 비어 있던 자리와 역할을 물려준다. 남은 것이 없으면 스폰 지점에 그대로 두고
+        // 역할은 배분기가 새로 정한다
         [Server]
-        private void RestoreVacatedPosition(NetworkConnectionToClient conn)
+        private void RestoreVacatedSeat(NetworkConnectionToClient conn)
         {
-            if (_vacatedPositions.Count == 0)
+            if (_vacatedSeats.Count == 0)
             {
                 return;
             }
 
             if ((conn == null) || (conn.identity == null))
             {
-                Debug.LogWarning("[LobbyController] 플레이어 오브젝트가 없어 이탈 직전 자리로 되돌리지 못했다", this);
+                Debug.LogWarning("[LobbyController] 플레이어 오브젝트가 없어 이탈 직전 자리를 물려주지 못했다", this);
                 return;
             }
 
-            if (!conn.identity.TryGetComponent(out PlayerController controller))
+            if (!TryFindSlotIndex(conn.connectionId, out int index))
             {
                 return;
             }
 
-            Vector3 position = _vacatedPositions.Dequeue();
-            controller.ServerTeleport(position);
+            VacatedSeat seat = _vacatedSeats.Dequeue();
 
-            Debug.Log($"[LobbyController] connectionId={conn.connectionId}를 이탈 직전 자리로 되돌렸다: {position}");
+            // 역할은 슬롯에만 적어 둔다. 실제 확정은 런이 열릴 때 AssignRoles가 한 번에 한다
+            LobbySlot slot     = _slots[index];
+            slot.HasWeapon     = seat.HasWeapon;
+            slot.Weapon        = seat.Weapon;
+            slot.HasAppearance = seat.HasAppearance;
+            slot.Appearance    = seat.Appearance;
+            _slots[index]      = slot;
+
+            if (conn.identity.TryGetComponent(out IPlayerRunLifecycle lifecycle))
+            {
+                lifecycle.Teleport(seat.Position);
+            }
+
+            Debug.Log($"[LobbyController] connectionId={conn.connectionId}에 이탈 직전 자리와 역할을 물려줬다: {seat.Position}, {seat.Weapon}");
         }
 
         // 연결의 플레이어 오브젝트에서 컴포넌트를 찾는다
-        private bool TryFindPlayerComponent<T>(int connectionId, out T component) where T : Component
+        private bool TryFindPlayerComponent<T>(int connectionId, out T component) where T : class
         {
             component = null;
 

@@ -190,6 +190,9 @@ Main.unity
    ├ IParryable.cs         패링당할 수 있는 공격의 계약
    ├ IInteractable.cs      상호작용 대상 (객주, 드랍 아이템)
    ├ ICombatFeedback.cs    타격감 호출부 (전투가 호출, 아트가 구현) → 8.3
+   ├ IPlayerRoleAssignment.cs 무기 · 외형을 원자적으로 확정하는 계약. 로비가 Combat 타입을
+                              직접 참조하지 않도록 하는 경계다
+   ├ IPlayerRunLifecycle.cs   런 경계에서 플레이어를 옮기고 상태를 되돌리는 계약
    └ CombatFeedbackLocator.cs static ICombatFeedback 등록·조회. 기본값은 아무것도 하지
                               않는 NullCombatFeedback → 8.3
 ```
@@ -203,10 +206,13 @@ Main.unity
 ├ GeumeumNetworkManager.cs NM  Mirror NetworkManager 상속. 호스트 생성 · 접속 · 해제,
 │                              최대 3명. 플레이어 프리팹 등록과 연결 수명만 담당
 ├ ServerBootGate.cs        static GameDB · 런 타임라인 · Transport · 네트워크 프리팹 검사
-├ LobbyController.cs       NB  3명 준비 상태와 런 시작 요청을 서버에서 관리. 런 시작 시
-│                              검·활·방울을 중복 없이 배분하고, 이후 신규 접속·재접속 거부.
-│                              런이 끝나 로비로 돌아오면 슬롯·역할 확정을 비우고 입장을 다시 연다.
-│                              이탈자의 마지막 위치를 기억해 재접속자를 그 자리에 되돌린다
+├ LobbyController.cs       NB  3명 준비 상태와 런 시작 요청을 서버에서 관리. 배분 계산은
+│                              LobbyRoleAllocator에, 적용은 Common 계약에 맡기고 여기서는
+│                              슬롯 수명과 런 시작 게이트만 소유한다.
+│                              이탈자가 두고 간 자리와 역할을 기억해 재접속자에게 물려준다
+├ LobbyRoleAllocator.cs    C#  무기 셔플과 외형 충돌 해결만 담는 순수 계산기. Mirror와
+│                              UnityEngine에 의존하지 않아 접속 없이 결과를 검증할 수 있다.
+│                              이미 가진 무기·외형은 보존해 재접속 후에도 직업이 바뀌지 않는다
 ├ RunManager.cs            NB  런 상태 머신 + 경과 시간 → 5장. 프로젝트의 심장
 ├ RunPhase.cs              C#  enum { Lobby, Farming, Shrink1, Shrink2, Shrink3, Boss, Result }
 │                              직렬화되므로 명시값 고정, 재배열 금지
@@ -416,6 +422,7 @@ RunManager : NetworkBehaviour
 ├ SyncVar  float ElapsedSeconds     서버가 관리하는 유일한 경과 시간 원본
 ├ SyncVar  RunPhase Phase           Lobby → Farming → Shrink1 → Shrink2 → Shrink3 → Boss → Result
 │                                   Result → Lobby 만 역방향 (런 재시작, 2026-09-02)
+├ SyncVar  bool IsPaused            이탈자를 기다리며 얼어 있다. phase와 직교한다
 ├ local    RunPhaseChangedEvent     GameEventBus로 서버 프로세스 내부 구간 전환 통지
 └ int      FieldLevel               Phase에서 파생 — 드랍 가중치 · 잡귀 강화 배수의 키
 ```
@@ -436,10 +443,27 @@ RunManager : NetworkBehaviour
 | `Shrink2` | 실시간 20:00 | 실시간 29:30 | 결계 축소·객주 개방, FieldLevel 2 |
 | `Shrink3` | 실시간 29:30 | 실시간 30:00 | 보스맵 이동, 신규 잡귀 스폰 중단, FieldLevel 3 |
 | `Boss` | 실시간 30:00 | 보스 사망 또는 실시간 40:00 | 결계 피해 종료, 보스 전투 또는 시간 초과 실패 |
-| `Result` | 승리·실패·전멸·이탈 | 정산 완료 후 `Lobby` 복귀 | 점수 계산, 성공 런만 리더보드 등록 |
+| `Result` | 승리·실패·전멸·이탈 대기 종료 | 정산 완료 후 `Lobby` 복귀 | 점수 계산, 성공 런만 리더보드 등록 |
 
 `57cb59d`에서 실제로 구현된 전환은 타임라인 경계·시간 초과·런 중 이탈이다.
 보스 사망, 전멸, 종료 사유, 점수 정산과 결계·스폰 구독자 side effect는 아직 구현 계약이다.
+
+#### 이탈은 런을 끝내지 않는다 - 일시정지 [현재]
+
+런 도중 누가 빠지면 `Result`로 확정하지 않고 `RunManager.PauseRun`이 세계를 얼린다.
+보스전 30분을 진행하다 한 명이 튕겼다고 런을 버리면 복구가 아니라 손실이기 때문이다.
+멈춰 있는 동안 phase와 경과 시간이 그대로 보존되고, 입장 잠금이 풀려 이탈자가 돌아올 수 있다.
+
+일시정지는 `RunPhase` 값이 아니라 **별도 SyncVar**다. 보스전에서 멈췄다 보스전으로 돌아오므로
+phase와 직교하고, `RunPhase`에 값을 더하면 전진 전용 가드와 타임라인 순서 의미가 깨진다.
+
+- 정지: 서버 시뮬레이션(`AuthorityTickScheduler`)과 런 시계를 멈춘다
+- 입력: `PlayerActionGate.CanAct`가 `isPaused`를 함께 보므로 남은 사람도 움직이지 않는다
+- 예측: `IsPaused`가 SyncVar라 소유 클라이언트도 읽고 로컬 예측을 중단한다. 안 그러면 재개 때 되돌아간다
+- 재개: 돌아온 사람이 두고 간 자리와 역할을 물려받고, 멈춰 있던 시간만큼 시계를 밀어 경과 시간을 보존한다
+- 포기: 대기를 끊으면 그때 `PlayerLeft`로 확정하고 아래 복귀 경로를 탄다
+
+기다리는 시간에 제한은 없다 [현재]. 남은 인원이 대기를 끊는 UI는 아직 없어 Dev 단축키로만 가능하다 [계획].
 
 #### Result → Lobby 복귀 [현재]
 
@@ -616,7 +640,7 @@ _combatFeedback.PlayCritical(multiplier);
 | 잡귀 · 보스 AI, 결계 | 서버 | EnemyBrain*, BossPhase*, BarrierController |
 | 드랍 · 노잣돈 · 소유권 · 경험치 | 서버 | EquipmentGenerator, CurrencyManager, GrowthManager |
 | 사망 · 부활 · 전멸 감지 | 서버 | ReviveController |
-| 런 종료 · `Result` 커밋 · `Lobby` 복귀 | 서버 | RunManager |
+| 런 종료 · `Result` 커밋 · 일시정지 · `Lobby` 복귀 | 서버 | RunManager |
 | 조명 · 카메라 · 이펙트 · 사운드 · UI | 클라 로컬 | 05.Art, 06.UI, CameraRig |
 | 보스 예고 장판 · 결계선 · 액귀 투사체 | **서버가 이벤트, 클라가 렌더링** | BossPatternTelegraph 등 |
 

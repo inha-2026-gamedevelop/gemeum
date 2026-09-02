@@ -10,8 +10,14 @@ namespace Geumeum.Combat
     public static class PlayerActionGate
     {
         /// <summary> 이동, 공격, 패링, 구르기가 공통으로 요구하는 최소 조건 </summary>
-        public static bool CanAct(RunPhase phase, PlayerLifeState lifeState)
+        public static bool CanAct(RunPhase phase, PlayerLifeState lifeState, bool isPaused)
         {
+            // 이탈자를 기다리는 동안은 세계가 얼어 있다, 남은 사람도 움직이지 않는다
+            if (isPaused)
+            {
+                return false;
+            }
+
             if ((phase == RunPhase.Lobby) || (phase == RunPhase.Result))
             {
                 return false;
@@ -23,7 +29,7 @@ namespace Geumeum.Combat
         /// <summary> 단발 행동을 시작할 수 있는지 공통 조건을 한 번에 계산한다 </summary>
         public static bool CanStartAction(in PlayerActionContext context)
         {
-            if (!CanAct(context.Phase, context.LifeState))
+            if (!CanAct(context.Phase, context.LifeState, context.IsPaused))
             {
                 return false;
             }

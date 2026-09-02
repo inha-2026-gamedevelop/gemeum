@@ -25,6 +25,9 @@ namespace Geumeum.Network
         [Tooltip("이 키로 호스트를 시작한다. NetworkManagerHUD 없이 붙기 위한 Dev 씬 전용이고, Main.unity에서는 None으로 둔다")]
         [SerializeField] private KeyCode _devStartHostKey = KeyCode.None;
 
+        [Tooltip("일시정지된 런을 포기한다. UI가 붙기 전까지 호스트가 대기를 끊는 유일한 수단이다")]
+        [SerializeField] private KeyCode _devAbandonRunKey = KeyCode.None;
+
         /****************************************
         *              Properties
         ****************************************/
@@ -46,6 +49,8 @@ namespace Geumeum.Network
         {
             base.Update();
 
+            TryAbandonPausedRun();
+
             if ((_devStartHostKey == KeyCode.None) || isNetworkActive)
             {
                 return;
@@ -56,6 +61,29 @@ namespace Geumeum.Network
                 Debug.Log($"[GeumeumNetworkManager] Dev 단축키({_devStartHostKey})로 호스트를 시작한다");
                 StartHost();
             }
+        }
+
+        // UI가 붙기 전까지 호스트가 대기를 끊는 유일한 수단이다
+        private void TryAbandonPausedRun()
+        {
+            if ((_devAbandonRunKey == KeyCode.None) || (!NetworkServer.active))
+            {
+                return;
+            }
+
+            if (!Input.GetKeyDown(_devAbandonRunKey))
+            {
+                return;
+            }
+
+            RunManager run = RunManager.ServerInstance;
+            if ((run == null) || (!run.IsPaused))
+            {
+                return;
+            }
+
+            Debug.Log($"[GeumeumNetworkManager] Dev 단축키({_devAbandonRunKey})로 대기 중인 런을 포기한다");
+            run.AbortRun("호스트가 대기를 끊었다");
         }
 
         /****************************************
@@ -124,7 +152,7 @@ namespace Geumeum.Network
                 LobbyController.ServerInstance.ServerRemoveSlot(conn);
             }
 
-            AbortRunOnLeave(conn);
+            PauseRunOnLeave(conn);
 
             base.OnServerDisconnect(conn);
         }
@@ -163,15 +191,21 @@ namespace Geumeum.Network
             StopServer();
         }
 
-        // 런 도중 누가 빠지면 남은 런을 중단하고 리더보드에 기록하지 않는다
-        private void AbortRunOnLeave(NetworkConnectionToClient conn)
+        // 런 도중 누가 빠지면 끝내지 않고 얼린다. 보스전 30분을 진행하다 한 명이 튕겼다고
+        // 런을 버리면 복구가 아니라 손실이다. 돌아올 수 있도록 입장도 다시 연다
+        private void PauseRunOnLeave(NetworkConnectionToClient conn)
         {
             if (RunManager.ServerInstance == null)
             {
                 return;
             }
 
-            RunManager.ServerInstance.AbortRun($"connectionId={conn.connectionId} 이탈");
+            if (!RunManager.ServerInstance.PauseRun($"connectionId={conn.connectionId} 이탈"))
+            {
+                return; // 로비였거나 이미 멈춰 있다
+            }
+
+            UnlockAdmission();
         }
     }
 }

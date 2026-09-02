@@ -342,6 +342,7 @@ MonoBehaviour:
   evaluationInterval: 3
   timeInterpolationGui: 0
   _devStartHostKey: 282
+  _devAbandonRunKey: 284
 --- !u!4 &80988259
 Transform:
   m_ObjectHideFlags: 0
@@ -903,8 +904,8 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   _devAutoReady: 1
-  _devMinPlayers: 1
-  _devForceSword: 1
+  _devMinPlayers: 3
+  _devForceSword: 0
 --- !u!114 &328390365
 MonoBehaviour:
   m_ObjectHideFlags: 0

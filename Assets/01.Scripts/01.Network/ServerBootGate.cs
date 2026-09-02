@@ -83,6 +83,17 @@ namespace Geumeum.Network
             {
                 failures.Add("플레이어 프리팹에 NetworkIdentity가 없다");
             }
+
+            // 없으면 역할 배분이 창구를 못 찾아 런이 조용히 열리지 않는다, 증상만으로는 원인을 찾기 어렵다
+            if (manager.playerPrefab.GetComponent<IPlayerRoleAssignment>() == null)
+            {
+                failures.Add("플레이어 프리팹에 역할 확정 창구(IPlayerRoleAssignment)가 없다");
+            }
+
+            if (manager.playerPrefab.GetComponent<IPlayerRunLifecycle>() == null)
+            {
+                failures.Add("플레이어 프리팹에 런 경계 창구(IPlayerRunLifecycle)가 없다");
+            }
         }
 
         private static void ValidateSpawnPrefabs(NetworkManager manager, List<string> failures)
