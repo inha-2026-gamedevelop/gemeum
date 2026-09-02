@@ -127,7 +127,10 @@ namespace Geumeum.Network
             }
 
             base.OnServerConnect(conn);
-            Debug.Log($"[GeumeumNetworkManager] 접속: connectionId={conn.connectionId}, 현재 인원={numPlayers}");
+
+            // TODO(민성): 0단계 스파이크 관측용이다. Steam 경로에서 address가 SteamID64로 오는지 확인한 뒤 정리한다.
+            // 이 값이 기대와 다르면 플랫폼 ID 설계 전체를 다시 잡아야 한다
+            Debug.Log($"[GeumeumNetworkManager] 접속: connectionId={conn.connectionId}, address={conn.address}, 현재 인원={numPlayers}");
         }
 
         public override void OnServerAddPlayer(NetworkConnectionToClient conn)
