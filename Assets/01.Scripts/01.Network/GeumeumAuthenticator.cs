@@ -159,12 +159,19 @@ namespace Geumeum.Network
                 return;
             }
 
-            // 런이 진행 중이면 새 사람을 받지 않는다. 일시정지 중에는 잠금이 풀려 있어 돌아올 수 있다
+            // 런이 진행 중이면 새 사람을 받지 않는다.
+            // 다만 두고 간 자리가 있는 사람은 돌아올 수 있어야 한다 — 이게 일시정지 재접속 경로다
             var manager = NetworkManager.singleton as GeumeumNetworkManager;
             if ((manager != null) && (manager.IsAdmissionLocked))
             {
-                Reject(conn, AuthResultCode.AdmissionLocked, "런이 진행 중이다");
-                return;
+                LobbyRoster roster = LobbyRoster.ServerInstance;
+                if ((roster == null) || (!roster.HasVacatedSeat(id.Value)))
+                {
+                    Reject(conn, AuthResultCode.AdmissionLocked, "런이 진행 중이다");
+                    return;
+                }
+
+                Debug.Log($"[GeumeumAuthenticator] 입장 잠금 중이지만 두고 간 자리가 있어 받는다: platformId={id}");
             }
 
             // 같은 신원이 두 연결로 들어오면 슬롯 주인이 누구인지 알 수 없게 된다

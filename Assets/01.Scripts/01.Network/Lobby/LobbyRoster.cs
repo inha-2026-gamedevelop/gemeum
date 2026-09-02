@@ -172,6 +172,14 @@ namespace Geumeum.Network
             return false;
         }
 
+        /// <summary>
+        /// 이 신원이 두고 간 자리가 있는가. 입장 잠금 중에 누구를 다시 받을지 인증기가 이걸로 가른다
+        /// </summary>
+        public bool HasVacatedSeat(ulong platformId)
+        {
+            return (platformId != 0UL) && (_vacatedSeats.ContainsKey(platformId));
+        }
+
         /// <summary> 돌아온 사람에게 두고 간 자리와 역할을 돌려준다. 처음 오는 사람이면 아무것도 하지 않는다 </summary>
         [Server]
         public bool ServerRestoreVacatedSeat(NetworkConnectionToClient conn)

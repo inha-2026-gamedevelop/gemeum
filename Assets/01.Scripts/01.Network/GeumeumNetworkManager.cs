@@ -223,12 +223,9 @@ namespace Geumeum.Network
                 return;
             }
 
-            if (!RunManager.ServerInstance.PauseRun($"connectionId={conn.connectionId} 이탈"))
-            {
-                return; // 로비였거나 이미 멈춰 있다
-            }
-
-            UnlockAdmission();
+            // 잠금은 그대로 둔다. 풀면 일시정지 중에 로스터에 없는 사람도 들어와 자리를 가져간다.
+            // 돌아올 사람은 인증기가 두고 간 자리로 알아본다
+            RunManager.ServerInstance.PauseRun($"connectionId={conn.connectionId} 이탈");
         }
     }
 }
