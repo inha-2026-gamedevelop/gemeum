@@ -75,8 +75,8 @@ feat: 패링 판정을 서버 타임스탬프 기준으로 처리
 |---|---|
 | `Assets/00.Scenes/Dev_Combat.unity` | 네트워크 · 전투 (@AidenKim923) |
 | `Assets/00.Scenes/Dev_AI.unity` | 몬스터 · 보스 (@oname36-creator) |
-| `Assets/00.Scenes/Dev_System.unity` | 게임플레이 시스템 (@kjw1237) |
-| `Assets/00.Scenes/Dev_Art.unity` | 테크니컬 아트 (@AidenKim923 겸임) |
+| `Assets/00.Scenes/Dev_System.unity` **(미생성)** | 게임플레이 시스템 (@kjw1237) |
+| `Assets/00.Scenes/Dev_Art.unity` **(미생성)** | 테크니컬 아트 (@AidenKim923 겸임) |
 | `Assets/00.Scenes/Main.unity` | **통합 담당자만** |
 
 - 자기 씬 외의 씬은 열어도 되지만 **저장하지 않는다**. 열기만 해도 Unity가 미세한 변경을 기록할 수 있으니, 실수로 저장했으면 `git checkout` 으로 되돌린다

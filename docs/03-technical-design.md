@@ -12,9 +12,22 @@
 | 엔진 | Unity 6.4.7f1 | |
 | 렌더 파이프라인 | URP | Unity 6 기본. **프로젝트 중간 변경 금지** |
 | 네트워크 | **Mirror** · 호스트 권위 (리슨 서버) | 추후 데디케이티드 전환 가능성 열어둠 |
-| 트랜스포트 | KCP Transport | Steam 출시 시 FizzySteamworks 검토 |
+| 트랜스포트 | **KCP · FizzySteamworks 병행** | 실행 환경으로 고른다 — 바로 아래 표 |
 | 지형 | Gaia for Unity 6 | 에디터 타임 생성, 런타임 생성 아님 |
 | 형상 관리 | Git + **Git LFS** | 대용량 에셋 필수 |
+
+#### 트랜스포트는 하나가 아니라 실행 환경별 경로다 (2026-09-04 정정)
+
+초판은 "KCP Transport, Steam 출시 시 FizzySteamworks 검토"였다. **검토가 아니라 이미 도입돼 있다** — Steamworks.NET과 FizzySteamworks가 패키지·코드에 들어와 있고 3PC(3대·3계정·다른 회선)를 통과했다.
+
+| 환경 | 트랜스포트 | 목적 | 신원 |
+|---|---|---|---|
+| 로컬 개발 · LAN 3PC | **KCP** | 빠른 반복. Steam 미기동 상태에서도 돈다 | 실행 인자 `-platformid` |
+| Steam 테스트 · 배포 | **FizzySteamworks + Steamworks.NET** | 로비 · 초대 · 배포 경로 | `conn.address`의 SteamID64 |
+
+- 두 경로 모두 인증기를 거치므로 **신원 소스만 갈리고 권위 경계는 같다.**
+- Steam이 실행 중이 아니면 Fizzy 경로가 성립하지 않으므로, 개발 실행은 KCP를 기본으로 둔다.
+- 병행 규칙과 신원 확정 근거는 Steam 로비 구조 전환안 13장을 따른다.
 
 ### 1.1 렌더 파이프라인 고정 사유
 
@@ -37,8 +50,8 @@ Unity 씬 파일은 머지가 사실상 불가능하므로 동시 편집을 금�
 |---|---|---|
 | 네트워크 · 전투 | @AidenKim923 | `Dev_Combat.unity` |
 | 몬스터 · 보스 | @oname36-creator | `Dev_AI.unity` |
-| 게임플레이 시스템 | @kjw1237 | `Dev_System.unity` |
-| 테크니컬 아트 | @AidenKim923 (겸임) | `Dev_Art.unity` |
+| 게임플레이 시스템 | @kjw1237 | `Dev_System.unity` **(미생성)** |
+| 테크니컬 아트 | @AidenKim923 (겸임) | `Dev_Art.unity` **(미생성)** |
 | 통합 | @AidenKim923 | `Main.unity` — 통합 담당자만 수정 |
 
 테크니컬 아트를 팀장이 겸임하지만 `Dev_Combat`과 `Dev_Art`은 합치지 않는다. 전투 검증과 아트 톤 작업은 씬에 요구하는 조명·오브젝트 구성이 달라, 한 씬에 섞으면 둘 다 확인하기 어려워진다.

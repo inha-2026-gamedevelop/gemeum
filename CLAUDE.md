@@ -15,7 +15,7 @@
 | 엔진 | Unity 6.4.7f1 / URP |
 | 언어 | C# |
 | 네트워크 | **Mirror** · 호스트 권위 리슨 서버 (데디케이티드 전환 여지 유지) |
-| 트랜스포트 | KCP Transport (Steam 출시 시 FizzySteamworks 검토) |
+| 트랜스포트 | **KCP(로컬 개발) · FizzySteamworks + Steamworks.NET(Steam 경로) 병행** — 둘 다 도입 완료, 3PC 통과 |
 | 팀 | 3인 전원 프로그래머 — @AidenKim923(네트워크·전투·아트·통합) · @oname36-creator(몬스터·보스) · @kjw1237(게임플레이 시스템·결계) |
 | 기간 | 2026.08.30 – 2026.11.16 |
 | 보호 브랜치 | `main`, `develop` |

@@ -60,8 +60,8 @@ git checkout feature/{자기이름}
 |---|---|---|---|
 | 네트워크 · 전투 | @AidenKim923 | `feature/Minsung` | `Assets/00.Scenes/Dev_Combat.unity` |
 | 몬스터 · 보스 | @oname36-creator | `feature/{이름}` | `Assets/00.Scenes/Dev_AI.unity` |
-| 게임플레이 시스템 | @kjw1237 | `feature/{이름}` | `Assets/00.Scenes/Dev_System.unity` |
-| 테크니컬 아트 | @AidenKim923 (겸임) | `feature/Minsung` | `Assets/00.Scenes/Dev_Art.unity` |
+| 게임플레이 시스템 | @kjw1237 | `feature/{이름}` | `Assets/00.Scenes/Dev_System.unity` **(미생성)** |
+| 테크니컬 아트 | @AidenKim923 (겸임) | `feature/Minsung` | `Assets/00.Scenes/Dev_Art.unity` **(미생성)** |
 
 ---
 
