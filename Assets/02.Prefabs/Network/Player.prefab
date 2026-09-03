@@ -211,11 +211,11 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   _bindings:
-  - Appearance: 0
+  - Character: 0
     Model: {fileID: 2869014010723204636}
-  - Appearance: 1
+  - Character: 1
     Model: {fileID: 6878421784087408578}
-  - Appearance: 2
+  - Character: 2
     Model: {fileID: 8147326928772474679}
 --- !u!136 &1391620650104165911
 CapsuleCollider:
@@ -291,6 +291,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c79313c80e9d2c844ad13af906e537c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.PlayerAnimationController
+  _weaponControllers:
+  - Weapon: 1
+    Controller: {fileID: 9100000, guid: aff040a501375b647b81de1f1172c667, type: 2}
 --- !u!114 &-876890030373372519
 MonoBehaviour:
   m_ObjectHideFlags: 0

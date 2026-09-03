@@ -57,11 +57,12 @@ namespace Geumeum.Combat
         [Tooltip("원거리 무기가 쏘는 화살 프리팹. NetworkManager의 스폰 목록에도 등록되어 있어야 한다")]
         [SerializeField] private ArrowProjectile _arrowPrefab;
 
-        private PlayerStatus         _status;
-        private PlayerWeapon         _weapon;
-        private PlayerRollController _roll;
-        private ParryController      _parry;
-        private ParryGauge           _gauge;
+        private PlayerStatus              _status;
+        private PlayerWeapon              _weapon;
+        private PlayerRollController      _roll;
+        private ParryController           _parry;
+        private ParryGauge                _gauge;
+        private PlayerAnimationController _animation;
 
         // readonly로 두면 메서드 호출마다 방어 복사본이 만들어져 수락 기록이 남지 않는다
         private RequestIdTracker _requestIds = new RequestIdTracker();
@@ -99,6 +100,8 @@ namespace Geumeum.Combat
             _roll   = GetComponent<PlayerRollController>();
             _parry  = GetComponent<ParryController>();
             _gauge  = GetComponent<ParryGauge>();
+
+            _animation = GetComponent<PlayerAnimationController>();
         }
 
         private void Update()
@@ -160,6 +163,27 @@ namespace Geumeum.Combat
             _swingReach         = profile.Reach;
             _hitServerTime      = now + profile.StartupDuration;
             _recoveryServerTime = _hitServerTime + profile.RecoveryDuration;
+
+            // 표현은 수락 시점에 알린다. 판정 시점까지 기다리면 선딜 동안 아무 동작도 나오지 않는다.
+            // 무기 종류는 이미 SyncVar로 가 있으므로 값을 실어 보내지 않는다
+            RpcAttackStarted();
+        }
+
+        /****************************************
+        *              Client Rpc
+        ****************************************/
+
+        /// <summary>
+        /// 공격이 수락됐음을 모든 화면에 알린다. 이걸 거치지 않으면 남의 공격이 내 화면에서 보이지 않는다.
+        /// 판정과 무관한 표현 전용 통지다
+        /// </summary>
+        [ClientRpc]
+        private void RpcAttackStarted()
+        {
+            if (_animation != null)
+            {
+                _animation.PlayAttack();
+            }
         }
 
         /****************************************

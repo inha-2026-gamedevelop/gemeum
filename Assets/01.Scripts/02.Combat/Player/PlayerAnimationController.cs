@@ -1,7 +1,11 @@
+// System
+using System;
+
 // Unity
 using UnityEngine;
 
 // 프로젝트 내부
+using Geumeum.Common;
 using Geumeum.Data;
 
 namespace Geumeum.Combat
@@ -14,12 +18,30 @@ namespace Geumeum.Combat
     public class PlayerAnimationController : MonoBehaviour
     {
         /****************************************
+        *                Types
+        ****************************************/
+
+        /// <summary>
+        /// 무기 하나가 쓰는 애니메이터. 동작을 정하는 것은 캐릭터가 아니라 무기다 -
+        /// 활을 든 자세와 검을 든 자세는 서고 걷는 것부터 다르다
+        /// </summary>
+        [Serializable]
+        public struct WeaponAnimatorBinding
+        {
+            public WeaponKind Weapon;
+
+            [Tooltip("Speed, Roll, RollSpeed 파라미터를 가진 컨트롤러여야 한다")]
+            public RuntimeAnimatorController Controller;
+        }
+
+        /****************************************
         *              Constants
         ****************************************/
 
         private const string PARAM_SPEED      = "Speed";
         private const string PARAM_ROLL       = "Roll";
         private const string PARAM_ROLL_SPEED = "RollSpeed";
+        private const string PARAM_ATTACK     = "Attack";
 
         private const string CLIP_ROLL = "SprintingForwardRoll";
 
@@ -34,12 +56,22 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
+        [Tooltip("무기별 애니메이터. 비어 있거나 짝이 없는 무기는 캐릭터 모델이 들고 온 컨트롤러를 그대로 쓴다")]
+        [SerializeField] private WeaponAnimatorBinding[] _weaponControllers = Array.Empty<WeaponAnimatorBinding>();
+
         private Animator           _animator;
         private Transform          _visualPivot;
         private PlayerPresentation _presentation;
+        private PlayerWeapon       _weapon;
+
+        // 무기 짝이 없을 때 되돌아갈 자리. 모델이 바뀔 때만 다시 잡는다
+        private RuntimeAnimatorController _modelDefaultController;
 
         private float _smoothedSpeed  = 0f;
         private float _rollClipLength = 0f;
+
+        // 공격 모션이 없는 컨트롤러에 트리거를 넣으면 공격할 때마다 경고가 쌓인다
+        private bool _hasAttackParam = false;
 
         /****************************************
         *              Unity Event
@@ -48,6 +80,7 @@ namespace Geumeum.Combat
         private void Awake()
         {
             _presentation = GetComponent<PlayerPresentation>();
+            _weapon       = GetComponent<PlayerWeapon>();
             _visualPivot  = transform.Find(VISUAL_PIVOT_NAME);
 
             if (_visualPivot == null)
@@ -110,7 +143,16 @@ namespace Geumeum.Combat
         /// <summary> PlayerCharacter가 모델을 교체한 뒤 현재 활성 모델의 Animator를 다시 캐싱한다 </summary>
         public void RefreshAnimator()
         {
-            _animator = GetComponentInChildren<Animator>();
+            Animator found = GetComponentInChildren<Animator>();
+
+            // 모델이 실제로 바뀐 경우에만 기본 컨트롤러를 다시 잡는다.
+            // 매번 잡으면 직전에 우리가 씌운 무기 컨트롤러를 기본값으로 오인한다
+            if (found != _animator)
+            {
+                _animator               = found;
+                _modelDefaultController = (found != null) ? found.runtimeAnimatorController : null;
+            }
+
             if (_animator == null)
             {
                 _rollClipLength = 0f;
@@ -120,13 +162,96 @@ namespace Geumeum.Combat
             }
 
             _animator.applyRootMotion = false; // 이동은 Rigidbody가 결정한다, 애니메이션은 표현만 한다
-            _rollClipLength           = FindClipLength(CLIP_ROLL);
             _smoothedSpeed            = 0f;
+
+            ApplyWeaponController();
+        }
+
+        /// <summary>
+        /// 공격 모션을 한 번 재생한다. PlayerAttack의 RpcAttackStarted가 모든 화면에서 호출하므로
+        /// 남의 공격도 내 화면에서 보인다. 판정은 서버가 이미 끝냈고 이것은 표현만 한다
+        /// </summary>
+        public void PlayAttack()
+        {
+            if ((_animator == null) || (!_hasAttackParam))
+            {
+                return;
+            }
+
+            _animator.SetTrigger(PARAM_ATTACK);
+        }
+
+        /// <summary>
+        /// PlayerWeapon의 SyncVar 훅이 무기가 바뀔 때마다 호출한다.
+        /// 모델 교체와 무기 도착 순서가 보장되지 않아 양쪽에서 각각 다시 시도한다
+        /// </summary>
+        public void RefreshWeaponAnimation()
+        {
+            if (_animator == null)
+            {
+                return;
+            }
+
+            ApplyWeaponController();
         }
 
         /****************************************
         *                Methods
         ****************************************/
+
+        /// <summary> 지금 무기에 맞는 컨트롤러를 씌운다. 짝이 없으면 모델이 들고 온 것을 그대로 둔다 </summary>
+        private void ApplyWeaponController()
+        {
+            RuntimeAnimatorController desired = _modelDefaultController;
+
+            if ((_weapon != null) && (_weapon.HasWeapon) && (TryResolveController(_weapon.Weapon, out RuntimeAnimatorController bound)))
+            {
+                desired = bound;
+            }
+
+            // 같은 컨트롤러를 다시 넣으면 재생 중인 상태가 처음으로 되감긴다
+            if ((desired != null) && (_animator.runtimeAnimatorController != desired))
+            {
+                _animator.runtimeAnimatorController = desired;
+            }
+
+            // 구르기 배속은 지금 걸린 컨트롤러의 클립 길이로 정해지므로 교체 뒤에 다시 잰다
+            _rollClipLength = FindClipLength(CLIP_ROLL);
+            _hasAttackParam = HasParameter(PARAM_ATTACK);
+        }
+
+        // 아직 공격 모션이 없는 무기와 캐릭터 폴백 컨트롤러가 있어 매번 확인이 필요하다
+        private bool HasParameter(string parameterName)
+        {
+            AnimatorControllerParameter[] parameters = _animator.parameters;
+
+            for (int i = 0; i < parameters.Length; ++i)
+            {
+                if (parameters[i].name == parameterName)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool TryResolveController(WeaponKind weapon, out RuntimeAnimatorController controller)
+        {
+            for (int i = 0; i < _weaponControllers.Length; ++i)
+            {
+                if ((_weaponControllers[i].Weapon != weapon) || (_weaponControllers[i].Controller == null))
+                {
+                    continue;
+                }
+
+                controller = _weaponControllers[i].Controller;
+                return true;
+            }
+
+            controller = null;
+            return false;
+        }
 
         /// <summary>
         /// 클립 길이를 CombatConfigSO의 구르기 동작 시간에 맞추는 재생 배속.
