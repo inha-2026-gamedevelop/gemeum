@@ -10,7 +10,7 @@ using Geumeum.Common;
 namespace Geumeum.Combat
 {
     /// <summary>
-    /// PlayerWeapon의 무기 종류와 PlayerAppearance가 켠 모델의 오른손 뼈를 보고 무기 모델을 붙인다.
+    /// PlayerWeapon의 무기 종류와 PlayerCharacter가 켠 모델의 오른손 뼈를 보고 무기 모델을 붙인다.
     /// 표현 전용이며 판정에는 관여하지 않는다
     /// </summary>
     public class PlayerWeaponVisual : MonoBehaviour
@@ -49,15 +49,15 @@ namespace Geumeum.Combat
         [SerializeField] private WeaponAttachBinding[] _bindings = Array.Empty<WeaponAttachBinding>();
 
         private PlayerWeapon     _weapon;
-        private PlayerAppearance _appearance;
+        private PlayerCharacter _character;
 
         private GameObject _spawnedModel;
         private WeaponKind _spawnedWeapon;
         private bool       _hasSpawnedModel = false;
 
-        // 무기는 활성 모델의 손 뼈에 자식으로 붙는다. 외형이 바뀌면 이전 모델이 꺼지면서
+        // 무기는 활성 모델의 손 뼈에 자식으로 붙는다. 캐릭터가 바뀌면 이전 모델이 꺼지면서
         // 무기도 같이 안 보이게 되므로, 어느 모델에 붙였는지 기억해 두고 바뀌면 다시 붙인다
-        private GameObject _attachedAppearanceModel;
+        private GameObject _attachedCharacterModel;
 
         /****************************************
         *              Unity Event
@@ -66,17 +66,17 @@ namespace Geumeum.Combat
         private void Awake()
         {
             _weapon     = GetComponent<PlayerWeapon>();
-            _appearance = GetComponent<PlayerAppearance>();
+            _character = GetComponent<PlayerCharacter>();
         }
 
         /****************************************
         *              Public API
         ****************************************/
 
-        /// <summary> PlayerWeapon, PlayerAppearance의 SyncVar 훅이 값이 바뀔 때마다 호출한다. 순서는 상관없다 </summary>
+        /// <summary> PlayerWeapon, PlayerCharacter의 SyncVar 훅이 값이 바뀔 때마다 호출한다. 순서는 상관없다 </summary>
         public void Refresh()
         {
-            if ((_weapon == null) || (!_weapon.HasWeapon) || (_appearance == null) || (_appearance.ActiveModel == null))
+            if ((_weapon == null) || (!_weapon.HasWeapon) || (_character == null) || (_character.ActiveModel == null))
             {
                 return;
             }
@@ -84,7 +84,7 @@ namespace Geumeum.Combat
             if ((_hasSpawnedModel) &&
                 (_spawnedWeapon == _weapon.Weapon) &&
                 (_spawnedModel != null) &&
-                (_attachedAppearanceModel == _appearance.ActiveModel))
+                (_attachedCharacterModel == _character.ActiveModel))
             {
                 return; // 이미 같은 무기가 지금 켜져 있는 모델에 붙어 있다
             }
@@ -97,10 +97,10 @@ namespace Geumeum.Combat
                 return;
             }
 
-            Transform socket = FindDeepChild(_appearance.ActiveModel.transform, RIGHT_HAND_BONE_NAME);
+            Transform socket = FindDeepChild(_character.ActiveModel.transform, RIGHT_HAND_BONE_NAME);
             if (socket == null)
             {
-                Debug.LogWarning($"[PlayerWeaponVisual] {_appearance.ActiveModel.name}에서 {RIGHT_HAND_BONE_NAME} 뼈를 찾지 못했다", this);
+                Debug.LogWarning($"[PlayerWeaponVisual] {_character.ActiveModel.name}에서 {RIGHT_HAND_BONE_NAME} 뼈를 찾지 못했다", this);
                 return;
             }
 
@@ -113,10 +113,10 @@ namespace Geumeum.Combat
 
             _spawnedWeapon           = _weapon.Weapon;
             _hasSpawnedModel         = true;
-            _attachedAppearanceModel = _appearance.ActiveModel;
+            _attachedCharacterModel = _character.ActiveModel;
 
             // TODO(민성): 무기가 간헐적으로 안 보이는 원인을 좁히려고 남긴 진단이다, 원인이 잡히면 지운다
-            Debug.Log($"[PlayerWeaponVisual] {_spawnedWeapon}를 {_appearance.ActiveModel.name}의 {socket.name}에 붙였다", this);
+            Debug.Log($"[PlayerWeaponVisual] {_spawnedWeapon}를 {_character.ActiveModel.name}의 {socket.name}에 붙였다", this);
         }
 
         /****************************************
@@ -159,7 +159,7 @@ namespace Geumeum.Combat
 
             _spawnedModel            = null;
             _hasSpawnedModel         = false;
-            _attachedAppearanceModel = null;
+            _attachedCharacterModel = null;
         }
 
         private static Transform FindDeepChild(Transform root, string name)

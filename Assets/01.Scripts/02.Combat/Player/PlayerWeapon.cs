@@ -46,8 +46,8 @@ namespace Geumeum.Combat
         *              SyncVar Hooks
         ****************************************/
 
-        // 외형(PlayerAppearance)이 오른손 뼈를 켜는 시점과 무기 SyncVar 도착 순서가 보장되지 않아
-        // 두 훅 모두 무기 시각화를 다시 시도한다. PlayerAppearance의 이중 훅과 같은 이유다
+        // 캐릭터(PlayerCharacter)가 오른손 뼈를 켜는 시점과 무기 SyncVar 도착 순서가 보장되지 않아
+        // 두 훅 모두 무기 시각화를 다시 시도한다. PlayerCharacter의 이중 훅과 같은 이유다
         private void OnWeaponChanged(WeaponKind oldWeapon, WeaponKind newWeapon)
         {
             RefreshWeaponVisual();

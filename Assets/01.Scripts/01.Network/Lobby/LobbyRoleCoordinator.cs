@@ -55,7 +55,7 @@ namespace Geumeum.Network
         ****************************************/
 
         /// <summary>
-        /// 로스터 전원에게 무기와 외형을 확정한다.
+        /// 로스터 전원에게 무기와 캐릭터를 확정한다.
         /// 한 명이라도 확정에 실패하면 아무에게도 적용하지 않는다
         /// </summary>
         [Server]
@@ -93,8 +93,8 @@ namespace Geumeum.Network
                 requests[i] = new LobbyRoleAllocator.RoleRequest(
                     slot.HasWeapon,
                     slot.Weapon,
-                    slot.HasAppearance,
-                    slot.Appearance);
+                    slot.HasCharacter,
+                    slot.Character);
             }
 
             if (!LobbyRoleAllocator.TryAllocate(
@@ -102,7 +102,7 @@ namespace Geumeum.Network
                     _serverRandom,
                     _devForceSword,
                     out WeaponKind[]     weapons,
-                    out CharacterKind[] appearances,
+                    out CharacterKind[] characters,
                     out LobbyRoleAllocator.FailureKind failure,
                     out int              failedIndex))
             {
@@ -116,7 +116,7 @@ namespace Geumeum.Network
 
                 // 위에서 확정 가능 여부를 이미 확인했으므로 여기서 실패하면 상태가 어긋난 것이다.
                 // 절반만 적용된 채 런을 열지 않도록 막는다
-                if (!targets[i].TryCommitRole(weapons[i], appearances[i]))
+                if (!targets[i].TryCommitRole(weapons[i], characters[i]))
                 {
                     Debug.LogError($"[LobbyRoleCoordinator] connectionId={slot.ConnectionId}에 역할을 확정하지 못했다", this);
                     return false;
@@ -124,8 +124,8 @@ namespace Geumeum.Network
 
                 slot.HasWeapon     = true;
                 slot.Weapon        = weapons[i];
-                slot.HasAppearance = true;
-                slot.Appearance    = appearances[i];
+                slot.HasCharacter = true;
+                slot.Character    = characters[i];
                 roster.SetSlot(i, slot);
             }
 
@@ -134,7 +134,7 @@ namespace Geumeum.Network
 
         /// <summary>
         /// 런이 끝나 로비로 돌아올 때 남아 있는 사람의 준비 상태와 확정을 되돌린다.
-        /// 슬롯의 무기와 외형은 일부러 남긴다. 다음 배분이 같은 값을 그대로 재확정해
+        /// 슬롯의 무기와 캐릭터는 일부러 남긴다. 다음 배분이 같은 값을 그대로 재확정해
         /// 잠깐 끊겼다 돌아와도 직업이 바뀌지 않는다
         /// </summary>
         [Server]
@@ -187,7 +187,7 @@ namespace Geumeum.Network
             }
 
             LobbySlot slot = roster.GetSlot(index);
-            if ((!slot.HasWeapon) || (!slot.HasAppearance))
+            if ((!slot.HasWeapon) || (!slot.HasCharacter))
             {
                 return false;
             }
@@ -197,7 +197,7 @@ namespace Geumeum.Network
                 return false;
             }
 
-            if (!role.TryCommitRole(slot.Weapon, slot.Appearance))
+            if (!role.TryCommitRole(slot.Weapon, slot.Character))
             {
                 Debug.LogError($"[LobbyRoleCoordinator] connectionId={conn.connectionId}의 역할을 되돌려 주지 못했다", this);
                 return false;
@@ -222,16 +222,16 @@ namespace Geumeum.Network
                     Debug.LogError($"[LobbyRoleCoordinator] 무기 종류가 인원({roster.SlotCount})보다 적다", this);
                     break;
 
-                case LobbyRoleAllocator.FailureKind.NotEnoughLooks:
-                    Debug.LogError($"[LobbyRoleCoordinator] 외형 종류가 인원({roster.SlotCount})보다 적다", this);
+                case LobbyRoleAllocator.FailureKind.NotEnoughCharacters:
+                    Debug.LogError($"[LobbyRoleCoordinator] 캐릭터 종류가 인원({roster.SlotCount})보다 적다", this);
                     break;
 
-                case LobbyRoleAllocator.FailureKind.InvalidAppearance:
-                    Debug.LogError($"[LobbyRoleCoordinator] connectionId={connectionId}의 외형 선택이 유효하지 않다", this);
+                case LobbyRoleAllocator.FailureKind.InvalidCharacter:
+                    Debug.LogError($"[LobbyRoleCoordinator] connectionId={connectionId}의 캐릭터 선택이 유효하지 않다", this);
                     break;
 
-                case LobbyRoleAllocator.FailureKind.NoFreeAppearance:
-                    Debug.LogError($"[LobbyRoleCoordinator] connectionId={connectionId}에 줄 남은 외형이 없다", this);
+                case LobbyRoleAllocator.FailureKind.NoFreeCharacter:
+                    Debug.LogError($"[LobbyRoleCoordinator] connectionId={connectionId}에 줄 남은 캐릭터가 없다", this);
                     break;
 
                 case LobbyRoleAllocator.FailureKind.InvalidWeapon:

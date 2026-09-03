@@ -8,45 +8,45 @@ using Geumeum.Common;
 namespace Geumeum.Network
 {
     /// <summary>
-    /// 무기 셔플과 외형 충돌 해결만 담는 순수 계산기. Mirror와 UnityEngine에 의존하지 않아
+    /// 무기 셔플과 캐릭터 충돌 해결만 담는 순수 계산기. Mirror와 UnityEngine에 의존하지 않아
     /// 접속 없이도 결과를 검증할 수 있다. 실제 적용과 슬롯 갱신은 LobbyController가 한다
     /// </summary>
     public static class LobbyRoleAllocator
     {
         /// <summary>
-        /// 한 사람이 이미 가진 것. 로비에서 고른 외형과, 직전 런에서 쓰다가 이어받은 무기다.
+        /// 한 사람이 이미 가진 것. 로비에서 고른 캐릭터와, 직전 런에서 쓰다가 이어받은 무기다.
         /// 아무것도 정해지지 않았으면 두 Has 플래그가 모두 false이고 배분기가 채운다
         /// </summary>
         public readonly struct RoleRequest
         {
             public readonly bool           HasWeapon;
             public readonly WeaponKind     Weapon;
-            public readonly bool           HasAppearance;
-            public readonly CharacterKind Appearance;
+            public readonly bool           HasCharacter;
+            public readonly CharacterKind  Character;
 
-            public RoleRequest(bool hasWeapon, WeaponKind weapon, bool hasAppearance, CharacterKind appearance)
+            public RoleRequest(bool hasWeapon, WeaponKind weapon, bool hasCharacter, CharacterKind character)
             {
                 HasWeapon     = hasWeapon;
                 Weapon        = weapon;
-                HasAppearance = hasAppearance;
-                Appearance    = appearance;
+                HasCharacter  = hasCharacter;
+                Character     = character;
             }
         }
 
         /// <summary> 배분에 실패한 이유. 호출자가 로그 문구를 정한다 </summary>
         public enum FailureKind
         {
-            None              = 0,
-            NotEnoughWeapons  = 1, // 무기 종류가 인원보다 적다
-            NotEnoughLooks    = 2, // 외형 종류가 인원보다 적다
-            InvalidAppearance = 3, // 고른 외형이 정의되지 않았거나 이미 다른 사람이 가져갔다
-            NoFreeAppearance  = 4, // 고르지 않은 사람에게 줄 외형이 남지 않았다
-            InvalidWeapon     = 5, // 이어받은 무기가 정의되지 않았거나 이미 다른 사람이 가져갔다
-            NoFreeWeapon      = 6, // 무기가 없는 사람에게 줄 무기가 남지 않았다
+            None                = 0,
+            NotEnoughWeapons    = 1, // 무기 종류가 인원보다 적다
+            NotEnoughCharacters = 2, // 캐릭터 종류가 인원보다 적다
+            InvalidCharacter    = 3, // 고른 캐릭터가 정의되지 않았거나 이미 다른 사람이 가져갔다
+            NoFreeCharacter     = 4, // 고르지 않은 사람에게 줄 캐릭터가 남지 않았다
+            InvalidWeapon       = 5, // 이어받은 무기가 정의되지 않았거나 이미 다른 사람이 가져갔다
+            NoFreeWeapon        = 6, // 무기가 없는 사람에게 줄 무기가 남지 않았다
         }
 
         /// <summary>
-        /// 인원수만큼 무기와 외형을 겹치지 않게 정한다.
+        /// 인원수만큼 무기와 캐릭터를 겹치지 않게 정한다.
         /// 실패하면 out 배열은 null이고 failedIndex는 문제가 된 요청의 인덱스다(해당 없으면 -1)
         /// </summary>
         public static bool TryAllocate(
@@ -54,12 +54,12 @@ namespace Geumeum.Network
             Random                     serverRandom,
             bool                       forceSword,
             out WeaponKind[]           weapons,
-            out CharacterKind[]       appearances,
+            out CharacterKind[]       characters,
             out FailureKind            failure,
             out int                    failedIndex)
         {
             weapons     = null;
-            appearances = null;
+            characters = null;
             failure     = FailureKind.None;
             failedIndex = -1;
 
@@ -70,7 +70,7 @@ namespace Geumeum.Network
             }
 
             WeaponKind[]     weaponPool     = (WeaponKind[])     Enum.GetValues(typeof(WeaponKind));
-            CharacterKind[] appearancePool = (CharacterKind[]) Enum.GetValues(typeof(CharacterKind));
+            CharacterKind[] characterPool = (CharacterKind[]) Enum.GetValues(typeof(CharacterKind));
 
             if (weaponPool.Length < requests.Count)
             {
@@ -78,19 +78,19 @@ namespace Geumeum.Network
                 return false;
             }
 
-            if (appearancePool.Length < requests.Count)
+            if (characterPool.Length < requests.Count)
             {
-                failure = FailureKind.NotEnoughLooks;
+                failure = FailureKind.NotEnoughCharacters;
                 return false;
             }
 
-            if (!TryResolveAppearances(requests, appearancePool, out appearances, out failure, out failedIndex))
+            if (!TryResolveCharacters(requests, characterPool, out characters, out failure, out failedIndex))
             {
-                appearances = null;
+                characters = null;
                 return false;
             }
 
-            weapons = ResolveWeapons(appearances, forceSword);
+            weapons = ResolveWeapons(characters, forceSword);
 
             return true;
         }
@@ -122,9 +122,9 @@ namespace Geumeum.Network
             }
         }
 
-        // 로비에서 고른 외형은 그대로 두고, 고르지 않은 사람에게만 남은 외형을 준다.
+        // 로비에서 고른 캐릭터는 그대로 두고, 고르지 않은 사람에게만 남은 캐릭터를 준다.
         // 무기와 달리 섞지 않는다 - 고른 사람의 선택을 뒤집지 않기 위해서다
-        private static bool TryResolveAppearances(
+        private static bool TryResolveCharacters(
             IReadOnlyList<RoleRequest> requests,
             CharacterKind[]           pool,
             out CharacterKind[]       resolved,
@@ -139,28 +139,28 @@ namespace Geumeum.Network
 
             for (int i = 0; i < requests.Count; ++i)
             {
-                if (!requests[i].HasAppearance)
+                if (!requests[i].HasCharacter)
                 {
                     continue;
                 }
 
-                int index = Array.IndexOf(pool, requests[i].Appearance);
+                int index = Array.IndexOf(pool, requests[i].Character);
 
                 // 선택 시점에 중복과 미정의 값을 막지만, 여기서 뚫리면 두 사람이 같은 모습이 된다
                 if ((index < 0) || (isTaken[index]))
                 {
-                    failure     = FailureKind.InvalidAppearance;
+                    failure     = FailureKind.InvalidCharacter;
                     failedIndex = i;
                     return false;
                 }
 
                 isTaken[index] = true;
-                resolved[i]    = requests[i].Appearance;
+                resolved[i]    = requests[i].Character;
             }
 
             for (int i = 0; i < requests.Count; ++i)
             {
-                if (requests[i].HasAppearance)
+                if (requests[i].HasCharacter)
                 {
                     continue;
                 }
@@ -168,7 +168,7 @@ namespace Geumeum.Network
                 int freeIndex = Array.IndexOf(isTaken, false);
                 if (freeIndex < 0)
                 {
-                    failure     = FailureKind.NoFreeAppearance;
+                    failure     = FailureKind.NoFreeCharacter;
                     failedIndex = i;
                     return false;
                 }

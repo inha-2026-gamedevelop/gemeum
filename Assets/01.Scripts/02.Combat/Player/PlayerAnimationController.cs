@@ -107,7 +107,7 @@ namespace Geumeum.Combat
             _animator.SetTrigger(PARAM_ROLL);
         }
 
-        /// <summary> PlayerAppearance가 모델을 교체한 뒤 현재 활성 모델의 Animator를 다시 캐싱한다 </summary>
+        /// <summary> PlayerCharacter가 모델을 교체한 뒤 현재 활성 모델의 Animator를 다시 캐싱한다 </summary>
         public void RefreshAnimator()
         {
             _animator = GetComponentInChildren<Animator>();

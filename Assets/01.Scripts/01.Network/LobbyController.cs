@@ -148,11 +148,11 @@ namespace Geumeum.Network
         }
 
         /// <summary>
-        /// 로비에서 외형을 고른다. 무기 배분과는 무관하며, 이미 다른 사람이 고른 외형은 거부한다.
-        /// 고르지 않은 채 런이 시작되면 서버가 남은 외형을 배정한다
+        /// 로비에서 캐릭터를 고른다. 무기 배분과는 무관하며, 이미 다른 사람이 고른 캐릭터는 거부한다.
+        /// 고르지 않은 채 런이 시작되면 서버가 남은 캐릭터를 배정한다
         /// </summary>
         [Command(requiresAuthority = false)]
-        public void CmdSelectAppearance(CharacterKind appearance, NetworkConnectionToClient sender = null)
+        public void CmdSelectCharacter(CharacterKind character, NetworkConnectionToClient sender = null)
         {
             if ((sender == null) || (IsAdmissionLocked()))
             {
@@ -160,20 +160,20 @@ namespace Geumeum.Network
             }
 
             // 클라이언트가 보낸 값은 신뢰하지 않는다, 정의되지 않은 enum 값이 슬롯에 들어가면 모델 바인딩이 어긋난다
-            if (!Enum.IsDefined(typeof(CharacterKind), appearance))
+            if (!Enum.IsDefined(typeof(CharacterKind), character))
             {
-                Debug.LogWarning($"[LobbyController] 정의되지 않은 외형 선택을 무시했다: connectionId={sender.connectionId}, appearance={appearance}", this);
+                Debug.LogWarning($"[LobbyController] 정의되지 않은 캐릭터 선택을 무시했다: connectionId={sender.connectionId}, character={character}", this);
                 return;
             }
 
             LobbyRoster roster = LobbyRoster.ServerInstance;
             if ((roster == null) || (!roster.TryFindSlotIndex(sender.connectionId, out int index)))
             {
-                Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 외형 선택을 무시했다: connectionId={sender.connectionId}", this);
+                Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 캐릭터 선택을 무시했다: connectionId={sender.connectionId}", this);
                 return;
             }
 
-            // 3인칭 오버숄더라 같은 외형이 둘이면 파티원을 구분할 수 없다
+            // 3인칭 오버숄더라 같은 캐릭터가 둘이면 파티원을 구분할 수 없다
             for (int i = 0; i < roster.SlotCount; ++i)
             {
                 if (i == index)
@@ -182,15 +182,15 @@ namespace Geumeum.Network
                 }
 
                 LobbySlot other = roster.GetSlot(i);
-                if ((other.HasAppearance) && (other.Appearance == appearance))
+                if ((other.HasCharacter) && (other.Character == character))
                 {
                     return;
                 }
             }
 
             LobbySlot slot     = roster.GetSlot(index);
-            slot.HasAppearance = true;
-            slot.Appearance    = appearance;
+            slot.HasCharacter = true;
+            slot.Character    = character;
             roster.SetSlot(index, slot);
         }
 
@@ -251,7 +251,7 @@ namespace Geumeum.Network
                 }
             }
 
-            // 무기와 외형이 세 명 모두에게 실제로 적용된 뒤에만 런을 연다
+            // 무기와 캐릭터가 세 명 모두에게 실제로 적용된 뒤에만 런을 연다
             if ((LobbyRoleCoordinator.ServerInstance == null) || (!LobbyRoleCoordinator.ServerInstance.ServerAssignRoles()))
             {
                 return;

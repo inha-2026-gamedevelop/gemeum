@@ -22,8 +22,8 @@ namespace Geumeum.Network
         public bool           IsReady;
         public bool           HasWeapon;
         public WeaponKind     Weapon;
-        public bool           HasAppearance;
-        public CharacterKind Appearance;
+        public bool           HasCharacter;
+        public CharacterKind  Character;
     }
 
     /// <summary>
@@ -42,16 +42,16 @@ namespace Geumeum.Network
             public readonly Vector3        Position;
             public readonly bool           HasWeapon;
             public readonly WeaponKind     Weapon;
-            public readonly bool           HasAppearance;
-            public readonly CharacterKind Appearance;
+            public readonly bool           HasCharacter;
+            public readonly CharacterKind  Character;
 
             public VacatedSeat(Vector3 position, in LobbySlot slot)
             {
                 Position      = position;
                 HasWeapon     = slot.HasWeapon;
                 Weapon        = slot.Weapon;
-                HasAppearance = slot.HasAppearance;
-                Appearance    = slot.Appearance;
+                HasCharacter = slot.HasCharacter;
+                Character    = slot.Character;
             }
         }
 
@@ -113,8 +113,8 @@ namespace Geumeum.Network
                 IsReady       = false,
                 HasWeapon     = false,
                 Weapon        = default,
-                HasAppearance = false,
-                Appearance    = default,
+                HasCharacter = false,
+                Character    = default,
             });
 
             return true;
@@ -201,8 +201,8 @@ namespace Geumeum.Network
             LobbySlot slot     = _slots[index];
             slot.HasWeapon     = seat.HasWeapon;
             slot.Weapon        = seat.Weapon;
-            slot.HasAppearance = seat.HasAppearance;
-            slot.Appearance    = seat.Appearance;
+            slot.HasCharacter = seat.HasCharacter;
+            slot.Character    = seat.Character;
             _slots[index]      = slot;
 
             if (conn.identity.TryGetComponent(out IPlayerRunLifecycle lifecycle))
