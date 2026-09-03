@@ -211,7 +211,13 @@ Main.unity
 │  └ Constants.network.cs  틱 레이트, 동기화 상수
 ├ Utility/                 namespace Geumeum.Common
 │  ├ PersistentSingleton.cs  MB  DDOL 싱글턴 베이스 (제네릭 MonoBehaviour — 코딩 컨벤션 18)
-│  └ SceneSingleton.cs       MB  씬 로컬 싱글턴 베이스 (제네릭 MonoBehaviour)
+│  ├ SceneSingleton.cs       MB  씬 로컬 싱글턴 베이스 (제네릭 MonoBehaviour)
+│  ├ DamageTargetResolver.cs C#  [현재] 콜라이더 → IDamageable 해석 창구. 부위 콜라이더와
+│  │                             몸통이 같은 NetworkIdentity일 때의 중복 제거를 여기서만 한다
+│  ├ CombatFeedbackLocator.cs static ICombatFeedback 등록·조회. 기본값은 아무것도 하지
+│  │                             않는 NullCombatFeedback → 8.3
+│  └ BarrierStateLocator.cs  static [현재] IBarrierState 등록·조회. 기본값은 결계가 꺼진 것으로
+│                                답하는 NullBarrierState라, 결계 구현 전에도 전투·AI·아트가 돈다
 ├ Events/                  namespace Geumeum.Common — 파트 간 이벤트 계약 → 8장
 │  ├ IGameEventBus.cs      C#  타입이 지정된 이벤트 발행 · 구독 계약
 │  └ GameEventBus.cs       MB  @Managers가 소유하는 서버/로컬 이벤트 허브.
@@ -234,6 +240,10 @@ Main.unity
 │                              네트워크 개체를 걸러내는 화이트리스트다
 └ Interfaces/              namespace Geumeum.Common — 파트 간 경계 → 8장
    ├ IDamageable.cs        피해를 받을 수 있는 대상 (플레이어 · 잡귀 · 보스)
+   ├ IRecoveryTarget.cs    [현재] 회복을 받을 수 있는 대상. 무녀 치유(전투)와 회복 물약(시스템)이
+                              쇠약 · 회복 봉쇄를 각자 계산하지 않게 하는 단일 창구
+   ├ IBarrierState.cs      [현재] 결계의 현재 중심 · 반경 · 밖 판정 · 회복 효율.
+                              시스템이 구현하고 전투 · AI · 아트 · UI가 읽는다
    ├ IParryable.cs         패링당할 수 있는 공격의 계약
    ├ IInteractable.cs      상호작용 대상 (객주, 드랍 아이템)
    ├ ICombatFeedback.cs    타격감 호출부 (전투가 호출, 아트가 구현) → 8.3
@@ -241,9 +251,7 @@ Main.unity
                               직접 참조하지 않도록 하는 경계다
    ├ IPlayerRunLifecycle.cs   런 경계에서 플레이어를 옮기고 상태를 되돌리는 계약
    ├ IPoolable.cs             풀에서 재사용될 때 파티클 · Trail · 코루틴을 되돌리는 계약
-   ├ IParryWindowTarget.cs    패링 창을 여닫을 수 있는 대상의 계약
-   └ CombatFeedbackLocator.cs static ICombatFeedback 등록·조회. 기본값은 아무것도 하지
-                              않는 NullCombatFeedback → 8.3
+   └ IParryWindowTarget.cs    패링 창을 여닫을 수 있는 대상의 계약
 ```
 
 `Interfaces/`에는 인터페이스만 둔다. 파트가 공유하는 열거형은 `Types/`로 보낸다 — 폴더명과 내용이 어긋나면 다음 사람이 찾지 못한다.
@@ -311,7 +319,7 @@ Main.unity
 │  │                           무기별 Animator를 골라 씌우고(짝이 없으면 모델 기본값 폴백)
 │  │                           구르기 · 공격 모션 재생 진입점을 제공한다
 │  ├ PlayerLifeState.cs    enum [현재] Alive · Downed · Spectating · ReviveInvulnerable
-│  ├ PlayerStatus.cs       NB  [현재] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable
+│  ├ PlayerStatus.cs       NB  [현재] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable · IRecoveryTarget
 │  ├ PlayerWeapon.cs       NB  [현재] 현재 무기 SyncVar(초기 1회 배분). 훅이 무기 모델과
 │  │                           애니메이터를 함께 갱신한다. [계획] 서버 전투용 장비 snapshot 추가
 │  ├ PlayerWeaponVisual.cs MB  [현재] 활성 캐릭터 모델의 오른손 뼈에 무기 모델을 붙이는 표현 전용.
@@ -686,6 +694,8 @@ Combat ✕ AI ✕ Systems 상호 직접 참조 금지 — Common의 인터페이
 | 인터페이스 | 구현 | 호출 |
 |---|---|---|
 | `IDamageable` | PlayerStatus, EnemyStatus, BossStatus | 공격 판정 · 결계 피해 · 투사체 |
+| `IRecoveryTarget` | PlayerStatus | 무녀 치유 · 회복 물약 |
+| `IBarrierState` | BarrierController *(미구현 — 그 전까지 `BarrierStateLocator`의 Null 구현)* | 무녀 치유 · 결계 밖 잡귀 이동 · BarrierVisual · UI |
 | `IParryable` | 창귀 돌진, 보스 패링 가능 패턴 | ParryController |
 | `IInteractable` | ShopKeeper, DroppedItem | 플레이어 상호작용 입력 |
 | `ICombatFeedback` | CombatFeedbackImpl | 전투 타이밍 → 로컬 연출 |

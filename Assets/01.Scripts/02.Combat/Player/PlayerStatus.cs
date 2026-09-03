@@ -15,7 +15,7 @@ namespace Geumeum.Combat
     /// 플레이어 HP, 스태미나, 신력, 생명 상태의 원본. IDamageable 구현.
     /// 다른 컴포넌트는 이 값을 직접 대입하지 않고 여기의 서버 API를 호출한다
     /// </summary>
-    public class PlayerStatus : NetworkBehaviour, IDamageable
+    public class PlayerStatus : NetworkBehaviour, IDamageable, IRecoveryTarget
     {
         /****************************************
         *                Fields
@@ -283,6 +283,43 @@ namespace Geumeum.Combat
                 // TODO(민성): ReviveController가 붙으면 Spectating 전이와 관전 타이머를 잇는다
                 _lifeState = PlayerLifeState.Downed;
             }
+        }
+
+        /// <summary>
+        /// 회복을 적용한다, 서버에서만 호출한다.
+        /// 무녀 치유와 회복 물약이 같은 창구를 쓰고, 쇠약과 회복 봉쇄는 여기서 한 번만 적용한다.
+        /// 호출부가 결계 규칙을 각자 계산하면 수단마다 규칙이 갈리므로 원본 회복량만 받는다
+        /// </summary>
+        [Server]
+        public bool TryRestoreHealth(float amount)
+        {
+            if (IsDead)
+            {
+                return false;
+            }
+
+            if (amount <= Constants.Combat.HEALTH_EPSILON)
+            {
+                return false;
+            }
+
+            // 이미 최대치면 자원만 소모되고 아무 일도 일어나지 않으므로 호출부가 되돌릴 수 있게 알린다
+            if (_health >= _maxHealth)
+            {
+                return false;
+            }
+
+            // 결계가 없는 동안에는 로케이터의 기본 구현이 1을 돌려주므로 분기가 필요 없다
+            float applied = amount * BarrierStateLocator.Current.GetHealingMultiplier(transform.position);
+
+            // 회복 봉쇄 구간
+            if (applied <= Constants.Combat.HEALTH_EPSILON)
+            {
+                return false;
+            }
+
+            _health = Mathf.Min(_maxHealth, _health + applied);
+            return true;
         }
 
         /// <summary> 스태미나가 충분할 때만 원자적으로 차감한다. 서버에서만 호출한다 </summary>
