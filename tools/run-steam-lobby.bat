@@ -57,7 +57,7 @@ echo     방장  : 방 만들기 - 친구 초대 - (3/3이 되면) 호스트 시작
 echo     참가자: Steam 오버레이에서 초대 수락
 echo.
 
-start "" "%EXE%" -steam -platformid %PLATFORMID% -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "%LOGFILE%"
+start "" /D "%EXEDIR%" "%EXE%" -steam -platformid %PLATFORMID% -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "%LOGFILE%"
 
 echo   로그: %LOGFILE%
 echo.

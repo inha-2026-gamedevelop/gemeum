@@ -56,7 +56,7 @@ if exist "%LOGFILE%" del /q "%LOGFILE%"
 echo.
 echo   %HOSTID% 에 접속한다.
 
-start "" "%EXE%" -steam -client %HOSTID% -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "%LOGFILE%"
+start "" /D "%EXEDIR%" "%EXE%" -steam -client %HOSTID% -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "%LOGFILE%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0show-steam-client-result.ps1" -LogPath "%LOGFILE%"
 if errorlevel 1 echo 로그 요약 스크립트를 실행하지 못했다. show-steam-client-result.ps1이 옆에 있는지 확인할 것.

@@ -193,7 +193,7 @@ namespace Geumeum.Network
         {
             if (Input.GetKeyDown(_writeKeyCode))
             {
-                Write();
+                Write(true); // 사람이 직접 눌렀으므로 저장 경로를 알려 준다
             }
 
             if (Input.GetKeyDown(_overlayKeyCode))
@@ -247,7 +247,7 @@ namespace Geumeum.Network
         }
 
         /// <summary> 지금까지 누적한 통계를 CSV로 남긴다. 비용은 측정 시간과 무관하다 </summary>
-        public void Write()
+        public void Write(bool announce = false)
         {
             if (_sampleCount <= 0)
             {
@@ -307,7 +307,12 @@ namespace Geumeum.Network
                 Constants.Diagnostics.FRAME_LOG_PREFIX + "_" + role + "_" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".csv");
             File.WriteAllText(path, csv.ToString());
 
-            Debug.Log($"[FrameRecorder] {_sampleCount}프레임 기록을 남겼다: {path}");
+            // 자동 저장과 종료 저장까지 알리면 접속 로그가 프레임 기록에 묻힌다.
+            // 사람이 직접 부른 경우에만 경로를 남긴다
+            if (announce)
+            {
+                Debug.Log($"[FrameRecorder] {_sampleCount}프레임 기록을 남겼다: {path}");
+            }
         }
 
         private void AppendRow(StringBuilder csv, string label, int[] buckets, long frames,
