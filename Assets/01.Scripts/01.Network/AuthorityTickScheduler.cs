@@ -58,16 +58,19 @@ namespace Geumeum.Network
         // 물리 스텝이 곧 서버 틱이다. Rigidbody를 만지는 콜백이 여기 밖에서 돌면 이동이 물리와 어긋난다
         private void FixedUpdate()
         {
-            if ((!_isTicking) || (!_isSimulationEnabled))
+            if (!_isTicking)
             {
                 return;
             }
 
-            if (_pendingAdds.Count > 0)
+            // 등록, 해제 반영은 시뮬레이션이 멈춰 있어도 한다. 이 처리가 정지 게이트 안에 있으면
+            // Result 구간 동안 큐가 무한정 자라고, 그사이 파괴된 오브젝트의 델리게이트가
+            // 다음 런을 켜는 순간 한꺼번에 되살아난다
+            FlushPendingChanges();
+
+            if (!_isSimulationEnabled)
             {
-                _callbacks.AddRange(_pendingAdds);
-                _pendingAdds.Clear();
-                _isSorted = false;
+                return;
             }
 
             if (!_isSorted)
@@ -85,6 +88,25 @@ namespace Geumeum.Network
                 }
 
                 callback.Invoke(Time.fixedDeltaTime);
+            }
+
+            // 순회 중 들어온 요청을 여기서 정리한다. 순회 도중 목록을 건드리면 인덱스가 어긋난다
+            FlushPendingChanges();
+        }
+
+        /****************************************
+        *                Methods
+        ****************************************/
+
+        // 등록을 먼저, 해제를 나중에 반영한다. 같은 창에 등록과 해제가 함께 들어오면 해제가 이겨야 한다 —
+        // 델리게이트가 같으면 RemoveAll이 방금 넣은 항목까지 지우므로 순서를 뒤집으면 유령 등록이 남는다
+        private void FlushPendingChanges()
+        {
+            if (_pendingAdds.Count > 0)
+            {
+                _callbacks.AddRange(_pendingAdds);
+                _pendingAdds.Clear();
+                _isSorted = false;
             }
 
             if (_pendingRemovals.Count > 0)

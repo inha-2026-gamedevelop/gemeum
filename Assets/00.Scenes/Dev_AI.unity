@@ -131,6 +131,9 @@ GameObject:
   - component: {fileID: 244729533}
   - component: {fileID: 244729532}
   - component: {fileID: 244729535}
+  - component: {fileID: 244729538}
+  - component: {fileID: 244729537}
+  - component: {fileID: 244729536}
   m_Layer: 9
   m_Name: '@Network'
   m_TagString: Untagged
@@ -177,12 +180,13 @@ MonoBehaviour:
   maxConnections: 100
   disconnectInactiveConnections: 0
   disconnectInactiveTimeout: 60
-  authenticator: {fileID: 0}
+  authenticator: {fileID: 244729537}
   playerPrefab: {fileID: 3550045087523702412, guid: 8f5c9810227dfc2479ff5353eba9047d, type: 3}
   autoCreatePlayer: 1
   playerSpawnMethod: 0
   spawnPrefabs:
   - {fileID: 3360524794612996174, guid: 74a9cc0af3d2a3f40b913df6e9c1903d, type: 3}
+  - {fileID: 2533346979541072793, guid: bf3ce04c1e31fd94c827740078a54665, type: 3}
   exceptionsDisconnect: 1
   snapshotSettings:
     bufferTimeMultiplier: 2
@@ -199,6 +203,7 @@ MonoBehaviour:
   evaluationInterval: 3
   timeInterpolationGui: 0
   _devStartHostKey: 0
+  _devAbandonRunKey: 0
 --- !u!4 &244729534
 Transform:
   m_ObjectHideFlags: 0
@@ -243,6 +248,51 @@ MonoBehaviour:
   debugLog: 0
   statisticsGUI: 0
   statisticsLog: 0
+--- !u!114 &244729536
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244729531}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5bd998b29842aa54ab2fdfcc2e584668, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.DevIdentitySource
+--- !u!114 &244729537
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244729531}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a77349c9743340a43a374fcaf4d2ccfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.GeumeumAuthenticator
+  OnServerAuthenticated:
+    m_PersistentCalls:
+      m_Calls: []
+  OnClientAuthenticated:
+    m_PersistentCalls:
+      m_Calls: []
+  _buildId: dev
+  _devIdentitySourceBehaviour: {fileID: 244729536}
+  _steamIdentitySourceBehaviour: {fileID: 0}
+--- !u!114 &244729538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244729531}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77898bbb5d550cb4695c6537fe285833, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.NetworkLaunchArgs
 --- !u!1 &308613023
 GameObject:
   m_ObjectHideFlags: 0
@@ -395,6 +445,8 @@ GameObject:
   - component: {fileID: 831179305}
   - component: {fileID: 831179310}
   - component: {fileID: 831179311}
+  - component: {fileID: 831179313}
+  - component: {fileID: 831179312}
   m_Layer: 0
   m_Name: '@Managers'
   m_TagString: Untagged
@@ -502,6 +554,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd93672a8738f054a9a7d026be93f1d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.AuthorityTickScheduler
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+--- !u!114 &831179312
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 831179304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f07f966441a0e84f9e423c0870f74e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.LobbyRoleCoordinator
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _devForceSword: 0
+--- !u!114 &831179313
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 831179304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b160ce53276f7e4d9a8a0830d2bb525, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.LobbyRoster
   syncDirection: 0
   syncMode: 0
   syncInterval: 0

@@ -25,7 +25,7 @@
 |---|---|---|---|---|
 | 코어 루프, 결계 단계, 시간대 | [게임 디자인 2절](../02-game-design.md) | `BarrierController` | M2 3인 반경 일치 | 시스템 파트 |
 | 패링, 판정 창, 패링 게이지 | [게임 디자인 3절](../02-game-design.md) | `ParrySystem` | M3 지연 조건별 성공률 | 팀장 |
-| 화살, 유도, 락온 | [게임 디자인 4절](../02-game-design.md) | `ArrowProjectile` | M2 궤적 일치 | 팀장 |
+| 화살, 명중 보조, **정밀 사격** | [게임 디자인 4절](../02-game-design.md) | `ArrowProjectile` · `PlayerAttack` | M2 궤적 일치, **정밀 사격은 L3 필수** | 팀장 |
 | 잡귀, 스폰, 강화 접두사 | [게임 디자인 5절](../02-game-design.md) | `SpawnManager`, `EnemySO` | M1 스폰 수 확인 | 몬스터 파트 |
 | 장비, 등급, 스탯 롤 | [게임 디자인 6절](../02-game-design.md) | `EquipmentInstance`, `DropTableSO` | M2 동시 획득 | 시스템 파트 |
 | 노잣돈, 객주, 상점 | [게임 디자인 7절](../02-game-design.md) | `CurrencyManager`, `ShopSO` | M2 동시 구매 잔액 | 시스템 파트 |

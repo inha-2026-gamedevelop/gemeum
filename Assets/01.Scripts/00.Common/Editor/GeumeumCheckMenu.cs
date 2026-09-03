@@ -7,6 +7,9 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
+// 서드파티
+using Mirror;
+
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
@@ -28,6 +31,9 @@ namespace Geumeum.EditorTools
         private const string MENU_CHECK = GeumeumBuildMenu.MENU_ROOT + "검사/";
         private const string MENU_DATA  = GeumeumBuildMenu.MENU_ROOT + "데이터/";
 
+        private const string PREFAB_DIR   = "Assets/02.Prefabs";
+        private const string PREFAB_FILTER = "t:Prefab";
+
         private const string SCENE_DIR    = "Assets/00.Scenes/";
         private const string SCENE_EXT    = ".unity";
         private const string GAME_DB_PATH = "Assets/09.Data/Resources/GameDB.asset";
@@ -36,6 +42,7 @@ namespace Geumeum.EditorTools
         private const int ORDER_SCENE_COMBAT = 41;
         private const int ORDER_CHECK_DATA   = 60;
         private const int ORDER_CHECK_SCENE  = 61;
+        private const int ORDER_CHECK_POOL   = 62;
         private const int ORDER_DATA_SELECT  = 80;
 
         private static readonly List<string> G_Problems = new List<string>();
@@ -117,6 +124,47 @@ namespace Geumeum.EditorTools
             }
 
             Report("씬 필수 구성 검사", null);
+        }
+
+        /// <summary>
+        /// 로컬 풀 표식이 붙은 프리팹에 네트워크 컴포넌트가 섞여 있는지 검사한다.
+        /// 런타임 풀도 거부하지만 그때는 이미 Play 모드라 어느 프리팹이 문제인지 찾기 어렵다
+        /// </summary>
+        [MenuItem(MENU_CHECK + "풀 대상 프리팹 검사", false, ORDER_CHECK_POOL)]
+        private static void CheckPoolPrefabs()
+        {
+            G_Problems.Clear();
+
+            string[] guids = AssetDatabase.FindAssets(PREFAB_FILTER, new[] { PREFAB_DIR });
+            int      count = 0;
+
+            for (int i = 0; i < guids.Length; ++i)
+            {
+                string     path   = AssetDatabase.GUIDToAssetPath(guids[i]);
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+
+                if ((prefab == null) || (!prefab.TryGetComponent(out LocalPoolRoot _)))
+                {
+                    continue;
+                }
+
+                ++count;
+
+                // 자식에 붙어 있어도 서버가 수명을 가지는 것은 마찬가지다
+                if (prefab.GetComponentInChildren<NetworkIdentity>(true) != null)
+                {
+                    G_Problems.Add(path + " 에 NetworkIdentity가 있다");
+                    continue;
+                }
+
+                if (prefab.GetComponentInChildren<NetworkBehaviour>(true) != null)
+                {
+                    G_Problems.Add(path + " 에 NetworkBehaviour가 있다");
+                }
+            }
+
+            Debug.Log("[그믐] 풀 대상 프리팹 " + count + "개를 검사했다");
+            Report("풀 대상 프리팹 검사", null);
         }
 
         /****************************************

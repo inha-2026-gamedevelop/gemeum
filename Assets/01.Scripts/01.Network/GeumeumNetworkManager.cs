@@ -22,6 +22,12 @@ namespace Geumeum.Network
 
         private static readonly List<string> _bootFailures = new List<string>();
 
+        /// <summary> 로컬 클라이언트가 서버에 붙었다 </summary>
+        public static event System.Action ClientConnected;
+
+        /// <summary> 로컬 클라이언트의 연결이 끊겼다 </summary>
+        public static event System.Action ClientDisconnected;
+
         [Tooltip("이 키로 호스트를 시작한다. NetworkManagerHUD 없이 붙기 위한 Dev 씬 전용이고, Main.unity에서는 None으로 둔다")]
         [SerializeField] private KeyCode _devStartHostKey = KeyCode.None;
 
@@ -116,6 +122,24 @@ namespace Geumeum.Network
         *              Server Callbacks
         ****************************************/
 
+        /****************************************
+        *              Client Side
+        ****************************************/
+
+        // Mirror의 NetworkClient.OnConnectedEvent는 NetworkManager가 클라이언트를 시작할 때
+        // += 가 아니라 = 로 덮어쓴다. 밖에서 구독하면 조용히 지워지므로 여기서 다시 알린다
+        public override void OnClientConnect()
+        {
+            base.OnClientConnect();
+            ClientConnected?.Invoke();
+        }
+
+        public override void OnClientDisconnect()
+        {
+            base.OnClientDisconnect();
+            ClientDisconnected?.Invoke();
+        }
+
         public override void OnServerConnect(NetworkConnectionToClient conn)
         {
             // 입장 잠금과 신원 검증은 GeumeumAuthenticator가 한다.
@@ -199,12 +223,9 @@ namespace Geumeum.Network
                 return;
             }
 
-            if (!RunManager.ServerInstance.PauseRun($"connectionId={conn.connectionId} 이탈"))
-            {
-                return; // 로비였거나 이미 멈춰 있다
-            }
-
-            UnlockAdmission();
+            // 잠금은 그대로 둔다. 풀면 일시정지 중에 로스터에 없는 사람도 들어와 자리를 가져간다.
+            // 돌아올 사람은 인증기가 두고 간 자리로 알아본다
+            RunManager.ServerInstance.PauseRun($"connectionId={conn.connectionId} 이탈");
         }
     }
 }

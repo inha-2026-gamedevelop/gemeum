@@ -49,6 +49,22 @@ namespace Geumeum.Network
                 return false;
             }
 
+            // 신원은 어디까지나 conn.address다. 클라이언트가 보낸 값은 대조용이라
+            // 어긋나면 트랜스포트 설정이 잘못됐거나 조작이므로 여기서 끊는다
+            if (claimedId == 0UL)
+            {
+                id     = PlayerPlatformId.None;
+                reason = "클라이언트가 자기 SteamID를 보내지 않았다, Steam 초기화 실패로 보인다";
+                return false;
+            }
+
+            if (claimedId != id.Value)
+            {
+                id     = PlayerPlatformId.None;
+                reason = $"인증 메시지의 SteamID가 접속 주소와 다르다: 주장={claimedId}, 주소={conn.address}";
+                return false;
+            }
+
             return true;
         }
     }

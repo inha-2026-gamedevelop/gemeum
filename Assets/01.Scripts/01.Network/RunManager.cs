@@ -133,20 +133,24 @@ namespace Geumeum.Network
         *              Server API
         ****************************************/
 
-        /// <summary> 런을 시작한다. LobbyController가 3명 준비와 역할 배분을 마친 뒤에만 호출한다 </summary>
+        /// <summary>
+        /// 런을 시작한다. LobbyController가 3명 준비와 역할 배분을 마친 뒤에만 호출한다.
+        /// <b>실패하면 false를 돌려주며, 이때 호출부는 반드시 되돌려야 한다</b> —
+        /// 입장 잠금과 역할 배분이 커밋된 채 런이 열리지 않으면 세션이 영구히 잠긴다
+        /// </summary>
         [Server]
-        public void StartRun()
+        public bool StartRun()
         {
             if (_phase != RunPhase.Lobby)
             {
                 Debug.LogWarning($"[RunManager] Lobby가 아닌 상태에서 런 시작을 요청했다: {_phase}", this);
-                return;
+                return false;
             }
 
             if (!_timeline.TryGetPhaseAt(0f, out RunPhase firstPhase))
             {
                 Debug.LogError("[RunManager] 0초에 해당하는 구간이 없어 런을 시작할 수 없다", this);
-                return;
+                return false;
             }
 
             _runStartServerTime     = NetworkTime.time;
@@ -158,6 +162,7 @@ namespace Geumeum.Network
 
             CommitPhase(firstPhase);
             StartTick();
+            return true;
         }
 
         /// <summary>
@@ -273,6 +278,10 @@ namespace Geumeum.Network
             _elapsedSeconds         = 0f;
             _previousElapsedSeconds = 0f;
             _runStartServerTime     = 0.0;
+
+            // TryFinishRun이 껐던 시뮬레이션을 여기서 되돌린다. 켜는 곳이 StartRun과 ResumeRun뿐이면
+            // 로비로 돌아온 순간부터 다음 런이 시작될 때까지 이동, 스태미나 회복이 서버에서 죽어 있다
+            AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(true);
 
             SetPhase(RunPhase.Lobby);
 

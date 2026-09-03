@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 // Unity
 using UnityEngine;
+using UnityEngine.Serialization;
 
 // 서드파티
 using Mirror;
@@ -26,13 +27,18 @@ namespace Geumeum.Network
         [Tooltip("붙는 쪽과 받는 쪽이 같아야 하는 값. 프로토콜이 바뀔 때만 올린다")]
         [SerializeField] private string _buildId = "dev";
 
-        [Tooltip("신원을 어디서 얻을지. KCP 경로는 Dev, Steam 경로는 Steam 소스를 꽂는다")]
-        [SerializeField] private MonoBehaviour _identitySourceBehaviour;
+        [Tooltip("KCP 경로에서 쓸 신원 소스. DevIdentitySource를 꽂는다")]
+        [FormerlySerializedAs("_identitySourceBehaviour")]
+        [SerializeField] private MonoBehaviour _devIdentitySourceBehaviour;
+
+        [Tooltip("Steam 경로에서 쓸 신원 소스. SteamIdentitySource를 꽂는다, KCP 전용 씬은 비워 둔다")]
+        [SerializeField] private MonoBehaviour _steamIdentitySourceBehaviour;
 
         // 승인된 연결의 신원. OnServerConnect 이후 로비가 읽는다
         private readonly Dictionary<int, PlayerPlatformId> _acceptedIds = new Dictionary<int, PlayerPlatformId>();
 
-        private IPlayerIdentitySource _identitySource;
+        private IPlayerIdentitySource _devIdentitySource;
+        private IPlayerIdentitySource _steamIdentitySource;
 
         /****************************************
         *              Properties
@@ -42,7 +48,19 @@ namespace Geumeum.Network
         public static GeumeumAuthenticator ServerInstance { get; private set; }
 
         /// <summary> 짝 검사를 위한 신원 소스 이름. 없으면 빈 문자열 </summary>
-        public string IdentityLabel => (_identitySource != null) ? _identitySource.Label : string.Empty;
+        public string IdentityLabel => (ActiveSource != null) ? ActiveSource.Label : string.Empty;
+
+        // 트랜스포트는 -steam 인자로 실행할 때마다 갈리는데 신원 소스는 씬에 직렬화되어 있다.
+        // 고정 참조 하나만 두면 한 씬이 두 경로를 받지 못하므로 쓰는 시점에 트랜스포트를 보고 고른다
+        private IPlayerIdentitySource ActiveSource
+        {
+            get
+            {
+                return SteamTransportSelector.IsSteamTransport(Transport.active)
+                    ? _steamIdentitySource
+                    : _devIdentitySource;
+            }
+        }
 
         /****************************************
         *              Unity Event
@@ -50,11 +68,24 @@ namespace Geumeum.Network
 
         private void Awake()
         {
-            _identitySource = _identitySourceBehaviour as IPlayerIdentitySource;
-            if ((_identitySourceBehaviour != null) && (_identitySource == null))
+            _devIdentitySource   = Resolve(_devIdentitySourceBehaviour);
+            _steamIdentitySource = Resolve(_steamIdentitySourceBehaviour);
+        }
+
+        private IPlayerIdentitySource Resolve(MonoBehaviour behaviour)
+        {
+            if (behaviour == null)
             {
-                Debug.LogError($"[GeumeumAuthenticator] {_identitySourceBehaviour.GetType().Name}은 IPlayerIdentitySource가 아니다", this);
+                return null;
             }
+
+            if (!(behaviour is IPlayerIdentitySource source))
+            {
+                Debug.LogError($"[GeumeumAuthenticator] {behaviour.GetType().Name}은 IPlayerIdentitySource가 아니다", this);
+                return null;
+            }
+
+            return source;
         }
 
         /****************************************
@@ -109,24 +140,38 @@ namespace Geumeum.Network
                 return;
             }
 
-            if (_identitySource == null)
+            IPlayerIdentitySource source = ActiveSource;
+            if (source == null)
             {
                 Reject(conn, AuthResultCode.InvalidIdentity, "서버에 신원 소스가 없다");
                 return;
             }
 
-            if (!_identitySource.TryResolve(conn, message.PlatformId, out PlayerPlatformId id, out string reason))
+            if (!source.TryResolve(conn, message.PlatformId, out PlayerPlatformId id, out string reason))
             {
                 Reject(conn, AuthResultCode.InvalidIdentity, reason ?? "신원을 정할 수 없다");
                 return;
             }
 
-            // 런이 진행 중이면 새 사람을 받지 않는다. 일시정지 중에는 잠금이 풀려 있어 돌아올 수 있다
+            if (!TryValidateSteamSession(id, message, out AuthResultCode sessionCode, out string sessionReason))
+            {
+                Reject(conn, sessionCode, sessionReason);
+                return;
+            }
+
+            // 런이 진행 중이면 새 사람을 받지 않는다.
+            // 다만 두고 간 자리가 있는 사람은 돌아올 수 있어야 한다 — 이게 일시정지 재접속 경로다
             var manager = NetworkManager.singleton as GeumeumNetworkManager;
             if ((manager != null) && (manager.IsAdmissionLocked))
             {
-                Reject(conn, AuthResultCode.AdmissionLocked, "런이 진행 중이다");
-                return;
+                LobbyRoster roster = LobbyRoster.ServerInstance;
+                if ((roster == null) || (!roster.HasVacatedSeat(id.Value)))
+                {
+                    Reject(conn, AuthResultCode.AdmissionLocked, "런이 진행 중이다");
+                    return;
+                }
+
+                Debug.Log($"[GeumeumAuthenticator] 입장 잠금 중이지만 두고 간 자리가 있어 받는다: platformId={id}");
             }
 
             // 같은 신원이 두 연결로 들어오면 슬롯 주인이 누구인지 알 수 없게 된다
@@ -144,7 +189,63 @@ namespace Geumeum.Network
             conn.Send(new AuthResponseMessage { Code = AuthResultCode.Accepted, Reason = string.Empty });
             ServerAccept(conn);
 
-            Debug.Log($"[GeumeumAuthenticator] 승인: connectionId={conn.connectionId}, platformId={id}, source={_identitySource.Label}");
+            Debug.Log($"[GeumeumAuthenticator] 승인: connectionId={conn.connectionId}, platformId={id}, source={source.Label}");
+        }
+
+        /// <summary>
+        /// Steam 경로에서만 도는 세션 검증. 로비 멤버가 아닌 사람과 이전 세션의 접속 정보를 거른다.
+        /// KCP 개발 경로에는 로비가 없어 그대로 통과시킨다
+        /// </summary>
+        private static bool TryValidateSteamSession(PlayerPlatformId id, AuthRequestMessage message,
+                                                    out AuthResultCode code, out string reason)
+        {
+            code   = AuthResultCode.Accepted;
+            reason = null;
+
+            if (!SteamTransportSelector.IsSteamTransport(Transport.active))
+            {
+                return true;
+            }
+
+            // 로비 없이 연 호스트는 -steam -host 직접 접속이다. 대조할 로비가 없으므로 검사를 건너뛰는데,
+            // 출시 빌드에서 이 경로가 열리면 검증이 통째로 빠지므로 거기서는 막는다
+            SteamLobbyService lobby = SteamLobbyService.Instance;
+            if ((lobby == null) || (!lobby.IsInLobby))
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.LogWarning("[GeumeumAuthenticator] 서버가 Steam 로비에 없다, 로비 검증을 건너뛴다 (개발 직접 접속)");
+                return true;
+#else
+                code   = AuthResultCode.NotLobbyMember;
+                reason = "서버가 Steam 로비에 들어가 있지 않다";
+                return false;
+#endif
+            }
+
+            if (!lobby.IsMember(id.Value))
+            {
+                code   = AuthResultCode.NotLobbyMember;
+                reason = $"Steam 로비 멤버가 아니다: {id}";
+                return false;
+            }
+
+            // 호스트가 StartHost 직후 게시한다. 비어 있으면 게시 전에 접속이 들어온 것이다
+            string expected = lobby.GetData(SteamLobbyKeys.NONCE);
+            if (string.IsNullOrEmpty(expected))
+            {
+                code   = AuthResultCode.StaleSession;
+                reason = "세션 nonce가 아직 게시되지 않았다";
+                return false;
+            }
+
+            if (!string.Equals(message.Nonce, expected, StringComparison.Ordinal))
+            {
+                code   = AuthResultCode.StaleSession;
+                reason = "세션 nonce가 다르다, 이전 호스트의 접속 정보로 보인다";
+                return false;
+            }
+
+            return true;
         }
 
         private void Reject(NetworkConnectionToClient conn, AuthResultCode code, string reason)
@@ -173,11 +274,42 @@ namespace Geumeum.Network
         {
             NetworkClient.Send(new AuthRequestMessage
             {
-                PlatformId = NetworkLaunchArgs.RequestedPlatformId,
+                PlatformId = ResolveClaimedId(),
                 Build      = _buildId,
-                Nonce      = string.Empty, // 3단계에서 Steam 로비 데이터로 채운다
+                Nonce      = ResolveNonce(),
                 Epoch      = 0U,           // 4단계에서 선출 회차로 채운다
             });
+        }
+
+        // 로비 공용 데이터의 값을 그대로 실어 보낸다. 서버가 같은 값을 읽어 대조하므로
+        // 이전 세션에서 살아남은 클라이언트는 여기서 걸린다
+        private static string ResolveNonce()
+        {
+            if (!SteamTransportSelector.IsSteamTransport(Transport.active))
+            {
+                return string.Empty;
+            }
+
+            SteamLobbyService lobby = SteamLobbyService.Instance;
+            return (lobby != null) ? lobby.GetData(SteamLobbyKeys.NONCE) : string.Empty;
+        }
+
+        // Steam 경로에서 이 값은 신원이 아니라 대조값이다. 서버는 conn.address를 신원으로 쓰고
+        // 이 값이 다르면 거부하므로, 실행 인자가 아니라 자기 SteamID를 보내야 한다
+        private static ulong ResolveClaimedId()
+        {
+            if (!SteamTransportSelector.IsSteamTransport(Transport.active))
+            {
+                return NetworkLaunchArgs.RequestedPlatformId;
+            }
+
+            if (SteamLocalUser.TryGetSteamId(out ulong steamId))
+            {
+                return steamId;
+            }
+
+            Debug.LogError("[GeumeumAuthenticator] Steam 경로인데 자기 SteamID를 읽지 못했다, 서버가 거부한다");
+            return 0UL;
         }
 
         private void OnAuthResponse(AuthResponseMessage message)

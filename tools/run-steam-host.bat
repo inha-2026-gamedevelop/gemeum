@@ -44,7 +44,7 @@ echo.
 echo   Steam 호스트를 시작한다.
 echo   로그의 SteamID64를 다른 PC에 알려줄 것.
 
-start "" "%EXE%" -steam -host -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "%LOGFILE%"
+start "" /D "%EXEDIR%" "%EXE%" -steam -host -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "%LOGFILE%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0show-steam-host-id.ps1" -LogPath "%LOGFILE%"
 if errorlevel 1 echo 로그 요약 스크립트를 실행하지 못했다. show-steam-host-id.ps1이 옆에 있는지 확인할 것.

@@ -22,8 +22,8 @@ namespace Geumeum.Network
         public bool           IsReady;
         public bool           HasWeapon;
         public WeaponKind     Weapon;
-        public bool           HasAppearance;
-        public AppearanceKind Appearance;
+        public bool           HasCharacter;
+        public CharacterKind  Character;
     }
 
     /// <summary>
@@ -42,16 +42,16 @@ namespace Geumeum.Network
             public readonly Vector3        Position;
             public readonly bool           HasWeapon;
             public readonly WeaponKind     Weapon;
-            public readonly bool           HasAppearance;
-            public readonly AppearanceKind Appearance;
+            public readonly bool           HasCharacter;
+            public readonly CharacterKind  Character;
 
             public VacatedSeat(Vector3 position, in LobbySlot slot)
             {
                 Position      = position;
                 HasWeapon     = slot.HasWeapon;
                 Weapon        = slot.Weapon;
-                HasAppearance = slot.HasAppearance;
-                Appearance    = slot.Appearance;
+                HasCharacter = slot.HasCharacter;
+                Character    = slot.Character;
             }
         }
 
@@ -113,8 +113,8 @@ namespace Geumeum.Network
                 IsReady       = false,
                 HasWeapon     = false,
                 Weapon        = default,
-                HasAppearance = false,
-                Appearance    = default,
+                HasCharacter = false,
+                Character    = default,
             });
 
             return true;
@@ -172,6 +172,14 @@ namespace Geumeum.Network
             return false;
         }
 
+        /// <summary>
+        /// 이 신원이 두고 간 자리가 있는가. 입장 잠금 중에 누구를 다시 받을지 인증기가 이걸로 가른다
+        /// </summary>
+        public bool HasVacatedSeat(ulong platformId)
+        {
+            return (platformId != 0UL) && (_vacatedSeats.ContainsKey(platformId));
+        }
+
         /// <summary> 돌아온 사람에게 두고 간 자리와 역할을 돌려준다. 처음 오는 사람이면 아무것도 하지 않는다 </summary>
         [Server]
         public bool ServerRestoreVacatedSeat(NetworkConnectionToClient conn)
@@ -193,8 +201,8 @@ namespace Geumeum.Network
             LobbySlot slot     = _slots[index];
             slot.HasWeapon     = seat.HasWeapon;
             slot.Weapon        = seat.Weapon;
-            slot.HasAppearance = seat.HasAppearance;
-            slot.Appearance    = seat.Appearance;
+            slot.HasCharacter = seat.HasCharacter;
+            slot.Character    = seat.Character;
             _slots[index]      = slot;
 
             if (conn.identity.TryGetComponent(out IPlayerRunLifecycle lifecycle))
