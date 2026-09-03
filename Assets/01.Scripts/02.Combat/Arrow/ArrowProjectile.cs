@@ -58,6 +58,9 @@ namespace Geumeum.Combat
             _remainingPierce   = Mathf.Max(1, arrow.BasePierceCount);
             _remainingLifetime = arrow.ArrowLifetime;
             _initialized       = true;
+
+            // 화살을 풀에서 재사용하면 지난 비행의 명중 기록이 남아 그 대상만 영영 맞지 않는다
+            _piercedNetIds.Clear();
         }
 
         /****************************************
