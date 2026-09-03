@@ -13,14 +13,15 @@ MonoBehaviour:
   m_Name: CombatConfigSO
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.CombatConfigSO
   _staminaMax: 100
-  _staminaRegenPerSecond: 25
-  _staminaRegenDelay: 0.6
+  _staminaRegenPerSecond: 35
+  _staminaRegenDelay: 0.45
   _spiritMax: 80
   _walkSpeed: 2.5
   _runSpeed: 5.5
   _rollStaminaCost: 25
   _rollInvincibleDuration: 0.45
   _rollTotalDuration: 0.9
+  _rollDistance: 3
   _parryStartupDuration: 0.05
   _parryWindowDuration: 0.32
   _parryWindowDurationMax: 0.48
@@ -31,6 +32,18 @@ MonoBehaviour:
   _parryGaugeGainPerSuccess: 35
   _criticalMultiplierMin: 2
   _criticalMultiplierMax: 3
+  _meleeStartupDuration: 0.12
+  _meleeRecoveryDuration: 0.28
+  _meleeStaminaCost: 6
+  _meleeRange: 2.2
+  _meleeAngle: 90
+  _meleeBasePower: 10
+  _rangedStartupDuration: 0.25
+  _rangedRecoveryDuration: 0.35
+  _rangedStaminaCost: 5
+  _rangedBasePower: 8
+  _rangedMuzzleHeight: 1.2
+  _rangedMuzzleForward: 0.6
   _spectateDuration: 30
   _reviveHealthRatio: 0.5
   _reviveInvincibleDuration: 2

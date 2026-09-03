@@ -264,7 +264,23 @@ namespace Geumeum.Network
             }
 
             LockAdmission();
-            RunManager.ServerInstance.StartRun();
+
+            // 여기까지 오면 입장 잠금과 역할 배분이 이미 커밋돼 있다.
+            // 런이 열리지 않았는데 그대로 두면 아무도 들어올 수 없고 다시 시작할 수도 없어 세션이 영구히 잠긴다
+            if (RunManager.ServerInstance.StartRun())
+            {
+                return;
+            }
+
+            Debug.LogError("[LobbyController] 런 시작에 실패해 입장 잠금과 역할 배분을 되돌린다", this);
+
+            GeumeumNetworkManager manager = NetworkManager.singleton as GeumeumNetworkManager;
+            if (manager != null)
+            {
+                manager.UnlockAdmission();
+            }
+
+            LobbyRoleCoordinator.ServerInstance?.ServerResetForNewRun();
         }
 
         // 일시정지된 런에 인원이 다시 찼으면 역할을 되돌려 주고 재개한다

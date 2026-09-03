@@ -24,11 +24,11 @@
 ```
 
 **클라이언트가 서버로 보내는 값은 `requestId` 하나뿐이다.** 무기, 공격력, 조준 방향, 명중 목록이
-전부 없다. 방향은 서버가 `transform.forward`에서 읽는다.
+전부 없다. 방향은 서버가 `PlayerPresentation.FacingDirection`에서 읽는다.
 
 ### 이번 범위에 없는 것
 
-락온과 화살 유도, 방울 기본 공격, 콤보와 차지, 쿨다운, 공격 애니메이션, 장비 공격력 연동,
+화살 유도, 방울 기본 공격, 콤보와 차지, 쿨다운, 공격 애니메이션, 장비 공격력 연동,
 클라이언트 예측, 특성 modifier. 각각의 사정은 7장과 8장에 있다.
 
 ---
@@ -41,7 +41,7 @@ Command는 소유 플레이어 오브젝트에서만 보내고 서버에서 실�
 | 값 · 판정 | 서버 | 클라이언트 | 근거 |
 |---|---|---|---|
 | 좌클릭 | `requestId` 수신, `RequestIdTracker`로 중복·역순 차단 | `isLocalPlayer`일 때만 입력을 읽고 ID를 증가 | 입력 사실만 클라이언트에 있다 |
-| 조준 방향 | `transform.forward`를 서버가 직접 읽는다 | 보내지 않는다 | 클라이언트가 방향을 보내면 등 뒤 적을 맞히도록 조작할 수 있다 |
+| 조준 방향 | `PlayerPresentation.FacingDirection`(서버 SyncVar `_serverFacing`)을 서버가 직접 읽는다 | 보내지 않는다 | 클라이언트가 방향을 보내면 등 뒤 적을 맞히도록 조작할 수 있다. `transform.forward`는 **쓰면 안 된다** — 루트는 회전이 잠겨 있어 항상 월드 +Z다 |
 | 현재 무기 | `PlayerWeapon._weapon` SyncVar | SyncVar를 외형과 UI로 읽기만 | 요청에 무기 값이 없다 |
 | 판정 방식 | `WeaponKind.ToReach()` | 같은 규칙을 읽을 수 있으나 판정에 쓰지 않는다 | 규칙의 원본은 하나다 |
 | 공격 수치 | `GameDB.Combat`의 `Melee*` / `Ranged*` | 같은 빌드의 에셋 | 판정 원본은 서버가 읽는다 |
@@ -139,9 +139,10 @@ private AttackReach _swingReach;
 명중 보조 반경은 `0.4 m`다. 제자리 구형 판정으로 찍으면 적을 그대로 통과한다.
 
 - 결과를 거리순으로 삽입 정렬한다. `SphereCast` 결과는 거리순이 아니고, 최대 8개라 삽입 정렬이 가장 싸다
-- 몸 하나에 콜라이더가 여럿이면 한 번 통과에 여러 번 맞는다. `NetworkIdentity.netId`를 기록해 한 번만 센다
+- 대상 해석과 중복 제거는 근접과 **같은 규칙**이다 — `DamageTargetResolver`로 해석하고
+  **해석된 `IDamageable` 참조**를 `_piercedTargets`에 기록해 한 번만 센다 (5.3.1)
 - 관통을 다 쓰면 마지막 명중 지점으로 위치를 옮긴 뒤 `NetworkServer.Destroy`한다
-- `RaycastHit[8]`과 `List<uint>(8)`을 미리 잡아 연사해도 GC 할당이 없다
+- `RaycastHit[8]`과 `List<IDamageable>(8)`을 미리 잡아 연사해도 GC 할당이 없다
 
 **자기 자신은 레이어로 걸러진다.** `netId` 대조가 아니라 `_targetMask`가 Enemy와 Boss뿐이라
 플레이어(레이어 9)가 애초에 후보에 들어오지 않는다.
@@ -166,7 +167,7 @@ private AttackReach _swingReach;
 |---|---|---:|
 | 선딜 | `MeleeStartupDuration` | `0.12 s` |
 | 후딜 | `MeleeRecoveryDuration` | `0.28 s` |
-| 스태미나 | `MeleeStaminaCost` | `12` |
+| 스태미나 | `MeleeStaminaCost` | **`6`** (2026-09-03: 12에서 낮춤) |
 | 사거리 | `MeleeRange` | `2.2 m` |
 | 각도 | `MeleeAngle` | `90°` (좌우 합산) |
 | 기본 공격력 | `MeleeBasePower` | `10` |
@@ -177,12 +178,14 @@ private AttackReach _swingReach;
 |---|---|---:|---|
 | 선딜 | `RangedStartupDuration` | `0.25 s` | 활을 당기는 시간이라 근접보다 길다 |
 | 후딜 | `RangedRecoveryDuration` | `0.35 s` | |
-| 스태미나 | `RangedStaminaCost` | `8` | 거리를 두고 싸우는 대신 근접보다 싸다 |
+| 스태미나 | `RangedStaminaCost` | **`5`** | 거리를 두고 싸우는 대신 근접보다 싸다 (2026-09-03: 8에서 낮춤) |
 | 기본 공격력 | `RangedBasePower` | `8` | 근접 10보다 낮다 |
 | 총구 높이 | `RangedMuzzleHeight` | `1.2 m` | 발밑에서 나가지 않게 |
 | 총구 전방 | `RangedMuzzleForward` | `0.6 m` | 자기 몸에 걸리지 않게 |
 
-기획서에 근접 수치표가 없어 전부 프로토타입 시작값이다. 코드 상수가 아니라 SO에 있으므로
+**스태미나 소모를 낮춘 이유** — 기본 공격이 패링(15)·구르기(25) 자원을 먼저 가져가고 있었다. 회복도 35/초·0.45초로 함께 올려, 8타를 쳐도 52가 남아 패링 3회 여력이 유지된다([게임 디자인 2.1](../02-game-design.md)).
+
+기획서에 근접 수치표가 없어 나머지는 프로토타입 시작값이다. 코드 상수가 아니라 SO에 있으므로
 재빌드 없이 교체할 수 있다.
 
 ### 4.3 `CombatConfigSO` — 치명
@@ -201,11 +204,17 @@ private AttackReach _swingReach;
 | `ArrowLifetime` | `3 s` | 읽는다 |
 | `UnlockedHitRadius` | `0.4 m` | 읽는다 |
 | `BasePierceCount` | `1` | 읽는다, `Mathf.Max(1, ...)`로 clamp |
-| `AimAssistAngle` | `12°` | **읽지 않는다** — 락온 없음 |
+| **`WorldMask`** | **비어 있음(설정 필요)** | **읽는다** — 2026-09-03 신설 |
+| `AimAssistAngle` | `12°` | **읽지 않는다** — 락온 폐기 |
 | `GuidanceDegreesPerSecond` | `30°/s` | **읽지 않는다** |
 | `GuidanceDuration` | `0.4 s` | **읽지 않는다** |
 
-유도 필드 3개는 락온 시스템이 생길 때까지 비어 있다. 쓰지도 않을 유도 코드를 미리 넣지 않았다.
+**`WorldMask`는 화살을 막는 지형 레이어다(2026-09-03 신설).** 판정 대상 마스크와 분리했다 — 벽은 맞히는 대상이 아니라 멈추는 이유이기 때문이다. `ArrowProjectile.TryFindWorldBlock()`이 이번 틱 구간에 장애물이 있으면 거기까지로 자르고, **그 앞의 대상만 판정한 뒤 벽에서 소멸한다.** 벽 뒤의 적을 맞히지 않는다.
+
+> ⚠️ **아직 값이 비어 있다.** 비어 있으면 장애물 판정을 건너뛰어 이전과 같이 동작한다(회귀 없음).
+> **에셋에서 Ground·Default를 채워야 기능이 켜진다.**
+
+유도 필드 3개는 **락온을 폐기했으므로 영구히 읽지 않는다.** 화살 코드를 다음에 손댈 때 함께 지운다.
 
 ### 4.5 공격력 원본
 
@@ -269,9 +278,16 @@ _recoveryServerTime = _hitServerTime + profile.RecoveryDuration;
 
 ```text
 origin  = transform.position
-forward = transform.forward
+forward = ResolveAimForward()          // (FacingDirection.x, 0, FacingDirection.y).normalized
 cosHalf = cos(MeleeAngle / 2)
 ```
+
+**`transform.forward`를 쓰지 않는 이유.** 플레이어 루트는 `Player.prefab`의 Rigidbody가
+`FreezeRotation X·Y·Z`로 잠고 있고 코드에서 루트를 돌리는 곳도 없다. 방향은 자식 `VisualPivot`의
+`localRotation`에만 적용된다. 즉 루트의 forward는 **항상 월드 +Z**여서, 그대로 읽으면 눈앞의 적이
+빗나가고 등 뒤 적이 맞는다. 판정이 쓸 수 있는 유일한 방향 소스는 `PlayerController`의 권위 틱이
+매 틱 `ServerSetMotion`으로 확정하는 `PlayerPresentation`의 서버 값이다.
+`ResolveAimForward`는 이 값이 비었을 때만 루트 forward로 물러서고 경고를 남긴다.
 
 1. **치명 여부를 휘두르기 시작에 한 번 뽑는다.** `Gauge >= ParryGaugeMax`면 `Random.Range(2.0, 3.0)`.
    부채꼴에 여럿 걸려도 전부 같은 배율을 받는다
@@ -279,14 +295,37 @@ cosHalf = cos(MeleeAngle / 2)
 3. 각 콜라이더마다
    - `transform.root == 내 root`면 건너뛴다 (자기 자신)
    - 수평 방향(`y = 0`)으로 `Dot(forward, dir) >= cosHalf`인지 확인 — **구만 쓰면 등 뒤도 맞는다**
-   - `root`에서 `IDamageable`을 찾는다. 콜라이더가 자식에 붙어 있는 경우가 있다
+   - **`DamageTargetResolver.TryResolve(hit, ...)`로 대상을 해석한다** — 콜라이더에서 위로 올라가며
+     처음 만나는 `IDamageable`에서 멈춘다. **`transform.root`에서 찾으면 안 된다**(아래 5.3.1)
    - `IsDead`면 건너뛴다
-   - **이미 맞은 `netId`면 건너뛴다.** 몸 하나에 콜라이더가 여럿이면 한 번 휘두르기에 여러 번 맞는다.
-     화살과 같은 canonical 루트 `netId` 규칙이고 `_hitNetIds`를 휘두르기마다 `Clear()`해 재사용한다
+   - **이미 맞은 대상이면 건너뛴다.** 몸 하나에 콜라이더가 여럿이면 한 번 휘두르기에 여러 번 맞는다.
+     키는 **해석된 `IDamageable` 참조 자체**이고, `_hitTargets`를 휘두르기마다 `Clear()`해 재사용한다
    - `TakeDamage(MeleeBasePower × multiplier, netId, Critical 또는 Light)`
 4. **한 대라도 맞았을 때만** `ParryGauge.ServerTryConsume()`
 
 `HitStrength.Critical`을 함께 넘겨 아트가 표현을 다르게 줄 수 있게 했다.
+
+#### 5.3.1 판정 대상 해석 — `transform.root`를 쓰지 않는다 (2026-09-03 확정)
+
+**규칙 두 개를 분리해서 본다. 목적이 다르므로 섞지 않는다.**
+
+| 판단 | 방법 | 이유 |
+|---|---|---|
+| **소유자 판별** (내 것인가) | `hit.transform.root == transform.root` | 내 무기 콜라이더가 자식에 붙어 있어도 걸러야 한다 |
+| **대상 해석** (무엇이 맞았는가) | **`DamageTargetResolver.TryResolve`** — 콜라이더에서 위로 올라가며 처음 만나는 `IDamageable` | 보스 꼬리처럼 자식이 독립된 피해 대상일 수 있다 |
+
+**루트에서 찾으면 부위 파괴가 성립하지 않는다.** 꼬리 콜라이더를 쳐도 본체가 맞는다.
+
+**중복 제거 키도 `netId`가 아니다.** 부위와 본체는 같은 `NetworkIdentity`이므로 `netId`를 키로 쓰면
+한 번 휘두를 때 **둘 중 하나만 맞고, 어느 쪽인지는 물리 질의의 순회 순서가 정한다** — 순회 순서는
+물리 엔진 내부 구현이라 보장되지 않아 **비결정적이고 3인 환경에서 재현 불가능한 버그**가 된다.
+**해석된 `IDamageable` 참조 자체를 키로 쓴다.** 부위가 몇 개든 각각 한 번씩만 맞는다.
+
+부위가 없는 대상(잡귀·플레이어)은 콜라이더에서 바로 `IDamageable`을 찾으므로 **동작이 바뀌지 않는다.**
+
+**파생 — 부채꼴 하나에 몸통과 꼬리가 함께 들어오면 둘 다 맞는다.** 부위 파괴 게임에서는 정상이므로
+그대로 둔다. 다만 밸런스 영향은 `Boss_Proxy` L2에서 실측한다 —
+[직업 정체성과 보스 설계 4.6](../class-identity-and-boss-2026-09-03.md).
 
 **게이지 소비 규칙: 빗나가면 보존한다. 2026-09-03 확정.** 패링 세 번으로 모은 보상이 빗나감 한 번에
 사라지면 아까워서 안 쓰게 된다. 기획서에 "다음 공격"이라고만 되어 있어 이쪽을 골랐고
@@ -298,7 +337,8 @@ cosHalf = cos(MeleeAngle / 2)
 ### 5.4 원거리 — `FireArrow`
 
 ```text
-origin = position + up × RangedMuzzleHeight + forward × RangedMuzzleForward
+forward = ResolveAimForward()          // 5.3과 같은 소스, transform.forward가 아니다
+origin  = position + up × RangedMuzzleHeight + forward × RangedMuzzleForward
 ```
 
 `Instantiate` → `ServerInitialize(forward, RangedBasePower, netId, _targetMask, GameDB.Arrow)` →
@@ -356,8 +396,10 @@ _targetMask              → 런타임 3072 확인
 - 회귀 — 잡귀 HP가 10 깎이는가
 - 패링 3회 성공(35 × 3 → 100 상한) 뒤 공격의 피해가 2.0 ~ 3.0배인가
 - **빗나갔을 때 게이지가 남아 있는가** — 남기는 쪽으로 정했다
-- 대상 중복 제거는 **지금 관찰할 수 없다.** 잡귀 3종이 루트 콜라이더 하나씩이라 증상 자체가
-  안 나온다. 다부위 적이나 보스가 들어올 때 함께 본다
+- 대상 중복 제거는 **잡귀로는 관찰할 수 없다.** 3종이 루트 콜라이더 하나씩이라 증상이 안 나온다.
+  **`ParryTestDummy`에 자식 콜라이더 + 별도 `IDamageable`을 붙여** 자식을 치면 자식이,
+  몸통을 치면 몸통이 맞는지 확인한다 (5.3.1)
+- **회귀가 이 변경의 핵심 검증이다.** 부위가 없는 잡귀에서 피해가 이전과 **동일**해야 한다
 
 **원거리 (활, 신궁)**
 - 총구(높이 1.2, 전방 0.6)에서 나가 자기 몸에 걸리지 않는가
@@ -453,7 +495,7 @@ _targetMask              → 런타임 3072 확인
 방울 pulse가 실제로 구현되면 그때 `IWeaponAbility`로 뽑아낸다. 지금 미리 분리하면 인터페이스 셋과
 context 구조체 셋이 사용처 하나씩만 가진 채 남는다.
 
-### 8.3 화살 락온에서 되돌아오는 것
+### 8.3 ~~화살 락온에서 되돌아오는 것~~ — 락온 폐기(2026-09-03)로 무효
 
 이 문서는 코드에 없다는 이유로 `AbilityRequest`와 `ArrowGuidance`를 걷어냈다. **없앤 것이 아니라
 아직 없는 것이다.** 신궁 조준 보정을 착수하면 둘 다 다시 들어온다 —
@@ -491,7 +533,7 @@ context 구조체 셋이 사용처 하나씩만 가진 채 남는다.
 1. **몰아서 테스트** (6장). L2 원거리와 L3 전부
 2. **화살 장애물 처리** (7.1)
 3. **공격 애니메이션과 표현** (7.2). 클립 준비 여부 확인이 선행
-4. **락온과 화살 유도**. 락온 대상을 정하는 시스템이 생긴 뒤 기획서 4.1을 붙인다
+4. ~~**락온과 화살 유도**~~ → **폐기.** 대신 **자유 조준(카메라 방향 전달) → 정밀 사격** 순서로 간다. 기획서 4.5와 [화살 조준 보정 설계](ARROW_AIM_ASSIST_DESIGN.md) 상단 배너 참조
 5. **방울 기본 공격**. 치유와 버프 설계가 선행
 
 ### 2026-09-03에 닫힌 것

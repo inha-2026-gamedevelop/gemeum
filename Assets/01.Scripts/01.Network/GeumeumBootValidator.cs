@@ -118,6 +118,15 @@ namespace Geumeum.Network
             RequireInScene<LobbyController>("로비 컨트롤러", failures);
             RequireInScene<RunManager>("런 매니저", failures);
             RequireInScene<FrameRecorder>("프레임 기록기", failures);
+
+            // 아래 둘이 씬에서 빠져도 서버는 그대로 열리고, 증상이 런 도중에야 드러난다.
+            // 로스터가 없으면 준비 상태를 받을 곳이 없고, 역할 조정기가 없으면 무기 배분이 통째로 실패한다
+            RequireInScene<LobbyRoster>("로비 로스터", failures);
+            RequireInScene<LobbyRoleCoordinator>("역할 조정기", failures);
+
+            // SpawnManager(Geumeum.AI)는 여기서 검사하지 않는다.
+            // Network 계층은 AI, Combat에 대한 의존이 0건이고 그것이 P1-2 리팩터링의 결과다.
+            // 검사 하나를 넣자고 그 경계를 되돌리지 않는다 - 스포너 검사는 AI 파트가 자기 쪽에 둔다
         }
 
         // 씬 오브젝트에 NetworkIdentity가 있으면 Mirror가 비활성으로 두므로 비활성도 포함해 찾는다

@@ -14,8 +14,11 @@ namespace Geumeum.Data
 
         [Header("스태미나")]
         [SerializeField] private float _staminaMax            = 100f;
-        [SerializeField] private float _staminaRegenPerSecond = 25f;
-        [SerializeField] private float _staminaRegenDelay     = 0.6f; // 행동 후 회복 시작까지(초)
+        // 2026-09-03 조정: 25/0.6초에서 올렸다. 근접 공격 사이클(선딜 0.12 + 후딜 0.28 = 0.40초)이
+        // 회복 지연 0.6초보다 짧아, 연속 공격 중에는 회복이 한 번도 시작되지 않고 있었다.
+        // 의도는 '16타를 연속으로 치라'가 아니라 전투 중 항상 패링(15)·구르기(25) 여력을 남기는 것이다
+        [SerializeField] private float _staminaRegenPerSecond = 35f;
+        [SerializeField] private float _staminaRegenDelay     = 0.45f; // 행동 후 회복 시작까지(초)
 
         [Header("신력")]
         [SerializeField] private float _spiritMax = 80f; // 자연 회복 없음, 물약으로만 회복
@@ -53,7 +56,7 @@ namespace Geumeum.Data
         [FormerlySerializedAs("_attackRecoveryDuration")]
         [SerializeField] private float _meleeRecoveryDuration = 0.28f; // 후딜(초), 이 동안 다음 공격 불가
         [FormerlySerializedAs("_attackStaminaCost")]
-        [SerializeField] private float _meleeStaminaCost      = 12f;
+        [SerializeField] private float _meleeStaminaCost      = 6f;  // 2026-09-03: 12에서 낮췄다. 기본 공격이 패링 자원을 먼저 가져가지 않게 한다
         [FormerlySerializedAs("_attackRange")]
         [SerializeField] private float _meleeRange            = 2.2f;  // 판정 거리(m)
         [FormerlySerializedAs("_attackAngle")]
@@ -65,7 +68,7 @@ namespace Geumeum.Data
         [Header("원거리 공격")]
         [SerializeField] private float _rangedStartupDuration  = 0.25f; // 선딜(초), 활을 당기는 시간이라 근접보다 길다
         [SerializeField] private float _rangedRecoveryDuration = 0.35f; // 후딜(초)
-        [SerializeField] private float _rangedStaminaCost      = 8f;    // 거리를 두고 싸우는 대신 근접보다 싸다
+        [SerializeField] private float _rangedStaminaCost      = 5f;    // 거리를 두고 싸우는 대신 근접보다 싸다 (2026-09-03: 8에서 낮춤)
         [SerializeField] private float _rangedBasePower        = 8f;    // 장비 보정 전 기본 공격력
         [SerializeField] private float _rangedMuzzleHeight     = 1.2f;  // 발사 지점 높이(m), 발밑에서 나가지 않게 한다
         [SerializeField] private float _rangedMuzzleForward    = 0.6f;  // 발사 지점 전방 오프셋(m), 자기 몸에 걸리지 않게 한다

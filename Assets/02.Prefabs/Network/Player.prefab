@@ -97,7 +97,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
   sceneId: 0
-  _assetId: 0
+  _assetId: 1563421951
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
@@ -352,20 +352,59 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.PlayerWeaponVisual
   _bindings:
-  - Weapon: 0
+  - Character: 0
+    Weapon: 0
     ModelSource: {fileID: 5440681128991838293, guid: 7cbdbf45ed1096442b9ea4937807b987, type: 3}
-    LocalPosition: {x: 0, y: 0, z: 0}
-    LocalEuler: {x: 0, y: 0, z: 0}
-    LocalScale: {x: 1, y: 1, z: 1}
-  - Weapon: 1
+    LocalPosition: {x: -0.018527497, y: 0.061542965, z: -0.0034491792}
+    LocalEuler: {x: 2.7797797, y: 79.3852, z: 7.0958967}
+    LocalScale: {x: 0.8, y: 0.8, z: 0.8}
+  - Character: 0
+    Weapon: 1
     ModelSource: {fileID: 4323518947930549456, guid: df04cd600bc61fd4495e0ff65b7a6e23, type: 3}
-    LocalPosition: {x: 0, y: 0, z: 0}
-    LocalEuler: {x: 0, y: 0, z: 0}
+    LocalPosition: {x: -0.018527497, y: 0.061542965, z: -0.0034491792}
+    LocalEuler: {x: -82.38162, y: 10.67048, z: -111.45764}
     LocalScale: {x: 1, y: 1, z: 1}
-  - Weapon: 2
+  - Character: 0
+    Weapon: 2
     ModelSource: {fileID: 5874793521582390674, guid: 7ec68a1ad808c6548aa108e066deab1f, type: 3}
-    LocalPosition: {x: 0, y: 0, z: 0}
-    LocalEuler: {x: 0, y: 0, z: 0}
+    LocalPosition: {x: -0.018527497, y: 0.061542965, z: -0.0034491792}
+    LocalEuler: {x: 2.7797806, y: 79.3852, z: -172.90411}
+    LocalScale: {x: 1, y: 1, z: 1}
+  - Character: 1
+    Weapon: 0
+    ModelSource: {fileID: 5440681128991838293, guid: 7cbdbf45ed1096442b9ea4937807b987, type: 3}
+    LocalPosition: {x: 0.0061080838, y: 0.06121634, z: 0.025885463}
+    LocalEuler: {x: 28.448345, y: 87.03825, z: 31.141506}
+    LocalScale: {x: 0.83, y: 0.83, z: 0.83}
+  - Character: 1
+    Weapon: 1
+    ModelSource: {fileID: 4323518947930549456, guid: df04cd600bc61fd4495e0ff65b7a6e23, type: 3}
+    LocalPosition: {x: 0.0061080838, y: 0.06121634, z: 0.025885463}
+    LocalEuler: {x: -48.810974, y: 35.290134, z: -136.3327}
+    LocalScale: {x: 1, y: 1, z: 1}
+  - Character: 1
+    Weapon: 2
+    ModelSource: {fileID: 5874793521582390674, guid: 7ec68a1ad808c6548aa108e066deab1f, type: 3}
+    LocalPosition: {x: 0.0061080838, y: 0.06121634, z: 0.025885463}
+    LocalEuler: {x: 28.44835, y: 87.03824, z: -148.85849}
+    LocalScale: {x: 1, y: 1, z: 1}
+  - Character: 2
+    Weapon: 0
+    ModelSource: {fileID: 5440681128991838293, guid: 7cbdbf45ed1096442b9ea4937807b987, type: 3}
+    LocalPosition: {x: 0.025197247, y: 0.05408065, z: 0.013388011}
+    LocalEuler: {x: 47.17892, y: 49.735283, z: 1.0584383}
+    LocalScale: {x: 0.76, y: 0.76, z: 0.76}
+  - Character: 2
+    Weapon: 1
+    ModelSource: {fileID: 4323518947930549456, guid: df04cd600bc61fd4495e0ff65b7a6e23, type: 3}
+    LocalPosition: {x: 0.025197247, y: 0.05408065, z: 0.013388011}
+    LocalEuler: {x: -42.812042, y: 48.29239, z: -179.0193}
+    LocalScale: {x: 1, y: 1, z: 1}
+  - Character: 2
+    Weapon: 2
+    ModelSource: {fileID: 5874793521582390674, guid: 7ec68a1ad808c6548aa108e066deab1f, type: 3}
+    LocalPosition: {x: 0.025197247, y: 0.05408065, z: 0.013388011}
+    LocalEuler: {x: 47.178932, y: 49.73529, z: -178.94156}
     LocalScale: {x: 1, y: 1, z: 1}
 --- !u!114 &9146201717757255985
 MonoBehaviour:
@@ -413,7 +452,7 @@ PrefabInstance:
     - target: {fileID: 2759496067919335138, guid: fe6a3a7d10ddafc47bd5cfae90ab3e2f, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 9419576030d96f241a050688e50699f1, type: 2}
+      objectReference: {fileID: 9100000, guid: c0c2721e9dd2c174fbedb3a07ac5b93d, type: 2}
     - target: {fileID: 4557484968277269384, guid: fe6a3a7d10ddafc47bd5cfae90ab3e2f, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.90588236
@@ -670,7 +709,7 @@ PrefabInstance:
     - target: {fileID: 4726038850289926362, guid: 27ef4e142060a3f409f8abc6fd6d1ac7, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 9419576030d96f241a050688e50699f1, type: 2}
+      objectReference: {fileID: 9100000, guid: c18463d9fd81135439edd8ef2366b331, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -753,7 +792,7 @@ PrefabInstance:
     - target: {fileID: 6443340766993086875, guid: c3e3591eea23a4642a478fe8068c0f1c, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 9419576030d96f241a050688e50699f1, type: 2}
+      objectReference: {fileID: 9100000, guid: 82c5ee612c9e27143a2092d4ad90fe68, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

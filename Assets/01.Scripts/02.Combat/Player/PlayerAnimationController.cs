@@ -43,7 +43,10 @@ namespace Geumeum.Combat
         private const string PARAM_ROLL_SPEED = "RollSpeed";
         private const string PARAM_ATTACK     = "Attack";
 
-        private const string CLIP_ROLL = "SprintingForwardRoll";
+        // 구르기 클립 이름은 캐릭터마다 다르다(무료 에셋 SprintingForwardRoll, 검 팩 S_Evade ...).
+        // 이름 하나를 박으면 다른 캐릭터에서 배속 계산이 조용히 실패해 구르기 판정(0.9초)과
+        // 모션 길이가 어긋난 채로 보인다. 이름 규약으로 찾는다
+        private static readonly string[] CLIP_ROLL_KEYWORDS = { "roll", "evade", "dodge" };
 
         private const string VISUAL_PIVOT_NAME = "VisualPivot";
 
@@ -216,7 +219,7 @@ namespace Geumeum.Combat
             }
 
             // 구르기 배속은 지금 걸린 컨트롤러의 클립 길이로 정해지므로 교체 뒤에 다시 잰다
-            _rollClipLength = FindClipLength(CLIP_ROLL);
+            _rollClipLength = FindRollClipLength();
             _hasAttackParam = HasParameter(PARAM_ATTACK);
         }
 
@@ -273,7 +276,13 @@ namespace Geumeum.Combat
             return _rollClipLength / rollDuration;
         }
 
-        private float FindClipLength(string clipName)
+        /// <summary>
+        /// 구르기 클립의 길이를 찾는다. 이름이 캐릭터마다 다르므로 정확한 일치가 아니라
+        /// 키워드 포함으로 찾는다 - <b>구르기 클립 이름에는 roll, evade, dodge 중 하나가 들어가야 한다</b>.
+        /// 새 캐릭터를 붙일 때 이 규약을 지키지 않으면 배속이 1로 떨어져
+        /// 판정(RollTotalDuration)과 모션 길이가 어긋난 채로 보인다
+        /// </summary>
+        private float FindRollClipLength()
         {
             RuntimeAnimatorController controller = _animator.runtimeAnimatorController;
             if (controller == null)
@@ -284,13 +293,24 @@ namespace Geumeum.Combat
             AnimationClip[] clips = controller.animationClips;
             for (int i = 0; i < clips.Length; ++i)
             {
-                if ((clips[i] != null) && (clips[i].name == clipName))
+                if (clips[i] == null)
                 {
-                    return clips[i].length;
+                    continue;
+                }
+
+                string lowered = clips[i].name.ToLowerInvariant();
+                for (int k = 0; k < CLIP_ROLL_KEYWORDS.Length; ++k)
+                {
+                    if (lowered.Contains(CLIP_ROLL_KEYWORDS[k]))
+                    {
+                        return clips[i].length;
+                    }
                 }
             }
 
-            Debug.LogWarning($"[PlayerAnimationController] 애니메이터에 '{clipName}' 클립이 없어 배속을 계산할 수 없다", this);
+            Debug.LogWarning(
+                "[PlayerAnimationController] 애니메이터에서 구르기 클립을 찾지 못해 배속을 계산할 수 없다. "
+                + "클립 이름에 roll, evade, dodge 중 하나가 들어가야 한다", this);
             return 0f;
         }
 
@@ -298,7 +318,11 @@ namespace Geumeum.Combat
         /// 블렌드 트리 문턱값(0=정지, 1=걷기, 2=달리기)에 맞춰 실제 속도를 정규화한다.
         /// CombatConfigSO의 걷기, 달리기 속도가 밸런스 조정으로 바뀌어도 애니메이터 자산을 다시 만들 필요가 없다
         /// </summary>
-        private static float NormalizeSpeed(float speed)
+        /// <remarks>
+        /// public인 이유는 네트워크 없이 도는 캐릭터 미리보기 리그(<see cref="CharacterPreviewRig"/>)가
+        /// 같은 규칙을 써야 하기 때문이다. 규칙을 복사하면 두 곳이 조용히 갈라진다
+        /// </remarks>
+        public static float NormalizeSpeed(float speed)
         {
             if ((!GameDB.IsInitialized) || (speed <= MOVE_SPEED_EPSILON))
             {

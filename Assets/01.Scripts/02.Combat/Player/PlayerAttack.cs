@@ -63,6 +63,7 @@ namespace Geumeum.Combat
         private ParryController           _parry;
         private ParryGauge                _gauge;
         private PlayerAnimationController _animation;
+        private PlayerPresentation        _presentation;
 
         // readonly로 두면 메서드 호출마다 방어 복사본이 만들어져 수락 기록이 남지 않는다
         private RequestIdTracker _requestIds = new RequestIdTracker();
@@ -76,8 +77,8 @@ namespace Geumeum.Combat
         private uint _nextRequestId = 1u;
 
         // 매번 새로 만들면 공격마다 GC 할당이 생긴다
-        private readonly Collider[] _hitBuffer = new Collider[Constants.Combat.HIT_QUERY_BUFFER_SIZE];
-        private readonly List<uint> _hitNetIds = new List<uint>(Constants.Combat.HIT_QUERY_BUFFER_SIZE);
+        private readonly Collider[]        _hitBuffer  = new Collider[Constants.Combat.HIT_QUERY_BUFFER_SIZE];
+        private readonly List<IDamageable> _hitTargets = new List<IDamageable>(Constants.Combat.HIT_QUERY_BUFFER_SIZE);
 
         /****************************************
         *              Public API
@@ -101,7 +102,8 @@ namespace Geumeum.Combat
             _parry  = GetComponent<ParryController>();
             _gauge  = GetComponent<ParryGauge>();
 
-            _animation = GetComponent<PlayerAnimationController>();
+            _animation    = GetComponent<PlayerAnimationController>();
+            _presentation = GetComponent<PlayerPresentation>();
         }
 
         private void Update()
@@ -280,12 +282,41 @@ namespace Geumeum.Combat
             return PlayerActionGate.CanStartAction(context);
         }
 
+        /// <summary>
+        /// 이번 공격이 향하는 평면 방향. transform.forward를 쓰면 안 된다 —
+        /// 플레이어 루트는 Rigidbody가 회전을 막고 있고(Player.prefab FreezeRotation X·Y·Z)
+        /// 코드에서도 루트를 돌리는 곳이 없어 항상 월드 +Z로 고정된다.
+        /// 방향은 자식 VisualPivot에만 적용되므로, 서버가 매 틱 확정하는
+        /// PlayerPresentation의 값이 판정이 쓸 수 있는 유일한 방향 소스다
+        /// </summary>
+        [Server]
+        private Vector3 ResolveAimForward()
+        {
+            if (_presentation == null)
+            {
+                Debug.LogError("[PlayerAttack] PlayerPresentation이 없어 조준 방향을 정할 수 없다", this);
+                return transform.forward;
+            }
+
+            Vector2 facing = _presentation.FacingDirection;
+
+            // ResolveFacing이 마지막 유효 방향을 유지하므로 정상 경로에서는 0이 나오지 않는다.
+            // 그래도 0이면 정규화가 NaN이 되어 판정이 전부 조용히 빗나가므로 여기서 막는다
+            if (facing.sqrMagnitude <= Mathf.Epsilon)
+            {
+                Debug.LogWarning("[PlayerAttack] 조준 방향이 비어 있어 이번 공격은 루트 정면으로 나간다", this);
+                return transform.forward;
+            }
+
+            return new Vector3(facing.x, 0f, facing.y).normalized;
+        }
+
         // 정면 부채꼴 안에 있는 대상만 맞춘다. 구를 통째로 쓰면 등 뒤의 적도 맞는다
         [Server]
         private void ApplyMeleeHit(CombatConfigSO combat)
         {
             Vector3 origin  = transform.position;
-            Vector3 forward = transform.forward;
+            Vector3 forward = ResolveAimForward();
             float   cosHalf = Mathf.Cos(combat.MeleeAngle * 0.5f * Mathf.Deg2Rad);
 
             // 배수를 휘두르기 한 번당 하나로 뽑아 부채꼴에 걸린 대상이 모두 같은 값을 받게 한다.
@@ -294,13 +325,16 @@ namespace Geumeum.Combat
             float multiplier = (isCritical) ? Random.Range(combat.CriticalMultiplierMin, combat.CriticalMultiplierMax) : 1f;
             int   hitCount   = 0;
 
-            _hitNetIds.Clear();
+            _hitTargets.Clear();
 
             int count = Physics.OverlapSphereNonAlloc(origin, combat.MeleeRange, _hitBuffer, _targetMask);
 
             for (int i = 0; i < count; ++i)
             {
                 Collider hit = _hitBuffer[i];
+
+                // 소유자 판별은 루트 비교가 맞다. 내 무기 콜라이더가 자식에 붙어 있어도 걸러야 한다.
+                // 아래의 대상 해석과는 목적이 다른 판단이므로 둘을 섞지 않는다
                 if ((hit == null) || (hit.transform.root == transform.root))
                 {
                     continue;
@@ -319,10 +353,9 @@ namespace Geumeum.Combat
                     continue;
                 }
 
-                // 콜라이더가 자식에 붙어 있는 경우가 있어 root에서 계약을 찾는다
-                Transform root = hit.transform.root;
-
-                if (!root.TryGetComponent(out IDamageable damageable))
+                // 맞은 콜라이더에서 위로 올라가며 처음 만나는 IDamageable이 이번 타격의 대상이다.
+                // 루트에서 찾으면 보스 꼬리 같은 부위 콜라이더를 쳐도 본체가 맞는다
+                if (!DamageTargetResolver.TryResolve(hit, out IDamageable damageable))
                 {
                     continue;
                 }
@@ -332,18 +365,16 @@ namespace Geumeum.Combat
                     continue;
                 }
 
-                // 몸 하나에 콜라이더가 여럿이면 한 번 휘두르기에 여러 번 맞는다. netId로 한 번만 센다
-                if (!root.TryGetComponent(out NetworkIdentity identity))
+                // 몸 하나에 콜라이더가 여럿이면 한 번 휘두르기에 여러 번 맞는다.
+                // netId를 키로 쓰면 부위와 본체가 같은 NetworkIdentity라 둘 중 하나만 맞고,
+                // 어느 쪽이 맞을지는 물리 질의의 순회 순서가 정해 결과가 비결정적이 된다.
+                // 해석된 참조 자체를 키로 쓰면 부위가 몇 개든 각각 한 번씩만 맞는다
+                if (_hitTargets.Contains(damageable))
                 {
                     continue;
                 }
 
-                if (_hitNetIds.Contains(identity.netId))
-                {
-                    continue;
-                }
-
-                _hitNetIds.Add(identity.netId);
+                _hitTargets.Add(damageable);
 
                 damageable.TakeDamage(new DamageInfo(
                     combat.MeleeBasePower * multiplier,
@@ -381,7 +412,7 @@ namespace Geumeum.Combat
                 return;
             }
 
-            Vector3 forward = transform.forward;
+            Vector3 forward = ResolveAimForward();
 
             // 발밑이나 제 몸 안에서 나가면 첫 틱부터 자기 자신 근처를 훑는다
             Vector3 origin = transform.position

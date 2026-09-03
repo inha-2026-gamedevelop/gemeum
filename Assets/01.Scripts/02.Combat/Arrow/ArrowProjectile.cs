@@ -35,11 +35,12 @@ namespace Geumeum.Combat
         private int     _remainingPierce;
         private float   _remainingLifetime;
         private int     _targetMask;
+        private int     _worldMask;
         private bool    _initialized = false;
 
         // 화살마다 새로 만들면 연사할수록 GC 할당이 쌓인다
-        private readonly RaycastHit[] _hitBuffer     = new RaycastHit[HIT_BUFFER_SIZE];
-        private readonly List<uint>   _piercedNetIds = new List<uint>(PIERCE_BUFFER_SIZE);
+        private readonly RaycastHit[]      _hitBuffer      = new RaycastHit[HIT_BUFFER_SIZE];
+        private readonly List<IDamageable> _piercedTargets = new List<IDamageable>(PIERCE_BUFFER_SIZE);
 
         /****************************************
         *              Server API
@@ -57,10 +58,11 @@ namespace Geumeum.Combat
             _hitRadius         = arrow.UnlockedHitRadius;
             _remainingPierce   = Mathf.Max(1, arrow.BasePierceCount);
             _remainingLifetime = arrow.ArrowLifetime;
+            _worldMask         = arrow.WorldMask;
             _initialized       = true;
 
             // 화살을 풀에서 재사용하면 지난 비행의 명중 기록이 남아 그 대상만 영영 맞지 않는다
-            _piercedNetIds.Clear();
+            _piercedTargets.Clear();
         }
 
         /****************************************
@@ -113,9 +115,21 @@ namespace Geumeum.Combat
             Vector3 origin = transform.position;
             float   step   = _speed * deltaTime;
 
-            if (TryApplyHits(origin, step))
+            // 벽 뒤의 적을 맞히지 않는다. 장애물이 있으면 이번 구간을 거기까지로 자르고,
+            // 그 앞의 대상만 판정한 뒤 벽에서 멈춘다
+            bool  isBlocked   = TryFindWorldBlock(origin, step, out float blockDistance, out Vector3 blockPoint);
+            float travelLimit = (isBlocked) ? blockDistance : step;
+
+            if (TryApplyHits(origin, travelLimit))
             {
                 return; // 관통을 다 쓰고 사라졌다
+            }
+
+            if (isBlocked)
+            {
+                transform.position = blockPoint;
+                NetworkServer.Destroy(gameObject);
+                return;
             }
 
             transform.position = origin + (_direction * step);
@@ -124,6 +138,33 @@ namespace Geumeum.Combat
         /****************************************
         *                Methods
         ****************************************/
+
+        /// <summary>
+        /// 이번 틱 구간에 화살을 막는 지형이 있는지 본다. 판정 대상 마스크와 분리한 이유는
+        /// 벽이 맞히는 대상이 아니라 멈추는 이유이기 때문이다.
+        /// 마스크가 비어 있으면(설정 전) 이전처럼 장애물을 무시한다
+        /// </summary>
+        [Server]
+        private bool TryFindWorldBlock(Vector3 origin, float step, out float blockDistance, out Vector3 blockPoint)
+        {
+            blockDistance = step;
+            blockPoint    = origin;
+
+            if (_worldMask == 0)
+            {
+                return false;
+            }
+
+            if (!Physics.SphereCast(
+                    origin, _hitRadius, _direction, out RaycastHit wall, step, _worldMask, QueryTriggerInteraction.Ignore))
+            {
+                return false;
+            }
+
+            blockDistance = wall.distance;
+            blockPoint    = origin + (_direction * wall.distance);
+            return true;
+        }
 
         /// <summary>
         /// 이번 틱에 지나갈 구간을 훑어 맞은 대상에 피해를 준다. 화살이 소멸했으면 true.
@@ -144,25 +185,23 @@ namespace Geumeum.Combat
 
             for (int i = 0; i < count; ++i)
             {
-                Transform root = _hitBuffer[i].transform.root; // 콜라이더가 자식에 붙어 있는 경우가 있다
-
-                if ((!root.TryGetComponent(out IDamageable damageable)) || (damageable.IsDead))
+                // 맞은 콜라이더에서 위로 올라가며 처음 만나는 IDamageable이 이번 관통의 대상이다.
+                // 루트에서 찾으면 보스 꼬리 같은 부위 콜라이더를 쳐도 본체가 맞는다
+                if ((!DamageTargetResolver.TryResolve(_hitBuffer[i].collider, out IDamageable damageable))
+                    || (damageable.IsDead))
                 {
                     continue;
                 }
 
-                // 몸 하나에 콜라이더가 여럿이면 한 번의 관통으로 여러 번 맞는다. netId로 한 번만 센다
-                if (!root.TryGetComponent(out NetworkIdentity identity))
+                // 몸 하나에 콜라이더가 여럿이면 한 번의 관통으로 여러 번 맞는다.
+                // netId를 키로 쓰면 부위와 본체가 같은 NetworkIdentity라 둘 중 하나만 맞는다.
+                // 해석된 참조 자체를 키로 쓰면 부위가 몇 개든 각각 한 번씩만 맞는다
+                if (_piercedTargets.Contains(damageable))
                 {
                     continue;
                 }
 
-                if (_piercedNetIds.Contains(identity.netId))
-                {
-                    continue;
-                }
-
-                _piercedNetIds.Add(identity.netId);
+                _piercedTargets.Add(damageable);
                 damageable.TakeDamage(new DamageInfo(_damage, _attackerNetId, HitStrength.Light));
 
                 --_remainingPierce;
