@@ -33,9 +33,9 @@
 |---|---|---|---|---|
 | 네트워크 · 전투 (팀장) | @AidenKim923 | `Geumeum.Network` `Geumeum.Combat` | `01.Network/` `02.Combat/` | `Dev_Combat.unity` |
 | 몬스터 · 보스 | @oname36-creator | `Geumeum.AI` | `03.AI/` | `Dev_AI.unity` |
-| 게임플레이 시스템 | @kjw1237 | `Geumeum.Systems` | `04.Systems/` | `Dev_System.unity` |
-| 테크니컬 아트 | @AidenKim923 (겸임) | `Geumeum.Art` | `05.Art/` | `Dev_Art.unity` |
-| UI (전담) | @kjw1237 (게임플레이 시스템 겸임) | `Geumeum.UI` | `06.UI/` | `Dev_System.unity` |
+| 게임플레이 시스템 | @kjw1237 | `Geumeum.Systems` | `04.Systems/` | `Dev_System.unity` **(미생성 → 3.1)** |
+| 테크니컬 아트 | @AidenKim923 (겸임) | `Geumeum.Art` | `05.Art/` | `Dev_Art.unity` **(미생성 → 3.1)** |
+| UI (전담) | @kjw1237 (게임플레이 시스템 겸임) | `Geumeum.UI` | `06.UI/` | `Dev_System.unity` **(미생성 → 3.1)** |
 | (공용) | `Geumeum.Data` `Geumeum.Common` | `00.Common/` | — |
 
 ---
@@ -92,15 +92,21 @@ Assets/
 
 ### 3.1 씬 목록
 
-```
-Assets/00.Scenes/
-├ Main.unity          통합 씬(개활 맵). 통합 담당자(팀장)만 수정
-├ Boss_Arena.unity    보스맵. 팀장 + 보스 담당자 공동 소유 (2026-09-03 신설 예정)
-├ Dev_Combat.unity    네트워크·전투 작업 씬
-├ Dev_AI.unity        몬스터·보스 작업 씬
-├ Dev_System.unity    게임플레이 시스템 작업 씬
-└ Dev_Art.unity       테크니컬 아트 작업 씬
-```
+**`현재`는 저장소에 실제로 있는 씬이고, `계획`은 아직 없는 씬이다.** 계획 씬을 있는 것처럼 참조하지 않는다 — 2026-09-04 실측으로 정정했다.
+
+| 씬 | 상태 | 소유 |
+|---|---|---|
+| `Main.unity` | **현재** | 통합 씬(개활 맵). 통합 담당자(팀장)만 수정 |
+| `Dev_Combat.unity` | **현재** | 네트워크·전투 작업 씬 |
+| `Dev_AI.unity` | **현재** | 몬스터·보스 작업 씬 |
+| `Dev_Character.unity` | **현재** | 캐릭터·무기 부착 확인용. 네트워크 없음. 빌드 설정 미포함 |
+| `Dev_WeatherMakerIsolation.unity` | **현재** | WeatherMaker 격리 확인용(임시). 빌드 설정 미포함 |
+| `SampleScene.unity` | **현재** | Unity 기본 생성물. 사용하지 않는다 |
+| `Boss_Arena.unity` | **계획** | 보스맵. 팀장 + 보스 담당자 공동 소유 |
+| `Dev_System.unity` | **계획** | 게임플레이 시스템 작업 씬 — **아직 없다.** 시스템 파트는 현재 `Dev_Combat`에서 확인하거나 이 씬을 먼저 만든다 |
+| `Dev_Art.unity` | **계획** | 테크니컬 아트 작업 씬 — **아직 없다** |
+
+> ⚠️ **`Dev_System.unity`와 `Dev_Art.unity`가 없는 것이 실무 문제다.** [협업 규칙](../CONTRIBUTING.md) 3장과 여러 검증 문서가 이 둘을 담당자 작업 씬으로 지시하는데 실제로는 존재하지 않아, 시스템 담당자가 씬 작업을 하려면 갈 곳이 없다. **씬 신설은 [CLAUDE.md](../CLAUDE.md)상 구조 변경이므로 만들기 전에 알린다.**
 
 #### 씬 전환은 런 중 한 번뿐이다 (2026-09-03 개정)
 
@@ -519,11 +525,15 @@ RunManager : NetworkBehaviour
 |---|---|---|---|
 | `Lobby` | 씬 로드 | 3명 준비 완료 | 런 시계 정지, 역할 배분 준비 |
 | `Farming` | 런 시작 | 실시간 10:00 | 개활 스폰, FieldLevel 0 |
-| `Shrink1` | 실시간 10:00 | 실시간 20:00 | 결계 축소·초당 1 피해, FieldLevel 1 |
+| `Shrink1` | 실시간 10:00 | 실시간 **19:00** | 결계 축소·초당 1 피해, FieldLevel 1 |
 | `Shrink2` | 실시간 **19:00** | 실시간 **25:00** | 결계 축소·객주 개방, FieldLevel 2 |
 | `Shrink3` | 실시간 **25:00** | 실시간 **26:00** | 보스맵 게이트 개방, 신규 잡귀 스폰 중단, FieldLevel 3 |
 | `Boss` | 실시간 **26:00** | 보스 사망 또는 실시간 40:00 | **보스맵 씬으로 전환**, 결계 피해 종료 |
 | `Result` | 승리·실패·전멸·이탈 대기 종료 | 정산 완료 후 `Lobby` 복귀 | 점수 계산, 성공 런만 리더보드 등록 |
+
+> **이 표의 시각은 [시스템 기획 2.1](01-system-design.md)이 규범이다.** 여기에는 복제본을 두지 않고, 값이 바뀌면 그쪽을 고친 뒤 이 표를 맞춘다.
+> 런타임 값은 `BarrierPhaseSO`에서 읽으며 구간이 겹치거나 끊기면 안 된다 — `phase[i].End == phase[i+1].Start`.
+> *(2026-09-04 정정: `Shrink1` 종료가 20:00으로 남아 `Shrink2` 시작 19:00과 1분 겹쳐 있었다.)*
 
 `57cb59d`에서 실제로 구현된 전환은 타임라인 경계·시간 초과·런 중 이탈이다.
 보스 사망, 전멸, 종료 사유, 점수 정산과 결계·스폰 구독자 side effect는 아직 구현 계약이다.

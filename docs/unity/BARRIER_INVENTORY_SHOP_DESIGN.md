@@ -57,7 +57,16 @@ Mirror는 서버→클라이언트 상태에 SyncVar/SyncList를 제공하며, �
 
 | 파일 위치 / namespace | 책임 |
 |---|---|
-| `Assets/01.Scripts/00.Common/Interfaces/IRecoveryTarget.cs` / `Geumeum.Common` | 서버의 `bool TryRestoreHealth(float)`, `bool TryRestoreSpirit(float)`, `SetBarrierRecoveryRule(float multiplier, bool blocksHealing)` 계약; `PlayerStatus` 구현 |
+| `Assets/01.Scripts/00.Common/Interfaces/IRecoveryTarget.cs` / `Geumeum.Common` | **[구현됨 · 2026-09-04]** `bool IsDead`, 서버의 `bool TryRestoreHealth(float)`; `PlayerStatus` 구현. 호출부는 **원본 회복량만** 넘긴다 |
+| `Assets/01.Scripts/00.Common/Interfaces/IBarrierState.cs` / `Geumeum.Common` | **[구현됨 · 2026-09-04]** `IsActive`, `Center`, `Radius`, `IsOutside(Vector3)`, `GetHealingMultiplier(Vector3)`. `BarrierController`가 구현한다 |
+| `Assets/01.Scripts/00.Common/Utility/BarrierStateLocator.cs` / `Geumeum.Common` | **[구현됨 · 2026-09-04]** `IBarrierState` 등록·조회. `BarrierController`가 `OnEnable`/`OnDisable`에서 `Register`/`Unregister`한다. 기본값은 결계가 꺼진 것으로 답하는 Null 구현 |
+
+> ⚠️ **2026-09-04 정정 — 쇠약·회복 봉쇄는 push가 아니라 pull이다.**
+> 초판은 결계가 `SetBarrierRecoveryRule(float, bool)`로 규칙을 **밀어 넣는** 방식이었으나, 실제 구현은 `PlayerStatus.TryRestoreHealth`가 `BarrierStateLocator.Current.GetHealingMultiplier(position)`를 **물어보는** 방식이다.
+>
+> 밀어 넣는 방식은 대상마다 규칙 사본이 생겨, 결계 중심이 움직일 때(D9) 갱신 누락이 곧 판정 불일치가 된다. 물어보는 방식은 사본이 없다.
+>
+> **`TryRestoreSpirit(float)`은 구현하지 않았다.** 신력은 자연 회복이 없고 쇠약·회복 봉쇄의 대상도 아니다([게임 디자인 2.1](../02-game-design.md)). 필요해지면 그때 같은 인터페이스에 추가한다.
 | `Assets/01.Scripts/00.Common/Types/WeaponCombatSnapshot.cs` / `Geumeum.Common` | `InstanceId`, `WeaponKind`, `Grade`, `AttackPower`, 옵션 최대 2개의 kind/value를 가진 고정 크기 값 |
 | `Assets/01.Scripts/00.Common/Interfaces/IWeaponLoadoutTarget.cs` / `Geumeum.Common` | 현재 snapshot 조회와 서버 원자적 `TrySwapWeapon` 계약; `PlayerWeapon` 구현 |
 | `Assets/01.Scripts/00.Common/Types/InventoryItemKind.cs` / `Geumeum.Common` | `enum : byte`, `Empty=0`, `Equipment=1`, `HealthPotion=2`, `SpiritPotion=3`; 명시값 유지 |
