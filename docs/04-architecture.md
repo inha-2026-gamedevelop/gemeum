@@ -185,7 +185,18 @@ Main.unity
 │  ├ DamageInfo.cs         struct 서버가 확정한 피해량 · 공격자 netId · HitStrength
 │  ├ HitStrength.cs        enum 타격감 강도 (Light · Heavy · Critical)
 │  ├ WeaponKind.cs         enum 무기 종류 = 직업 (Sword · Bow · Bell)
+│  ├ WeaponKindExtensions.cs C# 무기 → AttackReach 변환. 무기가 판정 방식을 정한다
+│  ├ AttackReach.cs        enum 기본 공격의 판정 방식 (None · Melee · Ranged)
+│  ├ CharacterKind.cs      enum 캐릭터 = 직업 (Chasa · Singung · Munyeo). WeaponKind와 1:1
+│  ├ EquipmentOptionKind.cs enum 장비 옵션 종류. 화살 속도 · 유도 시간 · 관통 수 포함
+│  ├ EnemyKind.cs / EnemyVisualState.cs / ItemGrade.cs / ShopItemKind.cs
+│  ├ RunPhase.cs / RunOutcome.cs / ParryWindowKey.cs
 │  └ PlayerPlatformId.cs   struct 재접속에도 유지되는 신원. Steam은 SteamID64, 개발은 실행 인자값
+├ Pooling/                 namespace Geumeum.Common — 로컬 표현 오브젝트 풀
+│  ├ LocalObjectPoolService.cs MB [현재] 프리팹별 ObjectPool<GameObject>.
+│  │                              PersistentSingleton을 상속한다. 호출부는 아직 없다
+│  └ LocalPoolRoot.cs      MB  [현재] 풀에 넣어도 되는 프리팹임을 선언하는 표식.
+│                              네트워크 개체를 걸러내는 화이트리스트다
 └ Interfaces/              namespace Geumeum.Common — 파트 간 경계 → 8장
    ├ IDamageable.cs        피해를 받을 수 있는 대상 (플레이어 · 잡귀 · 보스)
    ├ IParryable.cs         패링당할 수 있는 공격의 계약
@@ -194,6 +205,8 @@ Main.unity
    ├ IPlayerRoleAssignment.cs 무기 · 외형을 원자적으로 확정하는 계약. 로비가 Combat 타입을
                               직접 참조하지 않도록 하는 경계다
    ├ IPlayerRunLifecycle.cs   런 경계에서 플레이어를 옮기고 상태를 되돌리는 계약
+   ├ IPoolable.cs             풀에서 재사용될 때 파티클 · Trail · 코루틴을 되돌리는 계약
+   ├ IParryWindowTarget.cs    패링 창을 여닫을 수 있는 대상의 계약
    └ CombatFeedbackLocator.cs static ICombatFeedback 등록·조회. 기본값은 아무것도 하지
                               않는 NullCombatFeedback → 8.3
 ```
@@ -259,16 +272,26 @@ Main.unity
 │  ├ PlayerPresentation.cs NB  [현재] 방향 · 속도를 명시적으로 보관하는 표현 상태.
 │  │                           서버는 수락한 이동, 소유 클라는 입력, 원격은 SyncVar
 │  ├ PlayerAnimationController.cs MB [현재] PlayerPresentation을 읽어 LateUpdate에서
-│  │                           VisualPivot을 회전시키는 표현 전용. 위치 차분을 쓰지 않는다
+│  │                           VisualPivot을 회전시키는 표현 전용. 위치 차분을 쓰지 않는다.
+│  │                           무기별 Animator를 골라 씌우고(짝이 없으면 모델 기본값 폴백)
+│  │                           구르기 · 공격 모션 재생 진입점을 제공한다
 │  ├ PlayerLifeState.cs    enum [현재] Alive · Downed · Spectating · ReviveInvulnerable
 │  ├ PlayerStatus.cs       NB  [현재] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable
-│  ├ PlayerWeapon.cs       NB  [현재] 현재 무기 SyncVar(초기 1회 배분). [계획] 서버 전투용
-│  │                           장비 snapshot 추가
-│  ├ PlayerAppearance.cs   NB  [현재] AppearanceKind SyncVar 훅으로 외형 모델을 켜는 표현 전용.
-│  │                           차사 · 신궁 · 무녀 3종 바인딩 완료. 무기와는 무관하다
-│  ├ PlayerAttack.cs       NB  [계획] 공격의 유일한 클라이언트 Command 진입점. 무기당 기본 공격
-│  │                           1종만 받고, 연사·관통·치유·버프 변형은 서버가 TalentController
-│  │                           상태에서 스스로 산출한다 (클라이언트가 슬롯을 고르지 않는다)
+│  ├ PlayerWeapon.cs       NB  [현재] 현재 무기 SyncVar(초기 1회 배분). 훅이 무기 모델과
+│  │                           애니메이터를 함께 갱신한다. [계획] 서버 전투용 장비 snapshot 추가
+│  ├ PlayerWeaponVisual.cs MB  [현재] 활성 캐릭터 모델의 오른손 뼈에 무기 모델을 붙이는 표현 전용.
+│  │                           부착 보정값은 아직 전부 0이라 무기가 몸통에 파묻힌다
+│  ├ PlayerCharacter.cs    NB  [현재] CharacterKind SyncVar 훅으로 캐릭터 모델을 켜는 표현 전용.
+│  │                           차사 · 신궁 · 무녀 3종 바인딩 완료. 캐릭터가 무기를 정한다
+│  ├ PlayerRollController.cs NB [현재] 구르기 Command와 서버 실행 · 무적 구간
+│  ├ PlayerRunAgent.cs     NB  [현재] 런 경계에서 플레이어 상태를 되돌리는 창구(IPlayerRunLifecycle)
+│  ├ PlayerActionContext.cs C# [현재] PlayerActionGate가 읽는 검증 입력 묶음
+│  ├ RequestIdTracker.cs   struct [현재] 요청 ID의 중복 · 역순을 막는다. 가변 struct이므로
+│  │                           readonly 필드로 잡으면 방어 복사본이 생겨 동작하지 않는다
+│  ├ PlayerAttack.cs       NB  [현재] 공격의 유일한 클라이언트 Command 진입점. 근접 부채꼴과
+│  │                           화살 발사를 AttackReach로 갈라 서버가 판정하고, 수락 시점에
+│  │                           RpcAttackStarted로 공격 시작을 모든 화면에 전파한다.
+│  │                           [계획] 연사 · 관통 · 치유 · 버프 변형은 서버가 특성 상태에서 산출
 │  └ InteractionController.cs NB [계획] 상호작용 Command와 서버 검증
 ├ Weapon/                  [계획] 직업별 실행 계약. Mirror 비의존
 │  ├ IWeaponAbility.cs / IAbilityRuntime.cs
@@ -280,19 +303,23 @@ Main.unity
 │  │                           window ID는 공격자별 단조 증가 uint, 대상당 활성 창 1개
 │  │                           (새 창이 이전 미소비 창을 무효화)
 │  ├ ParryJudge.cs         C#  [현재] 시간 창 참·거짓만 계산하는 순수 판정
+│  ├ ParryRequest.cs / ParryWindow.cs / ParryResultCode.cs [현재] 요청 · 창 · 결과 코드 값 타입
+│  ├ ParryTestDummy.cs     MB  [현재] 패링 검증용 더미. Dev 씬 전용
 │  └ ParryGauge.cs         NB  [현재] 게이지 SyncVar와 누적 · 소비 · 리셋 서버 API.
-│                              [계획] 치명 배율 roll과 PlayerAttack 연결
+│                              치명 배율 roll은 PlayerAttack이 읽어 적용한다.
+│                              빗나가면 소비하지 않는다(2026-09-03 확정)
 ├ Arrow/
-│  ├ ArrowLauncher.cs      NB  [계획] BowAbility가 호출하는 서버 전용 스폰 실행기, Command 없음
-│  ├ ArrowProjectile.cs    NB  [계획] 서버 권위 궤적·명중·관통
-│  └ ArrowGuidance.cs      C#  [계획] 발사각 보정·유도 계산
+│  ├ ArrowProjectile.cs    NB  [현재] 서버 물리 틱마다 SphereCast로 훑는 궤적 · 명중 · 관통.
+│  │                           netId로 대상 중복을 막는다. [계획] 장애물 판정 · 유도
+│  ├ ArrowLauncher.cs      NB  [계획] 별도 스폰 실행기. 지금은 PlayerAttack이 직접 띄운다
+│  └ ArrowGuidance.cs      C#  [계획] 발사각 보정·유도 계산 → 화살 조준 보정 설계 7장
 └ Camera/
    ├ CameraRig.cs          MB  [계획] 3인칭 오버숄더, 완전 로컬
    └ LockOnSystem.cs       MB  [계획] 로컬 후보 선택, 공격 요청에는 후보 netId만 전달
 ```
 
-실제 구현은 `PlayerController`, `PlayerMotionModel`, `ParryController`, `ParryJudge`,
-`PlayerStatus`, `PlayerWeapon`, `PlayerLifeState`, `PlayerAppearance` 여덟 개다(2026-08-30 기준).
+2026-09-03 기준으로 `Player/` 16개, `Parry/` 7개, `Arrow/` 1개가 구현되어 있다.
+아직 없는 것은 `InteractionController`, `Weapon/`, `Camera/`, 그리고 `Arrow/`의 나머지 둘이다.
 나머지는 구현 계약이다. **판정 수식은 순수 C# 클래스에 두고, NetworkBehaviour는 입력·서버 실행·
 동기화 경계를 담당한다.** 활 공격도 `PlayerAttack`의 공통 Command를 거치며, `ArrowLauncher`가
 별도의 클라이언트 요청 경로를 만들지 않는다.

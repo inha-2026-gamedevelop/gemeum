@@ -453,6 +453,19 @@ _targetMask              → 런타임 3072 확인
 방울 pulse가 실제로 구현되면 그때 `IWeaponAbility`로 뽑아낸다. 지금 미리 분리하면 인터페이스 셋과
 context 구조체 셋이 사용처 하나씩만 가진 채 남는다.
 
+### 8.3 화살 락온에서 되돌아오는 것
+
+이 문서는 코드에 없다는 이유로 `AbilityRequest`와 `ArrowGuidance`를 걷어냈다. **없앤 것이 아니라
+아직 없는 것이다.** 신궁 조준 보정을 착수하면 둘 다 다시 들어온다 —
+[화살 조준 보정 설계](ARROW_AIM_ASSIST_DESIGN.md) 7장이 그 배치를 규정한다(2026-09-03 팀장 결정).
+
+- `AbilityRequest`는 `CmdRequestAttack(uint)`을 `requestId + AimDirection + 후보 netId`로 넓히는
+  **입력 값 타입**이다. 8.1의 실행기 분리 논쟁과 무관하다 — `switch` 두 갈래는 그대로 둔다
+- `ArrowGuidance`는 초기 보정과 제한 회전만 하는 **순수 계산**이다. Mirror를 모르므로
+  단위 테스트가 가능하고, `PlayerAttack`이 유도 수식을 떠안는 것을 막는다
+
+두 문서가 갈라지지 않게, 화살 문서 7장을 고치면 이 절도 함께 고친다.
+
 ### 8.2 유지되는 판단
 
 원본 설계에서 그대로 지킨 것들이다. 뒤집지 않는다.
