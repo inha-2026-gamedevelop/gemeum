@@ -1,6 +1,9 @@
 // Unity
 using UnityEngine;
 
+// 서드파티
+using Mirror;
+
 // 프로젝트 내부
 using Geumeum.Common;
 
@@ -11,10 +14,12 @@ namespace Geumeum.AI
     /// 곧장 대상을 향해 직선 돌진한다. 돌진은 패링 여부와 무관하게 항상 명중 거리까지 도달해
     /// 대상 앞에 멈춘 뒤, 그 후딜 구간에서 패링당하면 넉백, 아니면 근접 공격 2종 중 하나를
     /// 무작위로 반복한다 — 성공하든 실패하든 정지 위치가 항상 대상 앞으로 일정하다.
-    /// IParryable을 구현하지만 실제 패링 창 등록(OpenParryWindow)은 아직 연결하지 않는다 —
-    /// AI가 Geumeum.Combat을 직접 참조할 수 없어 Combat 쪽 IParryWindowTarget 신설이 선행돼야 한다
+    /// 대상의 IParryWindowTarget을 직접 찾아 창을 열고 닫는다 — AI가 Geumeum.Combat을 직접
+    /// 참조하지 않도록 Common의 인터페이스로만 접촉한다. 패링 source는 이 Brain 자신이 아니라
+    /// 공격마다 새로 만드는 ChanggwiAttackExecution이다 — 그래야 이전 공격의 늦은 패링 성공
+    /// 통지가 이미 시작된 다음 공격을 잘못 넉백시키지 않는다 (MONSTER_PARRY_LINK_DESIGN.md 3.3절)
     /// </summary>
-    public sealed class ChanggwiBrain : EnemyBrainBase, IParryable
+    public sealed class ChanggwiBrain : EnemyBrainBase
     {
         /****************************************
         *                Types
@@ -43,14 +48,19 @@ namespace Geumeum.AI
         *                Fields
         ****************************************/
 
-        private readonly Vector3 _spawnPosition; // 탐색 모드 배회의 중심점
+        private readonly Vector3         _spawnPosition; // 탐색 모드 배회의 중심점
+        private readonly NetworkIdentity _selfIdentity;  // 패링 창 키의 공격자 netId 조회용, 초기화 시점에 캐싱
 
-        private BrainState _state              = BrainState.PatrolIdle;
-        private float      _stateTimer         = 0f;
-        private Vector3    _chargeDestination;
-        private float      _chargeMaxDuration; // 목표에 못 미쳐도 이 시간이 지나면 돌진을 끝낸다
-        private Vector3    _patrolDestination;
-        private int        _attackVariant      = 0;
+        private BrainState               _state              = BrainState.PatrolIdle;
+        private float                    _stateTimer         = 0f;
+        private Vector3                  _chargeDestination;
+        private float                    _chargeMaxDuration; // 목표에 못 미쳐도 이 시간이 지나면 돌진을 끝낸다
+        private Vector3                  _patrolDestination;
+        private int                      _attackVariant      = 0;
+        private uint                     _nextParryWindowId  = 0;
+        private ChanggwiAttackExecution  _activeExecution; // 지금 열려 있는 창을 낸 실행, 없으면 null
+        private IParryWindowTarget       _openParryTarget; // 위 실행이 연 창의 대상, 없으면 null
+        private ParryWindowKey           _openParryKey;
 
         /****************************************
         *              Properties
@@ -74,9 +84,6 @@ namespace Geumeum.AI
         /// <summary> 이번 공격에 쓸 모션 인덱스(0=Attack, 1=JumpAttack), 애니메이션 표현 전용 </summary>
         public override int AttackVariant => _attackVariant;
 
-        /// <summary> IParryable — 패링 판정 창 길이, 패링 시스템이 연결되면 사용된다 </summary>
-        public float ParryWindowDuration => Status.ParryWindowDuration;
-
         /****************************************
         *              Constructor
         ****************************************/
@@ -84,6 +91,7 @@ namespace Geumeum.AI
         public ChanggwiBrain(Transform self, EnemyStatus status) : base(self, status)
         {
             _spawnPosition = self.position;
+            _selfIdentity  = self.GetComponent<NetworkIdentity>();
         }
 
         /****************************************
@@ -94,6 +102,8 @@ namespace Geumeum.AI
         {
             if (Status.IsDead)
             {
+                // 죽은 뒤에도 창이 열려 있으면 대상이 이미 사라진 공격을 패링해 성공하는 상황이 생긴다
+                CloseParryWindowIfOpen();
                 return;
             }
 
@@ -127,14 +137,15 @@ namespace Geumeum.AI
         }
 
         /// <summary>
-        /// 패링 성공 시 서버가 호출한다. 돌진 도착 후 후딜(Telegraph) 구간에서만 반응한다 —
-        /// 이동 중(Charge)에는 반응하지 않아, 패링 성공·실패 모두 대상 앞에 도착한 뒤에 결과가 갈린다
+        /// 패링 성공 시 그 공격의 ChanggwiAttackExecution이 호출한다. 지금 활성 실행과 참조가
+        /// 같고 돌진 도착 후 후딜(Telegraph) 구간일 때만 반응한다 — 참조가 다르면 이미 다음
+        /// 공격으로 넘어간 뒤 도착한 이전 공격의 늦은 통지이므로 무시한다
         /// </summary>
-        public void OnParried(uint parriedByNetId)
+        internal void HandleExecutionParried(ChanggwiAttackExecution execution, uint parriedByNetId)
         {
-            if (_state != BrainState.Telegraph)
+            if ((!ReferenceEquals(execution, _activeExecution)) || (_state != BrainState.Telegraph))
             {
-                return; // 돌진 이동 중이거나 이미 끝난 후딜에는 반응하지 않는다, 중복 반응 방지
+                return;
             }
 
             Status.ResetHitCount(); // 넉백 직후 곧바로 일반 피격 누적이 겹쳐 문턱을 채우지 않도록
@@ -153,13 +164,17 @@ namespace Geumeum.AI
             _stateTimer = 0f;
         }
 
-        /// <summary> 피격 누적 문턱 도달 시 EnemyController가, 패링 성공 시 OnParried가 호출한다 </summary>
+        /// <summary> 피격 누적 문턱 도달 시 EnemyController가, 패링 성공 시 HandleExecutionParried가 호출한다 </summary>
         public override void EnterKnockback()
         {
             if (Status.IsDead)
             {
                 return;
             }
+
+            // 패링 성공 경로(HandleExecutionParried)는 서버가 이미 창을 닫은 뒤 호출하므로 여기서
+            // 또 닫아도 안전하다 — 넉백 문턱 도달처럼 패링을 거치지 않고 들어온 경로에서 열린 창을 정리한다
+            CloseParryWindowIfOpen();
 
             _state      = BrainState.Knockback;
             _stateTimer = 0f;
@@ -255,11 +270,9 @@ namespace Geumeum.AI
                 _state      = BrainState.Telegraph;
                 _stateTimer = 0f;
 
-                // TODO(오나): Combat 쪽에 IParryWindowTarget이 생기면 여기서 대상의 그 인터페이스를 찾아
-                // OpenParryWindow(windowId, attackerNetId, this)를 호출한다. 지금은 이 호출이 없어서
-                // OnParried가 절대 실행되지 않는다 — 패링 판정이 이 창귀 패턴과 연결되지 않은 상태다.
                 // 도착(Telegraph 진입) 시점에 여는 게 맞다 — 이동 중(Charge)에 열면 패링 성공 시
                 // 대상 앞에 도착하기 전에 멈춰버려, 성공·실패의 정지 위치가 달라진다
+                TryOpenParryWindow();
                 return;
             }
 
@@ -344,6 +357,51 @@ namespace Geumeum.AI
             {
                 _state = BrainState.PatrolIdle;
             }
+        }
+
+        /// <summary> 대상이 IParryWindowTarget을 구현하면 이번 공격 전용 실행을 만들어 창을 연다 </summary>
+        private void TryOpenParryWindow()
+        {
+            if ((Target == null) || (_selfIdentity == null))
+            {
+                return;
+            }
+
+            IParryWindowTarget parryTarget = Target.GetComponent<IParryWindowTarget>();
+            if (parryTarget == null)
+            {
+                return;
+            }
+
+            ++_nextParryWindowId;
+            ParryWindowKey key = new ParryWindowKey(_selfIdentity.netId, _nextParryWindowId);
+
+            double now                = NetworkTime.time;
+            double telegraphStartTime = now;
+            double impactTime         = now + Status.WindupDuration;
+
+            ChanggwiAttackExecution execution = new ChanggwiAttackExecution(this, Status.ParryWindowDuration);
+
+            if (parryTarget.OpenParryWindow(execution, key, telegraphStartTime, impactTime))
+            {
+                _activeExecution = execution;
+                _openParryTarget = parryTarget;
+                _openParryKey    = key;
+            }
+        }
+
+        /// <summary> 열려 있는 패링 창이 있으면 닫는다, 없으면 아무 일도 하지 않는다 </summary>
+        private void CloseParryWindowIfOpen()
+        {
+            if (_openParryTarget == null)
+            {
+                return;
+            }
+
+            _openParryTarget.CloseParryWindow(_openParryKey);
+            _activeExecution = null;
+            _openParryTarget = null;
+            _openParryKey    = default;
         }
 
         private static EnemyVisualState ToVisualState(BrainState state)

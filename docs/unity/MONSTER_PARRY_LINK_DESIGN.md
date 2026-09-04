@@ -10,6 +10,15 @@
 > 따라서 아래 6절의 단계별 구현에서 **P0 게이트 단계는 건너뛰고 `ChanggwiBrain` 연결부터 시작**하면 된다.
 > 현재 계약의 실제 형태는 [패링 시스템 기술 설계](PARRY_SYSTEM_DESIGN.md)와 `ParryController.cs`를 함께 본다.
 
+> **2026-09-05 갱신 — 6절 3단계 중 실행 단위 source 부분만 구현됨(부분 검증).**
+> `ChanggwiAttackExecution.cs`를 신설해 `IParryable`을 구현시키고, `ChanggwiBrain`은 더 이상 자기 자신을
+> source로 넘기지 않는다. `Brain.HandleExecutionParried`가 `ReferenceEquals(execution, _activeExecution)`로
+> 지나간 공격의 늦은 통지를 무시하는 것까지 리플렉션으로 직접 검증했다(3.3절 의도대로 동작).
+> **아직 안 한 것**: `EnemyController.RefreshTarget`의 canonical target 정규화(2단계), `EnemyBrainBase.Tick`에
+> 서버 시각 전달·typed event(`AttackBegan`/`AttackResolved`) 재구성(3단계 나머지), `AttackTelegraphCue` /
+> `IAttackTelegraphView` / `ClientRpc` 텔레그래프(5단계) — 즉 원격 클라이언트는 아직 전용 텔레그래프 연출을
+> 못 본다. 3인 접속(L3) 검증도 안 됐다. 이 문서를 "구현 완료"로 표시하려면 6절의 나머지 단계가 더 필요하다.
+
 > 기준 코드: 2026-09-01 제공 소스  
 > 결론: 대상당 단일 active·`ImpactTime`·소비 tombstone·서버 수신 마감을 P0 게이트로 먼저 맞춘다. 그 위에서 `ChanggwiBrain`이 서버 절대 시각의 `ChanggwiAttackExecution`을 만들고 기존 `IParryWindowTarget`에 미래 창을 등록한다. `EnemyController`는 typed event를 받아 agent·피해·`ClientRpc`를 실행하고, 클라이언트는 애니메이션 없이 바닥 돌진선·발광·소리만 표현한다.
 
