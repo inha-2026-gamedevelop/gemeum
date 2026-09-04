@@ -18,10 +18,10 @@ namespace Geumeum.Systems
         *                Fields
         ****************************************/
 
-        // "지금부터 몇 초 뒤까지, A에서 B로 변한다"는 스케줄 값 하나.
-        // [SyncVar]가 클라이언트로 자동 복제해준다 — 우리가 전송 코드를 따로 안 짜도 된다 (2단계는 이게 다)
         [SyncVar]
         private BarrierTransitionState _transitionState;
+
+        private RunPhase _currentPhase = RunPhase.Lobby; // 서버 전용, 디버그 메뉴가 다음 phase를 고를 때 씀
 
         /****************************************
         *              Properties
@@ -30,7 +30,6 @@ namespace Geumeum.Systems
         public bool    IsActive => false; // TODO — 다음 단계
         public Vector3 Center   => Vector3.zero; // TODO — 다음 단계
 
-        // 실제 값은 저장해두지 않고, 스케줄(_transitionState)과 "지금 몇 시냐"를 넣어서 그때그때 계산한다
         public float Radius => BarrierJudge.GetRadius(_transitionState, NetworkTime.time);
 
         /****************************************
@@ -43,20 +42,15 @@ namespace Geumeum.Systems
         /****************************************
         *              Server Callbacks
         ****************************************/
-        // 이 메서드는 서버 역할을 하는 프로세스에서만 실행된다 (호스트 1명)
+
         public override void OnStartServer()
         {
-            // 이벤트 수신 등록 — "앞으로 phase가 바뀌면 나 불러줘"
             GameEventBus.Instance.Subscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
 
-            // 등록은 지금부터의 이벤트만 받는다. 구독 전에 이미 정해져 있던 phase는
-            // 이벤트로 안 오므로, 지금 phase를 직접 한 번 처리해서 놓친 과거를 메꾼다
             if (RunManager.ServerInstance != null)
             {
                 ServerCommitPhase(RunManager.ServerInstance.Phase);
             }
-
-            
         }
 
         /****************************************
@@ -71,7 +65,6 @@ namespace Geumeum.Systems
         *                Methods
         ****************************************/
 
-        // 이벤트 처리 — 진짜 이벤트로 오든, 위에서 수동으로 부르든 여기로 모인다
         [Server]
         private void HandlePhaseChanged(RunPhaseChangedEvent evt)
         {
@@ -81,13 +74,9 @@ namespace Geumeum.Systems
         [Server]
         private void ServerCommitPhase(RunPhase phase)
         {
-            // 1) config 조회 — GameDB.Barrier가 config 테이블, TryGetPhase가 WHERE절 역할
-            bool hasEntry = GameDB.Barrier.TryGetPhase(phase, out BarrierPhaseSO.PhaseEntry entry);
-
-            // 2) 목표 반경 계산
+            bool  hasEntry    = GameDB.Barrier.TryGetPhase(phase, out BarrierPhaseSO.PhaseEntry entry);
             float targetRadius = hasEntry ? (entry.RadiusRatio * GameDB.Barrier.MaxRadius) : 0f;
 
-            // 3) "지금부터 목표까지, N초짜리 트윈" 하나로 저장 — 직전 목표값에서 이어서 시작한다
             double now = NetworkTime.time;
             _transitionState = new BarrierTransitionState
             {
@@ -97,6 +86,38 @@ namespace Geumeum.Systems
                 EndServerTime   = now + GameDB.Barrier.ShrinkDuration,
                 Revision        = _transitionState.Revision + 1,
             };
+
+            _currentPhase = phase;
         }
+
+#if UNITY_EDITOR
+        /****************************************
+        *           Debug (Editor Only)
+        ****************************************/
+
+        // RunManager의 타임라인을 안 건드리고 phase를 바로 다음 단계로 넘긴다.
+        // BarrierPhaseSO의 StartSeconds/EndSeconds를 테스트용으로 고치면 RunPhaseTimeline.Validate가
+        // 실패해 서버가 부트 검증에서 튕긴다 — 그 함정을 피하려고 만든 테스트 전용 경로다
+        [ContextMenu("Debug: Force Next Phase (Test)")]
+        private void DebugForceNextPhase()
+        {
+            RunPhase next = DebugGetNextPhase(_currentPhase);
+            Debug.Log($"[BarrierController] 테스트로 phase를 강제 전환한다: {_currentPhase} -> {next}", this);
+            ServerCommitPhase(next);
+        }
+
+        private static RunPhase DebugGetNextPhase(RunPhase current)
+        {
+            switch (current)
+            {
+                case RunPhase.Lobby:   return RunPhase.Farming;
+                case RunPhase.Farming: return RunPhase.Shrink1;
+                case RunPhase.Shrink1: return RunPhase.Shrink2;
+                case RunPhase.Shrink2: return RunPhase.Shrink3;
+                case RunPhase.Shrink3: return RunPhase.Boss;
+                default:               return RunPhase.Farming;
+            }
+        }
+#endif
     }
 }
