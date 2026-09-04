@@ -269,7 +269,8 @@ public struct AttackTelegraphCue
 
 **창 구간 진입 신호가 가장 중요하다.** 패링은 0.32초 안에 눌러야 하는데, 예고 도형만 보면 언제 눌러야 하는지 알 수 없다. 몸체 pulse가 그 타이밍을 알려주는 유일한 단서다.
 
-> ⚠️ **`PC_Renderer.asset`에 `DecalRendererFeature`가 없다.** 예고 도형을 데칼로 그리면 지금은 **아무것도 안 보인다.** 렌더러 피처가 붙기 전까지는 `LineRenderer`·quad·`MaterialPropertyBlock`으로 구현하고 데칼 전환은 뒤로 미룬다.
+> ✅ **해소 (2026-09-04 오후 재실측).** `PC_Renderer.asset`에 `DecalRendererFeature`가 추가되었다 — **예고 도형을 데칼로 그려도 된다.** 임시 대안(`LineRenderer`·quad·`MaterialPropertyBlock`)으로 우회할 이유가 없어졌다.
+> **단, 이 변경은 아직 커밋되지 않았다.** 커밋 전까지는 팀원 둘의 클라이언트에서 여전히 안 보인다 → [BOSS_STAGING 5장](BOSS_STAGING_DESIGN.md).
 
 #### 3.5.5 보스가 이 계약을 쓸 때의 차이
 
