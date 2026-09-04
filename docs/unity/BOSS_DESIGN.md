@@ -1,8 +1,20 @@
 # 보스 1마리 설계
 
-> 상태: 설계 확정본, 구현 전  
+> 상태: 설계 확정본, **구현 착수함** (2026-09-05, 15장 구현 순서 1~2단계)  
 > 출처: 2026-09-01 외부 소스 감사와 함께 받은 설계 산출물. 저장소 문서로 편입했다  
 > 관련: [프로젝트 구조 설계서](../04-architecture.md) · [네트워크 권위](NETWORK_AUTHORITY.md) · [검증 플레이북](../ai/03_VERIFICATION_PLAYBOOK.md)
+
+> **2026-09-05 갱신 — 15장 구현 순서 1~2단계 완료(부분 검증).**
+> `Boss_Proxy.prefab`(`Assets/02.Prefabs/Enemy/`) — 11장 히트박스 표대로 본체 캡슐(반경 0.45m·높이 1.85m)과
+> 꼬리 콜라이더(반경 1.20m, 본체 뒤 2.5m, 1페이즈 기본 비활성)를 만들고 `NetworkIdentity`·
+> `NetworkTransformReliable`(서버 권위)을 붙였다. `BossSpawner.cs`(`Assets/01.Scripts/03.AI/Boss/`)가
+> `RunPhaseChangedEvent(Current == Boss)`를 구독해 `Boss` 태그 마커 위치에 1회만 스폰한다.
+> `Dev_AI.unity`에 마커·컴포넌트·spawnPrefabs 등록까지 마침. Play(Host) 1인 세션에서 이벤트 발행 →
+> 정확한 위치 스폰, 중복 스폰 방지까지 확인. **L3(3인) 미검증**, `BossStatus`/`BossController`/패턴은
+> 아직 없음 — 3단계부터 이어서 진행한다.
+>
+> 실물 모델(`Kitsune Yuna`, 162,246 tris — 12.1절 수치와 정확히 일치 확인함)은 로컬에 있으나
+> 애니메이션 클립이 없어 지금은 붙이지 않았다. 설계 문서 지침대로 프록시로 L3까지 통과한 뒤 교체한다.
 
 > 상태: 구현 제안. 코드·씬·프리팹은 수정하지 않았다.
 >
