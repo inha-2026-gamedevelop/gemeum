@@ -355,20 +355,20 @@ MonoBehaviour:
   - Character: 0
     Weapon: 0
     ModelSource: {fileID: 5440681128991838293, guid: 7cbdbf45ed1096442b9ea4937807b987, type: 3}
-    LocalPosition: {x: -0.018527497, y: 0.061542965, z: -0.0034491792}
-    LocalEuler: {x: 2.7797797, y: 79.3852, z: 7.0958967}
+    LocalPosition: {x: -0.039752178, y: 0.11176482, z: -0.0070180628}
+    LocalEuler: {x: 2.7797797, y: 139.56474, z: 7.0958967}
     LocalScale: {x: 0.8, y: 0.8, z: 0.8}
   - Character: 0
     Weapon: 1
     ModelSource: {fileID: 4323518947930549456, guid: df04cd600bc61fd4495e0ff65b7a6e23, type: 3}
-    LocalPosition: {x: -0.018527497, y: 0.061542965, z: -0.0034491792}
-    LocalEuler: {x: -82.38162, y: 10.67048, z: -111.45764}
+    LocalPosition: {x: -0.022407407, y: 0.061542965, z: -0.007956968}
+    LocalEuler: {x: -82.38162, y: 89.85782, z: -119.695496}
     LocalScale: {x: 1, y: 1, z: 1}
   - Character: 0
     Weapon: 2
     ModelSource: {fileID: 5874793521582390674, guid: 7ec68a1ad808c6548aa108e066deab1f, type: 3}
-    LocalPosition: {x: -0.018527497, y: 0.061542965, z: -0.0034491792}
-    LocalEuler: {x: 2.7797806, y: 79.3852, z: -172.90411}
+    LocalPosition: {x: -0.069994055, y: 0.057627156, z: -0.15062833}
+    LocalEuler: {x: -117.98062, y: -15.590607, z: -144.32243}
     LocalScale: {x: 1, y: 1, z: 1}
   - Character: 1
     Weapon: 0
@@ -379,26 +379,26 @@ MonoBehaviour:
   - Character: 1
     Weapon: 1
     ModelSource: {fileID: 4323518947930549456, guid: df04cd600bc61fd4495e0ff65b7a6e23, type: 3}
-    LocalPosition: {x: 0.0061080838, y: 0.06121634, z: 0.025885463}
-    LocalEuler: {x: -48.810974, y: 35.290134, z: -136.3327}
+    LocalPosition: {x: 0.0061080838, y: 0.060484108, z: -0.015796939}
+    LocalEuler: {x: -48.810974, y: 29.786997, z: -136.3327}
     LocalScale: {x: 1, y: 1, z: 1}
   - Character: 1
     Weapon: 2
     ModelSource: {fileID: 5874793521582390674, guid: 7ec68a1ad808c6548aa108e066deab1f, type: 3}
-    LocalPosition: {x: 0.0061080838, y: 0.06121634, z: 0.025885463}
-    LocalEuler: {x: 28.44835, y: 87.03824, z: -148.85849}
+    LocalPosition: {x: 0.15437913, y: 0.06415522, z: -0.060685452}
+    LocalEuler: {x: 157.39166, y: -153.17493, z: -98.66113}
     LocalScale: {x: 1, y: 1, z: 1}
   - Character: 2
     Weapon: 0
     ModelSource: {fileID: 5440681128991838293, guid: 7cbdbf45ed1096442b9ea4937807b987, type: 3}
-    LocalPosition: {x: 0.025197247, y: 0.05408065, z: 0.013388011}
+    LocalPosition: {x: 0.025197247, y: 0.09547622, z: 0.0045045316}
     LocalEuler: {x: 47.17892, y: 49.735283, z: 1.0584383}
     LocalScale: {x: 0.76, y: 0.76, z: 0.76}
   - Character: 2
     Weapon: 1
     ModelSource: {fileID: 4323518947930549456, guid: df04cd600bc61fd4495e0ff65b7a6e23, type: 3}
-    LocalPosition: {x: 0.025197247, y: 0.05408065, z: 0.013388011}
-    LocalEuler: {x: -42.812042, y: 48.29239, z: -179.0193}
+    LocalPosition: {x: 0.05078993, y: 0.06677484, z: 0.000398746}
+    LocalEuler: {x: 147.46721, y: -0.36740112, z: 99.069336}
     LocalScale: {x: 1, y: 1, z: 1}
   - Character: 2
     Weapon: 2
