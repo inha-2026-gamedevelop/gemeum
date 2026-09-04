@@ -118,6 +118,8 @@ Brain과 Controller 사이는 두 typed event로 연결한다.
 
 `Assets/01.Scripts/00.Common/Types/AttackTelegraphCue.cs`, `AttackTelegraphEndReason.cs`를 추가한다. Mirror가 지원하는 public 값 필드만 둔다.
 
+> ⚠️ **아래 `AttackTelegraphCue`는 초안이다. 실제로 만들 것은 [3.5.3](#353-attacktelegraphcue에-도형-정보를-넣는다)의 확장판이다** — 이 초안에는 `Shape`와 `HalfAngleDegrees`가 없어 부채꼴·원뿔을 그릴 수 없고 선인지 원인지 구분할 수도 없다. 나머지 서술(RPC 경로, 뷰 계약, 재사용 규칙)은 그대로 유효하다.
+
 ```csharp
 public struct AttackTelegraphCue
 {
@@ -151,6 +153,137 @@ public enum AttackTelegraphEndReason : byte
 - `Impact`: 선을 즉시 끄고 짧은 먼지/소리.
 - `Parried`: 선을 즉시 끄고 다른 색의 섬광/금속음. 실제 경직 모션은 애니메이션 파이프라인 범위로 남김.
 
+
+### 3.5 텔레그래프 계약 — 잡귀와 보스가 함께 쓴다
+
+`ChanggwiAttackExecution`은 창귀 전용이지만 **예고의 모양과 시간 규약은 보스가 그대로 재사용한다.** 그래야 30분간의 잡귀 학습이 보스전으로 전이된다([직업 정체성과 보스 설계](../class-identity-and-boss-2026-09-03.md)). 이 절은 그 공용 규약이다.
+
+#### 3.5.1 🚨 선딜은 창보다 길어야 한다 — 이것이 최우선 불변 조건
+
+`ParryController.OpenParryWindow`는 `impactTime`에서 창을 **역산**한다(코드 실측, `ParryController.cs:333`).
+
+```text
+windowEnd   = impactTime - PARRY_RESOLUTION_LEAD     // 0.18초 (Constants.Network)
+windowStart = windowEnd - ParryWindowDuration        // 창귀 기준 0.32초
+```
+
+그리고 **창이 예고보다 먼저 열리면 거부한다.** 플레이어가 예고를 보기도 전에 판정이 시작되기 때문이다.
+
+```text
+if (windowStart < telegraphStartTime) → 창을 열지 못하고 false
+```
+
+> ### 그래서 모든 패링 가능 공격은 이 식을 만족해야 한다
+>
+> ```text
+> impactTime - telegraphStartTime  ≥  ParryWindowDuration + PARRY_RESOLUTION_LEAD
+> ```
+>
+> **왼쪽은 `WindupDuration`이 아니라 예고 시작부터 타격까지의 전체 구간이다.** 공격 형태에 따라 다르다.
+>
+> | 형태 | 예고 → 타격 | 예 |
+> |---|---|---|
+> | **즉발형** (부채꼴·원뿔·원형) | `WindupDuration` | 보스 `MeleeArc`·`ConeBurst` |
+> | **돌진형** | `WindupDuration + ChargeDistance / ChargeSpeed` | 창귀 · 보스 `TargetedDash` |
+>
+> **이 조건을 어기면 `OpenParryWindow`가 조용히 `false`를 돌려주고 패링이 아예 열리지 않는다.** 콘솔 경고 한 줄만 남고 게임은 정상으로 보인다 — 창귀가 공격하고, 피해가 들어가고, **패링만 없다.** 밸런스 조정 중 선딜을 줄이면 시그니처 메커닉이 사라진다.
+
+**출시 전 검사는 `CombatConfigSO.ParryWindowDurationMax`로 한다** — 특성으로 창을 늘릴 수 있으므로 최대치가 통과해야 한다(4.1).
+
+**즉발형이 더 빡빡하다.** 돌진형은 돌진 시간이 여유로 더해지지만 즉발형은 `WindupDuration` 하나로 버텨야 한다. 즉발형을 패링 가능으로 만들 때는 **`WindupDuration ≥ 0.8초`** 를 지킨다.
+
+`ParryWindowDuration`은 `EnemySO.StatEntry`에 잡귀별로, `IParryable.ParryWindowDuration`으로 노출된다. `0`이면 **패링 불가 공격**이고 `OpenParryWindow`가 즉시 `false`를 돌려준다 — 이것은 결함이 아니라 정상 경로다.
+
+#### 3.5.2 예고 4종 — 창귀와 보스가 공유하는 원형
+
+windup 값은 잡귀에서 확정하고 보스가 그대로 가져다 쓴다.
+
+windup 값은 **잡귀 에셋에서 이미 확정돼 있고**(`EnemySO.asset` 실측) 보스가 그대로 가져다 쓴다.
+
+| # | 원형 | windup | 도형 | 잡귀 | 보스 패턴 | 패링 |
+|---|---|---:|---|---|---|---|
+| **T1** | **직선 돌진** | **1.5초** | 선 — 폭 `Radius`, 길이 `Distance` | **창귀** (`ParryWindowDuration 0.32`) | `TargetedDash` | **가능** |
+| **T2** | **부채꼴 근접** | **1.2초** | 부채꼴 — 반경 `Distance`, 반각 `HalfAngleDegrees` | **허깨비** (`0` = 불가) | `MeleeArc` | 보스만 가능 |
+| **T3** | **지목 원형** | **2.0초** | 원 — 중심 `Origin`, 반경 `Radius` | 없음 (보스 신규) | `MarkedCircle` | **불가** |
+| **T4** | **원거리 · 전방 원뿔** | **0.8초** | 원뿔 — 길이 `Distance`, 반각 `HalfAngleDegrees` | **액귀** (`0` = 불가) | `ConeBurst` | **불가** |
+
+**잡귀 중 패링 가능한 것은 창귀뿐이다.** 허깨비·액귀는 `ParryWindowDuration = 0`이라 창이 열리지 않는다 — 결함이 아니라 설계다. **창귀가 패링 교보재이고, 그 1.5초가 보스 `TargetedDash`로 그대로 전이된다.**
+
+**T3(지목)은 패링 불가로 고정한다.** 피하는 패턴이고, 패링으로 무효화되면 "지목당했다"는 압박 자체가 사라진다. 대신 [보스 설계](BOSS_DESIGN.md)대로 피해를 **120**(10레벨 최대 HP 180의 2/3)으로 둬 즉사시키지 않는다.
+
+**T4(0.8초)를 보스에서 패링 가능으로 켜지 않는다.** 3.5.1의 즉발형 하한과 같아 여유가 0이다. `ConeBurst`는 [보스 설계](../class-identity-and-boss-2026-09-03.md)가 "0.8초라 못 끊는 패턴"으로 규정한 것이라, **바닥 점멸이 0.8초 전체를 채워** 회피로만 대응하게 한다.
+
+> **페이즈마다 패링 가능 패턴이 최소 하나여야 한다**(`BossPatternSO` 검증). T3·T4가 불가이므로 **각 페이즈는 T1 또는 T2를 반드시 포함한다.**
+
+#### 3.5.3 `AttackTelegraphCue`에 도형 정보를 넣는다
+
+3.4의 초안 struct는 `Origin`·`Direction`·`Distance`·`Radius`만 가져서 **부채꼴과 원뿔을 그릴 수 없고, 선인지 원인지 구분할 수도 없다.** 뷰가 추측하게 두지 않는다.
+
+```csharp
+public enum AttackTelegraphShape : byte
+{
+    Line   = 0,  // T1 — Origin에서 Direction으로 Distance, 폭 Radius
+    Arc    = 1,  // T2 — Origin 중심, 반경 Distance, Direction 기준 ±HalfAngleDegrees
+    Circle = 2,  // T3 — Origin 중심, 반경 Radius. Direction 무시
+    Cone   = 3,  // T4 — Origin에서 Direction으로 Distance, ±HalfAngleDegrees
+}
+
+public struct AttackTelegraphCue
+{
+    public ParryWindowKey        Key;
+    public AttackTelegraphShape  Shape;              // 신설
+    public Vector3               Origin;
+    public Vector3               Direction;          // Circle이면 무시
+    public float                 Distance;
+    public float                 Radius;             // Line=폭, Circle=반경, 그 외 0
+    public float                 HalfAngleDegrees;   // 신설. Arc·Cone만 사용, 그 외 0
+    public double                TelegraphStartServerTime;
+    public double                ChargeStartServerTime;
+    public double                ImpactServerTime;
+}
+```
+
+**`Shape`에 따라 어느 필드를 읽는지 표로 고정한다.** 안 쓰는 필드는 `0`으로 채우고, 뷰는 `Shape`로만 분기한다.
+
+| `Shape` | `Origin` | `Direction` | `Distance` | `Radius` | `HalfAngleDegrees` |
+|---|---|---|---|---|---|
+| `Line` | 시작점 | 진행 방향 | 길이 | **폭** | 0 |
+| `Arc` | 중심 | 정면 | **반경** | 0 | **반각** |
+| `Circle` | 중심 | (무시) | 0 | **반경** | 0 |
+| `Cone` | 꼭짓점 | 정면 | 길이 | 0 | **반각** |
+
+`enum`은 `: byte`이고 **명시값을 유지하며 재배열하지 않는다** — Mirror로 직렬화되기 때문이다.
+
+#### 3.5.4 시각 신호는 4종 모두 같은 문법을 쓴다
+
+도형만 다르고 **읽는 법은 같아야** 학습이 전이된다.
+
+| 시점 | 신호 | 근거 |
+|---|---|---|
+| `TelegraphStartServerTime` | 도형이 **청록**으로 나타난다 | [시스템 기획 7.1](../01-system-design.md) 색 문법 — 원귀 계열은 여우불 청록 |
+| 창 구간 진입 (`windowStart`) | **몸체 발광 pulse가 빨라진다** | 예고 도형이 아니라 **몸에서** 읽어야 시야 밖에서도 보인다 |
+| `ChargeStartServerTime` | 도형 밝기 한 단계 상승 | T1만 해당. 나머지는 예고와 발동 사이가 없다 |
+| `Impact` | 도형 즉시 소거 + 먼지·타격음 | |
+| `Parried` | 도형 즉시 소거 + **다른 색 섬광 + 금속음** | 성공을 색으로 구분한다 |
+| `Cancelled` | 도형 즉시 소거, 소리 없음 | 취소는 사건이 아니다 |
+
+**창 구간 진입 신호가 가장 중요하다.** 패링은 0.32초 안에 눌러야 하는데, 예고 도형만 보면 언제 눌러야 하는지 알 수 없다. 몸체 pulse가 그 타이밍을 알려주는 유일한 단서다.
+
+> ⚠️ **`PC_Renderer.asset`에 `DecalRendererFeature`가 없다.** 예고 도형을 데칼로 그리면 지금은 **아무것도 안 보인다.** 렌더러 피처가 붙기 전까지는 `LineRenderer`·quad·`MaterialPropertyBlock`으로 구현하고 데칼 전환은 뒤로 미룬다.
+
+#### 3.5.5 보스가 이 계약을 쓸 때의 차이
+
+| 항목 | 창귀 | 보스 |
+|---|---|---|
+| windup 출처 | `EnemySO.StatEntry.WindupDuration` | `BossPatternSO.PatternEntry.TelegraphDuration` |
+| 패링 가능 | `ParryWindowDuration > 0` | `PatternEntry.IsParryable` **그리고** `ParryWindowDuration > 0` |
+| 실행 단위 | `ChanggwiAttackExecution` | 패턴별 실행 객체 (같은 형태) |
+| 동시 대상 | 1명 | **여러 명일 수 있다** |
+
+**보스는 여러 플레이어에게 동시에 창을 열 수 있다.** `ParryController`는 **대상당 활성 창 하나**만 유지하므로(코드 실측), 보스는 대상마다 `OpenParryWindow`를 각각 호출하고 **`ParryWindowKey.WindowId`는 공격자 기준으로 하나만 증가**시킨다 — 같은 공격이면 대상이 달라도 같은 `WindowId`다.
+
+**페이즈마다 `IsParryable`이 최소 하나여야 한다.** 아니면 그 페이즈 동안 차사가 할 일이 없다. `BossPatternSO` 검증기가 이것을 막는다.
+
 ## 4. 데이터
 
 새 ScriptableObject는 만들지 않는다. 창귀 한 종의 게임플레이 값은 현재 `EnemySO.StatEntry`가 이미 모두 갖고 있고, 여러 인스턴스가 같은 정적 데이터를 공유하는 용도는 Unity가 설명하는 ScriptableObject의 주 용도와 맞는다. [Unity 6.4 ScriptableObject](https://docs.unity3d.com/6000.4/Documentation/Manual/class-ScriptableObject.html)
@@ -163,7 +296,7 @@ public enum AttackTelegraphEndReason : byte
 | `AttackPower` | `float` | `14` | 기존 게임 디자인 값 |
 | `AggroRange` | `float` | `14 m` | 추적 시작 |
 | `AttackRange` | `float` | `6 m` | 돌진 실행 커밋 거리 |
-| `WindupDuration` | `float` | `0.65 s` | 텔레그래프 시작부터 돌진 시작까지 |
+| `WindupDuration` | `float` | ~~`0.65 s`~~ → **`1.5 s`** | 텔레그래프 시작부터 돌진 시작까지. **2026-09-04 에셋 실측 정정** — `EnemySO.asset`의 창귀 값은 1.5이고 후보값 0.65는 반영된 적이 없다. 코드·에셋이 기준이다 |
 | `AttackCooldown` | `float` | `1.2 s` | impact 또는 취소 뒤 재행동 대기 |
 | `ChargeSpeed` | `float` | `8 m/s` | 서버 NavMeshAgent 돌진 속도 |
 | `ChargeDistance` | `float` | `5.5 m` | snapshot 방향의 고정 목적지 거리 |

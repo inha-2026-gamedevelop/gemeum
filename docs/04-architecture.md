@@ -102,11 +102,15 @@ Assets/
 | `Dev_Character.unity` | **현재** | 캐릭터·무기 부착 확인용. 네트워크 없음. 빌드 설정 미포함 |
 | `Dev_WeatherMakerIsolation.unity` | **현재** | WeatherMaker 격리 확인용(임시). 빌드 설정 미포함 |
 | `SampleScene.unity` | **현재** | Unity 기본 생성물. 사용하지 않는다 |
-| `Boss_Arena.unity` | **계획** | 보스맵. 팀장 + 보스 담당자 공동 소유 |
-| `Dev_System.unity` | **계획** | 게임플레이 시스템 작업 씬 — **아직 없다.** 시스템 파트는 현재 `Dev_Combat`에서 확인하거나 이 씬을 먼저 만든다 |
-| `Dev_Art.unity` | **계획** | 테크니컬 아트 작업 씬 — **아직 없다** |
+| `Boss_Arena.unity` | **미생성** | 보스맵. 팀장 + 보스 담당자 공동 소유 |
+| `Dev_System.unity` | **미생성** | 게임플레이 시스템 작업 씬. 소유자 @kjw1237 |
+| `Dev_Art.unity` | **미생성** | 테크니컬 아트 작업 씬. 소유자 @AidenKim923 |
 
-> ⚠️ **`Dev_System.unity`와 `Dev_Art.unity`가 없는 것이 실무 문제다.** [협업 규칙](../CONTRIBUTING.md) 3장과 여러 검증 문서가 이 둘을 담당자 작업 씬으로 지시하는데 실제로는 존재하지 않아, 시스템 담당자가 씬 작업을 하려면 갈 곳이 없다. **씬 신설은 [CLAUDE.md](../CLAUDE.md)상 구조 변경이므로 만들기 전에 알린다.**
+> **`미생성` 씬은 소유자만 등록해 둔 것이다. 통합 담당자가 미리 만들어 두지 않는다.**
+>
+> 씬은 만든 사람의 작업 흔적이 그대로 들어가는 파일이라, 쓰지도 않을 사람이 먼저 만들어 두면 빈 껍데기에 남의 초기 설정이 박힌다. **필요해진 시점에 소유자가 직접 만든다.**
+>
+> 다만 **씬을 새로 만들면 씬 목록이 바뀌므로 [CLAUDE.md](../CLAUDE.md)상 구조 변경에 해당한다 — 만든 뒤 팀에 알린다.** 다른 사람의 씬은 열어도 되지만 저장하지 않는다.
 
 #### 씬 전환은 런 중 한 번뿐이다 (2026-09-03 개정)
 
@@ -361,10 +365,12 @@ Main.unity
 │  ├ ArrowProjectile.cs    NB  [현재] 서버 물리 틱마다 SphereCast로 훑는 궤적 · 명중 · 관통.
 │  │                           netId로 대상 중복을 막는다. [계획] 장애물 판정 · 유도
 │  ├ ArrowLauncher.cs      NB  [계획] 별도 스폰 실행기. 지금은 PlayerAttack이 직접 띄운다
-│  └ ArrowGuidance.cs      C#  [계획] 발사각 보정·유도 계산 → 화살 조준 보정 설계 7장
+│  └ ~~ArrowGuidance.cs~~   🚫 **폐기 (2026-09-04)** — 락온·유도를 넣지 않으므로 만들지 않는다
+│                              화살은 발사 방향으로 직진한다 → 화살 조준 보정 설계 1장
 └ Camera/
    ├ CameraRig.cs          MB  [계획] 3인칭 오버숄더, 완전 로컬
-   └ LockOnSystem.cs       MB  [계획] 로컬 후보 선택, 공격 요청에는 후보 netId만 전달
+   └ ~~LockOnSystem.cs~~    🚫 **폐기 (2026-09-04)** — 자동 조준이 정밀 사격과 배타적이라 락온을 넣지 않는다.
+                              공격 요청은 `RequestId`와 `AimDirection`만 보낸다
 ```
 
 2026-09-03 기준으로 `Player/` 16개, `Parry/` 7개, `Arrow/` 1개가 구현되어 있다.
@@ -746,7 +752,7 @@ _combatFeedback.PlayCritical(multiplier);
 |---|---|---|
 | 경과 시간 · 런 상태 | 서버 | RunManager |
 | HP · 스태미나 · 신력 | 서버 | PlayerStatus |
-| 공격 · 패링 · 화살 판정 | 서버 (판정 수식은 순수 C# ★클래스) | ParryJudge, ArrowGuidance 등 |
+| 공격 · 패링 · 화살 판정 | 서버 (판정 수식은 순수 C# ★클래스) | `ParryJudge`, `BarrierJudge` 등 |
 | 잡귀 · 보스 AI, 결계 | 서버 | EnemyBrain*, BossPhase*, BarrierController |
 | 드랍 · 노잣돈 · 소유권 · 경험치 | 서버 | EquipmentGenerator, CurrencyManager, GrowthManager |
 | 사망 · 부활 · 전멸 감지 | 서버 | ReviveController |
