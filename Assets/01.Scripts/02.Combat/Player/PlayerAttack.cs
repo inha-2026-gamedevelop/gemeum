@@ -74,6 +74,11 @@ namespace Geumeum.Combat
         private bool        _isSwinging         = false;
         private AttackReach _swingReach         = AttackReach.None;
 
+        // 근접 콤보 단계(1~3). 후딜이 끝난 뒤 콤보 창 안에 재입력하면 다음 단계로,
+        // 창을 놓치면 1단으로 되돌아간다. 근접이 아니면 항상 0(무의미)이다
+        private int    _comboStage           = 0;
+        private double _comboExpireServerTime = 0d;
+
         private uint _nextRequestId = 1u;
 
         // 매번 새로 만들면 공격마다 GC 할당이 생긴다
@@ -166,9 +171,16 @@ namespace Geumeum.Combat
             _hitServerTime      = now + profile.StartupDuration;
             _recoveryServerTime = _hitServerTime + profile.RecoveryDuration;
 
+            // 콤보는 근접에서만 돈다. 창 안에 재입력했으면 다음 단계로, 아니면 1단으로 되돌아간다.
+            // 판정은 무기·거리와 무관하게 항상 MeleeBasePower 하나를 쓴다 - 표현만 세 클립으로 갈린다
+            _comboStage = (profile.Reach == AttackReach.Melee)
+                ? (((_comboStage > 0) && (now <= _comboExpireServerTime)) ? ((_comboStage % Constants.Combat.MELEE_COMBO_STAGE_COUNT) + 1) : 1)
+                : 0;
+            _comboExpireServerTime = _recoveryServerTime + combat.MeleeComboWindowDuration;
+
             // 표현은 수락 시점에 알린다. 판정 시점까지 기다리면 선딜 동안 아무 동작도 나오지 않는다.
             // 무기 종류는 이미 SyncVar로 가 있으므로 값을 실어 보내지 않는다
-            RpcAttackStarted();
+            RpcAttackStarted(_comboStage);
         }
 
         /****************************************
@@ -177,14 +189,14 @@ namespace Geumeum.Combat
 
         /// <summary>
         /// 공격이 수락됐음을 모든 화면에 알린다. 이걸 거치지 않으면 남의 공격이 내 화면에서 보이지 않는다.
-        /// 판정과 무관한 표현 전용 통지다
+        /// 판정과 무관한 표현 전용 통지다. comboStage는 근접이 아니면 0이고, 그때는 1단 클립으로 재생한다
         /// </summary>
         [ClientRpc]
-        private void RpcAttackStarted()
+        private void RpcAttackStarted(int comboStage)
         {
             if (_animation != null)
             {
-                _animation.PlayAttack();
+                _animation.PlayAttack(comboStage);
             }
         }
 
@@ -431,6 +443,7 @@ namespace Geumeum.Combat
             _isSwinging         = false;
             _swingReach         = AttackReach.None;
             _recoveryServerTime = 0d;
+            _comboStage         = 0;
         }
 
         private static bool IsRunStopped()

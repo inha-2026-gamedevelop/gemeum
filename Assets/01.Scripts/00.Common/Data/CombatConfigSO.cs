@@ -63,6 +63,8 @@ namespace Geumeum.Data
         [SerializeField] private float _meleeAngle            = 90f;   // 정면 기준 좌우 합산 각도(도)
         [FormerlySerializedAs("_attackBasePower")]
         [SerializeField] private float _meleeBasePower        = 10f;   // 장비 보정 전 기본 공격력
+        // 후딜이 끝난 시점부터 이 시간 안에 재입력하면 다음 콤보 단계로 이어진다. 놓치면 1단으로 리셋
+        [SerializeField] private float _meleeComboWindowDuration = 0.45f;
 
         // 화살 비행, 유도, 명중 보조 수치는 ArrowConfigSO가 소유한다. 여기는 쏘는 쪽 수치만 둔다
         [Header("원거리 공격")]
@@ -116,6 +118,7 @@ namespace Geumeum.Data
         public float MeleeRange            => _meleeRange;
         public float MeleeAngle            => _meleeAngle;
         public float MeleeBasePower        => _meleeBasePower;
+        public float MeleeComboWindowDuration => _meleeComboWindowDuration;
 
         public float RangedStartupDuration  => _rangedStartupDuration;
         public float RangedRecoveryDuration => _rangedRecoveryDuration;
