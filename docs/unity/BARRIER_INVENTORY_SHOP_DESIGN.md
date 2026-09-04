@@ -34,7 +34,8 @@
 
 | 값 · 판정 | 서버 | 클라이언트 | 배치 |
 |---|---|---|---|
-| 축소 시작/종료 반경과 서버 시각 | phase 전환 때 한 번 확정 | 수신값으로 매 프레임 시각 보간 | `[SyncVar(hook=...)] BarrierTransitionState` |
+| 보스 지점 (결계 최종 중심) | **런 시작 때 한 번 확정** | 읽기만 | `RunManager`가 소유, `[SyncVar]` |
+| 축소 시작/종료 **중심**과 반경, 서버 시각 | phase 전환 때 한 번 확정 | 수신값으로 매 프레임 시각 보간 | `[SyncVar(hook=...)] BarrierTransitionState` |
 | 현재 판정 반경 | 서버가 같은 순수 함수로 필요 시 계산 | 렌더러가 같은 함수로 계산 | 매 프레임 SyncVar 금지 |
 | 외부 여부·피해·쇠약·회복 봉쇄 | 서버 1초 Tick | 화면 효과/UI만 | `[Server] BarrierController.ServerDamageTick` |
 | 축소 전 경고 | 서버가 다음 경계 10초 전 1회 확정 | 사운드·UI 표시 | `ClientRpc` 또는 동기화 revision 이벤트 |
@@ -61,12 +62,6 @@ Mirror는 서버→클라이언트 상태에 SyncVar/SyncList를 제공하며, �
 | `Assets/01.Scripts/00.Common/Interfaces/IBarrierState.cs` / `Geumeum.Common` | **[구현됨 · 2026-09-04]** `IsActive`, `Center`, `Radius`, `IsOutside(Vector3)`, `GetHealingMultiplier(Vector3)`. `BarrierController`가 구현한다 |
 | `Assets/01.Scripts/00.Common/Utility/BarrierStateLocator.cs` / `Geumeum.Common` | **[구현됨 · 2026-09-04]** `IBarrierState` 등록·조회. `BarrierController`가 `OnEnable`/`OnDisable`에서 `Register`/`Unregister`한다. 기본값은 결계가 꺼진 것으로 답하는 Null 구현 |
 
-> ⚠️ **2026-09-04 정정 — 쇠약·회복 봉쇄는 push가 아니라 pull이다.**
-> 초판은 결계가 `SetBarrierRecoveryRule(float, bool)`로 규칙을 **밀어 넣는** 방식이었으나, 실제 구현은 `PlayerStatus.TryRestoreHealth`가 `BarrierStateLocator.Current.GetHealingMultiplier(position)`를 **물어보는** 방식이다.
->
-> 밀어 넣는 방식은 대상마다 규칙 사본이 생겨, 결계 중심이 움직일 때(D9) 갱신 누락이 곧 판정 불일치가 된다. 물어보는 방식은 사본이 없다.
->
-> **`TryRestoreSpirit(float)`은 구현하지 않았다.** 신력은 자연 회복이 없고 쇠약·회복 봉쇄의 대상도 아니다([게임 디자인 2.1](../02-game-design.md)). 필요해지면 그때 같은 인터페이스에 추가한다.
 | `Assets/01.Scripts/00.Common/Types/WeaponCombatSnapshot.cs` / `Geumeum.Common` | `InstanceId`, `WeaponKind`, `Grade`, `AttackPower`, 옵션 최대 2개의 kind/value를 가진 고정 크기 값 |
 | `Assets/01.Scripts/00.Common/Interfaces/IWeaponLoadoutTarget.cs` / `Geumeum.Common` | 현재 snapshot 조회와 서버 원자적 `TrySwapWeapon` 계약; `PlayerWeapon` 구현 |
 | `Assets/01.Scripts/00.Common/Types/InventoryItemKind.cs` / `Geumeum.Common` | `enum : byte`, `Empty=0`, `Equipment=1`, `HealthPotion=2`, `SpiritPotion=3`; 명시값 유지 |
@@ -75,6 +70,13 @@ Mirror는 서버→클라이언트 상태에 SyncVar/SyncList를 제공하며, �
 | `Assets/01.Scripts/00.Common/Events/PartyCurrencyLossRequestedEvent.cs` / `Geumeum.Common` | `PlayerNetId:uint`, `DeathInstanceId:uint`, `Reason:CurrencyLossReason`을 Network의 부활 처리에서 Systems의 지갑으로 전달; 비율은 포함하지 않음 |
 | `Assets/01.Scripts/00.Common/Events/EnemyDiedEvent.cs` / `Geumeum.Common` | 03 문서의 nullable kind/factory 계약과 함께 일반 적의 spawn 시점 `FieldLevelAtSpawn:int`, `RewardMultiplier:float`을 전달; 보스는 kind null |
 
+> ⚠️ **2026-09-04 정정 — 쇠약·회복 봉쇄는 push가 아니라 pull이다.**
+> 초판은 결계가 `SetBarrierRecoveryRule(float, bool)`로 규칙을 **밀어 넣는** 방식이었으나, 실제 구현은 `PlayerStatus.TryRestoreHealth`가 `BarrierStateLocator.Current.GetHealingMultiplier(position)`를 **물어보는** 방식이다.
+>
+> 밀어 넣는 방식은 대상마다 규칙 사본이 생겨, 결계 중심이 움직일 때(D9) 갱신 누락이 곧 판정 불일치가 된다. 물어보는 방식은 사본이 없다.
+>
+> **`TryRestoreSpirit(float)`은 구현하지 않았다.** 신력은 자연 회복이 없고 쇠약·회복 봉쇄의 대상도 아니다([게임 디자인 2.1](../02-game-design.md)). 필요해지면 그때 같은 인터페이스에 추가한다.
+
 Combat와 Systems는 서로의 구체 클래스를 참조하지 않는다. `PlayerStatus`와 `PlayerWeapon`은 Common 계약을 구현하고, Systems 쪽 어댑터는 그 인터페이스만 캐싱한다. `WeaponCombatSnapshot`에는 `ScriptableObject`, `GameObject`, 배열을 넣지 않는다.
 
 ### 3.2 결계 — `Assets/01.Scripts/04.Systems/Barrier`, namespace `Geumeum.Systems`
@@ -82,7 +84,7 @@ Combat와 Systems는 서로의 구체 클래스를 참조하지 않는다. `Play
 | 파일 위치 / namespace | 책임 | 기존 접점 |
 |---|---|---|
 | `Assets/01.Scripts/04.Systems/Barrier/BarrierController.cs` / `Geumeum.Systems` | 현재 phase bootstrap/구독, 전환 상태 SyncVar, 경고, `TICK_PRIORITY_BARRIER=350` 서버 Tick | `RunPhaseChangedEvent`, `GameDB.Barrier`, `AuthorityTickScheduler` |
-| `Assets/01.Scripts/04.Systems/Barrier/BarrierTransitionState.cs` / `Geumeum.Systems` | `FromRadius/TargetRadius: float`, `StartServerTime/EndServerTime: double`, `Revision: uint`, `IEquatable<T>` | Mirror 지원 struct |
+| `Assets/01.Scripts/04.Systems/Barrier/BarrierTransitionState.cs` / `Geumeum.Systems` | `FromCenter/TargetCenter: Vector3`, `FromRadius/TargetRadius: float`, `StartServerTime/EndServerTime: double`, `Revision: uint`, `IEquatable<T>` | Mirror 지원 struct |
 | `Assets/01.Scripts/04.Systems/Barrier/BarrierJudge.cs` / `Geumeum.Systems` | XZ 거리 제곱과 double 서버 시각으로 반경/외부 여부 계산하는 순수 C# | 없음 |
 | `Assets/01.Scripts/04.Systems/Barrier/BarrierTargetAdapter.cs` / `Geumeum.Systems` | 플레이어 루트에서 `IDamageable`/`IRecoveryTarget` 1회 캐싱, 서버 registry 등록 | Common 계약과 `DamageInfo.FromBarrier` |
 | `Assets/01.Scripts/04.Systems/Barrier/BarrierTargetRegistry.cs` / `Geumeum.Systems` | 최대 3명의 어댑터를 고정/재사용 목록으로 보관 | 플레이어 서버 수명 |
@@ -91,16 +93,97 @@ Combat와 Systems는 서로의 구체 클래스를 참조하지 않는다. `Play
 `BarrierController`는 `BarrierCenter`의 직렬화 참조를 사용하고 `Find`하지 않는다. 서버와 클라이언트가 쓰는 순수 함수는 다음과 같다.
 
 ```text
-t = InverseLerp(StartServerTime, EndServerTime, NetworkTime.time)
-radius = Lerp(FromRadius, TargetRadius, SmoothStep01(t))
-outside = (playerXZ - centerXZ).sqrMagnitude > radius * radius
+t      = InverseLerp(StartServerTime, EndServerTime, NetworkTime.time)
+k      = SmoothStep01(t)
+center = Lerp(FromCenter, TargetCenter, k)          // 중심도 함께 움직인다
+radius = Lerp(FromRadius, TargetRadius, k)
+outside = (playerXZ - center.XZ).sqrMagnitude > radius * radius
 ```
+
+**중심과 반경은 같은 `k`를 쓴다.** 따로 보간하면 전환 도중 "그려진 원"과 "때리는 원"이 어긋난다.
 
 `OnStartServer`는 이벤트를 먼저 구독한 뒤 현재 `RunManager.ServerInstance.Phase`를 같은 handler로 bootstrap하고, `OnStopServer`에서 이벤트와 scheduler 등록을 모두 해제한다. `Constants.Network`에는 `TICK_PRIORITY_BARRIER = 350`을 추가해 ability 판정(300) 뒤, status 회복(400) 전에 결계 피해·회복 규칙이 확정되게 한다.
 
 서버 피해는 `AuthorityTickScheduler`에서 누적 시간으로 1초마다 최대 한 번 실행한다. 긴 프레임 정지 뒤 여러 번의 피해를 한 프레임에 몰아넣지 않고 다음 Tick을 `now + interval`로 재예약한다. 정확한 벽시계 DPS보다 호스트 hitch로 인한 즉사를 막는 편이 3인 리슨 서버에 적합하다.
 
 현재 `PlayerStatus.TakeDamage`는 구르기·패링 성공의 `_isInvincible`에서 환경 피해도 버리므로 그대로 사용하지 않는다. Common `DamageInfo`에 `DamageFlags.IgnoreActionInvincibility`와 `FromBarrier(float)`를 추가한다. `PlayerStatus`는 `ReviveInvulnerable`은 계속 존중하되 이 flag가 있으면 구르기/패링 무적만 건너뛴다. 따라서 결계 DPS를 구르기로 무효화할 수 없고, 부활 직후 2초 보호는 유지된다.
+
+
+### 3.2.1 `IBarrierState` 구현 계약 — 이 절은 빈칸을 남기지 않는다
+
+`BarrierController`가 `Geumeum.Common.IBarrierState`를 구현하고 `BarrierStateLocator`에 자신을 등록한다. **결계를 읽는 파트가 넷(전투·AI·아트·UI)이므로, 아래를 정확히 지키지 않으면 파트마다 다른 답이 나온다.**
+
+#### 등록 시점 — `OnEnable` / `OnDisable`이다
+
+```csharp
+private void OnEnable()  => BarrierStateLocator.Register(this);
+private void OnDisable() => BarrierStateLocator.Unregister(this);
+```
+
+**`OnStartServer`에 두면 안 된다.** `BarrierVisual`(아트)과 미니맵 원(UI)은 **클라이언트에서** 이 인터페이스를 읽는다. 서버 콜백에만 등록하면 클라이언트에는 Null 구현만 남아 **화면에 결계가 아예 안 그려지고, 원인이 보이지 않는다.**
+
+`Unregister`를 빠뜨리면 static 참조라 씬 전환 뒤에도 파괴된 객체가 남는다. `BarrierStateLocator.Unregister`는 등록한 본인이 아니면 무시하므로 교체 순서가 엇갈려도 안전하다.
+
+#### 서버와 클라이언트의 답은 다를 수 있다 — 용도가 다르다
+
+둘 다 3.2의 같은 순수 함수를 쓰지만, 클라이언트는 SyncVar 수신 지연만큼 뒤처진 `BarrierTransitionState`로 계산한다. **따라서 값이 미세하게 다른 것이 정상이다.**
+
+| 실행 위치 | `IsOutside()` 용도 | 금지 |
+|---|---|---|
+| **서버** | 피해·회복 판정. **권위** | — |
+| **클라이언트** | 화면 효과 · UI · 사운드 · 셰이더 | 🚫 **게임 상태를 바꾸는 데 쓰지 않는다** |
+
+> **클라이언트 코드에서 `IsOutside()` 결과로 HP·자원·아이템·phase를 바꾸면 안 된다.** 사람마다 결과가 갈린다. 클라이언트가 "나 지금 밖이다"라고 판단해도 그것은 **빨간 화면을 켜는 근거일 뿐** 피해의 근거가 아니다.
+
+#### 반환값 규약
+
+| 멤버 | 규약 |
+|---|---|
+| `IsActive` | `RunPhase`가 `Farming`·`Shrink1`·`Shrink2`·`Shrink3`일 때만 `true`. `Lobby`·`Boss`·`Result`는 `false` |
+| `Center` · `Radius` | 보간 **중인 현재 값**. 전환 30초 동안 매 호출마다 다르다. `IsActive == false`면 의미 없음 — 호출부가 먼저 확인한다 |
+| `IsOutside(pos)` | XZ 평면 거리만. 높이는 보지 않는다. `IsActive == false`면 항상 `false` |
+| `GetHealingMultiplier(pos)` | 아래 표 |
+
+**`Center`·`Radius`를 프레임을 넘겨 캐싱하지 않는다.** 전환 중에는 값이 계속 변한다. 한 프레임 안에서 여러 번 쓰려고 지역 변수에 받는 것은 된다.
+
+#### `GetHealingMultiplier` 결정표 — 분기를 여기서 끝낸다
+
+값은 전부 `BarrierPhaseSO`의 현재 `PhaseEntry`에서 읽는다. **상수로 박지 않는다.**
+
+| 위치 | `BlocksHealing` | `AppliesWeakened` | 반환 |
+|---|---|---|---|
+| 결계 **안** | — | — | **1** |
+| 결계 밖 | false | false | **1** |
+| 결계 밖 | false | true | **`WeakenedHealingMultiplier`** (에셋값 0.7) |
+| 결계 밖 | true | — | **0** |
+
+**봉쇄가 쇠약보다 우선한다.** 둘 다 켜져 있으면 0이다. `IsActive == false`면 항상 1이다.
+
+호출부(`PlayerStatus.TryRestoreHealth`)는 **원본 회복량만** 넘기고 이 배수를 곱해 적용한다. 결과가 0이면 회복이 일어나지 않았으므로 `false`를 돌려주고, 호출부는 자원(신력·물약)을 소비하지 않는다.
+
+#### 결계 밖 잡귀는 AI 파트가 이 인터페이스로 판정한다
+
+[착수 계획 D6-b](../action-plan-2026-09-03.md)의 "결계 축소 시 밖의 잡귀를 안쪽으로 이동"은 **몬스터 파트가 구현**하되 판정은 여기를 쓴다.
+
+```csharp
+// 03.AI — RunPhaseChangedEvent 를 받았을 때 한 번
+if (BarrierStateLocator.Current.IsOutside(enemy.position)) { /* 안쪽으로 이동 */ }
+```
+
+**직접 거리 계산 금지.** `SpawnManager`가 자기 XZ 규칙을 다시 구현하면 결계 중심이 움직일 때(D9) 어긋난다. 그리고 이 판정은 **서버에서만** 한다 — 잡귀 위치는 서버 권위다.
+
+#### 금지 목록 — 여기서 틀리면 3인 접속에서만 보인다
+
+| # | 금지 | 왜 |
+|---|---|---|
+| 1 | 매 프레임 `Radius`·`Center`를 SyncVar로 보내기 | 전환 struct 1회 동기화로 충분하다 (8장) |
+| 2 | `BarrierCenter`를 `Find` 계열로 찾기 | 직렬화 참조를 쓴다 |
+| 3 | 클라이언트에서 `IsOutside()` 결과로 게임 상태 변경 | 사람마다 결과가 갈린다 |
+| 4 | `Register`를 `OnStartServer`에 두기 | 클라이언트에 결계가 안 그려진다 |
+| 5 | `Unregister` 누락 | static이라 죽은 참조가 남는다 |
+| 6 | 각 파트가 XZ 거리를 다시 계산 | 그리는 원과 때리는 원이 갈라진다 |
+| 7 | 회복 규칙을 대상에게 push | 사본이 생겨 중심 이동 시 갱신 누락이 판정 불일치가 된다 |
+| 8 | 쇠약 0.7을 코드 상수로 박기 | `BarrierPhaseSO`에서 읽는다 |
 
 ### 3.3 장비·인벤토리 — `Assets/01.Scripts/04.Systems/Equipment` 및 `Assets/01.Scripts/04.Systems/Inventory`, namespace `Geumeum.Systems`
 
@@ -208,10 +291,23 @@ Command를 `ShopKeeper`에 `requiresAuthority = false`로 두지 않는다. 플�
 ### 5.1 결계
 
 1. 서버 `BarrierController`가 `RunPhaseChangedEvent`를 구독한다.
-2. 구독 직후 현재 `RunManager.ServerInstance.Phase`를 같은 경로로 bootstrap한다. 새 phase의 `RadiusRatio * MaxRadius`를 목표로 하고, 현재 계산 반경·`NetworkTime.time`·종료 시각을 하나의 `BarrierTransitionState`로 커밋한다.
+2. 구독 직후 현재 `RunManager.ServerInstance.Phase`를 같은 경로로 bootstrap한다. 새 phase의 `RadiusRatio * MaxRadius`를 목표 반경으로, **아래 표의 지점을 목표 중심으로** 잡고, 현재 계산 중심·반경·`NetworkTime.time`·종료 시각을 하나의 `BarrierTransitionState`로 커밋한다.
+
+   **목표 중심은 보스 지점으로 수렴한다** ([시스템 기획 2.1.1](../01-system-design.md) D9). 시작 지점과 보스 지점은 `RunManager`가 **런 시작 때 서버에서 한 번** 확정해 SyncVar로 배포하고, `BarrierController`는 그것을 **읽기만** 한다. 결계가 스스로 굴리지 않는다.
+
+   | phase | 목표 중심 | 목표 반경 |
+   |---|---|---|
+   | `Farming` | 시작 지점 부근 | 100% |
+   | `Shrink1` | 시작 → 보스 지점 **1/3** | 50% |
+   | `Shrink2` | **2/3** | 30% |
+   | `Shrink3` | **보스 지점** | 15% |
+
+   중심과 반경이 **같은 `BarrierTransitionState` 하나**에 들어가므로 30초 보간이 자동으로 함께 움직인다. 중심 전용 SyncVar를 따로 두지 않는다 — 두 값이 따로 도착하면 그 사이에 판정이 어긋난다.
 3. SyncVar hook을 받은 클라이언트는 셰이더와 미니맵 표시를 새 상태로 전환한다. 매 프레임 네트워크 값은 보내지 않는다.
-4. 서버 1초 Tick은 등록된 최대 3명만 순회한다. XZ 외부이면 `DamageInfo.FromBarrier(DamagePerSecond * interval)`를 적용하고 회복 규칙을 설정한다. action 무적은 관통하고 `ReviveInvulnerable`은 존중한다. 내부로 돌아오거나 phase가 바뀌면 같은 Tick에 규칙을 기본값으로 복원한다.
-5. `Boss`/`Result`에서는 피해와 회복 봉쇄를 중단한다. 시각 결계 유지/소거는 디자인 값으로 표현하되 판정은 종료한다.
+4. 서버 1초 Tick은 등록된 최대 3명만 순회한다. XZ 외부이면 `DamageInfo.FromBarrier(DamagePerSecond * interval)`를 적용한다. action 무적은 관통하고 `ReviveInvulnerable`은 존중한다.
+
+   **회복 규칙은 여기서 밀어 넣지 않는다.** 쇠약·회복 봉쇄는 회복이 실제로 일어나는 순간 `PlayerStatus.TryRestoreHealth`가 `GetHealingMultiplier(position)`로 물어본다(3.2.1). 따라서 **"내부로 돌아오면 규칙을 복원한다"는 단계가 없다** — 복원할 사본 자체가 없기 때문이다. 중심이 움직이는 구조에서 사본은 곧 갱신 누락이다.
+5. `Boss`/`Result`에서는 피해와 회복 봉쇄를 중단하고 `IsActive`가 `false`가 된다. 시각 결계 유지/소거는 디자인 값으로 표현하되 판정은 종료한다.
 
 경고는 `RunManager.ElapsedSeconds`가 다음 `StartSeconds - WarningLeadTime`을 처음 넘을 때 서버가 revision을 1회 올린다. 각 시스템이 별도 경과 시간을 누적하지 않는다.
 

@@ -1,8 +1,8 @@
 ﻿<Solution>
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Unity.Mirror.CodeGen.csproj" />
-  <Project Path="Edgegap.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Edgegap.csproj" />
   <Project Path="Mirror.Components.csproj" />
   <Project Path="GaiaEditor.csproj" />
   <Project Path="GaiaCore.csproj" />

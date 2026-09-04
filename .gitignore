@@ -21,6 +21,10 @@ Assets/Gaia User Data/Sessions/*/Backups/
 # 무료 에셋은 Assets/98.FreeAssets/에 넣고 커밋한다. 여기 적지 말 것 — docs/04-architecture.md 2.1
 Assets/99.ThirdParty/
 Assets/99.ThirdParty.meta
+
+# 압축본은 71행에서 제외되지만 Unity가 만드는 .meta는 그 규칙을 타지 않는다.
+# .meta만 커밋되면 팀원 쪽에 원본 없는 참조가 남는다
+*.zip.meta
 Assets/AssetStoreTools/
 Assets/AssetStoreTools.meta
 
