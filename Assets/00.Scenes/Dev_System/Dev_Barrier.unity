@@ -570,7 +570,7 @@ GameObject:
   - component: {fileID: 47883605}
   m_Layer: 0
   m_Name: BarrierSpot
-  m_TagString: Untagged
+  m_TagString: BarrierCenter
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
