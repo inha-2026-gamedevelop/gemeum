@@ -19,6 +19,19 @@ Assets/Gaia User Data/Sessions/*/Backups/
 
 # 구매 에셋 (라이선스가 구매 계정에 묶여 커밋 불가 — 각자 로컬에 설치)
 # 무료 에셋은 Assets/98.FreeAssets/에 넣고 커밋한다. 여기 적지 말 것 — docs/04-architecture.md 2.1
+#
+# 99.ThirdParty 는 예외 없이 전부 제외한다 (2026-09-04 팀장 결정).
+# 배포는 git 이 아니라 팀 구글 드라이브로 한다 — 세 사람의 로컬에 .meta 째 놓이므로
+# GUID 가 일치하고 커밋 대상 에셋(Main.unity · WM_*.asset · PC_Renderer.asset 등)의
+# 참조가 끊기지 않는다. 저장소에 없는 것은 결함이 아니라 설계다.
+#
+# 예외를 두지 않는 이유: 예외가 하나라도 있으면 규칙과 실제 배포 경로가 어긋나고,
+# 그 상태에서 git add . 한 번에 수십 MB 가 히스토리에 들어간다. 히스토리는 혼자 못 지운다.
+#
+# 대신 git 밖 참조에서 오는 절차 규칙 3건이 있다 → docs/unity/BOSS_STAGING_DESIGN.md 5.0.1
+#  1. 드라이브의 99.ThirdParty 를 임의로 갱신·이동·개명하지 않는다 (롤백이 반쪽이 된다)
+#  2. 드라이브 동기화 완료 후 Unity 를 연다. GUID 미해결 경고가 있으면 씬을 저장하지 않는다
+#  3. clean clone 판정은 "clone 만으로 열린다"가 아니라 "clone + 드라이브 동기화로 열린다"
 Assets/99.ThirdParty/
 Assets/99.ThirdParty.meta
 
