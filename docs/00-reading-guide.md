@@ -87,6 +87,7 @@
 | [몬스터 공격 → 패링 창 연결](unity/MONSTER_PARRY_LINK_DESIGN.md) | 창귀 돌진이 패링 창을 여는 수직 슬라이스와 최소 텔레그래프 | 몬스터 · 보스 |
 | [PlayerAttack 공통 계약](unity/PLAYER_ATTACK_DESIGN.md) | 검 · 활 · 방울 공통 공격 계약, 서버 권위 화살 | 네트워크 · 전투 |
 | [보스 설계](unity/BOSS_DESIGN.md) | 보스 1마리 2페이즈, 실행 템플릿 4개와 데이터 항목 8개 | 몬스터 · 보스 |
+| [보스 패턴 계약](unity/BOSS_PATTERN_CONTRACT.md) | 패턴 10개 · 선택기 · 엇박 · 그로기 3문 · 14분 시간 구조 · 판정 계약 · 담당자용 빈 표 | 몬스터·보스 |
 | [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) | 결계 축소 · 피해, 4칸 인벤토리, 드랍 · 노잣돈 · 객주 | 게임플레이 시스템 |
 | [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md) | Humanoid 리타게팅, Override Controller, 서버 cue와 에셋 소싱 | 테크니컬 아트 |
 

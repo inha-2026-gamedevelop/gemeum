@@ -219,8 +219,8 @@
 | 17 | **보스 트라이 모드** — `Antechamber` 전실, 저장 0 | 설계 확정 · 코드 0 | L3 |
 | 18 | **3인 동시 기믹** — 문 셋 동시 개방(클라이맥스) | 설계 확정 · 코드 0 | L3 |
 | 19 | **05.Art** `DayCycleController`·`BarrierVisual`·`CombatFeedbackImpl`·`ScreenEffects` | **C# 0줄** | L2 |
-| 20 | 🚨 `PC_Renderer.asset`에 `DecalRendererFeature` 없음 — **예고 데칼 4종·결계 바닥 링 미출력** | **미해결** | L2 |
-| 21 | 🚨 그 렌더러가 gitignore된 WeatherMaker를 참조 (P0-5와 같은 구조) | **미해결** | clean clone |
+| 20 | ~~`PC_Renderer.asset`에 `DecalRendererFeature` 없음~~ | **해소(미커밋)** — 피처 추가됨, 커밋만 남음 | L2 |
+| 21 | ~~렌더러가 gitignore된 WeatherMaker를 참조~~ | **결함 아님(2026-09-04 확정)** — `99.ThirdParty`는 **구글 드라이브로 팀 공유**한다. 대신 절차 규칙 3건 → [BOSS_STAGING 5.0.1](unity/BOSS_STAGING_DESIGN.md) | — |
 | 22 | 보스 아레나 교체 15초 보간 (Volume·안개·라이트·스카이박스·파티클) | 설계 확정 | L2 |
 | 23 | 검기 VFX 1단계 전파 경로 | 설계 확정 | L3 |
 | 24 | 🚨 **사운드 재생 계층** — `AudioMixer` 4그룹 + `SoundCatalogSO` + `SfxPlayer` | **`Assets/07.Sounds` 0파일 · `AudioSource` 참조 0줄** | L2 |
@@ -345,7 +345,11 @@
 
 > ⚠️ **P0-5는 이미 처리돼 있다(2026-09-04 실측).** 세 파일이 `99.ThirdParty/Integration/Environment/`에 있고 `01.Scripts`에 `DigitalRuby.WeatherMaker` 참조가 0건이라 **G0는 이미 통과할 가능성이 높다.** 임시 폴더 clean clone으로 한 번 확인만 한다.
 >
-> **다만 같은 종류의 결함이 하나 남아 있다** — `PC_Renderer.asset`(커밋 대상)이 gitignore된 WeatherMaker의 렌더 피처를 참조한다. 컴파일은 되지만 clean clone에서 렌더 피처가 끊긴다. 3.1의 21번이고, 데칼 피처 누락(20번)과 같은 파일이라 함께 닫는다.
+> **21번은 결함이 아니었다 (2026-09-04 확정).** `PC_Renderer.asset`이 참조하는 `99.ThirdParty`는 **팀 구글 드라이브로 공유한다.** 세 사람의 로컬에 `.meta`째 놓이므로 GUID가 일치하고 참조가 끊기지 않는다. **clean clone 단독은 이 프로젝트의 셋업 절차가 아니다.**
+>
+> **G0의 clean clone 판정 기준을 그에 맞춰 읽는다** — "clone만으로 열린다"가 아니라 **"clone + 드라이브 동기화로 열린다"**이다. 판정 시 드라이브 폴더를 함께 놓고 연다.
+>
+> **대신 git 밖 참조에서 오는 절차 규칙 3건이 생겼다** ([BOSS_STAGING 5.0.1](unity/BOSS_STAGING_DESIGN.md)) — ① 드라이브의 `99.ThirdParty`를 임의로 갱신하지 않는다(롤백이 반쪽이 된다) ② 동기화 완료 후 Unity를 열고 GUID 미해결 시 씬을 저장하지 않는다 ③ ~~`.gitignore`의 "WeatherMaker는 커밋한다" 변경을 되돌린다~~ → **완료.** `Assets/99.ThirdParty/`를 **예외 없이** 통째 제외로 되돌렸다.
 >
 > **W0에 팀원 판정 항목을 하나씩 둔 이유** — 첫 게이트가 팀장 항목만으로 이루어지면 두 사람이 "월요일에 보여줄 것이 있어야 한다"를 첫 주에 겪지 않고 넘어간다. **둘 다 L3 없이 판정 가능하고 첫 주에 무리 없는 크기다.**
 
