@@ -23,9 +23,23 @@ MonoBehaviour:
   _pitchMax: 60
   _collisionMask:
     serializedVersion: 2
-    m_Bits: 257
+    m_Bits: 229633
   _probeRadius: 0.25
   _minDistance: 0.8
   _pullInSmoothTime: 0.05
   _pushOutSpeed: 6
   _fieldOfView: 60
+  _shakeScale: 1
+  _shakeMaxAmplitude: 0.3
+  _shakeHitLight:
+    Amplitude: 0.06
+    Duration: 0.12
+  _shakeHitHeavy:
+    Amplitude: 0.12
+    Duration: 0.18
+  _shakeParrySuccess:
+    Amplitude: 0.2
+    Duration: 0.15
+  _shakeCritical:
+    Amplitude: 0.15
+    Duration: 0.15
