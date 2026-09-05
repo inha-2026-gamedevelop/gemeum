@@ -103,8 +103,12 @@ for ($i = 0; $i -lt $Count; $i++)
     # 자리와 역할 복구가 동작하지 않는다. 값은 창 순서에 묶여 다시 켜도 같다
     $platformId = 1001 + $i
 
+    # -nocursorlock 이 없으면 창 하나가 마우스를 독점해 나머지 둘이 카메라를 못 돌린다.
+    # 이 플래그를 만든 이유가 정확히 한 PC 3창 테스트라, 여기서 안 넘기면 만든 의미가 없다.
+    # 켜지면 커서 잠금 없이 Alt를 누르는 동안에만 카메라가 돈다(유니티 씬뷰와 같다)
     $launchArgs = @(
         '-platformid', "$platformId",
+        '-nocursorlock',
         '-screen-fullscreen', '0',
         '-screen-width',  "$winW",
         '-screen-height', "$winH",
@@ -146,4 +150,5 @@ for ($i = 0; $i -lt $started.Count; $i++)
 
 Write-Output ""
 Write-Output "첫 창에서 Host, 나머지에서 Client를 누른다"
+Write-Output "카메라는 Alt를 누르는 동안에만 돈다 (-nocursorlock). 3창이 마우스를 나눠 쓰기 위한 것이다"
 Write-Output "종료: powershell -ExecutionPolicy Bypass -File tools\run-3clients.ps1 -Kill"

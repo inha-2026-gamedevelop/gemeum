@@ -24,6 +24,38 @@
 
 ## 2. 같은 PC에서 여러 인스턴스 띄우기
 
+### 2.0 실제로 쓰는 경로 — 스크립트와 준비물
+
+아래 방법 A~C는 선택지이고, **이 프로젝트가 실제로 쓰는 것은 `tools/`의 스크립트다.**
+
+| 무엇 | 스크립트 |
+|---|---|
+| **한 PC 3창** (M2) | `powershell -ExecutionPolicy Bypass -File tools\run-3clients.ps1` · 종료는 `-Kill` |
+| **다른 PC 3대** (M3) | `tools\run-host.bat` → `tools\run-client.bat <호스트IP> <포트> <platformid>` |
+| Steam 경로 | `tools\run-steam-host.bat` · `run-steam-client.bat` · `run-steam-lobby.bat` |
+
+**시작 전에 확인할 것 넷.** 하나라도 어긋나면 3인 검증이 성립하지 않는다.
+
+| | 왜 |
+|---|---|
+| ✅ **개발용 빌드가 최신인가** | Unity 메뉴 `그믐 - 빌드 - 개발용 빌드`. **릴리스 빌드는 `-platformid` 같은 실행 인자를 무시한다**(`NetworkLaunchArgs`가 `DEVELOPMENT_BUILD`로 감싸여 있다) |
+| ✅ **`LobbyController._devMinPlayers`가 3인가** | 1이면 **호스트 혼자 런이 시작되면서 입장이 잠겨 나머지 둘이 거부된다.** 콘솔에 *"Dev 설정으로 1인 런을 시작한다"*가 찍히면 그 상태다 |
+| ✅ **`-nocursorlock`이 붙는가** | 한 PC 3창에서 안 붙이면 **창 하나가 마우스를 독점해 나머지 둘이 카메라를 못 돌린다.** `run-3clients.ps1`이 이미 넘긴다. 이때 카메라는 **Alt를 누르는 동안에만** 돈다(씬뷰와 같다) |
+| ✅ **테스트할 씬에 대상이 있는가** | 아래 2.0.1 |
+
+#### 2.0.1 씬별로 있는 것과 없는 것
+
+| 씬 | 잡귀 | 카메라 리그 | 빌드 목록 | 쓰임 |
+|---|---|---|---|---|
+| **`Dev_Combat`** | ✅ 창귀 2 · 액귀 1 (씬 배치) + `ParryTestDummy` | ✅ | ✅ index 0 | **전투 · 카메라 · 락온 L3의 기본 무대** |
+| `Dev_AI` | ✅ SpawnManager + 클러스터 3 | ❌ | ❌ | 몬스터 파트 전용 |
+| `Main` | ❌ 스포너 없음 | ❌ | ✅ | 개활맵 · 지형 |
+
+> 🔑 **`Dev_Combat`의 잡귀 셋은 스포너가 아니라 씬에 직접 놓은 것이다.** 런 phase에 의존하지 않아
+> 호스트를 켜는 즉시 항상 같은 자리에 있다 — 테스트가 재현 가능해야 해서다.
+> 죽여 없앴으면 호스트를 다시 켜면 돌아온다. 바닥은 40×40m이고 NavMesh가 구워져 있다
+> (`Assets/00.Scenes/Dev_Combat/NavMesh.asset`, 커밋 대상).
+
 ### 방법 A — ParrelSync (권장)
 
 프로젝트를 심볼릭 링크로 복제해 에디터를 여러 개 띄운다.
