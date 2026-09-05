@@ -17,13 +17,12 @@ namespace Geumeum.Common
 
         /// <summary>
         /// 보스 그로기 진입 순간. 파티 셋이 동시에 달려드는 신호라 피격보다 세다
-        /// (보스 패턴 계약 6.2)
         /// </summary>
         void PlayGroggyEnter();
 
         /// <summary>
         /// 보스 부위 파괴 순간(꼬리 한 덩이). 이 게임에서 가장 센 셰이크다 -
-        /// 25% 하드 게이트를 한 칸 여는 순간이라 결과가 분명해야 한다 (보스 패턴 계약 8.2)
+        /// 25% 하드 게이트를 한 칸 여는 순간이라 결과가 분명해야 한다
         /// </summary>
         void PlayPartBreak();
     }

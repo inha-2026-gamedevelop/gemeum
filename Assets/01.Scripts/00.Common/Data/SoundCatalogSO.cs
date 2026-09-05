@@ -36,7 +36,7 @@ namespace Geumeum.Data
 
             /// <summary>
             /// 위치를 갖지 않는 소리. 보스 예고음이 여기 해당한다 -
-            /// 아레나 반대편에 있는 사람도 똑같이 들어야 패링을 배운다 (사운드 설계 2.3).
+            /// 아레나 반대편에 있는 사람도 똑같이 들어야 패링을 배운다.
             /// 호출부가 아니라 소리의 속성이므로 여기서 정한다
             /// </summary>
             public bool Is2D;
@@ -44,7 +44,7 @@ namespace Geumeum.Data
             [Range(0f, 1f)]
             public float Volume;
 
-            /// <summary> 재생마다 피치를 ±이 값만큼 흔든다, 같은 소리가 반복될 때 기계적으로 들리는 것을 막는다 </summary>
+            /// <summary> 재생마다 피치를 이 값만큼 위아래로 흔든다, 같은 소리가 반복될 때 기계적으로 들리는 것을 막는다 </summary>
             [Range(0f, 0.5f)]
             public float PitchJitter;
 
@@ -82,7 +82,7 @@ namespace Geumeum.Data
         *                Fields
         ****************************************/
 
-        [Header("믹서 — GeumeumMixer.mixer")]
+        [Header("믹서 - GeumeumMixer.mixer")]
         [SerializeField] private AudioMixer      _mixer;
         [SerializeField] private AudioMixerGroup _bgm;
         [SerializeField] private AudioMixerGroup _localCritical;
@@ -94,13 +94,13 @@ namespace Geumeum.Data
         [Header("원격 구분 (SOUND_DESIGN 4.2)")]
         [SerializeField] private float _remotePitchOffset = -0.05f;
 
-        [Header("BGM (사운드 설계 3.1)")]
+        [Header("BGM")]
         [SerializeField] private BgmEntry[] _bgmEntries;
 
         // 곡 하나가 다른 곡으로 넘어가는 데 걸리는 시간. 페이즈 전환 연출과 짝이라 코드가 아니라 여기서 정한다
         [SerializeField] private float _bgmCrossFadeSeconds = 1.5f;
 
-        // 꼬리가 마지막으로 떨어질 때의 무음 (게임 디자인 9.8). 이 뒤에 KillCue가 온다
+        // 꼬리가 마지막으로 떨어질 때의 무음. 이 뒤에 KillCue가 온다
         [SerializeField] private float _killCueSilenceSeconds = 3f;
 
         // TODO(민성): 클립은 조달 전이라 비어 있다, SOUND_DESIGN 2.2의 P0 6줄부터 채운다

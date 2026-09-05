@@ -12,7 +12,7 @@ namespace Geumeum.Network
     /// <summary>
     /// Steam 로비와 Mirror 연결을 아우르는 세션 단계. 상태 변경은 여기 한 곳에서만 커밋한다,
     /// Steam 콜백과 Mirror 콜백이 각자 UI를 열고 닫으면 어느 쪽이 최신인지 알 수 없게 된다.
-    /// 설계안 5장의 11개 상태 중 3단계에 필요한 6개만 둔다 — 측정과 선출은 4단계다
+    /// 설계안 5장의 11개 상태 중 3단계에 필요한 6개만 둔다 - 측정과 선출은 4단계다
     /// </summary>
     public class SteamSessionCoordinator : MonoBehaviour
     {
@@ -158,7 +158,7 @@ namespace Geumeum.Network
 
         /// <summary>
         /// 세션에서 빠진다. 로비만 나가면 Mirror 연결이 그대로 남아
-        /// 화면상 아무것도 달라지지 않는다 — 쓰는 사람에게는 나가지지 않는 것으로 보인다
+        /// 화면상 아무것도 달라지지 않는다 - 쓰는 사람에게는 나가지지 않는 것으로 보인다
         /// </summary>
         public void LeaveLobby()
         {
@@ -353,7 +353,7 @@ namespace Geumeum.Network
     }
 
     /// <summary>
-    /// 세션 단계. 설계안 5장의 부분집합이고, 측정·선출·런 관련 상태는 여기 없다.
+    /// 세션 단계. 설계안 5장의 부분집합이고, 측정, 선출, 런 관련 상태는 여기 없다.
     /// 로비 데이터 문자열과 짝이므로 이름을 임의로 바꾸지 않는다
     /// </summary>
     public enum SteamSessionState

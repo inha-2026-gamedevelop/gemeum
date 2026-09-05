@@ -11,7 +11,7 @@ using Geumeum.Data;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 효과음 재생 진입점. 호출부는 키 · 발신자 · isLocalPlayer만 넘기고 클립 · 믹서 그룹 · 중복 제거는 여기가 정한다.
+    /// 효과음 재생 진입점. 호출부는 키, 발신자, isLocalPlayer만 넘기고 클립, 믹서 그룹, 중복 제거는 여기가 정한다.
     /// 서버 판정을 받은 각 클라이언트가 자기 화면에서 호출하는 로컬 표현이다, 서버에서 호출하지 않는다
     /// </summary>
     public static class SfxPlayer
@@ -42,7 +42,7 @@ namespace Geumeum.Common
         private static AudioSource[] _sources;
         private static int           _nextSource;
 
-        // 키 · 로컬 여부 · 발신자를 함께 잡는다.
+        // 키, 로컬 여부, 발신자를 함께 잡는다.
         // 발신자를 빼면 남의 캐릭터 둘이 같은 프레임에 맞았을 때 비명이 하나만 난다
         private static readonly Dictionary<long, float> _lastPlayTime  = new Dictionary<long, float>();
         private static readonly Dictionary<long, int>   _lastPlayFrame = new Dictionary<long, int>();
@@ -81,7 +81,7 @@ namespace Geumeum.Common
             PlayInternal(key, position, isLocalPlayer, emitterId);
         }
 
-        /// <summary> 위치가 없는 호출부용. UI · 결계 경고처럼 낸 자리가 없는 소리에 쓴다 </summary>
+        /// <summary> 위치가 없는 호출부용. UI, 결계 경고처럼 낸 자리가 없는 소리에 쓴다 </summary>
         public static void Play(SoundKey key, bool isLocalPlayer, uint emitterId = 0)
         {
             PlayInternal(key, Vector3.zero, isLocalPlayer, emitterId);

@@ -26,7 +26,7 @@ namespace Geumeum.Common
         // 반납할 때 이 인스턴스가 어느 풀 것인지 알아야 한다
         private readonly Dictionary<GameObject, GameObject> _prefabOf = new Dictionary<GameObject, GameObject>();
 
-        // 대여·반납마다 GetComponent를 부르면 연출이 잦을수록 비용이 쌓인다
+        // 대여, 반납마다 GetComponent를 부르면 연출이 잦을수록 비용이 쌓인다
         private readonly Dictionary<GameObject, IPoolable> _poolableOf = new Dictionary<GameObject, IPoolable>();
 
         // 같은 인스턴스를 두 번 반납하면 풀에 중복이 생겨 두 곳에서 동시에 쓰이게 된다

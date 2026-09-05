@@ -30,7 +30,7 @@ namespace Geumeum.Common
             get { return Get(Constants.Sound.PREF_BGM_VOLUME, Constants.Sound.DEFAULT_BGM_VOLUME); }
         }
 
-        /// <summary> 효과음 볼륨 (0~1). SFX 그룹 전체에 걸리고 Local · Remote의 차이는 그대로 남는다 </summary>
+        /// <summary> 효과음 볼륨 (0~1). SFX 그룹 전체에 걸리고 Local, Remote의 차이는 그대로 남는다 </summary>
         public static float Sfx
         {
             get { return Get(Constants.Sound.PREF_SFX_VOLUME, Constants.Sound.DEFAULT_SFX_VOLUME); }

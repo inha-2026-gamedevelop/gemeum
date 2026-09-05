@@ -152,7 +152,7 @@ namespace Geumeum.Network
 
         /// <summary>
         /// 런을 시작한다. LobbyController가 3명 준비와 역할 배분을 마친 뒤에만 호출한다.
-        /// <b>실패하면 false를 돌려주며, 이때 호출부는 반드시 되돌려야 한다</b> —
+        /// 실패하면 false를 돌려주며, 이때 호출부는 반드시 되돌려야 한다 -
         /// 입장 잠금과 역할 배분이 커밋된 채 런이 열리지 않으면 세션이 영구히 잠긴다
         /// </summary>
         [Server]

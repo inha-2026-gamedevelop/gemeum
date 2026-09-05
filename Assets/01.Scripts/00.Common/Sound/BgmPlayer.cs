@@ -93,7 +93,7 @@ namespace Geumeum.Common
 
         /// <summary>
         /// 지금 흐르는 곡을 끊고, 무음을 둔 뒤 다음 트랙을 재생한다.
-        /// 꼬리가 마지막으로 떨어질 때의 무음 3초가 이것이다 (게임 디자인 9.8).
+        /// 꼬리가 마지막으로 떨어질 때의 무음 3초가 이것이다.
         /// 무음 길이를 넘기지 않으면 SoundCatalogSO의 값을 쓴다
         /// </summary>
         public void PlayAfterSilence(BgmTrack track, float silenceSeconds = -1f)

@@ -66,14 +66,14 @@ namespace Geumeum.Data
         [Header("패턴")]
         [SerializeField] private PatternEntry[] _patterns;
 
-        // ── 아래는 2026-09-05 확정 설계 → 보스 패턴 계약 6장 · 8.2 ──
-        // 값은 전부 임시값이고 구조만 확정이다. 바뀌지 않는 것은 "감소식 · 세 직업 · 게이지 100"이다
+        // 아래는 2026-09-05 확정 설계다
+        // 값은 전부 임시값이고 구조만 확정이다. 바뀌지 않는 것은 "감소식, 세 직업, 게이지 100"이다
 
         [Header("그로기 게이지")]
         [Tooltip("게이지 최대치. 셋이 함께 깎아 0에서 그로기가 열린다")]
         [SerializeField] private float _groggyGaugeMax = 100f;
 
-        [Tooltip("직업별 카운터 1회당 감소량. 임시값 — 14분에 그로기 5.5회가 나오게 잡았다")]
+        [Tooltip("직업별 카운터 1회당 감소량. 임시값 - 14분에 그로기 5.5회가 나오게 잡았다")]
         [SerializeField] private GaugeReductionEntry[] _gaugeReductions =
         {
             new GaugeReductionEntry { Character = CharacterKind.Chasa,   Amount = 10f },
@@ -178,7 +178,7 @@ namespace Geumeum.Data
 
         /// <summary>
         /// 이 직업이 카운터 한 번에 깎는 게이지 양을 찾는다, 없으면 false.
-        /// <b>딜은 여기를 거치지 않는다</b> — 딜이 게이지를 깎으면 그 순간 딜미터가 되고
+        /// 딜은 여기를 거치지 않는다 - 딜이 게이지를 깎으면 그 순간 딜미터가 되고
         /// 무녀는 영원히 꼴찌가 된다. 딜은 HP를, 카운터는 게이지를 깎는다
         /// </summary>
         public bool TryGetGaugeReduction(CharacterKind character, out float amount)

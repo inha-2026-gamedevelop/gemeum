@@ -62,7 +62,7 @@ namespace Geumeum.Network
 
         /// <summary>
         /// 로비에 세션 값을 게시하고 호스트를 시작한 뒤 접속 신호를 보낸다.
-        /// 게시 → 기동 → 신호 순서를 지켜야 호스트 자신도, 나머지 멤버도 거부당하지 않는다
+        /// 게시 -> 기동 -> 신호 순서를 지켜야 호스트 자신도, 나머지 멤버도 거부당하지 않는다
         /// </summary>
         public void StartSteamHost()
         {

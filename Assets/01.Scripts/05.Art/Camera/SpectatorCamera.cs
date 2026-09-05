@@ -12,15 +12,13 @@ namespace Geumeum.Art
 {
     /// <summary>
     /// 사망 중 다른 생존자를 비추는 관전 카메라.
-    /// <b>카메라를 두 벌 만들지 않는다</b> - <see cref="CameraRig"/>를 그대로 쓰고 Target만 바꾼다.
+    /// 카메라를 두 벌 만들지 않는다 - CameraRig를 그대로 쓰고 Target만 바꾼다.
     /// 완전히 로컬이고 판정에 관여하지 않는다
     /// </summary>
-    /// <remarks>
-    /// 관전 <b>지속 시간</b>(30초, 팀 누적 사망에 따라 최대 75초)은 여기가 아니라 부활 시스템이 소유한다.
-    /// 이 컴포넌트는 <see cref="PlayerStatus.LifeState"/>를 따라갈 뿐이다 -
-    /// 시간을 여기서 재면 서버가 정한 부활 시점과 화면이 어긋난다.
-    /// 05.Art가 02.Combat의 SyncVar를 읽는 방향이라 의존 방향(04-architecture 8.1)에 맞는다
-    /// </remarks>
+    // 관전 지속 시간(30초, 팀 누적 사망에 따라 최대 75초)은 여기가 아니라 부활 시스템이 소유한다.
+    // 이 컴포넌트는 PlayerStatus.LifeState를 따라갈 뿐이다 -
+    // 시간을 여기서 재면 서버가 정한 부활 시점과 화면이 어긋난다.
+    // 05.Art가 02.Combat의 SyncVar를 읽는 방향이라 의존 방향에 맞는다
     [RequireComponent(typeof(CameraRig))]
     public class SpectatorCamera : MonoBehaviour
     {
@@ -224,7 +222,7 @@ namespace Geumeum.Art
 
             if (!identity.TryGetComponent(out PlayerStatus status))
             {
-                return null; // 플레이어가 아닌 스폰 개체(잡귀 · 화살 등)
+                return null; // 플레이어가 아닌 스폰 개체(잡귀, 화살 등)
             }
 
             return (status.IsDead) ? null : identity.transform;
