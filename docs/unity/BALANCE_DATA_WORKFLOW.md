@@ -37,6 +37,7 @@ private const float ParryWindow = 0.32f;
 | `TalentTreeSO` | 특성 노드 구성과 수치 | 게임플레이 시스템 |
 | `ScoreRuleSO` | 점수 항목별 배점 | 게임플레이 시스템 |
 | `DayCycleSO` | 실시간 ↔ 게임 시각 매핑, 조명 프리셋 | 테크니컬 아트 (팀장 겸임) |
+| `CameraConfigSO` | 카메라 거리 · 높이 · 오버숄더, 감도 기본값, pitch 한계, 충돌 레이어 · 반경, FOV | 테크니컬 아트 (팀장 겸임) |
 
 ---
 

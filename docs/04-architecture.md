@@ -218,8 +218,10 @@ Main.unity
 │  ├ LevelCurveSO.cs       SO  레벨별 필요 경험치 + 최대 HP 전체 (1레벨 기본값 포함)
 │  ├ ScoreRuleSO.cs        SO  점수 항목별 배점
 │  ├ DayCycleSO.cs         SO  실시간↔게임 내 시각 매핑, 조명 프리셋 (로컬 전용)
-│  └ SoundCatalogSO.cs     SO  [현재] SoundKey → 클립 · 믹서 그룹 · 볼륨 · 중복 제거 간격.
-│                               믹서 그룹 5개 참조를 여기가 들고 있다 (로컬 전용) → 사운드 설계 4.2
+│  ├ SoundCatalogSO.cs     SO  [현재] SoundKey → 클립 · 믹서 그룹 · 볼륨 · 중복 제거 간격.
+│  │                            믹서 그룹 5개 참조를 여기가 들고 있다 (로컬 전용) → 사운드 설계 4.2
+│  └ CameraConfigSO.cs     SO  [현재] 카메라 거리 · 높이 · 오버숄더 · 감도 기본값 · pitch 한계 ·
+│                               충돌 레이어와 반경 · FOV (로컬 전용) → 카메라와 락온 2장 · 7장
 ├ Constants/               namespace Geumeum.Common — 코드 계약값 (partial class)
 │  ├ Constants.cs          공통: 레이어, 태그, 씬 이름
 │  ├ Constants.player.cs   입력 키/축, 판정 epsilon
@@ -380,7 +382,9 @@ Main.unity
 │  │                           화살 발사를 AttackReach로 갈라 서버가 판정하고, 수락 시점에
 │  │                           RpcAttackStarted로 공격 시작을 모든 화면에 전파한다.
 │  │                           [계획] 연사 · 관통 · 치유 · 버프 변형은 서버가 특성 상태에서 산출
-│  └ InteractionController.cs NB [계획] 상호작용 Command와 서버 검증
+│  ├ InteractionController.cs NB [계획] 상호작용 Command와 서버 검증
+│  └ LockOnController.cs  NB  [계획] 락온 대상 선택(로컬)과 CmdSetLockOn 서버 검증.
+│                             대상 방향으로 FacingDirection을 덮어쓴다 → 아래 정정 참고
 ├ Weapon/                  [계획] 직업별 실행 계약. Mirror 비의존
 │  ├ IWeaponAbility.cs / IAbilityRuntime.cs
 │  ├ AbilityRequest.cs / AbilityResult.cs
@@ -399,19 +403,24 @@ Main.unity
 │  ├ ArrowProjectile.cs    NB  [현재] 서버 물리 틱마다 SphereCast로 훑는 궤적 · 명중 · 관통.
 │  │                           netId로 대상 중복을 막는다. [계획] 장애물 판정 · 유도
 │  ├ ArrowLauncher.cs      NB  [계획] 별도 스폰 실행기. 지금은 PlayerAttack이 직접 띄운다
-│  └ ~~ArrowGuidance.cs~~   🚫 **폐기 (2026-09-04)** — 락온·유도를 넣지 않으므로 만들지 않는다
-│                              화살은 발사 방향으로 직진한다 → 화살 조준 보정 설계 1장
-├ Dev/                     개발 전용 도구 (namespace Geumeum.Combat 유지)
-│  ├ CharacterPreviewRig.cs MB [현재] 네트워크 없이 캐릭터 3종 × 무기 3종과 애니메이션을 확인하고
-│  │                           무기 부착 보정을 조정해 Player.prefab에 저장하는 리그.
-│  │                           Dev_Character 씬 전용. 판정 · 스태미나 · 동기화는 확인할 수 없다
-│  └ ParryTestDummy.cs     MB  [현재] 패링 검증용 더미. Dev_Combat에 배치.
-│                              IParryable 구현이라 #if로 감싸면 계약이 깨진다 — 감싸지 않는다
-└ Camera/
-   ├ CameraRig.cs          MB  [계획] 3인칭 오버숄더, 완전 로컬
-   └ ~~LockOnSystem.cs~~    🚫 **폐기 (2026-09-04)** — 자동 조준이 정밀 사격과 배타적이라 락온을 넣지 않는다.
-                              공격 요청은 `RequestId`와 `AimDirection`만 보낸다
+│  └ ArrowGuidance         [계획] **2026-09-05 부활** — 락온이 되살아나면서 유도도 함께 돌아왔다.
+│                              별도 클래스가 아니라 ArrowProjectile의 서버 틱 안에서 처리한다.
+│                              유도가 락온의 공통 기능이라 연사 · 관통 특성의 축이 되지 않는다
+│                              → 카메라와 락온 12장 · 화살 조준 보정 설계 5.4
+└ Dev/                     개발 전용 도구 (namespace Geumeum.Combat 유지)
+   ├ CharacterPreviewRig.cs MB [현재] 네트워크 없이 캐릭터 3종 × 무기 3종과 애니메이션을 확인하고
+   │                           무기 부착 보정을 조정해 Player.prefab에 저장하는 리그.
+   │                           Dev_Character 씬 전용. 판정 · 스태미나 · 동기화는 확인할 수 없다
+   └ ParryTestDummy.cs     MB  [현재] 패링 검증용 더미. Dev_Combat에 배치.
+                               IParryable 구현이라 #if로 감싸면 계약이 깨진다 — 감싸지 않는다
 ```
+
+> 🔧 **2026-09-05 정정** — 이 트리에 `02.Combat/Camera/`가 있었고 그 아래 `CameraRig.cs [계획]`과
+> 폐기 표시된 `LockOnSystem.cs`가 있었다. **둘 다 틀렸다.** 카메라 리그는 `05.Art/Camera/`가 소유하고
+> (`02.Combat`이 `05.Art`를 참조하지 않도록 `CameraFrame`의 yaw 값만 읽는다), 락온은 2026-09-05에
+> 부활해 `Player/`의 `LockOnController.cs [계획]`가 된다 — 대상 선택은 로컬이지만 `CmdSetLockOn`은
+> 서버가 검증하고, 대상 방향이 `PlayerPresentation.FacingDirection`을 덮어써 남의 화면에서도 옳게 선다
+> → [카메라와 락온](unity/CAMERA_AND_LOCKON.md) 1장 · 3장 · 11장
 
 2026-09-05 기준으로 `Player/` 17개, `Parry/` 6개, `Arrow/` 1개, `Dev/` 2개가 구현되어 있다.
 아직 없는 것은 `InteractionController`, `Weapon/`, `Camera/`, 그리고 `Arrow/`의 나머지 둘이다.
@@ -675,7 +684,9 @@ Assets/09.Data/
 ├ Shop/ShopSO.asset
 ├ LevelCurve/LevelCurveSO.asset  레벨별 필요 경험치 + 최대 HP (단일 소스)
 ├ Score/ScoreRuleSO.asset
-└ DayCycle/DayCycleSO.asset   ← 유일하게 네트워크와 무관한 순수 로컬 리소스
+├ DayCycle/DayCycleSO.asset
+├ Sound/SoundCatalogSO.asset
+└ Camera/CameraConfigSO.asset ← 위 셋이 네트워크와 무관한 순수 로컬 리소스다
 ```
 
 `GameDBBootstrap`만 `Resources/GameDB.asset`을 로드해 `GameDB.Initialize()`를 호출한다.

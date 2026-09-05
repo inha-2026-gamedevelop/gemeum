@@ -97,6 +97,7 @@ Gaia로 생성한 Terrain 데이터는 **테크니컬 아트 담당자만 수정
 | `LevelCurveSO` | 레벨별 필요 경험치, **1레벨 기본 HP와 레벨별 최대 HP 전체** |
 | `ScoreRuleSO` | 점수 항목별 배점 |
 | `DayCycleSO` | 실시간과 게임 내 시각 매핑, 시간대별 조명 프리셋 |
+| `CameraConfigSO` | 카메라 거리 · 높이 · 오버숄더 오프셋, 마우스 감도 기본값, pitch 한계, 충돌 레이어·반경, FOV |
 
 **최대 HP는 `LevelCurveSO`가 단독으로 소유한다.** 1레벨 기본값 100을 `CombatConfigSO`에도 두면 두 에셋이 서로 다른 최대 HP를 주장할 수 있다. `CombatConfigSO`는 레벨과 무관한 값(스태미나 · 신력 · 이동 · 구르기 · 패링)만 가진다.
 

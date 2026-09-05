@@ -314,7 +314,9 @@ namespace Geumeum.Combat
         /// 플레이어 루트는 Rigidbody가 회전을 막고 있고(Player.prefab FreezeRotation X·Y·Z)
         /// 코드에서도 루트를 돌리는 곳이 없어 항상 월드 +Z로 고정된다.
         /// 방향은 자식 VisualPivot에만 적용되므로, 서버가 매 틱 확정하는
-        /// PlayerPresentation의 값이 판정이 쓸 수 있는 유일한 방향 소스다
+        /// PlayerPresentation의 값이 판정이 쓸 수 있는 유일한 방향 소스다.
+        /// 이동 방향이 아니라 AimDirection을 읽는다 - 락온이 붙으면 둘이 갈라지고,
+        /// 그때 공격은 걸어가는 쪽이 아니라 잠근 대상 쪽으로 나가야 한다
         /// </summary>
         [Server]
         private Vector3 ResolveAimForward()
@@ -325,7 +327,7 @@ namespace Geumeum.Combat
                 return transform.forward;
             }
 
-            Vector2 facing = _presentation.FacingDirection;
+            Vector2 facing = _presentation.AimDirection;
 
             // ResolveFacing이 마지막 유효 방향을 유지하므로 정상 경로에서는 0이 나오지 않는다.
             // 그래도 0이면 정규화가 NaN이 되어 판정이 전부 조용히 빗나가므로 여기서 막는다
