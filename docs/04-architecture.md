@@ -256,6 +256,10 @@ Main.unity
 │  │                              PersistentSingleton을 상속한다. 호출부는 아직 없다
 │  └ LocalPoolRoot.cs      MB  [현재] 풀에 넣어도 되는 프리팹임을 선언하는 표식.
 │                              네트워크 개체를 걸러내는 화이트리스트다
+├ CameraFrame.cs           static [현재] 카메라 yaw와 입력 허용 플래그.
+│                                 카메라(05.Art)가 밀고 전투(02.Combat)가 읽는다.
+│                                 오브젝트가 아니라 값이라 로케이터가 필요 없고,
+│                                 카메라가 없으면 yaw 0이라 지금과 같이 동작한다
 ├ Sound/                   namespace Geumeum.Common — 사운드 재생 (전부 로컬 전용)
 │  ├ SfxPlayer.cs          static [현재] SoundKey + isLocalPlayer만 받아 재생한다.
 │  │                              AudioSource 16개 라운드로빈 · 같은 프레임 중복 제거 ·
@@ -516,8 +520,14 @@ Main.unity
 ├ CombatFeedbackImpl.cs    MB  ICombatFeedback 구현체: 히트 이펙트, 셰이크, 패링 슬로우모션.
 │                              OnEnable/OnDisable에서 CombatFeedbackLocator에 등록·해제 → 8.3
 ├ ScreenEffects.cs         MB  저체력 · 결계 밖 · 쇠약 화면 효과
+├ Camera/                  [현재] → 카메라와 락온 사양
+│  ├ CameraRig.cs          MB  추적 · 충돌 · 셰이크 · 줌. LateUpdate.
+│  │                           Target이 바뀔 수 있어야 한다 — 관전 카메라가 같은 물건이다
+│  └ CutsceneDirector.cs   MB  페이즈 전환 8초. Timeline이 카메라를 잡고 끝나면 리그에 돌려준다
 └ Shaders/, VFX/           셰이더 · 파티클 에셋
 ```
+
+**카메라는 `CameraFrame`(`00.Common`)에 yaw만 밀고, 전투는 그 값을 읽는다.** 카메라 오브젝트를 참조하지 않으므로 `02.Combat` → `05.Art` 의존이 생기지 않는다 — 로케이터를 하나 더 만들 이유도 없다.
 
 ### 4.6 06.UI — 게임플레이 시스템(@kjw1237)이 전담
 
