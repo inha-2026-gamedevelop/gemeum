@@ -191,6 +191,10 @@ Main.unity
 `Assets/01.Scripts/` 아래 전체 구조. **폴더 = 네임스페이스 = 소유권**이 항상 일치해야 한다.
 클래스 옆 표기: `NM` = Mirror NetworkManager, `NB` = NetworkBehaviour, `MB` = MonoBehaviour, `C#` = 순수 C# 클래스, `SO` = ScriptableObject, `enum` = 열거형, `static` = 정적 클래스.
 
+> **`Dev/` 하위폴더 규약 (2026-09-05 신설).** 개발 전용 도구 — 플레이어에게 제공되는 기능이 아니라 개발자가 관찰·조작·측정하기 위해 존재하고, 지워도 게임 규칙이 달라지지 않는 것 — 은 소속 파트의 `Dev/` 아래 둔다.
+> **네임스페이스는 소속 파트를 그대로 따른다**(`Player/`·`Lobby/`가 그렇듯 `Dev/`도 네임스페이스에 반영하지 않는다). 별도 어셈블리가 아니므로 **폴더만으로는 빌드에서 빠지지 않는다** — 출시 빌드에서 빼려면 `#if UNITY_EDITOR || DEVELOPMENT_BUILD`를 쓴다.
+> **원칙: 프로덕션 코드는 `Dev/`의 타입에 의존하지 않는다.** 현재 예외가 하나 있다 — `GeumeumBootValidator`가 `RequireInScene<FrameRecorder>`로 `Main` 씬에 측정기가 있을 것을 강제한다(의도 여부 미확인). 새 예외를 만들지 않는다.
+
 `[계획]` 항목의 구현 계약은 기능별 상세 설계에 있다 — [PlayerAttack](unity/PLAYER_ATTACK_DESIGN.md) · [보스](unity/BOSS_DESIGN.md) · [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) · [몬스터 패링 연결](unity/MONSTER_PARRY_LINK_DESIGN.md) · [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md).
 
 ### 4.0 00.Common — 공용 (소유: 팀장, 변경은 팀 공지 후)
@@ -248,6 +252,9 @@ Main.unity
 │  │                              PersistentSingleton을 상속한다. 호출부는 아직 없다
 │  └ LocalPoolRoot.cs      MB  [현재] 풀에 넣어도 되는 프리팹임을 선언하는 표식.
 │                              네트워크 개체를 걸러내는 화이트리스트다
+├ Dev/                     namespace Geumeum.Common.Environment — 개발 전용 도구
+│  └ WeatherTimeDebugScript.cs MB [현재] 시간대 배속(Tab) · 즉시 이동(1~4). 전체 #if 가드됨.
+│                              Main · Dev_Barrier에 배치. 날씨 스케줄(Environment/)과는 별개다
 └ Interfaces/              namespace Geumeum.Common — 파트 간 경계 → 8장
    ├ IDamageable.cs        피해를 받을 수 있는 대상 (플레이어 · 잡귀 · 보스)
    ├ IRecoveryTarget.cs    [현재] 회복을 받을 수 있는 대상. 무녀 치유(전투)와 회복 물약(시스템)이
@@ -297,6 +304,12 @@ Main.unity
 ├ RunTimelineBuilder.cs    static BarrierPhaseSO를 순수 타임라인으로 변환
 ├ ReviveController.cs      NB  [계획] 사망 감지 → 관전 30초 → 제자리 부활,
 │                              노잣돈 차감 요청과 전멸 감지
+├ Dev/                     개발 전용 도구 (namespace Geumeum.Network 유지)
+│  ├ FrameRecorder.cs      MB  [현재] 이름과 달리 영상 녹화가 아니라 **성능 측정기**다.
+│  │                           F9/F10 · 전체 #if 가드. Main · Dev_Combat · Dev_Barrier에 배치.
+│  │                           ⚠️ GeumeumBootValidator가 Main 씬에 이것을 강제한다(4장 머리말)
+│  └ SteamLobbyHUD.cs      MB  [현재] 로비 ID 표시·참가용 개발 오버레이. 출시 로비 UI가 아니다.
+│                              전체 #if 가드. Dev_Combat에 배치
 └ AuthorityTickScheduler.cs NB [현재] 서버 전용 공용 시뮬레이션 틱. `FixedUpdate`에서
                                등록 순서(우선순위 정수)대로 콜백 실행:
                                입력 적용(이동) → AI → 투사체 → 능력 판정 → 자원 회복.
@@ -357,7 +370,6 @@ Main.unity
 │  │                           (새 창이 이전 미소비 창을 무효화)
 │  ├ ParryJudge.cs         C#  [현재] 시간 창 참·거짓만 계산하는 순수 판정
 │  ├ ParryRequest.cs / ParryWindow.cs / ParryResultCode.cs [현재] 요청 · 창 · 결과 코드 값 타입
-│  ├ ParryTestDummy.cs     MB  [현재] 패링 검증용 더미. Dev 씬 전용
 │  └ ParryGauge.cs         NB  [현재] 게이지 SyncVar와 누적 · 소비 · 리셋 서버 API.
 │                              치명 배율 roll은 PlayerAttack이 읽어 적용한다.
 │                              빗나가면 소비하지 않는다(2026-09-03 확정)
@@ -367,13 +379,19 @@ Main.unity
 │  ├ ArrowLauncher.cs      NB  [계획] 별도 스폰 실행기. 지금은 PlayerAttack이 직접 띄운다
 │  └ ~~ArrowGuidance.cs~~   🚫 **폐기 (2026-09-04)** — 락온·유도를 넣지 않으므로 만들지 않는다
 │                              화살은 발사 방향으로 직진한다 → 화살 조준 보정 설계 1장
+├ Dev/                     개발 전용 도구 (namespace Geumeum.Combat 유지)
+│  ├ CharacterPreviewRig.cs MB [현재] 네트워크 없이 캐릭터 3종 × 무기 3종과 애니메이션을 확인하고
+│  │                           무기 부착 보정을 조정해 Player.prefab에 저장하는 리그.
+│  │                           Dev_Character 씬 전용. 판정 · 스태미나 · 동기화는 확인할 수 없다
+│  └ ParryTestDummy.cs     MB  [현재] 패링 검증용 더미. Dev_Combat에 배치.
+│                              IParryable 구현이라 #if로 감싸면 계약이 깨진다 — 감싸지 않는다
 └ Camera/
    ├ CameraRig.cs          MB  [계획] 3인칭 오버숄더, 완전 로컬
    └ ~~LockOnSystem.cs~~    🚫 **폐기 (2026-09-04)** — 자동 조준이 정밀 사격과 배타적이라 락온을 넣지 않는다.
                               공격 요청은 `RequestId`와 `AimDirection`만 보낸다
 ```
 
-2026-09-03 기준으로 `Player/` 16개, `Parry/` 7개, `Arrow/` 1개가 구현되어 있다.
+2026-09-05 기준으로 `Player/` 17개, `Parry/` 6개, `Arrow/` 1개, `Dev/` 2개가 구현되어 있다.
 아직 없는 것은 `InteractionController`, `Weapon/`, `Camera/`, 그리고 `Arrow/`의 나머지 둘이다.
 나머지는 구현 계약이다. **판정 수식은 순수 C# 클래스에 두고, NetworkBehaviour는 입력·서버 실행·
 동기화 경계를 담당한다.** 활 공격도 `PlayerAttack`의 공통 Command를 거치며, `ArrowLauncher`가
