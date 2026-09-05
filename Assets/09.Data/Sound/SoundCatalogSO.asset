@@ -1,0 +1,126 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88d289a5d18caf349bff7bfbb608665f, type: 3}
+  m_Name: SoundCatalogSO
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.SoundCatalogSO
+  _mixer: {fileID: 24100000, guid: 75dbdaaa546c35f42bbc99ad96d93dc9, type: 2}
+  _bgm: {fileID: -6796815466750259176, guid: 75dbdaaa546c35f42bbc99ad96d93dc9, type: 2}
+  _localCritical: {fileID: 2686444539479727419, guid: 75dbdaaa546c35f42bbc99ad96d93dc9, type: 2}
+  _localNormal: {fileID: -738995269580651017, guid: 75dbdaaa546c35f42bbc99ad96d93dc9, type: 2}
+  _remote: {fileID: -280613064333314588, guid: 75dbdaaa546c35f42bbc99ad96d93dc9, type: 2}
+  _world: {fileID: -923571278865823309, guid: 75dbdaaa546c35f42bbc99ad96d93dc9, type: 2}
+  _remotePitchOffset: -0.05
+  _bgmEntries:
+  - Track: 1
+    Clip: {fileID: 0}
+  - Track: 2
+    Clip: {fileID: 0}
+  - Track: 3
+    Clip: {fileID: 0}
+  - Track: 4
+    Clip: {fileID: 0}
+  _bgmCrossFadeSeconds: 1.5
+  _killCueSilenceSeconds: 3
+  _entries:
+  - Key: 1
+    Channel: 2
+    Clips: []
+    Is2D: 1
+    Volume: 1
+    PitchJitter: 0
+    MinInterval: 0
+  - Key: 2
+    Channel: 2
+    Clips: []
+    Is2D: 1
+    Volume: 1
+    PitchJitter: 0
+    MinInterval: 0
+  - Key: 3
+    Channel: 2
+    Clips: []
+    Is2D: 1
+    Volume: 1
+    PitchJitter: 0
+    MinInterval: 0
+  - Key: 4
+    Channel: 2
+    Clips: []
+    Is2D: 1
+    Volume: 1
+    PitchJitter: 0
+    MinInterval: 0
+  - Key: 5
+    Channel: 0
+    Clips:
+    - {fileID: 8300000, guid: 1a35aee3b7c7db146ba3af10b5e5a211, type: 3}
+    Is2D: 0
+    Volume: 1
+    PitchJitter: 0
+    MinInterval: 0
+  - Key: 6
+    Channel: 0
+    Clips:
+    - {fileID: 8300000, guid: 489d835808b29e44e83a76842e8aa496, type: 3}
+    Is2D: 0
+    Volume: 1
+    PitchJitter: 0
+    MinInterval: 0
+  - Key: 7
+    Channel: 1
+    Clips: []
+    Is2D: 0
+    Volume: 0.9
+    PitchJitter: 0.05
+    MinInterval: 0
+  - Key: 8
+    Channel: 1
+    Clips: []
+    Is2D: 0
+    Volume: 0.7
+    PitchJitter: 0.05
+    MinInterval: 0
+  - Key: 9
+    Channel: 1
+    Clips: []
+    Is2D: 0
+    Volume: 1
+    PitchJitter: 0.03
+    MinInterval: 0.35
+  - Key: 10
+    Channel: 2
+    Clips: []
+    Is2D: 1
+    Volume: 1
+    PitchJitter: 0
+    MinInterval: 0
+  - Key: 103
+    Channel: 0
+    Clips: []
+    Is2D: 0
+    Volume: 1
+    PitchJitter: 0.03
+    MinInterval: 0
+  - Key: 120
+    Channel: 1
+    Clips: []
+    Is2D: 0
+    Volume: 0.8
+    PitchJitter: 0.06
+    MinInterval: 0.2
+  - Key: 150
+    Channel: 2
+    Clips: []
+    Is2D: 0
+    Volume: 0.8
+    PitchJitter: 0.08
+    MinInterval: 0

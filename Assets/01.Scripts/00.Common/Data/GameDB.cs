@@ -36,7 +36,9 @@ namespace Geumeum.Data
         public static TalentTreeSO Talent     => Require().Talent;
         public static ScoreRuleSO  Score      => Require().Score;
 
-        public static DayCycleSO DayCycle => Require().DayCycle;
+        public static DayCycleSO     DayCycle => Require().DayCycle;
+        public static SoundCatalogSO Sound    => Require().Sound;
+        public static CameraConfigSO Camera   => Require().Camera;
 
         /****************************************
         *                Methods

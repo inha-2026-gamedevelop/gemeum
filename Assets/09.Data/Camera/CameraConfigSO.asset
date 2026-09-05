@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77e8ac5feff1879468a0f87e1b32d674, type: 3}
+  m_Name: CameraConfigSO
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.CameraConfigSO
+  _pivotHeight: 1.6
+  _distance: 4.5
+  _sideOffset: 0.6
+  _followSmoothTime: 0.08
+  _defaultSensitivityX: 0.15
+  _defaultSensitivityY: 0.12
+  _defaultInvertY: 0
+  _pitchMin: -30
+  _pitchMax: 60
+  _collisionMask:
+    serializedVersion: 2
+    m_Bits: 257
+  _probeRadius: 0.25
+  _minDistance: 0.8
+  _pullInSmoothTime: 0.05
+  _pushOutSpeed: 6
+  _fieldOfView: 60

@@ -71,7 +71,15 @@ namespace Geumeum.Combat
 
         private void OnRollingChanged(bool oldRolling, bool newRolling)
         {
-            if ((!newRolling) || (_animation == null))
+            if (!newRolling)
+            {
+                return;
+            }
+
+            // 구르기는 무적 프레임의 유일한 청각 신호다 (사운드 설계 2.1)
+            SfxPlayer.Play(SoundKey.Roll, transform.position, isLocalPlayer, netId);
+
+            if (_animation == null)
             {
                 return;
             }

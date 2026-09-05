@@ -38,10 +38,11 @@ namespace Geumeum.Combat
         *              Constants
         ****************************************/
 
-        private const string PARAM_SPEED      = "Speed";
-        private const string PARAM_ROLL       = "Roll";
-        private const string PARAM_ROLL_SPEED = "RollSpeed";
-        private const string PARAM_ATTACK     = "Attack";
+        private const string PARAM_SPEED       = "Speed";
+        private const string PARAM_ROLL        = "Roll";
+        private const string PARAM_ROLL_SPEED  = "RollSpeed";
+        private const string PARAM_ATTACK      = "Attack";
+        private const string PARAM_COMBO_STAGE = "ComboStage";
 
         // 구르기 클립 이름은 캐릭터마다 다르다(무료 에셋 SprintingForwardRoll, 검 팩 S_Evade ...).
         // 이름 하나를 박으면 다른 캐릭터에서 배속 계산이 조용히 실패해 구르기 판정(0.9초)과
@@ -74,7 +75,8 @@ namespace Geumeum.Combat
         private float _rollClipLength = 0f;
 
         // 공격 모션이 없는 컨트롤러에 트리거를 넣으면 공격할 때마다 경고가 쌓인다
-        private bool _hasAttackParam = false;
+        private bool _hasAttackParam     = false;
+        private bool _hasComboStageParam = false;
 
         /****************************************
         *              Unity Event
@@ -172,13 +174,20 @@ namespace Geumeum.Combat
 
         /// <summary>
         /// 공격 모션을 한 번 재생한다. PlayerAttack의 RpcAttackStarted가 모든 화면에서 호출하므로
-        /// 남의 공격도 내 화면에서 보인다. 판정은 서버가 이미 끝냈고 이것은 표현만 한다
+        /// 남의 공격도 내 화면에서 보인다. 판정은 서버가 이미 끝냈고 이것은 표현만 한다.
+        /// comboStage는 1~3의 근접 콤보 단계다. 근접이 아니면 서버가 0을 보내는데,
+        /// 그 컨트롤러에는 1단(Attack1) 조건밖에 없으므로 1로 바꿔 그 클립을 튼다
         /// </summary>
-        public void PlayAttack()
+        public void PlayAttack(int comboStage)
         {
             if ((_animator == null) || (!_hasAttackParam))
             {
                 return;
+            }
+
+            if (_hasComboStageParam)
+            {
+                _animator.SetInteger(PARAM_COMBO_STAGE, Mathf.Clamp(comboStage, 1, 3));
             }
 
             _animator.SetTrigger(PARAM_ATTACK);
@@ -219,8 +228,9 @@ namespace Geumeum.Combat
             }
 
             // 구르기 배속은 지금 걸린 컨트롤러의 클립 길이로 정해지므로 교체 뒤에 다시 잰다
-            _rollClipLength = FindRollClipLength();
-            _hasAttackParam = HasParameter(PARAM_ATTACK);
+            _rollClipLength     = FindRollClipLength();
+            _hasAttackParam     = HasParameter(PARAM_ATTACK);
+            _hasComboStageParam = HasParameter(PARAM_COMBO_STAGE);
         }
 
         // 아직 공격 모션이 없는 무기와 캐릭터 폴백 컨트롤러가 있어 매번 확인이 필요하다

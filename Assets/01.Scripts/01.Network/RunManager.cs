@@ -25,12 +25,14 @@ namespace Geumeum.Network
         ****************************************/
 
         [SyncVar] private float      _elapsedSeconds = 0f;
-        [SyncVar] private RunPhase   _phase          = RunPhase.Lobby;
         [SyncVar] private RunOutcome _outcome        = RunOutcome.None;
+
+        // 훅은 서버 판정이 아니라 각 클라이언트의 로컬 표현 전용이다
+        [SyncVar(hook = nameof(OnPhaseChangedLocal))] private RunPhase _phase = RunPhase.Lobby;
 
         // 일시정지는 phase가 아니라 별도 상태다. 보스전에서 멈췄다 보스전으로 돌아오므로
         // RunPhase에 값을 더하면 전진 전용 가드와 타임라인 순서 의미가 깨진다
-        [SyncVar] private bool _isPaused = false;
+        [SyncVar(hook = nameof(OnPausedChangedLocal))] private bool _isPaused = false;
 
         private RunPhaseTimeline _timeline               = null;  // 서버 전용
         private double           _runStartServerTime     = 0.0;   // 서버 전용, NetworkTime.time 기준
@@ -87,6 +89,21 @@ namespace Geumeum.Network
             // 남은 시간 표시는 클라가 보간하므로 매 틱 보낼 이유가 없다
             syncInterval = Constants.Network.RUN_TIME_SYNC_INTERVAL;
             _tickWait    = new WaitForSeconds(Constants.Network.SERVER_TICK_INTERVAL);
+        }
+
+        /****************************************
+        *              SyncVar Hooks
+        ****************************************/
+
+        // 소리는 각 클라이언트가 자기 화면에서 내는 로컬 표현이라 여기서 전파하지 않는다
+        private void OnPhaseChangedLocal(RunPhase oldPhase, RunPhase newPhase)
+        {
+            RunSoundDirector.OnPhaseChanged(newPhase);
+        }
+
+        private void OnPausedChangedLocal(bool oldPaused, bool newPaused)
+        {
+            RunSoundDirector.OnPausedChanged(newPaused);
         }
 
         /****************************************

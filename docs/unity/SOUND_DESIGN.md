@@ -1,20 +1,38 @@
 # 사운드 설계 — 조달 · 믹싱 · 스템 레이어
 
-**2026-09-04 신설.**
+**2026-09-04 신설. 2026-09-05 개정** — 보스 1P·2P **음악 방향**과 Suno 프롬프트 신설(3.4~3.6), **SFX P0 6줄 확정**(2.2), **믹서 그룹 구조 정정**(4.2).
+**2026-09-05 2차** — **재생 계층 구현**(6장 1~3번) + 팀장 파트 호출부 배선. 1장 · 4.1 · **4.2 믹서 구조 정정** · 6장 갱신.
+
+> ⚠️ **4.2는 이번에 바뀌었다.** 그룹을 카테고리로만 나누면 3인 코옵에서 **내 패링과 남의 패링이 구분되지 않는다.**
+> 그리고 이 문서가 스스로 경고하듯 **믹서 그룹은 나중에 못 나눈다.** 재생 계층을 만들기 전에 4.2를 읽는다.
 
 ---
 
-## 1. 현재 상태 — 아무것도 없다
+## 1. 현재 상태 — 계층이 다 섰고, 소리만 없다
 
-**2026-09-04 실측.**
+**2026-09-05 갱신.** 재생 계층(6장 1·2번)과 팀장 파트 호출부 배선이 끝났다. **클립은 여전히 0개다.**
 
 ```
-Assets/07.Sounds/                                    파일 0개
-Assets/01.Scripts/  AudioSource·AudioClip·AudioMixer  참조 0개
-docs/licenses/                                       비어 있음
-docs/01-system-design.md                             "사운드 | 국악 라이브러리 | 미확보"
-docs/02-game-design.md                               "사운드 방향 | 미정"
+Assets/07.Sounds/GeumeumMixer.mixer                  믹서 · 그룹 8개 · 노출 파라미터 2개
+Assets/09.Data/Sound/SoundCatalogSO.asset            SFX 10 · BGM 4 — 클립은 전부 비어 있음
+Assets/01.Scripts/00.Common/Types/                   SoundKey · SoundChannel · BgmTrack
+Assets/01.Scripts/00.Common/Constants/Constants.sound.cs
+Assets/01.Scripts/00.Common/Data/SoundCatalogSO.cs   GameDB.Sound로 물림
+Assets/01.Scripts/00.Common/Sound/SfxPlayer.cs       재생 · 중복 제거 · 일시정지 · 프리로드
+Assets/01.Scripts/00.Common/Sound/BgmPlayer.cs       크로스페이드 · 무음 후 재생 · 일시정지
+Assets/01.Scripts/00.Common/Sound/SoundVolume.cs     0~1 ↔ dB, 믹서 노출 파라미터
+
+호출부 (배선됨)   ParryController(성공·실패) · PlayerAttack(적중·헛스윙) · PlayerStatus(피격)
+호출부 (미배선)   보스 예고 4종 · 그로기 진입 — @oname36-creator 파트
+개발용 클립      Assets/07.Sounds/Dev/ — 3개 (절차 생성. 실제 소리가 오면 지운다)
+실제 클립 파일    0개
+docs/licenses/   비어 있음
 ```
+
+> **개발용 클립은 사운드 디자인이 아니라 시스템 검증용이다.** 좋은 소리가 아니라 **구별되는 소리**면 된다 —
+> 지금 패링 성공(높은 삑) · 실패(낮은 삑) 두 키에만 물려 있고, 그것만으로 거리 감쇠 · 내 소리/남의 소리 · 중복 제거가 귀로 확인된다.
+
+> **클립을 카탈로그에 꽂는 순간 위 다섯 소리는 코드 수정 없이 난다.**
 
 > 🔒 **에셋을 오늘 1,000개 사와도 오늘은 아무것도 들리지 않는다.**
 > 없는 것은 소리가 아니라 **소리를 낼 방법**이다. 그래서 재생 계층이 조달보다 먼저다.
@@ -57,6 +75,41 @@ docs/02-game-design.md                               "사운드 방향 | 미정"
 | 10 | 꼬리 파괴 | 2페이즈 유일한 이정표 |
 | 11 | 게이트 카운트다운 | 30초 압박 |
 | 12 | 페이즈 전환 · **먹 번짐** · 처치 | [연출 3장](BOSS_STAGING_DESIGN.md) |
+
+### 2.2 P0 6줄 — 없으면 보스전이 성립하지 않는 것
+
+**2026-09-05 확정.** 2.1이 "40분 게임 전체에 무엇이 필요한가"라면, 이것은 **"보스전을 굴리려면 최소 무엇인가"**다. 키는 실제 코드의 호출 지점에 붙였다.
+
+| 키 | 호출 지점 (코드 근거) | 길이 | 왜 P0인가 |
+|---|---|---|---|
+| `boss_tell_a`~`d` | 예고 템플릿 4종 (windup **1.2 / 1.5 / 2.0 / 0.8초**) | windup보다 짧게 | **패링 학습의 전부.** 10패턴이 이 4개로 묶인다 |
+| `parry_success` | `ParryController` 성공 | ≤0.3초 | 0.32초 창의 결과 통지 |
+| `parry_fail` | `ParryController` `MissTiming` | ≤0.3초 | 성공과 **음색이 달라야** 1이 의미를 갖는다 |
+| `melee_hit` / `melee_whiff` | `PlayerAttack.ApplyMeleeHit` — `hitCount > 0` 분기 | 0.2초 | 헛스윙 구분이 **게이지 보존 규칙**과 한 쌍 |
+| `player_hurt` | `PlayerStatus` 피격 | 0.4초 | 3인 중 누가 맞았는지 |
+| `boss_groggy_enter` | 그로기 진입 (문 3종 공통) | 1.5초 | **유일한 공격 기회.** 파티 전체의 신호 |
+
+**P1** — `melee_swing_1/2/3`(`RpcAttackStarted(comboStage)`, [3단 콤보](PLAYER_ATTACK_DESIGN.md)) · `melee_critical` · **`enemy_death`** · `bow_fire`/`arrow_hit`/`arrow_expire` · `roll` · `stamina_empty`(`TrySpendStamina` 실패) · `footstep_wet`/`footstep_dry` · `boss_hurt`/`boss_groggy_end` · `barrier_shrink`
+
+> **2026-09-05 정정 — `enemy_death`가 빠져 있었다.** 2.1의 6번이 *"30분간 가장 자주 들린다"*라고 적어 놓고 P1 목록과 `SoundKey`에는 없었다.
+> 잡귀 3종은 **키 하나를 공유하고 클립 후보로 변형을 준다** — 종류별로 키를 나누면 잡귀가 늘 때마다 카탈로그가 커지고, 지금은 소리가 같아도 된다. 갈라야 할 때 키를 늘린다.
+
+**P2** — 무기 교체 · 레벨업 · UI · 등불 · 물 앰비언스 · 사당 · 부활 · 정산
+
+> `footstep_wet`이 P1인 이유 — **아레나 바닥은 1페이즈부터 젖어 있다**([연출 4.2](BOSS_STAGING_DESIGN.md)). 젖은 발소리가 곧 장소감이다.
+
+### 2.3 🔒 예고음은 종류만 알린다 — 타이밍은 알리지 않는다
+
+**2026-09-05 확정. 뒤집지 않는다.**
+
+```
+소리  →  무엇이 오는가 (예고 4종 중 어느 것)
+모션  →  언제 치는가   (패링 창 [impact−0.32, impact])
+```
+
+**패링 창 진입 시점에 두 번째 청각 큐를 주지 않는다.** 0.32초를 귀로 떠먹여주면 액션이 아니라 리듬 게임이 되고, [엇박 학습](BOSS_PATTERN_CONTRACT.md)이 통째로 무의미해진다.
+
+**그래서 예고음 4종은 볼륨이 아니라 음색으로 서로 갈라야 한다.** 같은 음색의 크기 차이로 만들면 4종이 1종이 된다.
 
 ---
 
@@ -101,6 +154,146 @@ docs/02-game-design.md                               "사운드 방향 | 미정"
 
 **무음이 2P 곡의 끝이다.** 재개할 필요가 없고, 오히려 낫다 — 소리가 한꺼번에 돌아올 때 **돌아온 것이 아까 그 음악이 아니라 새로운 것**이면 더 강하다.
 
+### 3.4 보스 음악의 축 — 소유권이 넘어온다
+
+**2026-09-05 확정.**
+
+레퍼런스는 로스트아크 《죽음의 계율자, 벨가르딘》이지만, **가져오는 것은 "오케스트라라는 형식"이지 "웅장함"이 아니다.** 웅장함은 2페이즈에만 있다.
+
+| | 1페이즈 | 2페이즈 |
+|---|---|---|
+| 규모 | **실내악** (8인 규모) | 오케스트라 + 목소리 |
+| 관점 | **보스의 음악** — 그녀가 틀어놓은 가락 | **보스에 대한 음악** |
+| 축 악기 | 해금 1대 (사람 목소리처럼 운다) | 해금 9대 + 목소리 9 |
+| 타악 | **가죽을 치지 않는다**(3.5) | 가죽 타악이 여기서 처음 등장 |
+| 감정 | 예의 — 정확히는 **예의를 유지하려는 긴장** | 개화. 승리감이 아니다 |
+
+**1페이즈가 "그녀가 튼 음악"인 이유** — 보스는 아직 싸우고 있지 않다. 갓과 너울을 쓴 채 **손님을 맞고 있다**([객주 = 구미호](../class-identity-and-boss-2026-09-03.md)). 음악이 전투를 인정하는 순간이 2페이즈다.
+
+> 🔥 **수미상관** — 2페이즈의 아홉 목소리는 **1페이즈에 해금이 켜던 그 가락을 부른다.**
+> 그때 플레이어는 그 음악이 처음부터 그녀였음을 안다. [갓이 1막에 클로즈업되고 3막에 떨어지는 것](TEASER_DESIGN.md)과 같은 구조다.
+
+### 3.5 🥁 1페이즈는 가죽을 치지 않는다
+
+**2026-09-05 확정. 실제 생성 결과로 한 번 교정된 규칙이다.**
+
+초안은 *"1페이즈 무타악"*이었다. 뽑아보니 **객주 느낌은 맞았으나 전투로 들리지 않았다**(사용자 청취).
+
+**원인은 타악 제거 자체가 아니라, 타악이 하던 두 가지 일 중 하나만 빼려다 둘 다 뺀 것이다.**
+
+| 타악이 하던 일 | 빼고 싶었던 것인가 |
+|---|---|
+| **"지금 전투다"라고 선언한다** | ✅ 빼고 싶었다 (2페이즈 카드) |
+| **곡을 앞으로 민다** | ❌ 빼면 안 됐다 → 긴장이 아니라 **평온**이 된다 |
+
+**대체 추진력** — 오스티나토(저음 현의 짧은 반복 음형), 콜 레뇨(활대로 현을 때리는 타격), 술 폰티첼로 트레몰로, 템포 88~96. 홀스트 〈화성〉의 수법이며 **타악기 없이 앙상블 자체가 리듬 기계**가 된다.
+
+```
+1페이즈  나무와 현으로 때리는 것까지 허용   (콜 레뇨 · 박(拍) · 거친 아쟁 보잉)
+2페이즈  가죽 타악(장구 · 북)이 이때 처음 등장
+```
+
+**이 한 줄이 페이즈 상승 카드를 지키면서 1페이즈에 맥박을 준다.**
+
+### 3.6 🚨 2페이즈의 제약 — 웅장할수록 패링을 덮는다
+
+**1페이즈는 실내악이라 대역이 비어 있어 문제가 없었다.** 2페이즈는 다르다.
+
+**4.3의 덕킹만으로는 부족하다.** 오케스트라 + 목소리 + 가죽 타악이 **패링 신호가 지나갈 자리(1~4kHz)에 통째로 들어앉으면**, 사이드체인이 매 패링마다 곡을 푹푹 꺼뜨린다. 그건 웅장한 것이 아니라 고장난 것이다.
+
+> 🔒 **웅장함은 저역에서 만들고 중고음은 비운 채로 거대해진다.**
+> 가죽 타악 · 저음 현 · 낮은 성부의 목소리로 크기를 만들고, 중고음(해금·목소리 상단)은 **간헐적으로만** 쓴다.
+> 이것이 게임 음악이 영화 음악과 갈라지는 지점이다 — 영화는 대역을 다 쓰고, 게임은 **효과음 자리를 비워두고 쓴다.**
+
+**루프에서 제외하는 악기** — **태평소**와 **징**. 둘 다 1~4kHz를 찢고 들어온다.
+
+**단 태평소는 딱 한 번 쓴다** — **꼬리가 펼쳐지는 순간의 스팅어 1발.** 곡 내내 안 나오므로 패링을 덮지 않고, 한 번뿐이라 그 한 번이 남는다. 한 번만 쓰는 악기가 가장 비싸다.
+
+### 3.7 Suno 프롬프트 (재현용)
+
+**아래 프롬프트로 뽑은 곡이 기준이다.** 다시 뽑아야 할 때 여기서 시작한다.
+**단 5.2 — 무료 티어로 뽑은 곡은 결제해도 상업 권리가 소급되지 않는다.**
+
+#### 1페이즈 《객주의 가락》
+
+```
+[Style]
+Korean traditional chamber ensemble with driving string ostinato,
+haegeum lead (erhu-like bowed fiddle), daegeum bamboo flute,
+aggressive bowed ajaeng low ostinato, col legno string attacks,
+sul ponticello tremolo, 92 BPM, relentless, tense, menacing,
+dark, no drums, chamber scale
+
+[Exclude]
+drums, drum kit, taiko, skin percussion, choir, brass, epic orchestral,
+cinematic trailer, EDM, rock, bells, chimes, ambient, calm, peaceful, relaxing
+
+[Lyrics — Instrumental ON]
+[Intro: low ajaeng ostinato begins, bowed hard, repeating, no drums]
+[A: haegeum enters over the ostinato, poised but strained]
+[B: col legno string attacks, ostinato tightens, dissonance climbing]
+[A': haegeum melody fractures, sul ponticello tremolo underneath]
+[Outro: ostinato continues alone, unresolved, does not settle]
+```
+
+- `ambient, calm, peaceful, relaxing` 제외가 핵심이다. 초안의 `restrained`·`elegant`를 Suno가 **"잔잔하게"로 읽었다.**
+- `bells, chimes` 제외는 필수 — **방울은 무녀 것이고 엽전은 첫 조우 것이다.** 보스가 그 음색을 쓰면 신호가 섞인다.
+- `choir` 제외도 필수 — 코러스는 2페이즈 카드다.
+- 여전히 잔잔하면 **한 번에 하나씩만** 돌린다: ① `5/4 time signature, 96 BPM` ② `snarling distorted ajaeng, bow pressure` ③ `sharp wooden clapper hits (bak)`. **장구·북·합창 추가는 금지** — 그 순간 2페이즈가 사라진다.
+- 그래도 안 되면 장르를 `Korean court chamber music, jeongak, slow ceremonial`로 바꾼다. 정악은 **타악이 원래 거의 없는 장르**라 장르가 드럼을 밀어낸다.
+
+#### 2페이즈 《아홉의 가락》
+
+```
+[Style]
+Korean traditional symphonic, monumental dark fantasy, nine layered wordless
+female voices (same singer multiplied, slightly detuned), nine detuned haegeum
+in unison, janggu and buk skin drums, deep low string ostinato, ajaeng,
+heavy low register, sparse mid range, 100 BPM, relentless, monstrous grandeur
+
+[Exclude]
+church choir, gregorian, angelic, male choir, cathedral, taepyeongso, jing, gong,
+bright brass, trumpet fanfare, EDM, rock, cheerful, uplifting, heroic, triumphant
+
+[Lyrics — Instrumental ON]
+[Intro: skin drums enter for the first time, low and heavy, ground shaking]
+[A: nine detuned female voices hum the old melody, wordless, in unison]
+[B: nine haegeum join the voices, low string ostinato driving underneath]
+[C: drums double, voices split into dissonant intervals, immense]
+[A': the melody returns whole, sung by all nine, monstrous and calm]
+[Outro: everything drops away at once, sudden, no fade]
+```
+
+- 🔥 **`church choir, angelic, cathedral` 제외가 서사를 지킨다.** 아홉 목소리는 **구미호 자신**이지 그녀가 잡아먹은 희생자들이 아니다. 희생자로 들리는 순간 보스에게 사연이 붙고, [티저에서 "비극"을 "폭로"로 바꾼 결정](TEASER_DESIGN.md)이 음악으로 되살아난다.
+- 대성당 합창단이 아니라 **한 사람을 아홉 번 복제해 미세하게 디튠**한다. 꼬리가 **실물 1 + 실루엣 8**인 것과 정확히 같은 구조이며, 같은 스템을 복제·디튠하면 되므로 제작비가 거의 들지 않는다.
+- `heroic, triumphant` 제외 — 이것은 플레이어의 승리가 아니라 **보스의 개화**다.
+- `[Outro: ... sudden, no fade]`가 **무음 3초가 붙을 자리**다(3.3).
+
+#### 전환 스팅어 (곡이 아니라 효과음 1발)
+
+```
+[Style]
+solo taepyeongso (Korean shawm) single piercing cry, unaccompanied,
+raw, splitting, followed by low sub-bass swell and silence
+
+[Exclude]
+drums, melody, music, loop, choir
+```
+
+8초로 뽑고 앞뒤를 잘라낸다. **꼬리 펼침에 한 번, 이후 두 번 다시 쓰지 않는다.**
+
+#### 채택 판정 기준
+
+| | 1페이즈 | 2페이즈 |
+|---|---|---|
+| ① | 해금 선율이 **사람 목소리로** 들리는가 | 목소리가 "여럿"이 아니라 **"하나가 아홉 번"**으로 들리는가 |
+| ② | **가죽 타악이 없는가** | 1페이즈보다 확실히 커졌는가 (장르가 바뀌면 실패) |
+| ③ | 더 커질 여지가 남았는가 | **중고음이 비어 있는가** (3.6) |
+| ④ | 손님을 맞는 **척하는** 음악인가 | 승리처럼 들리지 **않는가** |
+| ⑤ | 중고음(1~4kHz)이 꽉 차지 않았는가 | 끝이 **뚝 끊기는가** |
+
+**두 곡은 반드시 붙여서 듣고 판정한다.** 따로 들으면 그냥 곡 두 개이고, 순서대로 들어야 이야기가 된다.
+
 ---
 
 ## 4. 재생 계층
@@ -117,18 +310,127 @@ AudioMixer       ← 아래 4.2
 
 **클립이 0개여도 지금 만든다.** 나중에 만들면 호출 지점 12곳을 다시 뒤져야 한다.
 
+**2026-09-05 — 위 셋이 만들어졌다. 확정된 것 넷.**
+
+| | 결정 | 왜 |
+|---|---|---|
+| **`SfxPlayer`를 `00.Common/Sound/`에 둔다** | `05.Art`가 아니다 | 사운드는 **구현체를 교체할 대상이 아니라 공용 서비스**다. `ICombatFeedback`의 로케이터 패턴은 아트가 표현을 갈아 끼우기 위한 것이고, 재생기는 `GameDB`와 같은 위상이다. 아트가 화면 연출과 소리를 묶고 싶으면 `CombatFeedbackImpl`이 `SfxPlayer`를 부르면 된다 — 그쪽이 의존 방향에 맞다 |
+| **키는 `SoundKey` enum** | 문자열이 아니다 | 오타가 컴파일 에러가 되고, 인스펙터에서 드롭다운으로 고른다. 직렬화되므로 **기존 값을 재배열하지 않고 뒤에만 추가한다** |
+| 🔒 **중복 제거 키는 `(SoundKey, isLocalPlayer)` 쌍** | 키만으로 묶으면 안 된다 | 키만 보면 **내 패링과 남의 패링이 같은 프레임에 났을 때 하나가 사라진다.** 4.2가 볼륨으로 갈라 놓은 것을 중복 제거가 도로 지운다 |
+| **원격 볼륨은 믹서, 원격 피치는 코드** | 나누는 이유가 다르다 | 볼륨은 `SFX_Remote` 그룹에서 준다(믹서가 존재하는 이유가 그것이다). 피치는 믹서 그룹으로 못 주므로 `SoundCatalogSO.RemotePitchOffset`이 재생 시점에 더한다 |
+
+**클립이 비어 있는 엔트리는 조용히 넘긴다** — 조달 전이라는 뜻이지 결함이 아니다. 반면 **카탈로그에 아예 없는 키**는 호출부와 표가 어긋난 것이라 키마다 한 번 경고한다.
+
+#### 2026-09-05 2차 — 리뷰에서 나온 여섯 가지
+
+| 결정 | 이유 |
+|---|---|
+| 🔑 **중복 제거 키 = (키, isLocalPlayer, **발신자**)** | 발신자를 빼면 **남의 캐릭터 둘이 같은 프레임에 맞았을 때 비명이 하나만 난다.** 1차에서 `isLocalPlayer`까지만 갈랐던 것을 마저 고쳤다 |
+| **`MinInterval`에 실제 값** | 필드만 만들고 전부 0이면 없는 것과 같다. `PlayerHurt` 0.35초 — **결계 지속 피해가 구현되는 순간** 초당 비명이 되는 것을 미리 막는다. 그 구현자는 자기 파트에서 아무것도 안 틀린다 |
+| **놀고 있는 소스를 먼저 고른다** | 라운드로빈만 돌면 16개를 넘길 때 **울리는 중인 소리의 피치와 믹서 그룹이 도중에 갈린다.** 전부 차 있으면 가장 오래된 것을 재사용한다 — 전투 중에 소스를 새로 만들면 할당이 튄다 |
+| **`dopplerLevel = 0`** | 켜두면 화살처럼 빠른 발신자의 피치가 저 혼자 흔들려 `PitchJitter`와 겹친다. **음색으로 소리를 구분하려면 피치는 의도한 것만 흔들려야 한다**(2.3) |
+| 🔑 **엔트리의 `Is2D`가 위치 사용 여부를 정한다** | 호출부가 오버로드로 고르면 **보스 예고음을 `Play(key, boss.position, …)`으로 부르는 것이 자연스럽고, 그 순간 아레나 반대편 사람은 예고음을 작게 듣는다.** "위치를 갖는가"는 소리의 속성이지 호출 지점의 선택이 아니다 |
+| **`AudioClip` → `AudioClip[]` 후보** | 잡귀 사망은 30분간 수백 번 울린다. ±5% 피치 흔들기로는 못 버틴다. 지금은 필드 하나를 바꾸는 일이고, **클립을 채운 뒤에는 카탈로그를 다시 짜는 일**이 된다 |
+
+**검증 창구** — `SfxPlayer.Last`(마지막 재생의 키·발신자·그룹·피치·2D 여부)와 `SfxPlayer.PlayedCount`. 게임 로직은 읽지 않고, **고친 뒤 다시 확인할 방법**으로 둔다.
+
+### 4.1.1 BGM · 볼륨 — 이전 프로젝트에서 가져온 것과 버린 것
+
+**2026-09-05.** 팀장의 이전 프로젝트(`sheepy` / The Last Rewind)의 `10.Sound`를 읽고 판단했다.
+
+| 가져온 것 | 어디에 |
+|---|---|
+| **BGM 크로스페이드** (소스 둘 + `unscaledDeltaTime` 코루틴) | `BgmPlayer` — 거의 그대로 |
+| **일시정지·재개** | `BgmPlayer.Pause` · `SfxPlayer.PauseAll` |
+| **프리로드** (첫 재생 디코딩 지연 제거) | `SfxPlayer.Preload`, `GameDBBootstrap`이 호출 |
+
+| 버린 것 | 왜 |
+|---|---|
+| `SoundData`의 **`ESfxState` + 배열 인덱스 이중 키** | 인덱스가 배열 순서에 묶여 순서를 바꾸면 소리가 뒤바뀐다. 원본 주석에 *"순서와 일치시킬 것"* 경고가 다섯 번 나온다 |
+| **`spatialBlend = 0f` 고정** | 2D 프로젝트 전제다. 우리는 위치가 있어야 3인이 서로 어디서 났는지 안다 |
+| **`source.volume`에 전역 볼륨 직접 곱하기** | 믹서를 쓰는 한 이걸 하면 그룹 위계가 무의미해진다. 볼륨은 노출 파라미터로 간다 |
+| **SFX 재생 위치 스냅샷** (`PausedSfxData`) | 원본은 루프 SFX가 있어 필요했다. 우리 효과음은 전부 0.2~1.5초라 `AudioSource.Pause` 하나면 된다 |
+| **지속형 SFX 채널** (`identity` 키) | 2.1 · 2.2 · P1 어디에도 루프 소리가 없다. 수요가 생기면 그때 넣는다 |
+| `BgmZoneTrigger` · `MapBgmPlayer` · `LocalSfxEmitter` | `Collider2D` 존 진입 방식이고, 우리 BGM 전환은 존이 아니라 `RunPhase`가 정한다. `LocalSfxEmitter`는 프리팹마다 클립을 직접 꽂아 카탈로그 원칙과 반대다 |
+
+> ⚠️ **BGM은 프리로드 대상이 아니다.** 개활 트랙 하나가 26분이라 통째로 메모리에 올리면 안 된다 — **임포트 설정을 스트리밍으로 두고** `CollectSfxClips`가 BGM을 빼고 모은다.
+
 ### 4.2 믹서 그룹 — 지금 나눠야 한다
+
+> ⚠️ **2026-09-05 정정.** 아래 초안은 **3인 코옵에서 무너진다.**
+> ```
+> Master ├ BGM └ SFX ├ Combat_Critical └ Combat_Normal     ← 폐기
+> ```
+> 세 사람이 같은 마당에서 동시에 칼을 휘두른다. 이 구조에서는 **내 패링 성공음과 남의 패링 성공음이 같은 볼륨으로 난다.**
+> 패링 창이 0.32초인데 그 판정 결과를 귀로 못 받으면 **학습이 성립하지 않는다.**
+
+**그룹은 카테고리보다 먼저 "내 소리 / 남의 소리"로 갈라야 한다.**
 
 ```
 Master
-├ BGM              ← Duck Volume. SFX_Critical을 사이드체인으로 문다
-└ SFX
-   ├ Combat_Critical   패링 성공·실패 · 꼬리 파괴 · 페이즈 전환
-   └ Combat_Normal     타격 · 피격 · 구르기 · 잡귀 사망 · 화살
+├ BGM                       ← Duck Volume. Local_Critical을 사이드체인으로 문다
+│                             노출 파라미터 BgmVolume
+└ SFX                       ← 노출 파라미터 SfxVolume
+   ├ SFX_Local              내 캐릭터가 낸 소리          (isLocalPlayer)
+   │  ├ Local_Critical         패링 성공·실패 · 치명타
+   │  └ Local_Normal           타격 · 피격 · 구르기 · 발소리 · 화살
+   ├ SFX_Remote             남의 캐릭터가 낸 소리        (볼륨 낮춤 + 살짝 다른 피치)
+   └ SFX_World              보스 · 잡귀 · 결계 · 환경 · UI
 ```
 
-> 🔒 **SFX 12개를 다 만든 뒤에는 무엇이 중요한지 나눌 수 없다.**
-> 그룹은 재생 계층을 만들 때 함께 잡는다.
+> ⚠️ **2026-09-05 — `SFX` 부모를 하나 끼웠다.** 초안은 셋이 `Master` 바로 아래 형제였다.
+> 그러면 효과음 슬라이더 하나로 셋을 잡기 위해 **각각에 노출 파라미터를 걸어야 하는데, 노출 파라미터는 절대 dB를 덮어쓴다.**
+> 슬라이더를 움직이는 순간 `SFX_Remote`의 상대 오프셋이 날아가고, **이 절이 지키려던 Local/Remote 차이가 사라진다.**
+> 부모를 하나 끼우면 사용자 볼륨은 부모가 받고 자식은 상대 오프셋을 유지한다. **Local/Remote 분리는 그대로다.**
+
+**`SFX_Remote`를 낮추는 것은 남을 무시하는 것이 아니다.** 남의 패링도 들려야 파티가 협력한다 — 다만 **내 것과 구분되어야** 한다. 볼륨 차이 + 미세한 피치 차이로 가른다.
+
+> 🔒 **믹서 그룹은 나중에 못 나눈다.** SFX를 다 만든 뒤에는 무엇이 내 소리였는지 되짚을 수 없다.
+> 그룹은 `SfxPlayer`를 만들 때 **함께** 잡는다. 그래서 6장의 1번이 1번이다.
+
+**`SfxPlayer`는 재생 시점에 `isLocalPlayer`를 받아 Local/Remote를 고른다.** 이것이 이 문서에서 재생 계층에 요구하는 유일한 인자다.
+
+### 4.2.1 볼륨 설정 — UI가 쓸 것 (소유: @kjw1237)
+
+**2026-09-05 구현.** 설정 화면은 **슬라이더 세 개만 만들면 된다.** 저장·복원·dB 변환은 `SoundVolume`이 한다.
+
+```csharp
+// 슬라이더 값이 바뀔 때
+SoundVolume.SetMaster(value);   // 0~1
+SoundVolume.SetBgm(value);
+SoundVolume.SetSfx(value);
+
+// 슬라이더 초기값을 맞출 때
+masterSlider.value = SoundVolume.Master;
+bgmSlider.value    = SoundVolume.Bgm;
+sfxSlider.value    = SoundVolume.Sfx;
+
+// 설정 창을 닫을 때 (안 불러도 종료 시 Unity가 저장한다)
+SoundVolume.Flush();
+```
+
+| | 값 | 비고 |
+|---|---|---|
+| `MasterVolume` | 기본 1.0 | 음소거는 0 |
+| `BgmVolume` | **기본 0.7** | 처음부터 낮춰 둔다 — BGM이 효과음을 덮는 쪽이 반대보다 흔하다 |
+| `SfxVolume` | 기본 1.0 | `SFX` 부모에 걸려 **Local · Remote 차이는 유지된다**(4.2) |
+
+```csharp
+SoundVolume.SetMuted(true);      // 슬라이더 값은 그대로 두고 전체만 끈다
+bool muted = SoundVolume.IsMuted;
+```
+
+- **저장은 `PlayerPrefs`**(`Sound.Master` · `Sound.Bgm` · `Sound.Sfx` · `Sound.Muted`). 런 상태와 달리 기기에 남는다
+- 🔑 **`Apply()`는 믹서에만 넣고 저장하지 않는다.** 저장까지 하면 **슬라이더를 한 번도 안 건드린 사람에게 기본값이 박혀**, 나중에 기본값을 조정해도 이미 게임을 켜 본 사람에게는 반영되지 않는다 — **정작 값을 바꾼 팀원만 안 바뀐 소리를 듣게 된다**
+- **음소거는 볼륨 0과 다른 상태다.** 마스터 한 곳에서만 적용해 다시 켤 때 순서에 따라 값이 어긋나지 않는다
+- **게임 시작 시 자동 적용된다** — `SoundBootstrap`이 첫 프레임에 한 번 민다. 설정 창이 직접 부를 필요 없다
+- **0~1은 dB로 로그 변환된다.** 선형 값을 그대로 dB에 넣으면 슬라이더 절반에서 거의 안 줄어든 것처럼 들린다 (0.5 → −6.02dB)
+- ⚠️ **`SetFloat`은 플레이 중에만 듣는다.** 에디터에서 부르면 저장만 되고 적용은 안 된다 — 결함이 아니다
+
+> 🔥 **`RuntimeInitializeOnLoadMethod(AfterSceneLoad)`에서 볼륨을 넣으면 조용히 사라진다.**
+> 초안이 그렇게 돼 있었고 **플레이 모드 실측에서 걸렸다** — `SetFloat`이 `true`를 돌려주는데도 값이 0dB로 남았다.
+> **그 시점에는 믹서가 아직 깨어나지 않아 스냅샷이 나중에 덮는다.** 반환값을 믿고 넘어갔으면 *"저장은 되는데 소리는 안 바뀐다"*가 됐을 것이다.
+> 그래서 `SoundBootstrap`이 **첫 프레임(`Start`)에** 적용하고 스스로를 지운다. 이 한 프레임이 차이의 전부다.
 
 ### 4.3 덕킹 — 볼륨감이 패링을 죽이지 않고 살린다
 
@@ -177,11 +479,23 @@ Suno 출력은 시작과 끝이 뚜렷해서 그대로 넣으면 이어지지 �
 
 **Suno는 곡을 만들지 큐(cue)를 만들지 않는다.** 인트로·후렴·아웃트로가 있는 3분 곡을 26분 구간에 그대로 넣으면 같은 후렴을 여덟 번 듣는다. 3.2의 스템 레이어링이 이것도 함께 완화한다.
 
-### 5.4 ElevenLabs — 인증이 먼저다
+### 5.4 ElevenLabs — 인증이 먼저이고, 게임 제외 조항을 먼저 읽는다
 
 **음악은 Suno가 낫지만 효과음은 ElevenLabs가 낫다.** 2.1의 타격·구르기·잡귀 사망 같은 것은 텍스트로 뽑는 편이 CC0를 뒤지는 것보다 빠르다.
 
 **단 현재 이 프로젝트의 ElevenLabs 커넥터는 인증되지 않은 상태다.** claude.ai 커넥터 설정에서 인증을 마쳐야 사용할 수 있다.
+
+> 🚨 **2026-09-05 확인 — 가격만 보고 고르면 안 된다.**
+>
+> | | 상업 권리 시작 | 스템 | 걸리는 것 |
+> |---|---|---|---|
+> | **Suno Premier** | $30/월 (연간 $24) | ✅ Premier에만 | 저작권 **귀속 보장은 하지 않음**(5.2) |
+> | **ElevenLabs Starter** | $6/월 | ✅ 포함 | **자체 서비스 플랜의 상업 허가가 영화·TV·"Studio Games"를 제외한다.** 전부 커버는 Enterprise |
+>
+> ElevenLabs는 5배 싸고 **라이선스된 데이터로만 학습**했다고 명시해 출처가 더 깨끗하다. 그러나 *"우리가 Studio Game인가"*는 **아무도 모르는 상태로 Steam에 출시하게 된다.**
+>
+> **판단: 테스트는 아무 쪽이나, 최종 곡은 Suno Premier.** 월 $24 차이로 출시 직전에 약관을 다시 읽지 않아도 된다.
+> **약관은 검증할 수 없는 항목이다** — 코드는 테스트하면 되지만 이것은 안 된다.
 
 ### 5.5 🚨 `docs/licenses/`를 먼저 채운다
 
@@ -196,13 +510,48 @@ Suno 출력은 시작과 끝이 뚜렷해서 그대로 넣으면 이어지지 �
 ## 6. 구현 순서
 
 ```
-1. AudioMixer 그룹 4개 (Master / BGM / Combat_Critical / Combat_Normal)
-2. SoundCatalogSO + SfxPlayer         ← 클립 0개로
-3. BGM 재생 + 보스 2P 트랙 하나        ← 9.8 무음 3초가 여기서 살아난다
-4. 패링 성공·실패 2종 + Duck Volume 배선
-5. 나머지 SFX 10종
-6. 개활 스템 4층 + 결계 단계 연동      ← 3.2
+1. AudioMixer 그룹 (Master / BGM / SFX{Local{Critical,Normal}, Remote, World})   ← 4.2      ✅ 2026-09-05
+2. SoundCatalogSO + SfxPlayer         ← 클립 0개로. isLocalPlayer를 받는다                     ✅ 2026-09-05
+3. BGM 재생 계층 (크로스페이드 · 무음 후 재생 · 볼륨)  ← 9.8 무음 3초가 여기서 살아난다          ✅ 2026-09-05 (계층만, 클립 대기)
+4. 패링 성공·실패 2종 + Duck Volume 배선                                                       ◐ 호출부만
+5. P0 나머지 (예고 4종 · 근접 히트/헛스윙 · 피격 · 그로기 진입)   ← 2.2                          ◐ 팀장 파트만
+6. P1
+7. 개활 스템 4층 + 결계 단계 연동      ← 3.2
 ```
+
+**코드로 할 수 있는 것은 여기까지다.** 3·4·5의 남은 부분은 **전부 클립을 기다리고 있고**, 그래서 다음 차단은 조달(5장)이다.
+
+**◐ 로 남은 것 셋**
+
+| | 남은 것 | 왜 지금 못 하나 |
+|---|---|---|
+| 4 | **Duck Volume 이펙트 배선** | 눌릴 BGM과 누를 패링음이 둘 다 없어 **효과를 확인할 방법이 없다.** 값도 귀로 정해야 한다 |
+| 5 | **보스 예고 4종 · 그로기 진입** | `03.AI` 소유(@oname36-creator). 키(`BossTellA~D` · `BossGroggyEnter`)는 카탈로그에 이미 있으니 **호출 한 줄씩만 넣으면 된다** |
+| 4 | **`SFX_Remote` 볼륨** | 아직 0dB다. 클립이 0개라 **귀로 맞출 수 없어서** 임의의 숫자를 넣지 않았다. **잊으면 Local과 Remote가 피치만 다른 같은 볼륨이 된다** |
+
+**호출부 배선 결과 (2026-09-05)**
+
+| 키 | 어디서 | 네트워크 |
+|---|---|---|
+| `ParrySuccess` · `ParryFail` | `ParryController.TargetParryResult` | **추가 없음** — 이미 있던 TargetRpc. 본인에게만 오므로 항상 내 소리다 |
+| `MeleeHit` · `MeleeWhiff` · `MeleeCritical` | `PlayerAttack.RpcMeleeResult` | **ClientRpc 하나 신설** — 맞았는지는 서버만 안다. bool 둘, 휘두르기당 1회 |
+| `PlayerHurt` | `PlayerStatus.OnHealthChanged` | **추가 없음** — SyncVar 훅이 모든 클라에서 돈다. 줄었을 때만 울려 회복과 최초 동기화를 거른다 |
+| `Roll` | `PlayerRollController.OnRollingChanged` | **추가 없음** — 구르기 애니메이션이 이미 쓰던 훅 |
+| **BGM 전환** | `RunManager._phase` 훅 → `RunSoundDirector` | **추가 없음** — 기존 SyncVar에 훅만 붙였다 |
+| **일시정지** | `RunManager._isPaused` 훅 → `RunSoundDirector` | **추가 없음** |
+
+> **구간 → 트랙 매핑은 `RunSoundDirector` 한 곳에만 있다.** `Farming`·`Shrink1~3` → `Field`(축소마다 다시 틀지 않는다 — 이음매에서 곡이 처음으로 돌아간다), `Boss` → `Boss1`, 나머지 → 정지.
+> **보스 2페이즈는 `RunPhase`가 아니라 보스 내부 상태**라 여기가 아니라 보스 쪽에서 건다.
+
+**아직 배선하지 않은 것과 그 이유**
+
+| 키 | 왜 |
+|---|---|
+| `EnemyDeath` | **`03.AI`는 @oname36-creator 파트다.** `EnemyStatus.Died` 이벤트가 이미 있어 **한 줄이면 붙는다.** 키를 먼저 만들어 두는 것이 이번 몫이고, 우리가 그 파일을 건드리면 그쪽 작업과 충돌한다 |
+| `BossTellA~D` · `BossGroggyEnter` | 같은 이유. 카탈로그에 **`Is2D = true`로 이미 준비돼 있다** |
+| `ArrowHit` · `BowFire` · `StaminaEmpty` | **서버 라인이라 새 RPC가 필요하다.** P1이고 지금 네트워크 트래픽을 늘릴 이유가 없다 |
+
+> 거부(`Rejected*`)에는 패링 소리를 내지 않는다. **창이 없었거나 요청이 반려된 것이지 타이밍을 놓친 것이 아니다** — 소리를 내면 플레이어가 자기 타이밍을 탓하게 된다.
 
 **1번부터 하는 이유** — 그룹은 나중에 못 나눈다(4.2).
 **3번이 4번보다 먼저인 이유** — 덕킹은 눌릴 BGM이 있어야 검증된다.
@@ -210,6 +559,23 @@ Suno 출력은 시작과 끝이 뚜렷해서 그대로 넣으면 이어지지 �
 ---
 
 ## 7. 검증
+
+**2026-09-05 플레이 모드 실측으로 통과한 것** — 클립은 런타임 생성 무음을 카탈로그 **복제본**에 꽂아 확인했다(원본 에셋은 건드리지 않았다).
+
+| 항목 | 결과 |
+|---|---|
+| 같은 키를 같은 프레임에 3회 | 재생 소스 **1개** — 중복 제거 동작 |
+| 거기에 남의 같은 키를 추가 | 재생 소스 **2개** — `(키, isLocalPlayer)` 분리가 실제로 갈린다 |
+| 라우팅 | 내 것 `Local_Critical` · 남의 것 `SFX_Remote` |
+| 원격 피치 오프셋 | 1.000 vs **0.950** |
+| 볼륨 dB 변환 | 0.5 → −6.02dB, 0.25 → −12.04dB, 0 → −80dB, 범위 밖 클램프 |
+| 볼륨 저장·복원 | `PlayerPrefs` 왕복, 키 삭제 시 기본값 복귀 |
+| 시작 시 자동 적용 | BGM 기본 0.7 → **−3.10dB**로 들어감 |
+| BGM 크로스페이드 | 이전 곡 1→0 · 새 곡 0→1, 완주 후 이전 소스 정지, `CurrentTrack` 갱신 |
+| 클립 없는 트랙 요청 | 조용히 무시하고 **현재 트랙 유지** |
+| 무음 후 재생 (9.8) | 둘 다 정지 → 지정 시간 뒤 다음 트랙 자동 시작 |
+
+**아직 못 한 것** — 실제 소리로 듣는 것 전부(덕킹 · 예고 4종 음색 구분 · 이음매), 그리고 **3인 L3**(`RpcMeleeResult`가 네트워크 추가라 필수).
 
 | 수준 | 항목 |
 |---|---|
@@ -220,3 +586,7 @@ Suno 출력은 시작과 끝이 뚜렷해서 그대로 넣으면 이어지지 �
 | **L3** | **3인 접속.** 세 클라이언트가 각자 로컬 재생하고, 같은 이벤트에 이중 재생이 없다 |
 | **L3** | 결계 축소 3회에 레이어가 각각 추가되고, 세 사람이 같은 시점에 듣는다 |
 | L2 | 보스 2P 트랙 → 무음 3초 → 처치 큐 전환이 끊기지 않는다 |
+| 🚨 **L3** | **3인이 동시에 패링했을 때 각자 자기 성공을 구분할 수 있다**(4.2). 재현 안 되면 차단 |
+| L2 | 2페이즈 곡이 깔린 상태에서 **패링음이 들리고, 곡이 푹 꺼지지 않는다**(3.6) |
+| L2 | 예고 4종이 **음색으로** 구분된다 — 볼륨을 같게 맞춰놓고 들어도 갈린다(2.3) |
+| — | 1P → 2P를 **붙여서** 들었을 때 같은 세계가 커진 것으로 들린다(3.7 판정 기준) |
