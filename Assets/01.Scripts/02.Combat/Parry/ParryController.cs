@@ -435,6 +435,17 @@ namespace Geumeum.Combat
                 CombatFeedbackLocator.Current.PlayParrySuccess();
             }
 
+            // 이 TargetRpc는 패링한 본인에게만 오므로 항상 내 소리다.
+            // 거부(Rejected*)에는 소리를 내지 않는다 - 창이 없었거나 요청이 반려된 것이지 타이밍을 놓친 것이 아니다
+            if ((resultCode == ParryResultCode.Success) || (resultCode == ParryResultCode.MissTiming))
+            {
+                SfxPlayer.Play(
+                    (resultCode == ParryResultCode.Success) ? SoundKey.ParrySuccess : SoundKey.ParryFail,
+                    transform.position,
+                    true,
+                    netId);
+            }
+
             Debug.Log($"[ParryController] 패링 결과 {resultCode}", this);
         }
 

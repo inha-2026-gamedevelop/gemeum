@@ -200,6 +200,21 @@ namespace Geumeum.Combat
             }
         }
 
+        /// <summary>
+        /// 근접 판정 결과를 모든 화면에 알린다. 맞았는지 헛쳤는지는 서버만 아는데,
+        /// 헛스윙 구분은 게이지 보존 규칙과 한 쌍이라 소리로 돌려줘야 한다 (사운드 설계 2.2).
+        /// 표현 전용이고 판정은 이미 서버에서 끝나 있다
+        /// </summary>
+        [ClientRpc]
+        private void RpcMeleeResult(bool didHit, bool wasCritical)
+        {
+            SoundKey key = (!didHit) ? SoundKey.MeleeWhiff
+                         : (wasCritical) ? SoundKey.MeleeCritical
+                         : SoundKey.MeleeHit;
+
+            SfxPlayer.Play(key, transform.position, isLocalPlayer, netId);
+        }
+
         /****************************************
         *              Server Side
         ****************************************/
@@ -402,6 +417,8 @@ namespace Geumeum.Combat
             {
                 _gauge.ServerTryConsume();
             }
+
+            RpcMeleeResult(hitCount > 0, (isCritical) && (hitCount > 0));
         }
 
         /// <summary> 다음 근접 공격이 치명의 일격인가. 소비하지 않고 보기만 한다 </summary>

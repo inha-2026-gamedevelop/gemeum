@@ -98,6 +98,13 @@ namespace Geumeum.Combat
         private void OnHealthChanged(float oldValue, float newValue)
         {
             HealthChanged?.Invoke(newValue, _maxHealth);
+
+            // 줄었을 때만 피격이다. 회복과 최초 동기화(0 -> 최대)는 여기서 걸러진다.
+            // 훅은 모든 클라이언트에서 돌아 통지용 Rpc를 따로 두지 않아도 된다
+            if (newValue < oldValue)
+            {
+                SfxPlayer.Play(SoundKey.PlayerHurt, transform.position, isLocalPlayer, netId);
+            }
         }
 
         private void OnMaxHealthChanged(float oldValue, float newValue)
