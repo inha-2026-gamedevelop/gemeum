@@ -34,6 +34,10 @@ namespace Geumeum.Art
         private const float FULL_TURN_DEGREES = 360f;
         private const float HALF_TURN_DEGREES = 180f;
 
+        // 동시에 살아 있을 수 있는 셰이크 수. 넘치면 가장 약한 것을 밀어낸다 -
+        // 게임 루프에서 할당이 일어나지 않도록 고정 배열로 잡는다
+        private const int SHAKE_SLOT_COUNT = 4;
+
         /****************************************
         *                Fields
         ****************************************/
@@ -56,6 +60,20 @@ namespace Geumeum.Art
         private float _distanceVelocity = 0f;
 
         private bool _cursorLocked = false;
+
+        // 셰이크 슬롯. Amplitude가 0이면 비어 있는 칸이다
+        private readonly ShakeSlot[] _shakes = new ShakeSlot[SHAKE_SLOT_COUNT];
+
+        /****************************************
+        *                Types
+        ****************************************/
+
+        private struct ShakeSlot
+        {
+            public float Amplitude;
+            public float Duration;
+            public float Elapsed;
+        }
 
         /****************************************
         *              Properties
@@ -80,6 +98,45 @@ namespace Geumeum.Art
                 // 새 대상까지 스무딩으로 흘러가면 맵을 가로지르는 긴 카메라 이동이 된다
                 _hasPivot = false;
             }
+        }
+
+        /****************************************
+        *              Public API
+        ****************************************/
+
+        /// <summary>
+        /// 셰이크를 하나 더한다. 전투가 아니라 <b>아트 구현체</b>(CombatFeedbackImpl)가 부른다 -
+        /// 전투는 ICombatFeedback만 알고 카메라를 참조하지 않는다.
+        /// 여러 개가 겹치면 합산하되 설정의 상한을 넘지 않는다
+        /// </summary>
+        public void AddShake(float amplitude, float duration)
+        {
+            if ((amplitude <= 0f) || (duration <= 0f))
+            {
+                return;
+            }
+
+            int weakest      = 0;
+            float weakestMag = float.MaxValue;
+
+            for (int i = 0; i < _shakes.Length; ++i)
+            {
+                // 빈 칸이 있으면 그대로 쓴다
+                if (_shakes[i].Amplitude <= 0f)
+                {
+                    weakest = i;
+                    break;
+                }
+
+                float remaining = _shakes[i].Amplitude * (1f - (_shakes[i].Elapsed / _shakes[i].Duration));
+                if (remaining < weakestMag)
+                {
+                    weakestMag = remaining;
+                    weakest    = i;
+                }
+            }
+
+            _shakes[weakest] = new ShakeSlot { Amplitude = amplitude, Duration = duration, Elapsed = 0f };
         }
 
         /****************************************
@@ -210,8 +267,51 @@ namespace Geumeum.Art
 
             Vector3 boomDirection = -(rotation * Vector3.forward);
 
-            transform.position = _smoothedPivot + (boomDirection * ResolveDistance(config, boomDirection));
-            transform.rotation = rotation; // 회전은 스무딩하지 않는다
+            // 셰이크는 붐 계산이 끝난 뒤에 더한다. 충돌 판정에 흔들림을 넣으면
+            // 벽 근처에서 거리가 흔들림에 따라 진동한다
+            transform.position = _smoothedPivot
+                + (boomDirection * ResolveDistance(config, boomDirection))
+                + ResolveShakeOffset(config);
+
+            transform.rotation = rotation; // 회전은 스무딩하지 않는다. 회전 셰이크도 넣지 않는다
+        }
+
+        /// <summary>
+        /// 살아 있는 셰이크를 합쳐 이번 프레임의 위치 오프셋을 만든다.
+        /// <b>위치만 흔든다</b> - 회전을 흔들면 FOV를 고정한 것과 같은 이유로 패링 0.32초 판단을 방해한다.
+        /// 감쇠는 지속시간 동안 선형이다
+        /// </summary>
+        private Vector3 ResolveShakeOffset(CameraConfigSO config)
+        {
+            float scale = config.ShakeScale;
+            float total = 0f;
+
+            for (int i = 0; i < _shakes.Length; ++i)
+            {
+                if (_shakes[i].Amplitude <= 0f)
+                {
+                    continue;
+                }
+
+                _shakes[i].Elapsed += Time.deltaTime;
+
+                if (_shakes[i].Elapsed >= _shakes[i].Duration)
+                {
+                    _shakes[i] = default; // 칸을 비운다
+                    continue;
+                }
+
+                total += _shakes[i].Amplitude * (1f - (_shakes[i].Elapsed / _shakes[i].Duration));
+            }
+
+            // 접근성 옵션이 0이면 여기서 끝난다. 슬롯 수명은 위에서 이미 흘렀으므로 켜고 끄기가 자연스럽다
+            if ((scale <= 0f) || (total <= 0f))
+            {
+                return Vector3.zero;
+            }
+
+            // System.Random과 이름이 겹쳐 모호해지므로 명시한다 (이 파일은 using System을 쓴다)
+            return UnityEngine.Random.insideUnitSphere * Mathf.Min(total, config.ShakeMaxAmplitude) * scale;
         }
 
         /// <summary>

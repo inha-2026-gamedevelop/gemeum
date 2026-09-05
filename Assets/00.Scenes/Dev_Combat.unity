@@ -132,6 +132,8 @@ GameObject:
   - component: {fileID: 75640409}
   - component: {fileID: 75640413}
   - component: {fileID: 75640412}
+  - component: {fileID: 75640414}
+  - component: {fileID: 75640415}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -270,6 +272,30 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 75640408}
   m_Enabled: 1
+--- !u!114 &75640414
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 75640408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ecb1b2cc945a4646b4cd89d13b02e90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.SpectatorCamera
+--- !u!114 &75640415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 75640408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c2748f3cbe94f14f8dcf0515d1879d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.CombatFeedbackImpl
 --- !u!1 &80988256
 GameObject:
   m_ObjectHideFlags: 0
