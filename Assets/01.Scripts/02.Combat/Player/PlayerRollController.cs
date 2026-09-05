@@ -202,6 +202,16 @@ namespace Geumeum.Combat
             return _localRequestId;
         }
 
+        /// <summary>
+        /// 구르기 요청 방향. 입력이 있으면 <b>이동과 같은 규칙으로</b> 화면 기준 월드 방향으로 바꾼다 -
+        /// 이동만 카메라 기준이고 구르기는 월드 축이면 같은 키를 눌러도 둘이 다른 쪽으로 간다.
+        /// 입력이 없으면 0을 보내고, 그때 방향은 서버가 마지막 이동 방향으로 정한다
+        /// </summary>
+        /// <remarks>
+        /// 락온이 붙으면 <b>입력 없는 구르기는 대상의 반대 방향</b>이어야 한다(카메라와 락온 4.3).
+        /// 지금은 FacingDirection이 곧 이동 방향이라 그 문제가 아직 없지만,
+        /// 대상 방향이 들어오는 순간 부호를 뒤집지 않으면 보스 품으로 굴러들어간다
+        /// </remarks>
         private static Vector2 ResolveRequestedDirection()
         {
             Vector2 direction = new Vector2(
@@ -213,7 +223,7 @@ namespace Geumeum.Combat
                 return Vector2.zero;
             }
 
-            return direction.normalized;
+            return CameraFrame.ToWorld(direction.normalized);
         }
 
         private Vector2 ResolveServerDirection(Vector2 requestedDirection)

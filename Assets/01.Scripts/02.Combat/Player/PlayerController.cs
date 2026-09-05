@@ -100,7 +100,11 @@ namespace Geumeum.Combat
                 Input.GetAxisRaw(Constants.Player.AXIS_HORIZONTAL),
                 Input.GetAxisRaw(Constants.Player.AXIS_VERTICAL));
 
-            Vector2 moveDirection = Vector2.ClampMagnitude(moveAxis, 1f);
+            // 입력 축을 화면 기준 월드 방향으로 바꾼다. 크기를 먼저 제한하고 방향만 돌린다 -
+            // 회전은 크기를 보존하므로 서버가 보는 값의 크기는 지금과 같다.
+            // 변환은 클라이언트가 한다. 서버가 하면 카메라 각도를 함께 보내고 예측에도 넣어야 해서
+            // 재조정 경로가 통째로 바뀐다. 카메라가 없으면 Yaw가 0이라 입력이 그대로 나간다
+            Vector2 moveDirection = CameraFrame.ToWorld(Vector2.ClampMagnitude(moveAxis, 1f));
             bool    sprintHeld    = Input.GetKey(Constants.Player.KEY_SPRINT);
 
             // 예측은 매 프레임, 발신은 30Hz다. 발신 주기에만 위치를 옮기면 프레임이 아무리 빨라도
