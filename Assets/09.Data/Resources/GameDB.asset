@@ -25,3 +25,4 @@ MonoBehaviour:
   _talent: {fileID: 11400000, guid: f02c217d871fd524eb4fe9ee57f2cc45, type: 2}
   _score: {fileID: 11400000, guid: 3adc68947e7aef44eab6337abf79c50e, type: 2}
   _dayCycle: {fileID: 11400000, guid: 0f31402934407324aa62a5f8b72360b5, type: 2}
+  _sound: {fileID: 11400000, guid: 841aefd374e9722478e41c5d2eae9a3c, type: 2}

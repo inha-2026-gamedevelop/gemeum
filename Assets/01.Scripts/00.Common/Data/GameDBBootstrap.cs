@@ -73,6 +73,8 @@ namespace Geumeum.Data
 
             GameDB.Initialize(database);
 
+            // 효과음의 첫 재생이 디코딩 때문에 늦게 나오는 것을 막는다. 클립이 없으면 아무 일도 하지 않는다
+            SfxPlayer.Preload();
         }
     }
 }

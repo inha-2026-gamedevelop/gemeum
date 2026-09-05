@@ -36,7 +36,8 @@ namespace Geumeum.Data
         [SerializeField] private ScoreRuleSO  _score;
 
         [Header("테크니컬 아트 (로컬 전용)")]
-        [SerializeField] private DayCycleSO _dayCycle;
+        [SerializeField] private DayCycleSO    _dayCycle;
+        [SerializeField] private SoundCatalogSO _sound;
 
         /****************************************
         *              Properties
@@ -57,7 +58,8 @@ namespace Geumeum.Data
         public TalentTreeSO Talent     => _talent;
         public ScoreRuleSO  Score      => _score;
 
-        public DayCycleSO DayCycle => _dayCycle;
+        public DayCycleSO     DayCycle => _dayCycle;
+        public SoundCatalogSO Sound    => _sound;
 
         /****************************************
         *                Methods
@@ -83,6 +85,13 @@ namespace Geumeum.Data
             if (_talent == null)     { missing.Add(nameof(TalentTreeSO)); }
             if (_score == null)      { missing.Add(nameof(ScoreRuleSO)); }
             if (_dayCycle == null)   { missing.Add(nameof(DayCycleSO)); }
+            if (_sound == null)      { missing.Add(nameof(SoundCatalogSO)); }
+
+            // 믹서 그룹이 비면 소리가 Master로 새어 나가 Local과 Remote 구분이 사라진다
+            if (_sound != null)
+            {
+                _sound.CollectMissingGroups(missing);
+            }
         }
     }
 }
