@@ -44,6 +44,17 @@ namespace Geumeum.Combat
         private const string PARAM_ATTACK      = "Attack";
         private const string PARAM_COMBO_STAGE = "ComboStage";
 
+        // 락온 스트레이프용 2D Freeform Directional 파라미터.
+        // 1D(Speed) 트리와 2D 트리를 IsLockOn으로 갈라 쓴다 - 비락온에서는 이동 방향이 곧
+        // 바라보는 방향이라 MoveY가 늘 1이고, 2D 트리를 계속 돌릴 이유가 없다
+        private const string PARAM_MOVE_X    = "MoveX";
+        private const string PARAM_MOVE_Y    = "MoveY";
+        private const string PARAM_IS_LOCK_ON = "IsLockOn";
+
+        // 사망은 트리거가 아니라 bool이다. 쓰러진 동안 계속 누워 있어야 하고
+        // 부활하면 스스로 일어나야 하므로, 한 번 재생하고 끝나는 트리거로는 표현할 수 없다
+        private const string PARAM_IS_DEAD = "IsDead";
+
         // 구르기 클립 이름은 캐릭터마다 다르다(무료 에셋 SprintingForwardRoll, 검 팩 S_Evade ...).
         // 이름 하나를 박으면 다른 캐릭터에서 배속 계산이 조용히 실패해 구르기 판정(0.9초)과
         // 모션 길이가 어긋난 채로 보인다. 이름 규약으로 찾는다
@@ -52,7 +63,7 @@ namespace Geumeum.Combat
         private const string VISUAL_PIVOT_NAME = "VisualPivot";
 
         private const float SPEED_SMOOTH_TIME    = 0.15f;   // 초, 걷기와 달리기 사이 파라미터가 튀지 않게 한다
-        private const float TURN_DEGREES_PER_SEC = 720f;
+        private const float TURN_DEGREES_PER_SEC = 720f;    // 비락온 회전 속도, 락온 중 값은 CombatConfigSO가 갖는다
         private const float MOVE_SPEED_EPSILON   = 0.05f;   // m/s, 이 미만은 정지로 본다
         private const float MIN_SPEED_RANGE      = 0.0001f; // m/s, 걷기와 달리기 속도가 같을 때 0 나누기를 막는다
 
@@ -67,16 +78,20 @@ namespace Geumeum.Combat
         private Transform          _visualPivot;
         private PlayerPresentation _presentation;
         private PlayerWeapon       _weapon;
+        private PlayerStatus       _status;
 
         // 무기 짝이 없을 때 되돌아갈 자리. 모델이 바뀔 때만 다시 잡는다
         private RuntimeAnimatorController _modelDefaultController;
 
-        private float _smoothedSpeed  = 0f;
-        private float _rollClipLength = 0f;
+        private float   _smoothedSpeed  = 0f;
+        private Vector2 _smoothedMove   = Vector2.zero;
+        private float   _rollClipLength = 0f;
 
         // 공격 모션이 없는 컨트롤러에 트리거를 넣으면 공격할 때마다 경고가 쌓인다
         private bool _hasAttackParam     = false;
         private bool _hasComboStageParam = false;
+        private bool _hasStrafeParams    = false;
+        private bool _hasDeathParam      = false;
 
         /****************************************
         *              Unity Event
@@ -86,6 +101,7 @@ namespace Geumeum.Combat
         {
             _presentation = GetComponent<PlayerPresentation>();
             _weapon       = GetComponent<PlayerWeapon>();
+            _status       = GetComponent<PlayerStatus>();
             _visualPivot  = transform.Find(VISUAL_PIVOT_NAME);
 
             if (_visualPivot == null)
@@ -112,12 +128,71 @@ namespace Geumeum.Combat
 
             _animator.SetFloat(PARAM_SPEED, NormalizeSpeed(_smoothedSpeed));
 
-            ApplyFacing(_presentation.FacingDirection);
+            bool isLockedOn = _presentation.IsLockedOn;
+
+            ApplyDeath();
+            ApplyStrafe(isLockedOn, smoothing);
+            ApplyFacing(_presentation.FacingDirection, isLockedOn);
+        }
+
+        /// <summary>
+        /// 쓰러진 동안 사망 자세를 유지한다. PlayerStatus.LifeState만 따라가므로
+        /// 서버, 소유자, 관전자가 같은 시점에 같은 자세를 본다 - 새 네트워크 값을 만들지 않는다.
+        /// 부활 무적(ReviveInvulnerable)은 이미 살아난 상태라 여기서 일어난다
+        /// </summary>
+        private void ApplyDeath()
+        {
+            if ((!_hasDeathParam) || (_status == null))
+            {
+                return;
+            }
+
+            _animator.SetBool(PARAM_IS_DEAD, _status.IsDead);
+        }
+
+        /// <summary>
+        /// 이동 방향을 바라보는 방향 기준으로 풀어 2D 블렌드에 넣는다.
+        /// 락온 스트레이프는 "옆으로 걸으며 앞을 본다"라 이동과 바라봄이 갈리고,
+        /// 그 차이가 곧 어느 클립을 틀지다.
+        /// 크기를 0~1로 자르는 이유는 StrafeWalk 클립이 0개라서다 -
+        /// 락온 중 이동은 항상 달리기 취급이고, 소울즈도 락온 이동은 사실상 스텝이라 문제없다
+        /// </summary>
+        private void ApplyStrafe(bool isLockedOn, float smoothing)
+        {
+            if (!_hasStrafeParams)
+            {
+                return;
+            }
+
+            Vector2 target = Vector2.zero;
+
+            if (isLockedOn)
+            {
+                Vector2 facing = _presentation.FacingDirection;
+                Vector2 move   = _presentation.MoveDirection;
+
+                if ((facing.sqrMagnitude > 0f) && (move.sqrMagnitude > 0f))
+                {
+                    // 평면 좌표계가 (x = 월드 X, y = 월드 Z)라 앞(facing)의 오른쪽은 (y, -x)다
+                    Vector2 right     = new Vector2(facing.y, -facing.x);
+                    float   magnitude = Mathf.Clamp01(NormalizeSpeed(_smoothedSpeed));
+
+                    target = new Vector2(Vector2.Dot(move, right), Vector2.Dot(move, facing)) * magnitude;
+                }
+            }
+
+            // 락온을 풀 때도 같은 상수로 0을 향해 흘려보낸다. 즉시 0으로 놓으면
+            // 전환 프레임에 스트레이프 트리가 한 번 정지 클립으로 튄다
+            _smoothedMove = Vector2.Lerp(_smoothedMove, target, smoothing);
+
+            _animator.SetFloat(PARAM_MOVE_X, _smoothedMove.x);
+            _animator.SetFloat(PARAM_MOVE_Y, _smoothedMove.y);
+            _animator.SetBool(PARAM_IS_LOCK_ON, isLockedOn);
         }
 
         // 게임플레이 방향은 VisualPivot의 Y축 회전으로만 만든다.
         // 모델 Transform을 직접 돌리면 FBX importer의 축 보정을 덮어써 캐릭터마다 다른 쪽을 본다
-        private void ApplyFacing(Vector2 facing)
+        private void ApplyFacing(Vector2 facing, bool isLockedOn)
         {
             if ((_visualPivot == null) || (facing.sqrMagnitude <= 0f))
             {
@@ -126,7 +201,19 @@ namespace Geumeum.Combat
 
             Quaternion targetRotation = Quaternion.LookRotation(new Vector3(facing.x, 0f, facing.y), Vector3.up);
             _visualPivot.localRotation = Quaternion.RotateTowards(
-                _visualPivot.localRotation, targetRotation, TURN_DEGREES_PER_SEC * Time.deltaTime);
+                _visualPivot.localRotation, targetRotation, ResolveTurnSpeed(isLockedOn) * Time.deltaTime);
+        }
+
+        // 락온 중에는 대상이 옆으로 돌 때 캐릭터가 따라붙어야 조준이 유지된다.
+        // 그렇다고 즉시 돌리면 대상이 빠르게 돌 때 캐릭터가 뚝뚝 튄다
+        private static float ResolveTurnSpeed(bool isLockedOn)
+        {
+            if ((!isLockedOn) || (!GameDB.IsInitialized))
+            {
+                return TURN_DEGREES_PER_SEC;
+            }
+
+            return GameDB.Combat.LockOnTurnDegreesPerSecond;
         }
 
         /****************************************
@@ -231,6 +318,12 @@ namespace Geumeum.Combat
             _rollClipLength     = FindRollClipLength();
             _hasAttackParam     = HasParameter(PARAM_ATTACK);
             _hasComboStageParam = HasParameter(PARAM_COMBO_STAGE);
+
+            // 스트레이프 트리가 없는 컨트롤러(미리보기 리그, 아직 안 채운 무기)에서도 돌아야 한다.
+            // 없으면 파라미터를 넣지 않고 1D 트리 그대로 쓴다 - 매 프레임 경고가 쌓이지 않는다
+            _hasStrafeParams = (HasParameter(PARAM_MOVE_X)) && (HasParameter(PARAM_MOVE_Y)) && (HasParameter(PARAM_IS_LOCK_ON));
+            _hasDeathParam   = HasParameter(PARAM_IS_DEAD);
+            _smoothedMove    = Vector2.zero;
         }
 
         // 아직 공격 모션이 없는 무기와 캐릭터 폴백 컨트롤러가 있어 매번 확인이 필요하다
@@ -288,7 +381,7 @@ namespace Geumeum.Combat
 
         /// <summary>
         /// 구르기 클립의 길이를 찾는다. 이름이 캐릭터마다 다르므로 정확한 일치가 아니라
-        /// 키워드 포함으로 찾는다 - <b>구르기 클립 이름에는 roll, evade, dodge 중 하나가 들어가야 한다</b>.
+        /// 키워드 포함으로 찾는다 - 구르기 클립 이름에는 roll, evade, dodge 중 하나가 들어가야 한다.
         /// 새 캐릭터를 붙일 때 이 규약을 지키지 않으면 배속이 1로 떨어져
         /// 판정(RollTotalDuration)과 모션 길이가 어긋난 채로 보인다
         /// </summary>
@@ -328,10 +421,8 @@ namespace Geumeum.Combat
         /// 블렌드 트리 문턱값(0=정지, 1=걷기, 2=달리기)에 맞춰 실제 속도를 정규화한다.
         /// CombatConfigSO의 걷기, 달리기 속도가 밸런스 조정으로 바뀌어도 애니메이터 자산을 다시 만들 필요가 없다
         /// </summary>
-        /// <remarks>
-        /// public인 이유는 네트워크 없이 도는 캐릭터 미리보기 리그(<see cref="CharacterPreviewRig"/>)가
-        /// 같은 규칙을 써야 하기 때문이다. 규칙을 복사하면 두 곳이 조용히 갈라진다
-        /// </remarks>
+        // public인 이유는 네트워크 없이 도는 캐릭터 미리보기 리그(CharacterPreviewRig)가
+        // 같은 규칙을 써야 하기 때문이다. 규칙을 복사하면 두 곳이 조용히 갈라진다
         public static float NormalizeSpeed(float speed)
         {
             if ((!GameDB.IsInitialized) || (speed <= MOVE_SPEED_EPSILON))

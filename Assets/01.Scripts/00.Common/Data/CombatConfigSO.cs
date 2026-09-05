@@ -16,7 +16,7 @@ namespace Geumeum.Data
         [SerializeField] private float _staminaMax            = 100f;
         // 2026-09-03 조정: 25/0.6초에서 올렸다. 근접 공격 사이클(선딜 0.12 + 후딜 0.28 = 0.40초)이
         // 회복 지연 0.6초보다 짧아, 연속 공격 중에는 회복이 한 번도 시작되지 않고 있었다.
-        // 의도는 '16타를 연속으로 치라'가 아니라 전투 중 항상 패링(15)·구르기(25) 여력을 남기는 것이다
+        // 의도는 '16타를 연속으로 치라'가 아니라 전투 중 항상 패링(15),구르기(25) 여력을 남기는 것이다
         [SerializeField] private float _staminaRegenPerSecond = 35f;
         [SerializeField] private float _staminaRegenDelay     = 0.45f; // 행동 후 회복 시작까지(초)
 
@@ -75,12 +75,31 @@ namespace Geumeum.Data
         [SerializeField] private float _rangedMuzzleHeight     = 1.2f;  // 발사 지점 높이(m), 발밑에서 나가지 않게 한다
         [SerializeField] private float _rangedMuzzleForward    = 0.6f;  // 발사 지점 전방 오프셋(m), 자기 몸에 걸리지 않게 한다
 
+        // 락온은 표현이자 판정이다 - 바라보는 방향이 동기화되고 화살 유도가 서버 판정이라
+        // 서버도 같은 값을 봐야 한다. 그래서 로컬 리소스인 CameraConfigSO가 아니라 여기가 소유한다.
+        // 카메라 쪽 거리(잡귀 4.5 / 보스 몸통 9.0 / 꼬리 7.0)만 CameraConfigSO에 있다
+        [Header("락온")]
+        [SerializeField] private float _lockOnAcquireRange = 25f; // 걸 수 있는 거리(m), 서버도 이 값으로 검증한다
+        [SerializeField] private float _lockOnHoldRange    = 30f; // 유지 거리(m), 경계에서 붙었다 떨어지지 않게 더 넓다
+        [SerializeField] private float _lockOnAcquireAngle = 35f; // 화면 중심 기준 탐색 반각(도)
+        [SerializeField] private float _lockOnHoldAngle    = 55f; // 유지 반각(도), 짧은 회피나 카메라 흔들림에 안 풀리게 한다
+        [SerializeField] private float _lockOnBlockedGrace = 0.5f;  // 시야가 막힌 채 이 시간을 넘기면 다음 대상으로(초)
+        [SerializeField] private float _lockOnSwitchCooldown = 1f;  // 자동 재전환 금지(초), 바위 뒤를 들락날락할 때 대상이 계속 바뀌는 것을 막는다
+        [SerializeField] private float _lockOnTurnDegreesPerSecond = 1080f; // 락온 중 모델 회전 속도(도/초), 비락온은 720
+
         // TODO(민성): 부활 수치를 어느 SO가 소유할지 팀에서 확정할 것
         [Header("부활")]
         [SerializeField] private float _spectateDuration         = 30f;  // 사망 후 관전(초)
         [SerializeField] private float _reviveHealthRatio        = 0.5f; // 최대 HP 대비 회복 비율
         [SerializeField] private float _reviveInvincibleDuration = 2f;   // 남은 잡귀에게 즉사하는 것을 막는다(초)
-        [SerializeField] private float _reviveCurrencyLossRatio  = 0.2f; // 팀 공용 노잣돈 차감 비율
+        [SerializeField] private float _reviveCurrencyLossRatio  = 0.2f; // 팀 공용 노잣돈 차감 비율(자동 부활)
+
+        // 협동 부활. 자동 부활만 있으면 코옵에서 긴장이 가장 높은 순간이 "30초 기다리기"가 되고
+        // 살아있는 팀원이 할 수 있는 일이 없다
+        [SerializeField] private float _rescueRadius            = 3f;   // 쓰러진 팀원에게 다가가야 하는 거리(m)
+        [SerializeField] private float _rescueDuration          = 3f;   // 상호작용 유지 시간(초)
+        [SerializeField] private float _rescueCurrencyLossRatio = 0.1f; // 구조 부활의 노잣돈 차감(자동의 절반)
+        [SerializeField] private float _reviveBarrierInsetRatio = 0.9f; // 결계 밖에서 죽으면 반경의 이 비율 지점으로 당긴다
 
         /****************************************
         *              Properties
@@ -127,9 +146,22 @@ namespace Geumeum.Data
         public float RangedMuzzleHeight     => _rangedMuzzleHeight;
         public float RangedMuzzleForward    => _rangedMuzzleForward;
 
+        public float LockOnAcquireRange          => _lockOnAcquireRange;
+        public float LockOnHoldRange             => _lockOnHoldRange;
+        public float LockOnAcquireAngle          => _lockOnAcquireAngle;
+        public float LockOnHoldAngle             => _lockOnHoldAngle;
+        public float LockOnBlockedGrace          => _lockOnBlockedGrace;
+        public float LockOnSwitchCooldown        => _lockOnSwitchCooldown;
+        public float LockOnTurnDegreesPerSecond  => _lockOnTurnDegreesPerSecond;
+
         public float SpectateDuration         => _spectateDuration;
         public float ReviveHealthRatio        => _reviveHealthRatio;
         public float ReviveInvincibleDuration => _reviveInvincibleDuration;
         public float ReviveCurrencyLossRatio  => _reviveCurrencyLossRatio;
+
+        public float RescueRadius            => _rescueRadius;
+        public float RescueDuration          => _rescueDuration;
+        public float RescueCurrencyLossRatio => _rescueCurrencyLossRatio;
+        public float ReviveBarrierInsetRatio => _reviveBarrierInsetRatio;
     }
 }

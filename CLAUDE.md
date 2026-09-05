@@ -187,6 +187,7 @@
 | 폴더 · 씬 · 클래스 배치 | [프로젝트 구조 설계서](docs/04-architecture.md) |
 | 협업 · 브랜치 · 씬 규칙 | [협업 규칙](CONTRIBUTING.md) |
 | C# 코딩 컨벤션 | [코딩 컨벤션](docs/coding-convention.md) |
+| 디자인 패턴 지도 · 선택 규칙 | [디자인 패턴](docs/unity/DESIGN_PATTERNS.md) |
 | AI 작업 문서 전체 | [docs/ai/README.md](docs/ai/README.md) |
 
 문서와 코드가 다르면 **코드를 우선**하고, 차이를 보고한다.

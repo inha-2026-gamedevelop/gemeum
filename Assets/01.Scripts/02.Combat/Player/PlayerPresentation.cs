@@ -33,13 +33,19 @@ namespace Geumeum.Combat
         private Vector2 _localVelocity = Vector2.zero;
         private bool    _hasLocalState = false;
 
+        // 락온 대상. 방향이 아니라 대상 자체를 들고 있는 이유는 컴포넌트 실행 순서 때문이다 -
+        // 방향을 미리 계산해 받으면 이동 입력이 먼저 들어온 프레임에 한 프레임 묵은 방향으로 선다.
+        // 여기서 그때그때 계산하면 서버 틱이든 소유자 예측이든 같은 프레임의 대상 위치를 본다.
+        // 서버와 클라이언트가 각자 자기 인스턴스의 대상을 잡으므로 이 참조는 동기화하지 않는다
+        private Transform _lockOnTarget = null;
+
         /****************************************
         *              Properties
         ****************************************/
 
         /// <summary>
         /// 실제로 움직이는 평면 방향(단위 벡터). 정지 중에는 0이다.
-        /// 락온 중에는 <see cref="FacingDirection"/>과 달라진다 - 그것이 스트레이프다
+        /// 락온 중에는 FacingDirection과 달라진다 - 그것이 스트레이프다
         /// </summary>
         public Vector2 MoveDirection
         {
@@ -52,16 +58,31 @@ namespace Geumeum.Combat
 
         /// <summary>
         /// 모델이 바라볼 평면 방향. x가 월드 X, y가 월드 Z다.
-        /// 락온이 붙으면 여기가 <b>대상 방향</b>이 되고, 그 전까지는 이동 방향과 같다
+        /// 락온 중에는 대상 방향이고, 그 밖에는 이동 방향이다
         /// </summary>
-        public Vector2 FacingDirection => UseLocalState ? _localFacing : _serverFacing;
+        public Vector2 FacingDirection
+        {
+            get
+            {
+                if (TryGetLockOnFacing(out Vector2 lockOnFacing))
+                {
+                    return lockOnFacing;
+                }
+
+                return UseLocalState ? _localFacing : _serverFacing;
+            }
+        }
 
         /// <summary>
         /// 공격 판정이 향하는 평면 방향. 바라보는 방향을 따른다.
-        /// <b>지금은 <see cref="FacingDirection"/>과 늘 같지만 이름을 가른다</b> -
-        /// 이름이 하나면 락온을 붙이는 사람이 셋 중 무엇을 고쳐야 하는지 알 수 없다
+        /// 락온 중에는 걸어가는 쪽이 아니라 잠근 대상 쪽으로 나간다
         /// </summary>
         public Vector2 AimDirection => FacingDirection;
+
+        /// <summary>
+        /// 락온이 걸려 있는지. 애니메이션이 1D(속도) 트리와 2D 스트레이프 트리를 여기서 가른다
+        /// </summary>
+        public bool IsLockedOn => (_lockOnTarget != null);
 
         /// <summary> 표현에 쓸 평면 이동 속도(m/s) </summary>
         public float MoveSpeed => Velocity.magnitude;
@@ -70,6 +91,20 @@ namespace Geumeum.Combat
 
         // 호스트는 스스로가 서버라 서버 값이 곧 자기 값이다
         private bool UseLocalState => (isOwned) && (!isServer) && (_hasLocalState);
+
+        /****************************************
+        *              Public API
+        ****************************************/
+
+        /// <summary>
+        /// 락온 대상을 건네받는다. null이면 해제다.
+        /// LockOnController가 모든 인스턴스에서 부르므로 서버, 소유자, 관전자가
+        /// 같은 규칙으로 방향을 만든다 - 서버만 바꾸면 원격 화면이 이동 방향으로 서 있는다
+        /// </summary>
+        public void SetLockOnTarget(Transform target)
+        {
+            _lockOnTarget = target;
+        }
 
         /****************************************
         *              Server API
@@ -128,6 +163,32 @@ namespace Geumeum.Combat
         /****************************************
         *                Methods
         ****************************************/
+
+        /// <summary>
+        /// 락온 중 바라볼 방향. 대상 위치에서 그때그때 만든다.
+        /// 겹칠 만큼 가까우면 방향이 없으므로 직전 방향을 그대로 쓴다 -
+        /// 여기서 0을 돌려주면 대상을 밀착했을 때 모델이 기준 방향으로 홱 돈다
+        /// </summary>
+        private bool TryGetLockOnFacing(out Vector2 facing)
+        {
+            facing = Vector2.zero;
+
+            if (_lockOnTarget == null)
+            {
+                return false;
+            }
+
+            Vector3 delta = _lockOnTarget.position - transform.position;
+            Vector2 planar = new Vector2(delta.x, delta.z);
+
+            if (planar.sqrMagnitude <= (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
+            {
+                return false;
+            }
+
+            facing = planar.normalized;
+            return true;
+        }
 
         /// <summary>
         /// 방향과 속력을 속도 하나로 합친다. 곱하는 순서가 PlayerController의 ApplyPlanarVelocity와

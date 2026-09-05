@@ -11,8 +11,9 @@ namespace Geumeum.Common
             // ProjectSettings/InputManager.asset의 축 이름
             public const string AXIS_HORIZONTAL = "Horizontal";
             public const string AXIS_VERTICAL   = "Vertical";
-            public const string AXIS_MOUSE_X    = "Mouse X";
-            public const string AXIS_MOUSE_Y    = "Mouse Y";
+            public const string AXIS_MOUSE_X     = "Mouse X";
+            public const string AXIS_MOUSE_Y     = "Mouse Y";
+            public const string AXIS_MOUSE_WHEEL = "Mouse ScrollWheel";
 
             // 키 바인딩, 리바인딩 UI가 생기면 이 값을 기본값으로 쓴다
             public const KeyCode KEY_SPRINT    = KeyCode.LeftShift;
@@ -22,6 +23,10 @@ namespace Geumeum.Common
 
             public const int MOUSE_BUTTON_ATTACK = 0;
             public const int MOUSE_BUTTON_PARRY  = 1;
+
+            // 중클릭이 락온인 이유는 우클릭을 세 직업이 이미 나눠 쓰고 있고
+            // 인게임 무기 교체가 없어 휠이 비어 있기 때문이다. 소울즈 관습 그대로다
+            public const int MOUSE_BUTTON_LOCK_ON = 2;
 
             // Input.GetAxisRaw("Mouse X")는 픽셀 이동량이 아니라 InputManager.asset의 sensitivity(0.1)가
             // 이미 곱해진 값이다. 카메라 감도를 사양대로 도/픽셀로 적어 두려면 그 배수를 되돌려야 한다.

@@ -34,6 +34,10 @@ namespace Geumeum.Combat
         // 무적까지 해제한다. 만료 시각 하나만 소유하고 각 출처는 max로만 연장한다
         private double _invincibleUntilServerTime = 0.0; // 서버 전용
 
+        // 부활 직후 무적. _isInvincible과 따로 두는 이유는 생명 상태 자체가 다르기 때문이다 -
+        // ReviveInvulnerable은 행동은 되지만 피해를 아예 안 받는 구간이고, 만료되면 Alive가 된다
+        private double _reviveInvulnerableUntilServerTime = 0.0; // 서버 전용
+
         /****************************************
         *              Properties
         ****************************************/
@@ -79,16 +83,26 @@ namespace Geumeum.Combat
         {
             Local = this;
 
+            // UI는 전투 컴포넌트를 하나씩 잡지 않고 창구 하나만 본다.
+            // 형제 컴포넌트의 Awake는 이 시점에 전부 끝나 있다
+            LocalCombatState.Bind(gameObject);
+
             // 구독 시점이 값 도착보다 늦을 수 있다. UI가 처음부터 올바른 값을 그리도록 한 번 흘려 준다
             RaiseAll();
         }
 
         public override void OnStopLocalPlayer()
         {
-            if (Local == this)
+            if (Local != this)
             {
-                Local = null;
+                return;
             }
+
+            Local = null;
+
+            // 재접속으로 인스턴스가 갈릴 때 UI 구독을 여기서 한 번에 옮긴다.
+            // 화면마다 하면 언젠가 하나가 파괴된 컴포넌트를 붙들고 있는다
+            LocalCombatState.Unbind();
         }
 
         /****************************************
@@ -185,9 +199,10 @@ namespace Geumeum.Combat
         [Server]
         public void ServerResetForNewRun()
         {
-            _isInvincible               = false;
-            _invincibleUntilServerTime  = 0.0;
-            _lastStaminaSpendServerTime = -1.0;
+            _isInvincible                      = false;
+            _invincibleUntilServerTime         = 0.0;
+            _reviveInvulnerableUntilServerTime = 0.0;
+            _lastStaminaSpendServerTime        = -1.0;
 
             TryApplyStartingState();
         }
@@ -233,6 +248,14 @@ namespace Geumeum.Combat
             if ((_isInvincible) && (NetworkTime.time >= _invincibleUntilServerTime))
             {
                 _isInvincible = false;
+            }
+
+            // 부활 무적이 끝나면 평범한 생존자가 된다. 만료를 여기서 보는 이유는
+            // 일시 무적과 같은 틱에서 같은 규칙으로 풀려야 두 무적이 어긋나지 않기 때문이다
+            if ((_lifeState == PlayerLifeState.ReviveInvulnerable)
+                && (NetworkTime.time >= _reviveInvulnerableUntilServerTime))
+            {
+                _lifeState = PlayerLifeState.Alive;
             }
 
             CombatConfigSO combat = GameDB.Combat;
@@ -287,9 +310,53 @@ namespace Geumeum.Combat
 
             if (_health <= Constants.Combat.HEALTH_EPSILON)
             {
-                // TODO(민성): ReviveController가 붙으면 Spectating 전이와 관전 타이머를 잇는다
+                // Downed는 "방금 죽었다"를 한 번만 처리하기 위한 전이 상태다.
+                // 여기서 바로 Spectating으로 넘기지 않는 이유는 사망 순간에 반응해야 하는 쪽
+                // (연출, 점수, ReviveController의 타이머 시작)이 그 전이를 봐야 하기 때문이다
                 _lifeState = PlayerLifeState.Downed;
             }
+        }
+
+        /// <summary>
+        /// 사망 직후 전이 상태(Downed)를 관전 대기(Spectating)로 넘긴다.
+        /// ReviveController만 호출하고, 그쪽이 같은 시점에 관전 타이머를 건다 -
+        /// 두 곳에서 넘기면 타이머 없이 관전만 하는 상태가 생긴다
+        /// </summary>
+        [Server]
+        public bool ServerBeginSpectate()
+        {
+            if (_lifeState != PlayerLifeState.Downed)
+            {
+                return false;
+            }
+
+            _lifeState = PlayerLifeState.Spectating;
+            return true;
+        }
+
+        /// <summary>
+        /// 부활을 확정한다. HP는 비율로 돌려주고 스태미나는 전량, 그리고 짧은 무적을 건다.
+        /// 무적이 없으면 사망 지점에 남아있던 잡귀에게 즉사한다.
+        /// 위치 보정과 노잣돈 차감은 ReviveController가 하고 여기는 상태만 만든다
+        /// </summary>
+        [Server]
+        public void ServerRevive(float healthRatio, float invulnerableDuration)
+        {
+            if (!IsDead)
+            {
+                return; // 살아 있는 사람을 부활시키면 HP가 조용히 깎일 수 있다
+            }
+
+            _health  = Mathf.Clamp(_maxHealth * Mathf.Clamp01(healthRatio), 0f, _maxHealth);
+            _stamina = GameDB.IsInitialized ? GameDB.Combat.StaminaMax : _stamina;
+
+            // 일시 무적은 생명 상태와 별개라 여기서 끈다. 안 그러면 부활 무적이 끝난 뒤에도
+            // 지난 판에서 걸린 구르기 무적이 남아 있을 수 있다
+            _isInvincible              = false;
+            _invincibleUntilServerTime = 0.0;
+
+            _lifeState                         = PlayerLifeState.ReviveInvulnerable;
+            _reviveInvulnerableUntilServerTime = NetworkTime.time + invulnerableDuration;
         }
 
         /// <summary>

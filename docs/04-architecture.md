@@ -228,7 +228,8 @@ Main.unity
 │  ├ SoundCatalogSO.cs     SO  [현재] SoundKey → 클립 · 믹서 그룹 · 볼륨 · 중복 제거 간격.
 │  │                            믹서 그룹 5개 참조를 여기가 들고 있다 (로컬 전용) → 사운드 설계 4.2
 │  └ CameraConfigSO.cs     SO  [현재] 카메라 거리 · 높이 · 오버숄더 · 감도 기본값 · pitch 한계 ·
-│                               충돌 레이어와 반경 · FOV (로컬 전용) → 카메라와 락온 2장 · 7장
+│                               충돌 레이어와 반경 · FOV · 셰이크 6종 · 락온 거리 3종
+│                               (로컬 전용) → 카메라와 락온 2장 · 3.1 · 7장
 ├ Constants/               namespace Geumeum.Common — 코드 계약값 (partial class)
 │  ├ Constants.cs          공통: 레이어, 태그, 씬 이름
 │  ├ Constants.player.cs   입력 키/축, 판정 epsilon
@@ -265,10 +266,15 @@ Main.unity
 │  │                              PersistentSingleton을 상속한다. 호출부는 아직 없다
 │  └ LocalPoolRoot.cs      MB  [현재] 풀에 넣어도 되는 프리팹임을 선언하는 표식.
 │                              네트워크 개체를 걸러내는 화이트리스트다
-├ CameraFrame.cs           static [현재] 카메라 yaw와 입력 허용 플래그.
-│                                 카메라(05.Art)가 밀고 전투(02.Combat)가 읽는다.
-│                                 오브젝트가 아니라 값이라 로케이터가 필요 없고,
+├ CameraFrame.cs           static [현재] 카메라 yaw · 입력 허용 플래그 · 락온 상태 셋.
+│                                 yaw는 카메라(05.Art)가 밀고 전투(02.Combat)가 읽으며,
+│                                 락온은 반대로 전투가 밀고 카메라가 읽는다 — 방향은 반대여도
+│                                 "오브젝트가 아니라 값"이라는 원칙은 같다.
 │                                 카메라가 없으면 yaw 0이라 지금과 같이 동작한다
+├ AimAssistPoint.cs        MB  [현재] IAimAssistTarget의 기본 구현. 로컬 오프셋 하나로
+│                                 조준점을 만든다. 부위마다 하나씩 붙인다 —
+│                                 안 붙이면 락온이 콜라이더 bounds.center로 폴백한다
+│                                 → 카메라와 락온 3.0
 ├ Sound/                   namespace Geumeum.Common — 사운드 재생 (전부 로컬 전용)
 │  ├ SfxPlayer.cs          static [현재] SoundKey + isLocalPlayer만 받아 재생한다.
 │  │                              AudioSource 16개 라운드로빈 · 같은 프레임 중복 제거 ·
@@ -366,6 +372,15 @@ Main.unity
 │  ├ PlayerPrediction.cs   MB  [현재] 매 프레임 로컬 예측 · 미확인 입력 버퍼 · 3단계 재조정
 │  │                           (데드존 · 지수 수렴 · 즉시 스냅)
 │  ├ PlayerActionGate.cs   C#  [현재] phase · 생명 상태 · 무기 · 진행 중 행동 · 쿨다운 · 자원 공통 검증
+│  ├ PlayerActionPipeline.cs C# [현재] 단발 행동의 유일한 서버 경로. 중복 검사 → 게이트 →
+│  │                           자원 차감 → 커밋을 이 순서로만 밟게 하고 거부 사유를 돌려준다.
+│  │                           Mirror 비의존이라 테스트에서 그대로 부른다. 패링은 지나지 않는다
+│  ├ IPlayerAction.cs      C#  [현재] 행동 하나가 파이프라인에 제공하는 세 조각.
+│  │                           구현체는 NetworkBehaviour 자신이다(요청마다 객체를 만들지 않는다)
+│  ├ ActionRejection.cs    enum [현재] 거부 사유 7종. 조용한 return과 "입력이 씹혔다"를 가른다
+│  ├ LocalCombatState.cs   static [현재] UI가 전투를 읽는 유일한 창구.
+│  │                           이산 전이는 이벤트, 연속값은 프로퍼티. 자기 캐릭터 확보 ·
+│  │                           늦은 구독 재생 · 재접속 시 구독 이관을 여기서 한 번에 푼다
 │  ├ PlayerPresentation.cs NB  [현재] 방향 · 속도를 명시적으로 보관하는 표현 상태.
 │  │                           서버는 수락한 이동, 소유 클라는 입력, 원격은 SyncVar
 │  ├ PlayerAnimationController.cs MB [현재] PlayerPresentation을 읽어 LateUpdate에서
@@ -390,8 +405,10 @@ Main.unity
 │  │                           RpcAttackStarted로 공격 시작을 모든 화면에 전파한다.
 │  │                           [계획] 연사 · 관통 · 치유 · 버프 변형은 서버가 특성 상태에서 산출
 │  ├ InteractionController.cs NB [계획] 상호작용 Command와 서버 검증
-│  └ LockOnController.cs  NB  [계획] 락온 대상 선택(로컬)과 CmdSetLockOn 서버 검증.
-│                             대상 방향으로 FacingDirection을 덮어쓴다 → 아래 정정 참고
+│  └ LockOnController.cs  NB  [현재] 락온 대상 선택(로컬)과 CmdSetLockOn 서버 검증.
+│                             대상은 (netId + 부위 번호) SyncVar 둘로 확정하고,
+│                             PlayerPresentation에 대상 Transform을 넘겨 FacingDirection을
+│                             덮어쓴다. 카메라에는 CameraFrame으로 값만 민다 → 아래 정정 참고
 ├ Weapon/                  [계획] 직업별 실행 계약. Mirror 비의존
 │  ├ IWeaponAbility.cs / IAbilityRuntime.cs
 │  ├ AbilityRequest.cs / AbilityResult.cs
@@ -425,9 +442,14 @@ Main.unity
 > 🔧 **2026-09-05 정정** — 이 트리에 `02.Combat/Camera/`가 있었고 그 아래 `CameraRig.cs [계획]`과
 > 폐기 표시된 `LockOnSystem.cs`가 있었다. **둘 다 틀렸다.** 카메라 리그는 `05.Art/Camera/`가 소유하고
 > (`02.Combat`이 `05.Art`를 참조하지 않도록 `CameraFrame`의 yaw 값만 읽는다), 락온은 2026-09-05에
-> 부활해 `Player/`의 `LockOnController.cs [계획]`가 된다 — 대상 선택은 로컬이지만 `CmdSetLockOn`은
+> 부활해 `Player/`의 `LockOnController.cs`가 된다 — 대상 선택은 로컬이지만 `CmdSetLockOn`은
 > 서버가 검증하고, 대상 방향이 `PlayerPresentation.FacingDirection`을 덮어써 남의 화면에서도 옳게 선다
 > → [카메라와 락온](unity/CAMERA_AND_LOCKON.md) 1장 · 3장 · 11장
+>
+> **2026-09-05 구현 완료.** `[계획]` 표시를 지웠다. 함께 들어온 것은 `00.Common/AimAssistPoint.cs`
+> (계약의 기본 구현)와 `CameraFrame`의 락온 값 셋이다. **`CameraFrame`은 이제 양방향이다** —
+> yaw는 `05.Art → 00.Common → 02.Combat`, 락온은 `02.Combat → 00.Common → 05.Art`로 흐른다.
+> 어느 쪽도 상대 어셈블리를 참조하지 않으므로 8.1 의존 방향은 그대로다
 
 2026-09-05 기준으로 `Player/` 17개, `Parry/` 6개, `Arrow/` 1개, `Dev/` 2개가 구현되어 있다.
 아직 없는 것은 `InteractionController`, `Weapon/`, `Camera/`, 그리고 `Arrow/`의 나머지 둘이다.

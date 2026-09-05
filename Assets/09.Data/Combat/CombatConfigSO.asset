@@ -38,12 +38,20 @@ MonoBehaviour:
   _meleeRange: 2.2
   _meleeAngle: 90
   _meleeBasePower: 10
+  _meleeComboWindowDuration: 0.45
   _rangedStartupDuration: 0.25
   _rangedRecoveryDuration: 0.35
   _rangedStaminaCost: 5
   _rangedBasePower: 8
   _rangedMuzzleHeight: 1.2
   _rangedMuzzleForward: 0.6
+  _lockOnAcquireRange: 25
+  _lockOnHoldRange: 30
+  _lockOnAcquireAngle: 35
+  _lockOnHoldAngle: 55
+  _lockOnBlockedGrace: 0.5
+  _lockOnSwitchCooldown: 1
+  _lockOnTurnDegreesPerSecond: 1080
   _spectateDuration: 30
   _reviveHealthRatio: 0.5
   _reviveInvincibleDuration: 2

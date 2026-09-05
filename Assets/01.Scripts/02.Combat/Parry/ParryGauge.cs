@@ -16,7 +16,16 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
-        [SyncVar] private float _gauge = 0f;
+        [SyncVar(hook = nameof(OnGaugeChanged))] private float _gauge = 0f;
+
+        /****************************************
+        *                Events
+        ****************************************/
+
+        // 게이지 값 자체는 계속 변하므로 UI가 프로퍼티로 읽는다.
+        // 이벤트로 알리는 것은 "다음 공격이 치명타가 됐다"는 이산 전이뿐이다
+        /// <summary> 치명의 일격 준비 여부가 바뀌었다 </summary>
+        public event System.Action<bool> CriticalReadyChanged;
 
         /****************************************
         *              Properties
@@ -24,6 +33,34 @@ namespace Geumeum.Combat
 
         /// <summary> 서버가 확정한 현재 패링 게이지 </summary>
         public float Gauge => _gauge;
+
+        /// <summary> 게이지가 최대치에 닿아 다음 근접 공격이 치명의 일격인지 </summary>
+        public bool IsCriticalReady => ((GameDB.IsInitialized) && (_gauge >= GameDB.Combat.ParryGaugeMax));
+
+        /****************************************
+        *              SyncVar Hooks
+        ****************************************/
+
+        private void OnGaugeChanged(float oldValue, float newValue)
+        {
+            if (!GameDB.IsInitialized)
+            {
+                return;
+            }
+
+            float max = GameDB.Combat.ParryGaugeMax;
+
+            // 최대치를 넘나든 순간에만 알린다. 매 누적마다 부르면 UI가 같은 값을 반복해서 받는다
+            bool wasReady = (oldValue >= max);
+            bool isReady  = (newValue >= max);
+
+            if (wasReady == isReady)
+            {
+                return;
+            }
+
+            CriticalReadyChanged?.Invoke(isReady);
+        }
 
         /****************************************
         *              Server API

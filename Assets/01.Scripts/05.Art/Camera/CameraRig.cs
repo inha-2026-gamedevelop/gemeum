@@ -15,15 +15,13 @@ namespace Geumeum.Art
 {
     /// <summary>
     /// 3인칭 오버숄더 추적 카메라. 대상 추적, 마우스 회전, 지형 충돌 회피를 소유하고
-    /// 화면 기준 yaw를 <see cref="CameraFrame"/>에 민다 - 전투는 그 값만 읽으므로
+    /// 화면 기준 yaw를 CameraFrame에 민다 - 전투는 그 값만 읽으므로
     /// 02.Combat이 05.Art를 참조하지 않는다.
     /// 완전히 로컬이라 동기화하지 않고, 판정에도 관여하지 않는다.
-    /// <b>Target은 바뀔 수 있어야 한다</b> - 관전 카메라가 이것과 같은 물건이고 대상만 갈아 끼운다
+    /// Target은 바뀔 수 있어야 한다 - 관전 카메라가 이것과 같은 물건이고 대상만 갈아 끼운다
     /// </summary>
-    /// <remarks>
-    /// 수치는 전부 <see cref="CameraConfigSO"/>가 소유하고 여기는 매 프레임 읽기만 한다.
-    /// 씬마다 카메라 오브젝트가 따로 있어도 감이 갈라지지 않고, Play 중에 에셋을 밀면 바로 반영된다
-    /// </remarks>
+    // 수치는 전부 CameraConfigSO가 소유하고 여기는 매 프레임 읽기만 한다.
+    // 씬마다 카메라 오브젝트가 따로 있어도 감이 갈라지지 않고, Play 중에 에셋을 밀면 바로 반영된다
     [RequireComponent(typeof(Camera))]
     public class CameraRig : MonoBehaviour
     {
@@ -105,7 +103,7 @@ namespace Geumeum.Art
         ****************************************/
 
         /// <summary>
-        /// 셰이크를 하나 더한다. 전투가 아니라 <b>아트 구현체</b>(CombatFeedbackImpl)가 부른다 -
+        /// 셰이크를 하나 더한다. 전투가 아니라 아트 구현체(CombatFeedbackImpl)가 부른다 -
         /// 전투는 ICombatFeedback만 알고 카메라를 참조하지 않는다.
         /// 여러 개가 겹치면 합산하되 설정의 상한을 넘지 않는다
         /// </summary>
@@ -216,6 +214,15 @@ namespace Geumeum.Art
 
         private void UpdateLook(CameraConfigSO config)
         {
+            // 락온 중에는 대상이 화면을 정한다. 마우스로 돌리는 것을 그대로 두면
+            // 잠근 대상이 화면 밖으로 나가 락온이라는 말 자체가 성립하지 않는다.
+            // 대상을 밀어 넣는 것은 전투(LockOnController)이고 카메라는 값만 읽는다
+            if (CameraFrame.LockOnActive)
+            {
+                ApplyLockOnLook(config);
+                return;
+            }
+
             if (!CanRotate())
             {
                 return;
@@ -230,6 +237,35 @@ namespace Geumeum.Art
             // 마우스를 올리면 Mouse Y가 양수고, Unity의 X 회전은 양수가 아래를 본다
             _pitch = Mathf.Clamp(
                 _pitch + ((config.DefaultInvertY) ? mouseY : -mouseY),
+                config.PitchMin,
+                config.PitchMax);
+        }
+
+        /// <summary>
+        /// 중심에서 대상 조준점을 향하도록 각도를 돌린다.
+        /// 즉시 돌리지 않는 이유는 대상이 빠르게 움직일 때 화면이 튀기 때문이다 -
+        /// 비락온의 "회전 스무딩 없음"은 사람 입력이 곧 화면이어야 한다는 뜻이고,
+        /// 여기는 입력이 아니라 대상이 화면을 미는 자리라 규칙이 반대다
+        /// </summary>
+        private void ApplyLockOnLook(CameraConfigSO config)
+        {
+            Vector3 pivot = _target.position + (Vector3.up * config.PivotHeight);
+            Vector3 delta = CameraFrame.LockOnPoint - pivot;
+
+            if (delta.sqrMagnitude <= 0f)
+            {
+                return;
+            }
+
+            Vector3 euler = Quaternion.LookRotation(delta, Vector3.up).eulerAngles;
+
+            float step = config.LockOnTurnDegreesPerSecond * Time.deltaTime;
+
+            _yaw = Mathf.Repeat(Mathf.MoveTowardsAngle(_yaw, euler.y, step), FULL_TURN_DEGREES);
+
+            // pitch는 하한, 상한을 그대로 지킨다. 대상이 발밑에 있어도 카메라가 뒤집히면 안 된다
+            _pitch = Mathf.Clamp(
+                Mathf.MoveTowardsAngle(_pitch, NormalizeAngle(euler.x), step),
                 config.PitchMin,
                 config.PitchMax);
         }
@@ -278,7 +314,7 @@ namespace Geumeum.Art
 
         /// <summary>
         /// 살아 있는 셰이크를 합쳐 이번 프레임의 위치 오프셋을 만든다.
-        /// <b>위치만 흔든다</b> - 회전을 흔들면 FOV를 고정한 것과 같은 이유로 패링 0.32초 판단을 방해한다.
+        /// 위치만 흔든다 - 회전을 흔들면 FOV를 고정한 것과 같은 이유로 패링 0.32초 판단을 방해한다.
         /// 감쇠는 지속시간 동안 선형이다
         /// </summary>
         private Vector3 ResolveShakeOffset(CameraConfigSO config)
@@ -320,7 +356,13 @@ namespace Geumeum.Art
         /// </summary>
         private float ResolveDistance(CameraConfigSO config, Vector3 boomDirection)
         {
-            float desired = config.Distance;
+            // 락온 중에는 대상이 거리를 정한다. 보스 몸통이 9m인 것은 연출이 아니라 조작이다 -
+            // 오버숄더 4.5m에서는 꼬리 펼침이 프레임에 안 들어와 무엇을 칠지 고를 수 없다
+            float baseDistance = ((CameraFrame.LockOnActive) && (CameraFrame.LockOnDistance > 0f))
+                ? CameraFrame.LockOnDistance
+                : config.Distance;
+
+            float desired = baseDistance;
 
             // 중심이 이미 벽 안에 있으면 SphereCast가 false를 돌려준다. 그때는 기본 거리를 쓴다 -
             // 여기서 0으로 붙이면 지형 속에서 카메라가 대상에 처박힌다
@@ -329,7 +371,7 @@ namespace Geumeum.Art
                 config.ProbeRadius,
                 boomDirection,
                 out RaycastHit hit,
-                config.Distance,
+                baseDistance,
                 config.CollisionMask,
                 QueryTriggerInteraction.Ignore);
 

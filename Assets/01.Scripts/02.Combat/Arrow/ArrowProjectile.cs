@@ -27,6 +27,12 @@ namespace Geumeum.Combat
         private const int HIT_BUFFER_SIZE     = 8;
         private const int PIERCE_BUFFER_SIZE  = 8;
 
+        // 대상 방향이 진행 방향에서 이만큼 벗어나면 유도를 끊는다.
+        // 이 값이 90도를 넘지 않으므로 "목표가 화살 뒤쪽으로 넘어감"도 여기서 함께 걸린다
+        private const float GUIDANCE_ABORT_ANGLE = 35f;
+
+        private const uint NO_GUIDANCE_TARGET = 0u;
+
         private Vector3 _direction;
         private float   _speed;
         private float   _damage;
@@ -38,6 +44,14 @@ namespace Geumeum.Combat
         private int     _worldMask;
         private bool    _initialized = false;
 
+        // 락온 유도. 대상이 없으면 0이고 그때는 직선으로 날아간다.
+        // 부위 번호가 따로 있는 이유는 보스 꼬리와 몸통이 같은 NetworkIdentity라
+        // netId만으로는 "잠근 그 꼬리"를 가리킬 수 없기 때문이다
+        private uint  _guidanceTargetNetId = NO_GUIDANCE_TARGET;
+        private byte  _guidanceTargetPart  = 0;
+        private float _guidanceRemaining   = 0f;
+        private float _guidanceDegreesPerSecond = 0f;
+
         // 화살마다 새로 만들면 연사할수록 GC 할당이 쌓인다
         private readonly RaycastHit[]      _hitBuffer      = new RaycastHit[HIT_BUFFER_SIZE];
         private readonly List<IDamageable> _piercedTargets = new List<IDamageable>(PIERCE_BUFFER_SIZE);
@@ -46,9 +60,15 @@ namespace Geumeum.Combat
         *              Server API
         ****************************************/
 
-        /// <summary> 스폰 직전에 서버가 한 번 호출해 비행 조건을 확정한다 </summary>
+        /// <summary>
+        /// 스폰 직전에 서버가 한 번 호출해 비행 조건을 확정한다.
+        /// guidanceTargetNetId가 0이면 유도 없이 직선으로 날아간다 -
+        /// 락온이 걸려 있을 때만 유도가 붙는다
+        /// </summary>
         [Server]
-        public void ServerInitialize(Vector3 direction, float damage, uint attackerNetId, int targetMask, ArrowConfigSO arrow)
+        public void ServerInitialize(
+            Vector3 direction, float damage, uint attackerNetId, int targetMask, ArrowConfigSO arrow,
+            uint guidanceTargetNetId = NO_GUIDANCE_TARGET, byte guidanceTargetPart = 0)
         {
             _direction         = direction.normalized;
             _damage            = damage;
@@ -60,6 +80,15 @@ namespace Geumeum.Combat
             _remainingLifetime = arrow.ArrowLifetime;
             _worldMask         = arrow.WorldMask;
             _initialized       = true;
+
+            // 관통 화살은 유도를 받지 않는다. 여러 적을 뚫고 지나가야 하는 화살이 휘면
+            // 두 번째 대상이 어디 있든 첫 대상 쪽으로 꺾이므로 물리적 필연이다
+            bool canGuide = ((guidanceTargetNetId != NO_GUIDANCE_TARGET) && (_remainingPierce <= 1));
+
+            _guidanceTargetNetId      = (canGuide) ? guidanceTargetNetId : NO_GUIDANCE_TARGET;
+            _guidanceTargetPart       = guidanceTargetPart;
+            _guidanceRemaining        = (canGuide) ? arrow.GuidanceDuration : 0f;
+            _guidanceDegreesPerSecond = arrow.GuidanceDegreesPerSecond;
 
             // 화살을 풀에서 재사용하면 지난 비행의 명중 기록이 남아 그 대상만 영영 맞지 않는다
             _piercedTargets.Clear();
@@ -112,6 +141,9 @@ namespace Geumeum.Combat
                 return;
             }
 
+            // 방향을 먼저 정한다. 이동한 뒤에 꺾으면 이번 틱의 충돌 판정이 옛 방향으로 나간다
+            UpdateGuidance(deltaTime);
+
             Vector3 origin = transform.position;
             float   step   = _speed * deltaTime;
 
@@ -133,6 +165,104 @@ namespace Geumeum.Combat
             }
 
             transform.position = origin + (_direction * step);
+        }
+
+        /****************************************
+        *                Guidance
+        ****************************************/
+
+        /// <summary>
+        /// 락온 대상 쪽으로 초당 최대 각도만큼만 방향을 돌린다.
+        ///
+        /// 비례 보간이 아니라 고정 각속도다(RotateTowards) - 비례로 하면 대상이 멀수록
+        /// 더 세게 휘어 유도탄이 된다. 0.4초 동안 총 회전량이 최대 12도이고 30m/s 기준 그동안 12m를
+        /// 나아가므로, 가까운 잡귀의 횡이동을 조금 따라갈 뿐 도망간 적을 추격하지 못한다
+        /// </summary>
+        [Server]
+        private void UpdateGuidance(float deltaTime)
+        {
+            if (_guidanceTargetNetId == NO_GUIDANCE_TARGET)
+            {
+                return;
+            }
+
+            _guidanceRemaining -= deltaTime;
+            if (_guidanceRemaining <= 0f)
+            {
+                StopGuidance();
+                return;
+            }
+
+            if (!TryResolveGuidanceAimPoint(out Vector3 aimPoint))
+            {
+                StopGuidance();
+                return;
+            }
+
+            Vector3 toTarget = aimPoint - transform.position;
+            if (toTarget.sqrMagnitude <= 0f)
+            {
+                StopGuidance();
+                return;
+            }
+
+            Vector3 desired = toTarget.normalized;
+
+            // 크게 벗어났으면 따라가지 않는다. 35도를 넘는 순간 끊으므로
+            // "목표가 화살 뒤쪽으로 넘어감"도 같은 조건에 걸린다
+            if (Vector3.Angle(_direction, desired) > GUIDANCE_ABORT_ANGLE)
+            {
+                StopGuidance();
+                return;
+            }
+
+            float maxRadians = _guidanceDegreesPerSecond * Mathf.Deg2Rad * deltaTime;
+
+            _direction         = Vector3.RotateTowards(_direction, desired, maxRadians, 0f).normalized;
+            transform.rotation = Quaternion.LookRotation(_direction); // 날아가는 쪽을 향해야 화살이 옆으로 미끄러지지 않는다
+        }
+
+        // 대상이 사라졌거나 죽었으면 유도할 것이 없다. 부위 번호까지 봐야 잠근 그 부위로 휜다
+        [Server]
+        private bool TryResolveGuidanceAimPoint(out Vector3 aimPoint)
+        {
+            aimPoint = Vector3.zero;
+
+            if (!NetworkServer.spawned.TryGetValue(_guidanceTargetNetId, out NetworkIdentity identity))
+            {
+                return false;
+            }
+
+            if ((DamageTargetResolver.TryResolve(identity.transform, out IDamageable damageable)) && (damageable.IsDead))
+            {
+                return false;
+            }
+
+            IAimAssistTarget[] parts = identity.GetComponentsInChildren<IAimAssistTarget>(true);
+
+            if ((_guidanceTargetPart < parts.Length) && (parts[_guidanceTargetPart] != null))
+            {
+                aimPoint = parts[_guidanceTargetPart].AimPoint;
+                return true;
+            }
+
+            // 계약이 없는 대상은 콜라이더 중심으로 폴백한다. 락온이 쓰는 규칙과 같아야
+            // 카메라가 보는 점과 화살이 가는 점이 갈라지지 않는다
+            Collider collider = identity.GetComponentInChildren<Collider>();
+            if (collider == null)
+            {
+                return false;
+            }
+
+            aimPoint = collider.bounds.center;
+            return true;
+        }
+
+        [Server]
+        private void StopGuidance()
+        {
+            _guidanceTargetNetId = NO_GUIDANCE_TARGET;
+            _guidanceRemaining   = 0f;
         }
 
         /****************************************

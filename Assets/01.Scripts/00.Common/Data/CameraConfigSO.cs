@@ -12,12 +12,10 @@ namespace Geumeum.Data
     /// <summary>
     /// 3인칭 카메라의 거리, 회전, 충돌 수치.
     /// 네트워크를 타지 않는 로컬 리소스다 - 카메라는 완전히 클라이언트 소유이고 판정에 관여하지 않는다.
-    /// 씬마다 카메라 오브젝트가 따로 있어도 <b>감은 여기 하나에서 나온다</b>
+    /// 씬마다 카메라 오브젝트가 따로 있어도 감은 여기 하나에서 나온다
     /// </summary>
-    /// <remarks>
-    /// 거리 넷(4.5 · 9.0 · 7.0 · 0.6m)은 카메라와 락온 설계 13장이 <b>화면을 봐야 정해지는 임시값</b>으로
-    /// 남긴 것이다. Play 중에 이 에셋을 열어 밀어 보고 정한다
-    /// </remarks>
+    // 거리 넷(4.5, 9.0, 7.0, 0.6m)은 화면을 봐야 정해지는 임시값으로
+    // 남긴 것이다. Play 중에 이 에셋을 열어 밀어 보고 정한다
     [CreateAssetMenu(fileName = "CameraConfigSO", menuName = "Geumeum/CameraConfigSO")]
     public class CameraConfigSO : ScriptableObject
     {
@@ -44,10 +42,10 @@ namespace Geumeum.Data
         // 값은 ProjectSettings/TagManager.asset의 순서를 따른다 - 거기서 레이어를 옮기면 같이 고쳐야 한다.
         // 어디까지나 에셋 생성 시 기본값이고, 실제로 도는 값은 인스펙터에 보인다.
         //
-        // ⚠️ 2026-09-05 실측 정정 - 처음에 Default + Ground 만 넣었다가 바위를 전부 놓쳤다.
-        //    Main 씬 실측: 지형은 Ground(8)가 아니라 Default(0)에 있고 Ground는 콜라이더 0개다.
-        //    바위 393개는 전부 PW_Object_* 세 층에 있다. 이름의 Small/Medium/Large는 물리 크기가
-        //    아니라 PW의 거리 분류라 크기로 걸러 넣으면 안 된다(Small 평균 11m, Large 평균 1.7m)
+        // 2026-09-05 실측 정정 - 처음에 Default + Ground 만 넣었다가 바위를 전부 놓쳤다.
+        // Main 씬 실측: 지형은 Ground(8)가 아니라 Default(0)에 있고 Ground는 콜라이더 0개다.
+        // 바위 393개는 전부 PW_Object_* 세 층에 있다. 이름의 Small/Medium/Large는 물리 크기가
+        // 아니라 PW의 거리 분류라 크기로 걸러 넣으면 안 된다(Small 평균 11m, Large 평균 1.7m)
         private const int LAYER_DEFAULT   = 0;  // 지형이 여기 있다
         private const int LAYER_GROUND    = 8;  // 지금은 비어 있으나 지형을 옮길 자리로 남겨 둔다
         private const int LAYER_PW_SMALL  = 15; // 바위
@@ -94,6 +92,19 @@ namespace Geumeum.Data
         [Tooltip("아래를 보는 한계(도)")]
         [SerializeField] private float _pitchMax = 60f;
 
+        [Header("락온 거리")]
+        [Tooltip("잡귀를 잠갔을 때의 붐 길이(m). 기본 거리와 같게 두는 것이 시작값이다")]
+        [SerializeField] private float _lockOnDistanceEnemy = 4.5f;
+
+        [Tooltip("보스 몸통(m). 꼬리 펼침이 프레임에 들어와야 해서 멀다 - 안 보이면 싸울 수 없다")]
+        [SerializeField] private float _lockOnDistanceBossBody = 9f;
+
+        [Tooltip("보스 부위(꼬리 한 덩이)(m). 그로기 10초 동안 표식 꼬리를 치기 좋은 거리")]
+        [SerializeField] private float _lockOnDistanceBossPart = 7f;
+
+        [Tooltip("락온 대상을 향해 카메라가 도는 속도(도/초). 즉시 돌리면 대상이 빠르게 움직일 때 화면이 튄다")]
+        [SerializeField] private float _lockOnTurnDegreesPerSecond = 540f;
+
         [Header("충돌")]
         [Tooltip("카메라가 뚫으면 안 되는 레이어. 지형(Ground)과 바위(Default)")]
         [SerializeField] private LayerMask _collisionMask = DEFAULT_COLLISION_MASK;
@@ -115,7 +126,7 @@ namespace Geumeum.Data
         [SerializeField] private float _fieldOfView = 60f;
 
         [Header("셰이크")]
-        [Tooltip("전체 배수. 접근성 옵션이 0~1로 민다 — 0이면 완전히 꺼진다")]
+        [Tooltip("전체 배수. 접근성 옵션이 0~1로 민다 - 0이면 완전히 꺼진다")]
         [Range(0f, 1f)]
         [SerializeField] private float _shakeScale = 1f;
 
@@ -137,7 +148,7 @@ namespace Geumeum.Data
         [Tooltip("보스 그로기 진입. 셋이 동시에 달려드는 신호다")]
         [SerializeField] private ShakeSpec _shakeGroggyEnter = new ShakeSpec { Amplitude = 0.25f, Duration = 0.30f };
 
-        [Tooltip("보스 부위 파괴(꼬리 한 덩이). 가장 센 셰이크 — 25% 게이트를 한 칸 여는 순간이다")]
+        [Tooltip("보스 부위 파괴(꼬리 한 덩이). 가장 센 셰이크 - 25% 게이트를 한 칸 여는 순간이다")]
         [SerializeField] private ShakeSpec _shakePartBreak = new ShakeSpec { Amplitude = 0.30f, Duration = 0.35f };
 
         /****************************************
@@ -154,6 +165,11 @@ namespace Geumeum.Data
         public bool  DefaultInvertY      => _defaultInvertY;
         public float PitchMin            => _pitchMin;
         public float PitchMax            => _pitchMax;
+
+        public float LockOnDistanceEnemy         => _lockOnDistanceEnemy;
+        public float LockOnDistanceBossBody      => _lockOnDistanceBossBody;
+        public float LockOnDistanceBossPart      => _lockOnDistanceBossPart;
+        public float LockOnTurnDegreesPerSecond  => _lockOnTurnDegreesPerSecond;
 
         public LayerMask CollisionMask    => _collisionMask;
         public float     ProbeRadius      => _probeRadius;

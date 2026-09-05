@@ -26,6 +26,13 @@ namespace Geumeum.Combat
         private PlayerAnimationController _animation;
 
         /****************************************
+        *                Events
+        ****************************************/
+
+        /// <summary> 장착 무기가 바뀌었다. 배분 전에는 기본값이 온다 </summary>
+        public event System.Action<WeaponKind> WeaponChanged;
+
+        /****************************************
         *              Properties
         ****************************************/
 
@@ -53,6 +60,8 @@ namespace Geumeum.Combat
         private void OnWeaponChanged(WeaponKind oldWeapon, WeaponKind newWeapon)
         {
             RefreshWeaponVisual();
+
+            WeaponChanged?.Invoke(newWeapon);
         }
 
         private void OnHasWeaponChanged(bool oldHasWeapon, bool newHasWeapon)
