@@ -15,3 +15,21 @@ MonoBehaviour:
   _maxHealth: 0
   _phases: []
   _patterns: []
+  _groggyGaugeMax: 100
+  _gaugeReductions:
+  - Character: 0
+    Amount: 10
+  - Character: 1
+    Amount: 8
+  - Character: 2
+    Amount: 13
+  _groggyDuration: 10
+  _groggyWakeWarningDuration: 2
+  _groggyImmunityDuration: 8
+  _brandCooldown: 8
+  _groggyBodyDamageMultiplier: 1.5
+  _groggyTailDamageMultiplier: 3
+  _tailSegmentCount: 3
+  _tailSegmentHealth: 1350
+  _healthGateRatio: 0.25
+  _unbrokenTailAttackMultiplier: 1.2
