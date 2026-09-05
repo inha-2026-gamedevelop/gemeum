@@ -30,6 +30,10 @@ Assets/Gaia User Data/Sessions/*/Backups/
 #
 # 대신 git 밖 참조에서 오는 절차 규칙 3건이 있다 → docs/unity/BOSS_STAGING_DESIGN.md 5.0.1
 #  1. 드라이브의 99.ThirdParty 를 임의로 갱신·이동·개명하지 않는다 (롤백이 반쪽이 된다)
+#     └ 예외 하나: 드라이브 쪽 파일이 커밋 대상 에셋과 GUID 를 다투면 개명해 해소할 수 있다.
+#       가만히 두면 Unity 가 커밋 대상 쪽을 renumber 해 .meta 가 매번 더티가 되고,
+#       그것을 한 번 커밋하는 순간 팀 전체 참조가 끊긴다 — 두는 쪽이 더 위험하다.
+#       조건과 개명 내역은 docs/unity/BOSS_STAGING_DESIGN.md 5.0.1.1 (2026-09-05 신설)
 #  2. 드라이브 동기화 완료 후 Unity 를 연다. GUID 미해결 경고가 있으면 씬을 저장하지 않는다
 #  3. clean clone 판정은 "clone 만으로 열린다"가 아니라 "clone + 드라이브 동기화로 열린다"
 Assets/99.ThirdParty/

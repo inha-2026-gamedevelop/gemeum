@@ -67,6 +67,8 @@ namespace Geumeum.Common
             public void PlayHit(HitStrength strength, float duration) { }
             public void PlayParrySuccess() { }
             public void PlayCritical(float multiplier) { }
+            public void PlayGroggyEnter() { }
+            public void PlayPartBreak() { }
         }
     }
 }

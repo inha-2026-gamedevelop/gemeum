@@ -27,11 +27,19 @@
 # ---------------------------------------------------------------
 # 씬 — 통합 씬은 반드시 팀장, 작업 씬은 담당자
 # ---------------------------------------------------------------
-/Assets/00.Scenes/Main.unity        @AidenKim923
-/Assets/00.Scenes/Dev_Combat.unity  @AidenKim923
-/Assets/00.Scenes/Dev_AI.unity      @oname36-creator
-/Assets/00.Scenes/Dev_System.unity  @kjw1237
-/Assets/00.Scenes/Dev_Art.unity     @AidenKim923
+/Assets/00.Scenes/Main.unity                     @AidenKim923
+/Assets/00.Scenes/Dev_Combat.unity               @AidenKim923
+/Assets/00.Scenes/Dev_AI.unity                   @oname36-creator
+/Assets/00.Scenes/Dev_Character.unity            @AidenKim923
+/Assets/00.Scenes/Dev_WeatherMakerIsolation.unity @AidenKim923
+
+# 게임플레이 시스템은 단일 Dev_System.unity 가 아니라 Dev_System/ 폴더에 씬 셋을 만들었다
+# (Dev_Barrier · Dev_Lobby · Dev_Title). 폴더로 잡아야 셋 다 매칭된다 — 2026-09-05 정정
+/Assets/00.Scenes/Dev_System/                    @kjw1237
+
+# Dev_Art.unity 는 아직 미생성이다 (docs/04-architecture.md 3.1).
+# 존재하지 않는 경로는 GitHub 이 조용히 무시하므로 만들 때 이 줄을 되살린다
+# /Assets/00.Scenes/Dev_Art.unity                @AidenKim923
 
 # ---------------------------------------------------------------
 # 스크립트 — 폴더 = 네임스페이스 = 소유권

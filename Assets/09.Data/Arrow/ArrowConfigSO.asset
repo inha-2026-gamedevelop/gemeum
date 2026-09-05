@@ -14,8 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.ArrowConfigSO
   _arrowSpeed: 30
   _arrowLifetime: 3
+  _worldMask:
+    serializedVersion: 2
+    m_Bits: 229633
+  _unlockedHitRadius: 0.4
   _aimAssistAngle: 12
   _guidanceDegreesPerSecond: 30
   _guidanceDuration: 0.4
-  _unlockedHitRadius: 0.4
   _basePierceCount: 1

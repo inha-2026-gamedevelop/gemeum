@@ -276,6 +276,59 @@ MeleeArc  ·  TargetedDash  ·  MarkedCircle  ·  ConeBurst
 
 기존 문장은 *"직업을 만들지 말라"*와 구분되지 않았다.
 
+### 6.5 `BossPatternSO` 필드 대응 (2026-09-05 스키마 반영 완료)
+
+**6장과 8.2의 수치가 들어갈 자리를 `BossPatternSO`에 만들어 두었다.** 코드는
+`Assets/01.Scripts/00.Common/Data/BossPatternSO.cs`, 에셋은 `Assets/09.Data/Boss/BossPatternSO.asset`이며
+**위 값들이 기본값으로 이미 들어가 있다.** 인스펙터에서 열면 보이고, 조정은 에셋만 고치면 된다.
+
+| 설계 항목 | SO 필드 | 읽는 프로퍼티 | 현재 값 |
+|---|---|---|--:|
+| 그로기 게이지 최대 (6.1) | `_groggyGaugeMax` | `GroggyGaugeMax` | 100 |
+| 직업별 감소량 (6.1) | `_gaugeReductions` | **`TryGetGaugeReduction(CharacterKind, out float)`** | 차사 10 · 신궁 8 · 무녀 13 |
+| 그로기 총 지속 (6.2) | `_groggyDuration` | `GroggyDuration` | 10.0 |
+| 기상 예고 (6.2) | `_groggyWakeWarningDuration` | `GroggyWakeWarningDuration` | 2.0 |
+| 무저항 구간 | — **파생값** | **`GroggyHelplessDuration`** | 8.0 |
+| 그로기 후 면역 (6.2) | `_groggyImmunityDuration` | `GroggyImmunityDuration` | 8.0 |
+| 낙인 쿨다운 (6.2) | `_brandCooldown` | `BrandCooldown` | 8.0 |
+| 일반 부위 피해 배수 (6.2) | `_groggyBodyDamageMultiplier` | `GroggyBodyDamageMultiplier` | 1.5 |
+| 꼬리 피해 배수 (6.2 · 8.2) | `_groggyTailDamageMultiplier` | `GroggyTailDamageMultiplier` | 3.0 |
+| 꼬리 덩이 수 (8.2) | `_tailSegmentCount` | `TailSegmentCount` | 3 |
+| 꼬리 1덩이 HP (8.2) | `_tailSegmentHealth` | `TailSegmentHealth` | 1,350 |
+| 본체 하드 게이트 (8.2) | `_healthGateRatio` | `HealthGateRatio` | 0.25 |
+| 미결 페널티 (8.2) | `_unbrokenTailAttackMultiplier` | `UnbrokenTailAttackMultiplier` | 1.2 |
+
+- 🔑 **무저항 구간은 필드가 아니라 파생값이다** — `총 지속 − 기상 예고`. 둘을 따로 넣게 두면
+  값을 고치다 어긋나고, 어긋나면 8.0초가 조용히 사라진다.
+- 🔒 **딜은 `TryGetGaugeReduction`을 거치지 않는다.** 그 함수는 **카운터 전용**이다 —
+  딜이 게이지를 깎으면 6.1이 막으려던 딜미터가 그대로 된다.
+- **아직 비어 있는 것은 `_maxHealth` · `_phases` · `_patterns` 셋**이고 18장 표와 함께
+  @oname36-creator가 채운다. `TryGetPhase`·`TryGetPattern`은 **비어 있어도 예외 없이 `false`를 돌려준다.**
+
+#### 6.5.1 보스가 부를 공용 계약 둘 (2026-09-05 신설)
+
+**보스 코드가 아트·카메라를 참조하지 않고도 연출을 낼 수 있게 `00.Common`에 계약을 냈다.**
+
+| 계약 | 무엇 | 어디 |
+|---|---|---|
+| `ICombatFeedback.PlayGroggyEnter()` | 그로기 진입 셰이크 (0.25m / 0.30초) | `00.Common/Interfaces/ICombatFeedback.cs` |
+| `ICombatFeedback.PlayPartBreak()` | 부위 파괴 셰이크 (0.30m / 0.35초) — 이 게임에서 가장 세다 | 같은 파일 |
+| `IAimAssistTarget.AimPoint` | 락온·조준 보정이 겨눌 월드 좌표 | `00.Common/Interfaces/IAimAssistTarget.cs` |
+
+```csharp
+// 보스 측 호출 — 로컬 표현이므로 서버에서 부르지 않는다.
+// 판정 결과를 받은 각 클라이언트가 자기 화면에서 호출한다
+CombatFeedbackLocator.Current.PlayGroggyEnter();
+CombatFeedbackLocator.Current.PlayPartBreak();
+```
+
+- **연출 구현체가 없어도 그대로 돌아간다** — `CombatFeedbackLocator`가 아무것도 하지 않는
+  `NullCombatFeedback`을 돌려주므로 null 체크가 필요 없다.
+- 🔑 **`IAimAssistTarget`은 부위마다 하나씩 붙인다.** 몸통과 꼬리 세 덩이가 각각 별개의 락온 대상이다 —
+  하나만 붙이면 **꼬리를 잠가도 카메라와 화살은 몸통을 본다.** 8.2의 *"그로기 진입 시 표식 꼬리로
+  자동 전환"*이 성립하려면 꼬리 콜라이더마다 자기 조준점이 있어야 한다.
+- 조준점은 **표현이 아니라 판정에 쓰인다**(화살 유도가 서버 판정). 서버와 클라가 같은 값을 내야 한다.
+
 ---
 
 ## 7. 시간 구조
@@ -371,6 +424,8 @@ MeleeArc  ·  TargetedDash  ·  MarkedCircle  ·  ConeBurst
 | 꼬리 피해 배수 | **×3.0** | |
 | 본체 게이트 | **25%** | |
 | 미결 시 보스 공격력 | **×1.2** | on/off. 누적 없음 |
+
+> 📦 **이 표의 값은 `BossPatternSO`에 이미 들어가 있다.** 필드 이름과 읽는 프로퍼티는 [6.5](#65-bosspatternso-필드-대응-2026-09-05-스키마-반영-완료).
 
 ```
 안전 플레이 (무저항 8초)   8 × 85.3 × 3.0 = 2,047   →  1,350의 1.52배 여유

@@ -102,9 +102,16 @@ Assets/
 | `Dev_Character.unity` | **현재** | 캐릭터·무기 부착 확인용. 네트워크 없음. 빌드 설정 미포함 |
 | `Dev_WeatherMakerIsolation.unity` | **현재** | WeatherMaker 격리 확인용(임시). 빌드 설정 미포함 |
 | `SampleScene.unity` | **현재** | Unity 기본 생성물. 사용하지 않는다 |
+| **`Dev_System/` (폴더)** | **현재** | 게임플레이 시스템 작업 씬 **셋**. 소유자 @kjw1237 — `Dev_Barrier` · `Dev_Lobby` · `Dev_Title` |
 | `Boss_Arena.unity` | **미생성** | 보스맵. 팀장 + 보스 담당자 공동 소유 |
-| `Dev_System.unity` | **미생성** | 게임플레이 시스템 작업 씬. 소유자 @kjw1237 |
 | `Dev_Art.unity` | **미생성** | 테크니컬 아트 작업 씬. 소유자 @AidenKim923 |
+
+> 🔧 **2026-09-05 정정 — `Dev_System.unity`는 "미생성"이 아니었다.**
+> @kjw1237이 씬 하나가 아니라 **`Dev_System/` 폴더에 씬 셋**(`Dev_Barrier` · `Dev_Lobby` · `Dev_Title`)을 만들었고,
+> 이 표와 `.github/CODEOWNERS`가 둘 다 단일 파일 `Dev_System.unity`를 가리키고 있었다.
+> **CODEOWNERS는 존재하지 않는 경로를 조용히 무시하므로 그 세 씬에 리뷰 담당자가 없었다.**
+> CODEOWNERS를 폴더 규칙(`/Assets/00.Scenes/Dev_System/`)으로 고쳤고, `Dev_Character`·`Dev_WeatherMakerIsolation`도
+> 빠져 있어 함께 등록했다. `Dev_Art.unity`만 실제로 미생성이라 주석으로 남겼다.
 
 > **`미생성` 씬은 소유자만 등록해 둔 것이다. 통합 담당자가 미리 만들어 두지 않는다.**
 >
