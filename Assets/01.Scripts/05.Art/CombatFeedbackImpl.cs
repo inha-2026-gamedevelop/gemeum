@@ -90,6 +90,28 @@ namespace Geumeum.Art
             Shake(config.ShakeCritical);
         }
 
+        /// <summary> 보스 그로기 진입 </summary>
+        public void PlayGroggyEnter()
+        {
+            if (!TryGetConfig(out CameraConfigSO config))
+            {
+                return;
+            }
+
+            Shake(config.ShakeGroggyEnter);
+        }
+
+        /// <summary> 보스 부위 파괴(꼬리 한 덩이) </summary>
+        public void PlayPartBreak()
+        {
+            if (!TryGetConfig(out CameraConfigSO config))
+            {
+                return;
+            }
+
+            Shake(config.ShakePartBreak);
+        }
+
         /****************************************
         *                Methods
         ****************************************/

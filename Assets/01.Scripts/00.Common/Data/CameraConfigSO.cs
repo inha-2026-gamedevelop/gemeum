@@ -134,6 +134,12 @@ namespace Geumeum.Data
         [Tooltip("치명타")]
         [SerializeField] private ShakeSpec _shakeCritical = new ShakeSpec { Amplitude = 0.15f, Duration = 0.15f };
 
+        [Tooltip("보스 그로기 진입. 셋이 동시에 달려드는 신호다")]
+        [SerializeField] private ShakeSpec _shakeGroggyEnter = new ShakeSpec { Amplitude = 0.25f, Duration = 0.30f };
+
+        [Tooltip("보스 부위 파괴(꼬리 한 덩이). 가장 센 셰이크 — 25% 게이트를 한 칸 여는 순간이다")]
+        [SerializeField] private ShakeSpec _shakePartBreak = new ShakeSpec { Amplitude = 0.30f, Duration = 0.35f };
+
         /****************************************
         *              Properties
         ****************************************/
@@ -164,6 +170,8 @@ namespace Geumeum.Data
 
         public ShakeSpec ShakeParrySuccess => _shakeParrySuccess;
         public ShakeSpec ShakeCritical     => _shakeCritical;
+        public ShakeSpec ShakeGroggyEnter  => _shakeGroggyEnter;
+        public ShakeSpec ShakePartBreak    => _shakePartBreak;
 
         /// <summary>
         /// 피격 강도에 맞는 셰이크. Critical은 치명타 셰이크를 쓴다 -

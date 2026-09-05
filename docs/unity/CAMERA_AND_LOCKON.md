@@ -248,6 +248,11 @@ Vector3 world = Quaternion.Euler(0f, CameraFrame.Yaw, 0f) * new Vector3(input.x,
 | 그로기 진입 | 0.25m | 0.30초 |
 | 꼬리 파괴 | 0.30m | 0.35초 |
 
+> ✅ **2026-09-05 구현됨** — `05.Art/CombatFeedbackImpl.cs`가 `ICombatFeedback`을 구현하고
+> `CameraRig.AddShake()`에 넘긴다. 수치 여섯은 전부 `CameraConfigSO`에 있다.
+> 그로기·꼬리 파괴용으로 계약에 `PlayGroggyEnter()`·`PlayPartBreak()` 둘을 더했다 — **보스(@oname36)가 부른다.**
+> 실측: 셋을 겹쳐 합산 0.47을 넣어도 오프셋이 **0.232m로 상한 0.30 안에 들었고**, `ShakeScale = 0`에서 **0.0000m**였다.
+
 - **위치 흔들림만.** 회전 흔들림은 **최대 0.5°** — FOV를 고정한 것과 같은 이유
 - 🔒 **합산 상한 0.30m.** 여러 개가 겹쳐도 넘지 않는다
 - 감쇠는 지속시간 동안 선형

@@ -43,3 +43,9 @@ MonoBehaviour:
   _shakeCritical:
     Amplitude: 0.15
     Duration: 0.15
+  _shakeGroggyEnter:
+    Amplitude: 0.25
+    Duration: 0.3
+  _shakePartBreak:
+    Amplitude: 0.3
+    Duration: 0.35

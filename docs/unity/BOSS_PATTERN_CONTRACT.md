@@ -305,6 +305,30 @@ MeleeArc  ·  TargetedDash  ·  MarkedCircle  ·  ConeBurst
 - **아직 비어 있는 것은 `_maxHealth` · `_phases` · `_patterns` 셋**이고 18장 표와 함께
   @oname36-creator가 채운다. `TryGetPhase`·`TryGetPattern`은 **비어 있어도 예외 없이 `false`를 돌려준다.**
 
+#### 6.5.1 보스가 부를 공용 계약 둘 (2026-09-05 신설)
+
+**보스 코드가 아트·카메라를 참조하지 않고도 연출을 낼 수 있게 `00.Common`에 계약을 냈다.**
+
+| 계약 | 무엇 | 어디 |
+|---|---|---|
+| `ICombatFeedback.PlayGroggyEnter()` | 그로기 진입 셰이크 (0.25m / 0.30초) | `00.Common/Interfaces/ICombatFeedback.cs` |
+| `ICombatFeedback.PlayPartBreak()` | 부위 파괴 셰이크 (0.30m / 0.35초) — 이 게임에서 가장 세다 | 같은 파일 |
+| `IAimAssistTarget.AimPoint` | 락온·조준 보정이 겨눌 월드 좌표 | `00.Common/Interfaces/IAimAssistTarget.cs` |
+
+```csharp
+// 보스 측 호출 — 로컬 표현이므로 서버에서 부르지 않는다.
+// 판정 결과를 받은 각 클라이언트가 자기 화면에서 호출한다
+CombatFeedbackLocator.Current.PlayGroggyEnter();
+CombatFeedbackLocator.Current.PlayPartBreak();
+```
+
+- **연출 구현체가 없어도 그대로 돌아간다** — `CombatFeedbackLocator`가 아무것도 하지 않는
+  `NullCombatFeedback`을 돌려주므로 null 체크가 필요 없다.
+- 🔑 **`IAimAssistTarget`은 부위마다 하나씩 붙인다.** 몸통과 꼬리 세 덩이가 각각 별개의 락온 대상이다 —
+  하나만 붙이면 **꼬리를 잠가도 카메라와 화살은 몸통을 본다.** 8.2의 *"그로기 진입 시 표식 꼬리로
+  자동 전환"*이 성립하려면 꼬리 콜라이더마다 자기 조준점이 있어야 한다.
+- 조준점은 **표현이 아니라 판정에 쓰인다**(화살 유도가 서버 판정). 서버와 클라가 같은 값을 내야 한다.
+
 ---
 
 ## 7. 시간 구조
