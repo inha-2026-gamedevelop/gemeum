@@ -1,6 +1,9 @@
 # 사운드 설계 — 조달 · 믹싱 · 스템 레이어
 
-**2026-09-04 신설.**
+**2026-09-04 신설. 2026-09-05 개정** — 보스 1P·2P **음악 방향**과 Suno 프롬프트 신설(3.4~3.6), **SFX P0 6줄 확정**(2.2), **믹서 그룹 구조 정정**(4.2).
+
+> ⚠️ **4.2는 이번에 바뀌었다.** 그룹을 카테고리로만 나누면 3인 코옵에서 **내 패링과 남의 패링이 구분되지 않는다.**
+> 그리고 이 문서가 스스로 경고하듯 **믹서 그룹은 나중에 못 나눈다.** 재생 계층을 만들기 전에 4.2를 읽는다.
 
 ---
 
@@ -58,6 +61,38 @@ docs/02-game-design.md                               "사운드 방향 | 미정"
 | 11 | 게이트 카운트다운 | 30초 압박 |
 | 12 | 페이즈 전환 · **먹 번짐** · 처치 | [연출 3장](BOSS_STAGING_DESIGN.md) |
 
+### 2.2 P0 6줄 — 없으면 보스전이 성립하지 않는 것
+
+**2026-09-05 확정.** 2.1이 "40분 게임 전체에 무엇이 필요한가"라면, 이것은 **"보스전을 굴리려면 최소 무엇인가"**다. 키는 실제 코드의 호출 지점에 붙였다.
+
+| 키 | 호출 지점 (코드 근거) | 길이 | 왜 P0인가 |
+|---|---|---|---|
+| `boss_tell_a`~`d` | 예고 템플릿 4종 (windup **1.2 / 1.5 / 2.0 / 0.8초**) | windup보다 짧게 | **패링 학습의 전부.** 10패턴이 이 4개로 묶인다 |
+| `parry_success` | `ParryController` 성공 | ≤0.3초 | 0.32초 창의 결과 통지 |
+| `parry_fail` | `ParryController` `MissTiming` | ≤0.3초 | 성공과 **음색이 달라야** 1이 의미를 갖는다 |
+| `melee_hit` / `melee_whiff` | `PlayerAttack.ApplyMeleeHit` — `hitCount > 0` 분기 | 0.2초 | 헛스윙 구분이 **게이지 보존 규칙**과 한 쌍 |
+| `player_hurt` | `PlayerStatus` 피격 | 0.4초 | 3인 중 누가 맞았는지 |
+| `boss_groggy_enter` | 그로기 진입 (문 3종 공통) | 1.5초 | **유일한 공격 기회.** 파티 전체의 신호 |
+
+**P1** — `melee_swing_1/2/3`(`RpcAttackStarted(comboStage)`, [3단 콤보](PLAYER_ATTACK_DESIGN.md)) · `melee_critical` · `bow_fire`/`arrow_hit`/`arrow_expire` · `roll` · `stamina_empty`(`TrySpendStamina` 실패) · `footstep_wet`/`footstep_dry` · `boss_hurt`/`boss_groggy_end` · `barrier_shrink`
+
+**P2** — 무기 교체 · 레벨업 · UI · 등불 · 물 앰비언스 · 사당 · 부활 · 정산
+
+> `footstep_wet`이 P1인 이유 — **아레나 바닥은 1페이즈부터 젖어 있다**([연출 4.2](BOSS_STAGING_DESIGN.md)). 젖은 발소리가 곧 장소감이다.
+
+### 2.3 🔒 예고음은 종류만 알린다 — 타이밍은 알리지 않는다
+
+**2026-09-05 확정. 뒤집지 않는다.**
+
+```
+소리  →  무엇이 오는가 (예고 4종 중 어느 것)
+모션  →  언제 치는가   (패링 창 [impact−0.32, impact])
+```
+
+**패링 창 진입 시점에 두 번째 청각 큐를 주지 않는다.** 0.32초를 귀로 떠먹여주면 액션이 아니라 리듬 게임이 되고, [엇박 학습](BOSS_PATTERN_CONTRACT.md)이 통째로 무의미해진다.
+
+**그래서 예고음 4종은 볼륨이 아니라 음색으로 서로 갈라야 한다.** 같은 음색의 크기 차이로 만들면 4종이 1종이 된다.
+
 ---
 
 ## 3. BGM — "볼륨감"은 크기가 아니라 다이내믹 레인지다
@@ -101,6 +136,146 @@ docs/02-game-design.md                               "사운드 방향 | 미정"
 
 **무음이 2P 곡의 끝이다.** 재개할 필요가 없고, 오히려 낫다 — 소리가 한꺼번에 돌아올 때 **돌아온 것이 아까 그 음악이 아니라 새로운 것**이면 더 강하다.
 
+### 3.4 보스 음악의 축 — 소유권이 넘어온다
+
+**2026-09-05 확정.**
+
+레퍼런스는 로스트아크 《죽음의 계율자, 벨가르딘》이지만, **가져오는 것은 "오케스트라라는 형식"이지 "웅장함"이 아니다.** 웅장함은 2페이즈에만 있다.
+
+| | 1페이즈 | 2페이즈 |
+|---|---|---|
+| 규모 | **실내악** (8인 규모) | 오케스트라 + 목소리 |
+| 관점 | **보스의 음악** — 그녀가 틀어놓은 가락 | **보스에 대한 음악** |
+| 축 악기 | 해금 1대 (사람 목소리처럼 운다) | 해금 9대 + 목소리 9 |
+| 타악 | **가죽을 치지 않는다**(3.5) | 가죽 타악이 여기서 처음 등장 |
+| 감정 | 예의 — 정확히는 **예의를 유지하려는 긴장** | 개화. 승리감이 아니다 |
+
+**1페이즈가 "그녀가 튼 음악"인 이유** — 보스는 아직 싸우고 있지 않다. 갓과 너울을 쓴 채 **손님을 맞고 있다**([객주 = 구미호](../class-identity-and-boss-2026-09-03.md)). 음악이 전투를 인정하는 순간이 2페이즈다.
+
+> 🔥 **수미상관** — 2페이즈의 아홉 목소리는 **1페이즈에 해금이 켜던 그 가락을 부른다.**
+> 그때 플레이어는 그 음악이 처음부터 그녀였음을 안다. [갓이 1막에 클로즈업되고 3막에 떨어지는 것](TEASER_DESIGN.md)과 같은 구조다.
+
+### 3.5 🥁 1페이즈는 가죽을 치지 않는다
+
+**2026-09-05 확정. 실제 생성 결과로 한 번 교정된 규칙이다.**
+
+초안은 *"1페이즈 무타악"*이었다. 뽑아보니 **객주 느낌은 맞았으나 전투로 들리지 않았다**(사용자 청취).
+
+**원인은 타악 제거 자체가 아니라, 타악이 하던 두 가지 일 중 하나만 빼려다 둘 다 뺀 것이다.**
+
+| 타악이 하던 일 | 빼고 싶었던 것인가 |
+|---|---|
+| **"지금 전투다"라고 선언한다** | ✅ 빼고 싶었다 (2페이즈 카드) |
+| **곡을 앞으로 민다** | ❌ 빼면 안 됐다 → 긴장이 아니라 **평온**이 된다 |
+
+**대체 추진력** — 오스티나토(저음 현의 짧은 반복 음형), 콜 레뇨(활대로 현을 때리는 타격), 술 폰티첼로 트레몰로, 템포 88~96. 홀스트 〈화성〉의 수법이며 **타악기 없이 앙상블 자체가 리듬 기계**가 된다.
+
+```
+1페이즈  나무와 현으로 때리는 것까지 허용   (콜 레뇨 · 박(拍) · 거친 아쟁 보잉)
+2페이즈  가죽 타악(장구 · 북)이 이때 처음 등장
+```
+
+**이 한 줄이 페이즈 상승 카드를 지키면서 1페이즈에 맥박을 준다.**
+
+### 3.6 🚨 2페이즈의 제약 — 웅장할수록 패링을 덮는다
+
+**1페이즈는 실내악이라 대역이 비어 있어 문제가 없었다.** 2페이즈는 다르다.
+
+**4.3의 덕킹만으로는 부족하다.** 오케스트라 + 목소리 + 가죽 타악이 **패링 신호가 지나갈 자리(1~4kHz)에 통째로 들어앉으면**, 사이드체인이 매 패링마다 곡을 푹푹 꺼뜨린다. 그건 웅장한 것이 아니라 고장난 것이다.
+
+> 🔒 **웅장함은 저역에서 만들고 중고음은 비운 채로 거대해진다.**
+> 가죽 타악 · 저음 현 · 낮은 성부의 목소리로 크기를 만들고, 중고음(해금·목소리 상단)은 **간헐적으로만** 쓴다.
+> 이것이 게임 음악이 영화 음악과 갈라지는 지점이다 — 영화는 대역을 다 쓰고, 게임은 **효과음 자리를 비워두고 쓴다.**
+
+**루프에서 제외하는 악기** — **태평소**와 **징**. 둘 다 1~4kHz를 찢고 들어온다.
+
+**단 태평소는 딱 한 번 쓴다** — **꼬리가 펼쳐지는 순간의 스팅어 1발.** 곡 내내 안 나오므로 패링을 덮지 않고, 한 번뿐이라 그 한 번이 남는다. 한 번만 쓰는 악기가 가장 비싸다.
+
+### 3.7 Suno 프롬프트 (재현용)
+
+**아래 프롬프트로 뽑은 곡이 기준이다.** 다시 뽑아야 할 때 여기서 시작한다.
+**단 5.2 — 무료 티어로 뽑은 곡은 결제해도 상업 권리가 소급되지 않는다.**
+
+#### 1페이즈 《객주의 가락》
+
+```
+[Style]
+Korean traditional chamber ensemble with driving string ostinato,
+haegeum lead (erhu-like bowed fiddle), daegeum bamboo flute,
+aggressive bowed ajaeng low ostinato, col legno string attacks,
+sul ponticello tremolo, 92 BPM, relentless, tense, menacing,
+dark, no drums, chamber scale
+
+[Exclude]
+drums, drum kit, taiko, skin percussion, choir, brass, epic orchestral,
+cinematic trailer, EDM, rock, bells, chimes, ambient, calm, peaceful, relaxing
+
+[Lyrics — Instrumental ON]
+[Intro: low ajaeng ostinato begins, bowed hard, repeating, no drums]
+[A: haegeum enters over the ostinato, poised but strained]
+[B: col legno string attacks, ostinato tightens, dissonance climbing]
+[A': haegeum melody fractures, sul ponticello tremolo underneath]
+[Outro: ostinato continues alone, unresolved, does not settle]
+```
+
+- `ambient, calm, peaceful, relaxing` 제외가 핵심이다. 초안의 `restrained`·`elegant`를 Suno가 **"잔잔하게"로 읽었다.**
+- `bells, chimes` 제외는 필수 — **방울은 무녀 것이고 엽전은 첫 조우 것이다.** 보스가 그 음색을 쓰면 신호가 섞인다.
+- `choir` 제외도 필수 — 코러스는 2페이즈 카드다.
+- 여전히 잔잔하면 **한 번에 하나씩만** 돌린다: ① `5/4 time signature, 96 BPM` ② `snarling distorted ajaeng, bow pressure` ③ `sharp wooden clapper hits (bak)`. **장구·북·합창 추가는 금지** — 그 순간 2페이즈가 사라진다.
+- 그래도 안 되면 장르를 `Korean court chamber music, jeongak, slow ceremonial`로 바꾼다. 정악은 **타악이 원래 거의 없는 장르**라 장르가 드럼을 밀어낸다.
+
+#### 2페이즈 《아홉의 가락》
+
+```
+[Style]
+Korean traditional symphonic, monumental dark fantasy, nine layered wordless
+female voices (same singer multiplied, slightly detuned), nine detuned haegeum
+in unison, janggu and buk skin drums, deep low string ostinato, ajaeng,
+heavy low register, sparse mid range, 100 BPM, relentless, monstrous grandeur
+
+[Exclude]
+church choir, gregorian, angelic, male choir, cathedral, taepyeongso, jing, gong,
+bright brass, trumpet fanfare, EDM, rock, cheerful, uplifting, heroic, triumphant
+
+[Lyrics — Instrumental ON]
+[Intro: skin drums enter for the first time, low and heavy, ground shaking]
+[A: nine detuned female voices hum the old melody, wordless, in unison]
+[B: nine haegeum join the voices, low string ostinato driving underneath]
+[C: drums double, voices split into dissonant intervals, immense]
+[A': the melody returns whole, sung by all nine, monstrous and calm]
+[Outro: everything drops away at once, sudden, no fade]
+```
+
+- 🔥 **`church choir, angelic, cathedral` 제외가 서사를 지킨다.** 아홉 목소리는 **구미호 자신**이지 그녀가 잡아먹은 희생자들이 아니다. 희생자로 들리는 순간 보스에게 사연이 붙고, [티저에서 "비극"을 "폭로"로 바꾼 결정](TEASER_DESIGN.md)이 음악으로 되살아난다.
+- 대성당 합창단이 아니라 **한 사람을 아홉 번 복제해 미세하게 디튠**한다. 꼬리가 **실물 1 + 실루엣 8**인 것과 정확히 같은 구조이며, 같은 스템을 복제·디튠하면 되므로 제작비가 거의 들지 않는다.
+- `heroic, triumphant` 제외 — 이것은 플레이어의 승리가 아니라 **보스의 개화**다.
+- `[Outro: ... sudden, no fade]`가 **무음 3초가 붙을 자리**다(3.3).
+
+#### 전환 스팅어 (곡이 아니라 효과음 1발)
+
+```
+[Style]
+solo taepyeongso (Korean shawm) single piercing cry, unaccompanied,
+raw, splitting, followed by low sub-bass swell and silence
+
+[Exclude]
+drums, melody, music, loop, choir
+```
+
+8초로 뽑고 앞뒤를 잘라낸다. **꼬리 펼침에 한 번, 이후 두 번 다시 쓰지 않는다.**
+
+#### 채택 판정 기준
+
+| | 1페이즈 | 2페이즈 |
+|---|---|---|
+| ① | 해금 선율이 **사람 목소리로** 들리는가 | 목소리가 "여럿"이 아니라 **"하나가 아홉 번"**으로 들리는가 |
+| ② | **가죽 타악이 없는가** | 1페이즈보다 확실히 커졌는가 (장르가 바뀌면 실패) |
+| ③ | 더 커질 여지가 남았는가 | **중고음이 비어 있는가** (3.6) |
+| ④ | 손님을 맞는 **척하는** 음악인가 | 승리처럼 들리지 **않는가** |
+| ⑤ | 중고음(1~4kHz)이 꽉 차지 않았는가 | 끝이 **뚝 끊기는가** |
+
+**두 곡은 반드시 붙여서 듣고 판정한다.** 따로 들으면 그냥 곡 두 개이고, 순서대로 들어야 이야기가 된다.
+
 ---
 
 ## 4. 재생 계층
@@ -119,16 +294,31 @@ AudioMixer       ← 아래 4.2
 
 ### 4.2 믹서 그룹 — 지금 나눠야 한다
 
+> ⚠️ **2026-09-05 정정.** 아래 초안은 **3인 코옵에서 무너진다.**
+> ```
+> Master ├ BGM └ SFX ├ Combat_Critical └ Combat_Normal     ← 폐기
+> ```
+> 세 사람이 같은 마당에서 동시에 칼을 휘두른다. 이 구조에서는 **내 패링 성공음과 남의 패링 성공음이 같은 볼륨으로 난다.**
+> 패링 창이 0.32초인데 그 판정 결과를 귀로 못 받으면 **학습이 성립하지 않는다.**
+
+**그룹은 카테고리보다 먼저 "내 소리 / 남의 소리"로 갈라야 한다.**
+
 ```
 Master
-├ BGM              ← Duck Volume. SFX_Critical을 사이드체인으로 문다
-└ SFX
-   ├ Combat_Critical   패링 성공·실패 · 꼬리 파괴 · 페이즈 전환
-   └ Combat_Normal     타격 · 피격 · 구르기 · 잡귀 사망 · 화살
+├ BGM                    ← Duck Volume. Local_Critical을 사이드체인으로 문다
+├ SFX_Local              내 캐릭터가 낸 소리          (isLocalPlayer)
+│  ├ Local_Critical         패링 성공·실패 · 치명타
+│  └ Local_Normal           타격 · 피격 · 구르기 · 발소리 · 화살
+├ SFX_Remote             남의 캐릭터가 낸 소리        (볼륨 낮춤 + 살짝 다른 피치)
+└ SFX_World              보스 · 잡귀 · 결계 · 환경 · UI
 ```
 
-> 🔒 **SFX 12개를 다 만든 뒤에는 무엇이 중요한지 나눌 수 없다.**
-> 그룹은 재생 계층을 만들 때 함께 잡는다.
+**`SFX_Remote`를 낮추는 것은 남을 무시하는 것이 아니다.** 남의 패링도 들려야 파티가 협력한다 — 다만 **내 것과 구분되어야** 한다. 볼륨 차이 + 미세한 피치 차이로 가른다.
+
+> 🔒 **믹서 그룹은 나중에 못 나눈다.** SFX를 다 만든 뒤에는 무엇이 내 소리였는지 되짚을 수 없다.
+> 그룹은 `SfxPlayer`를 만들 때 **함께** 잡는다. 그래서 6장의 1번이 1번이다.
+
+**`SfxPlayer`는 재생 시점에 `isLocalPlayer`를 받아 Local/Remote를 고른다.** 이것이 이 문서에서 재생 계층에 요구하는 유일한 인자다.
 
 ### 4.3 덕킹 — 볼륨감이 패링을 죽이지 않고 살린다
 
@@ -177,11 +367,23 @@ Suno 출력은 시작과 끝이 뚜렷해서 그대로 넣으면 이어지지 �
 
 **Suno는 곡을 만들지 큐(cue)를 만들지 않는다.** 인트로·후렴·아웃트로가 있는 3분 곡을 26분 구간에 그대로 넣으면 같은 후렴을 여덟 번 듣는다. 3.2의 스템 레이어링이 이것도 함께 완화한다.
 
-### 5.4 ElevenLabs — 인증이 먼저다
+### 5.4 ElevenLabs — 인증이 먼저이고, 게임 제외 조항을 먼저 읽는다
 
 **음악은 Suno가 낫지만 효과음은 ElevenLabs가 낫다.** 2.1의 타격·구르기·잡귀 사망 같은 것은 텍스트로 뽑는 편이 CC0를 뒤지는 것보다 빠르다.
 
 **단 현재 이 프로젝트의 ElevenLabs 커넥터는 인증되지 않은 상태다.** claude.ai 커넥터 설정에서 인증을 마쳐야 사용할 수 있다.
+
+> 🚨 **2026-09-05 확인 — 가격만 보고 고르면 안 된다.**
+>
+> | | 상업 권리 시작 | 스템 | 걸리는 것 |
+> |---|---|---|---|
+> | **Suno Premier** | $30/월 (연간 $24) | ✅ Premier에만 | 저작권 **귀속 보장은 하지 않음**(5.2) |
+> | **ElevenLabs Starter** | $6/월 | ✅ 포함 | **자체 서비스 플랜의 상업 허가가 영화·TV·"Studio Games"를 제외한다.** 전부 커버는 Enterprise |
+>
+> ElevenLabs는 5배 싸고 **라이선스된 데이터로만 학습**했다고 명시해 출처가 더 깨끗하다. 그러나 *"우리가 Studio Game인가"*는 **아무도 모르는 상태로 Steam에 출시하게 된다.**
+>
+> **판단: 테스트는 아무 쪽이나, 최종 곡은 Suno Premier.** 월 $24 차이로 출시 직전에 약관을 다시 읽지 않아도 된다.
+> **약관은 검증할 수 없는 항목이다** — 코드는 테스트하면 되지만 이것은 안 된다.
 
 ### 5.5 🚨 `docs/licenses/`를 먼저 채운다
 
@@ -196,12 +398,13 @@ Suno 출력은 시작과 끝이 뚜렷해서 그대로 넣으면 이어지지 �
 ## 6. 구현 순서
 
 ```
-1. AudioMixer 그룹 4개 (Master / BGM / Combat_Critical / Combat_Normal)
-2. SoundCatalogSO + SfxPlayer         ← 클립 0개로
+1. AudioMixer 그룹 (Master / BGM / SFX_Local{Critical,Normal} / SFX_Remote / SFX_World)   ← 4.2
+2. SoundCatalogSO + SfxPlayer         ← 클립 0개로. isLocalPlayer를 받는다
 3. BGM 재생 + 보스 2P 트랙 하나        ← 9.8 무음 3초가 여기서 살아난다
 4. 패링 성공·실패 2종 + Duck Volume 배선
-5. 나머지 SFX 10종
-6. 개활 스템 4층 + 결계 단계 연동      ← 3.2
+5. P0 나머지 (예고 4종 · 근접 히트/헛스윙 · 피격 · 그로기 진입)   ← 2.2
+6. P1
+7. 개활 스템 4층 + 결계 단계 연동      ← 3.2
 ```
 
 **1번부터 하는 이유** — 그룹은 나중에 못 나눈다(4.2).
@@ -220,3 +423,7 @@ Suno 출력은 시작과 끝이 뚜렷해서 그대로 넣으면 이어지지 �
 | **L3** | **3인 접속.** 세 클라이언트가 각자 로컬 재생하고, 같은 이벤트에 이중 재생이 없다 |
 | **L3** | 결계 축소 3회에 레이어가 각각 추가되고, 세 사람이 같은 시점에 듣는다 |
 | L2 | 보스 2P 트랙 → 무음 3초 → 처치 큐 전환이 끊기지 않는다 |
+| 🚨 **L3** | **3인이 동시에 패링했을 때 각자 자기 성공을 구분할 수 있다**(4.2). 재현 안 되면 차단 |
+| L2 | 2페이즈 곡이 깔린 상태에서 **패링음이 들리고, 곡이 푹 꺼지지 않는다**(3.6) |
+| L2 | 예고 4종이 **음색으로** 구분된다 — 볼륨을 같게 맞춰놓고 들어도 갈린다(2.3) |
+| — | 1P → 2P를 **붙여서** 들었을 때 같은 세계가 커진 것으로 들린다(3.7 판정 기준) |
