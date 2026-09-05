@@ -217,12 +217,15 @@ Main.unity
 │  ├ ShopSO.cs             SO  객주 상품 목록과 가격
 │  ├ LevelCurveSO.cs       SO  레벨별 필요 경험치 + 최대 HP 전체 (1레벨 기본값 포함)
 │  ├ ScoreRuleSO.cs        SO  점수 항목별 배점
-│  └ DayCycleSO.cs         SO  실시간↔게임 내 시각 매핑, 조명 프리셋 (로컬 전용)
+│  ├ DayCycleSO.cs         SO  실시간↔게임 내 시각 매핑, 조명 프리셋 (로컬 전용)
+│  └ SoundCatalogSO.cs     SO  [현재] SoundKey → 클립 · 믹서 그룹 · 볼륨 · 중복 제거 간격.
+│                               믹서 그룹 5개 참조를 여기가 들고 있다 (로컬 전용) → 사운드 설계 4.2
 ├ Constants/               namespace Geumeum.Common — 코드 계약값 (partial class)
 │  ├ Constants.cs          공통: 레이어, 태그, 씬 이름
 │  ├ Constants.player.cs   입력 키/축, 판정 epsilon
 │  ├ Constants.combat.cs   히트스톱 등 전투 계약값
-│  └ Constants.network.cs  틱 레이트, 동기화 상수
+│  ├ Constants.network.cs  틱 레이트, 동기화 상수
+│  └ Constants.sound.cs    [현재] 효과음 소스 수, 믹서 노출 파라미터 이름, dB 범위
 ├ Utility/                 namespace Geumeum.Common
 │  ├ PersistentSingleton.cs  MB  DDOL 싱글턴 베이스 (제네릭 MonoBehaviour — 코딩 컨벤션 18)
 │  ├ SceneSingleton.cs       MB  씬 로컬 싱글턴 베이스 (제네릭 MonoBehaviour)
@@ -246,12 +249,27 @@ Main.unity
 │  ├ EquipmentOptionKind.cs enum 장비 옵션 종류. 화살 속도 · 유도 시간 · 관통 수 포함
 │  ├ EnemyKind.cs / EnemyVisualState.cs / ItemGrade.cs / ShopItemKind.cs
 │  ├ RunPhase.cs / RunOutcome.cs / ParryWindowKey.cs
+│  ├ SoundKey.cs / SoundChannel.cs / BgmTrack.cs [현재] 사운드 키 → 사운드 설계 2.2 · 3.1
 │  └ PlayerPlatformId.cs   struct 재접속에도 유지되는 신원. Steam은 SteamID64, 개발은 실행 인자값
 ├ Pooling/                 namespace Geumeum.Common — 로컬 표현 오브젝트 풀
 │  ├ LocalObjectPoolService.cs MB [현재] 프리팹별 ObjectPool<GameObject>.
 │  │                              PersistentSingleton을 상속한다. 호출부는 아직 없다
 │  └ LocalPoolRoot.cs      MB  [현재] 풀에 넣어도 되는 프리팹임을 선언하는 표식.
 │                              네트워크 개체를 걸러내는 화이트리스트다
+├ Sound/                   namespace Geumeum.Common — 사운드 재생 (전부 로컬 전용)
+│  ├ SfxPlayer.cs          static [현재] SoundKey + isLocalPlayer만 받아 재생한다.
+│  │                              AudioSource 16개 라운드로빈 · 같은 프레임 중복 제거 ·
+│  │                              일시정지 · 프리로드. 아트 구현체가 아니라 GameDB와 같은
+│  │                              위상의 공용 서비스라 05.Art가 아니라 여기 둔다 → 사운드 설계 4.1
+│  ├ BgmPlayer.cs          MB  [현재] PersistentSingleton. 소스 둘로 크로스페이드,
+│  │                              무음을 둔 뒤 다음 트랙 재생(9.8의 무음 3초), 일시정지
+│  ├ RunSoundDirector.cs   static [현재] RunPhase → BgmTrack 매핑과 일시정지 전파.
+│  │                              RunManager의 SyncVar 훅이 부르고, 반대 방향 호출은 없다
+│  ├ SoundBootstrap.cs     MB  [현재] 저장된 볼륨을 첫 프레임에 믹서로 민 뒤 스스로 지운다.
+│  │                              씬 로드 직후에 넣으면 믹서가 안 깨어나 값이 덮인다
+│  └ SoundVolume.cs        static [현재] 마스터 · BGM · 효과음 볼륨. 0~1 ↔ dB 로그 변환,
+│                                 PlayerPrefs 저장, 시작 시 자동 적용. 믹서 노출 파라미터로만
+│                                 바꿔 SFX_Remote의 상대 오프셋이 유지된다. UI는 Set만 부른다
 ├ Dev/                     namespace Geumeum.Common.Environment — 개발 전용 도구
 │  └ WeatherTimeDebugScript.cs MB [현재] 시간대 배속(Tab) · 즉시 이동(1~4). 전체 #if 가드됨.
 │                              Main · Dev_Barrier에 배치. 날씨 스케줄(Environment/)과는 별개다
