@@ -5,12 +5,13 @@ using UnityEngine;
 using Mirror;
 
 // 프로젝트 내부
+using Geumeum.Common;
 using Geumeum.Data;
 
 namespace Geumeum.Combat
 {
     /// <summary> 패링 성공 누적값을 서버에서 소유하고 다음 공격의 한 번 소비를 제공한다 </summary>
-    public class ParryGauge : NetworkBehaviour
+    public class ParryGauge : NetworkBehaviour, IRunStateCarrier
     {
         /****************************************
         *                Fields
@@ -33,6 +34,9 @@ namespace Geumeum.Combat
 
         /// <summary> 서버가 확정한 현재 패링 게이지 </summary>
         public float Gauge => _gauge;
+
+        // 자원이 제자리를 찾은 뒤에 얹는다
+        public int CarrierOrder => 30;
 
         /// <summary> 게이지가 최대치에 닿아 다음 근접 공격이 치명의 일격인지 </summary>
         public bool IsCriticalReady => ((GameDB.IsInitialized) && (_gauge >= GameDB.Combat.ParryGaugeMax));
@@ -60,6 +64,36 @@ namespace Geumeum.Combat
             }
 
             CriticalReadyChanged?.Invoke(isReady);
+        }
+
+        /****************************************
+        *           Interface Members
+        ****************************************/
+
+        /// <summary> 게이지를 담는다. 사망으로는 초기화되지 않는 값이라 이탈로도 잃으면 안 된다 </summary>
+        public void Capture(RunParticipantSnapshot snapshot)
+        {
+            snapshot.ParryGauge = _gauge;
+        }
+
+        public bool Validate(RunParticipantSnapshot snapshot, out string failure)
+        {
+            if (snapshot.ParryGauge < 0f)
+            {
+                failure = "패링 게이지가 음수다";
+                return false;
+            }
+
+            failure = null;
+            return true;
+        }
+
+        public bool Restore(RunParticipantSnapshot snapshot)
+        {
+            float max = GameDB.IsInitialized ? GameDB.Combat.ParryGaugeMax : snapshot.ParryGauge;
+
+            _gauge = Mathf.Clamp(snapshot.ParryGauge, 0f, max);
+            return true;
         }
 
         /****************************************

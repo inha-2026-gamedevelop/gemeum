@@ -18,7 +18,7 @@ namespace Geumeum.Combat
     /// 플레이어 HP, 스태미나, 신력, 생명 상태의 원본. IDamageable 구현.
     /// 다른 컴포넌트는 이 값을 직접 대입하지 않고 여기의 서버 API를 호출한다
     /// </summary>
-    public class PlayerStatus : NetworkBehaviour, IDamageable, IRecoveryTarget
+    public class PlayerStatus : NetworkBehaviour, IDamageable, IRecoveryTarget, IRunStateCarrier
     {
         /****************************************
         *                Fields
@@ -247,6 +247,63 @@ namespace Geumeum.Combat
             {
                 Debug.Log($"[PlayerStatus] 전멸로 런을 끝냈다: 인원 {G_ServerPlayers.Count}");
             }
+        }
+
+        /****************************************
+        *           Interface Members
+        ****************************************/
+
+        // 최대 HP보다 먼저 정해질 것이 없어 가장 앞이다
+        public int CarrierOrder => 20;
+
+        /// <summary> 지금 자원과 생명 상태를 담는다. 최대 HP는 담지 않는다 - 레벨에서 다시 계산한다 </summary>
+        public void Capture(RunParticipantSnapshot snapshot)
+        {
+            snapshot.Health    = _health;
+            snapshot.Stamina   = _stamina;
+            snapshot.Spirit    = _spirit;
+            snapshot.LifeState = _lifeState.ToSnapshotState();
+        }
+
+        public bool Validate(RunParticipantSnapshot snapshot, out string failure)
+        {
+            if ((snapshot.Health < 0f) || (snapshot.Stamina < 0f) || (snapshot.Spirit < 0f))
+            {
+                failure = "자원 값이 음수다";
+                return false;
+            }
+
+            if (!snapshot.LifeState.TryToLifeState(out PlayerLifeState _))
+            {
+                failure = $"되돌릴 수 없는 생명 상태다: {snapshot.LifeState}";
+                return false;
+            }
+
+            failure = null;
+            return true;
+        }
+
+        /// <summary>
+        /// 담아 둔 자원과 생명 상태를 되붓는다.
+        ///
+        /// 최대 HP는 그릇의 값을 믿지 않는다. 시작 상태를 적용할 때 레벨 곡선에서 이미 계산했고,
+        /// 그릇의 값이 손상돼 있으면 현재 HP까지 함께 틀어지기 때문이다
+        /// </summary>
+        public bool Restore(RunParticipantSnapshot snapshot)
+        {
+            if (!snapshot.LifeState.TryToLifeState(out PlayerLifeState lifeState))
+            {
+                return false;
+            }
+
+            CombatConfigSO combat = GameDB.IsInitialized ? GameDB.Combat : null;
+
+            _health    = Mathf.Clamp(snapshot.Health, 0f, _maxHealth);
+            _stamina   = (combat == null) ? snapshot.Stamina : Mathf.Clamp(snapshot.Stamina, 0f, combat.StaminaMax);
+            _spirit    = (combat == null) ? snapshot.Spirit  : Mathf.Clamp(snapshot.Spirit, 0f, combat.SpiritMax);
+            _lifeState = lifeState;
+
+            return true;
         }
 
         /****************************************

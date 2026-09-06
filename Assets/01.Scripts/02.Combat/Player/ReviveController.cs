@@ -27,7 +27,7 @@ namespace Geumeum.Combat
     //
     // 판정과 부활 확정은 전부 서버다. 클라이언트가 보내는 것은 "누구를 일으키겠다"는 요청뿐이고
     // 거리, 생존, 취소 조건은 서버가 매 틱 다시 본다
-    public class ReviveController : NetworkBehaviour
+    public class ReviveController : NetworkBehaviour, IRunStateCarrier
     {
         /****************************************
         *              Constants
@@ -193,6 +193,46 @@ namespace Geumeum.Combat
             }
 
             _spectateEndServerTime += resumed.PausedSeconds;
+        }
+
+        /****************************************
+        *           Interface Members
+        ****************************************/
+
+        // 생명 상태가 정해진 뒤라야 관전 시간이 의미를 갖는다
+        public int CarrierOrder => 40;
+
+        /// <summary>
+        /// 관전 남은 시간을 담는다. 절대 시각이 아니라 남은 양이다 -
+        /// 절대 시각으로 담으면 이탈해 있는 동안에도 만료가 다가와, 돌아오자마자 일어난다
+        /// </summary>
+        public void Capture(RunParticipantSnapshot snapshot)
+        {
+            snapshot.SpectateRemainingSeconds = SpectateRemainingSeconds;
+        }
+
+        public bool Validate(RunParticipantSnapshot snapshot, out string failure)
+        {
+            if (snapshot.SpectateRemainingSeconds < 0.0)
+            {
+                failure = "관전 남은 시간이 음수다";
+                return false;
+            }
+
+            failure = null;
+            return true;
+        }
+
+        public bool Restore(RunParticipantSnapshot snapshot)
+        {
+            if (snapshot.SpectateRemainingSeconds <= 0.0)
+            {
+                _spectateEndServerTime = 0.0;
+                return true;
+            }
+
+            _spectateEndServerTime = (NetworkTime.time + snapshot.SpectateRemainingSeconds);
+            return true;
         }
 
         /****************************************

@@ -642,6 +642,9 @@ namespace Geumeum.Network
             _pauseReasons           = RunPauseReason.None;
             _pauseStartServerTime   = 0.0;
 
+            // 맡아 둔 참가자 상태는 이 런의 것이다. 다음 판까지 들고 있으면 이전 판 값을 붓게 된다
+            RunParticipantRegistry.ServerClear();
+
             if (!GameEventBus.HasInstance)
             {
                 Debug.LogError("[RunManager] GameEventBus가 없어 런 초기화를 알리지 못했다, 다음 판에 이전 개체가 남는다", this);

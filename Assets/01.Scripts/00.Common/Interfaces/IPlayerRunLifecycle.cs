@@ -17,5 +17,17 @@ namespace Geumeum.Common
 
         /// <summary> HP, 자원, 생명 상태를 런 시작값으로 되돌린다 </summary>
         void ResetForNewRun();
+
+        /// <summary>
+        /// 지금 값을 그릇에 담는다. 이탈 직전과 씬을 옮기기 직전에 부른다.
+        /// 상태를 바꾸지 않으며, 담을 것이 하나도 없으면 false다
+        /// </summary>
+        bool CaptureRunState(RunParticipantSnapshot snapshot);
+
+        /// <summary>
+        /// 그릇의 값을 되붓는다. 되부을 수 없는 값이 하나라도 있으면 아무것도 바꾸지 않고 false다 -
+        /// 반쯤 복구된 상태로 런을 재개하면 그 판이 통째로 이상해진다
+        /// </summary>
+        bool RestoreRunState(RunParticipantSnapshot snapshot);
     }
 }

@@ -208,6 +208,8 @@ namespace Geumeum.Network
             if (conn.identity.TryGetComponent(out IPlayerRunLifecycle lifecycle))
             {
                 lifecycle.Teleport(seat.Position);
+
+                RestoreRunState(lifecycle, platformId);
             }
 
             Debug.Log($"[LobbyRoster] platformId={platformId}에 이탈 직전 자리와 역할을 돌려줬다: {seat.Position}, {seat.Weapon}");
@@ -235,6 +237,64 @@ namespace Geumeum.Network
         /****************************************
         *                Methods
         ****************************************/
+
+        // 자리와 역할만으로는 돌아온 사람이 1레벨 시작 상태로 되살아난다.
+        // HP, 자원, 패링 게이지, 관전 남은 시간까지 함께 맡긴다
+        [Server]
+        private void RememberRunState(IPlayerRunLifecycle lifecycle, in LobbySlot slot)
+        {
+            RunManager run = RunManager.ServerInstance;
+            if ((run == null) || (run.Phase == RunPhase.Lobby))
+            {
+                return; // 로비에서의 이탈은 보존할 런 상태가 없다
+            }
+
+            RunParticipantSnapshot snapshot = new RunParticipantSnapshot
+            {
+                RunId       = run.RunId,
+                Participant = new ParticipantId(slot.PlatformId),
+                SceneId     = RunSceneId.Field,
+
+                // 역할은 슬롯이 이미 들고 있다. 되붓는 것도 LobbyRoleCoordinator가 하므로
+                // 여기서는 기록만 남긴다
+                Character   = slot.Character,
+                Weapon      = slot.Weapon,
+            };
+
+            if (!lifecycle.CaptureRunState(snapshot))
+            {
+                Debug.LogWarning($"[LobbyRoster] platformId={slot.PlatformId}의 런 상태를 담지 못했다", this);
+                return;
+            }
+
+            RunParticipantRegistry.ServerStore(snapshot);
+        }
+
+        // 자리를 돌려준 직후에 부른다. 실패하면 시작 상태 그대로 두고 로그를 남긴다 -
+        // 반쯤 복구된 채로 재개하는 것보다 낫다
+        [Server]
+        private void RestoreRunState(IPlayerRunLifecycle lifecycle, ulong platformId)
+        {
+            RunManager run = RunManager.ServerInstance;
+            if (run == null)
+            {
+                return;
+            }
+
+            ParticipantId participant = new ParticipantId(platformId);
+            if (!RunParticipantRegistry.TryTake(run.RunId, participant, out RunParticipantSnapshot snapshot))
+            {
+                return; // 맡겨 둔 것이 없다, 처음 들어온 사람이다
+            }
+
+            if (!lifecycle.RestoreRunState(snapshot))
+            {
+                Debug.LogError($"[LobbyRoster] platformId={platformId}의 런 상태를 되붓지 못했다, 시작 상태로 둔다", this);
+                return;
+            }
+
+            Debug.Log($"[LobbyRoster] platformId={platformId}의 런 상태를 되돌렸다: HP={snapshot.Health:F1}, 관전 잔여={snapshot.SpectateRemainingSeconds:F1}초");
+        }
 
         // 승인된 연결의 신원을 인증기에서 받는다. 없으면 0이고 자리 보존이 동작하지 않는다
         [Server]
@@ -270,6 +330,9 @@ namespace Geumeum.Network
             }
 
             _vacatedSeats[slot.PlatformId] = new VacatedSeat(lifecycle.Position, slot);
+
+            RememberRunState(lifecycle, slot);
+
             Debug.Log($"[LobbyRoster] platformId={slot.PlatformId}의 이탈 직전 자리와 역할을 남겼다: {lifecycle.Position}, {slot.Weapon}");
         }
     }
