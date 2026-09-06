@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/00.Scenes/Dev_Combat.unity
+    guid: c9800b5680283064281843fce4f5d476
+  - enabled: 1
     path: Assets/00.Scenes/Release/Boot.unity
     guid: c772886bacd76a74dac8cb19be1bb5cd
   - enabled: 1
@@ -26,9 +29,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/00.Scenes/Release/Result.unity
     guid: f5089e9d27a58414ba3c68168370241a
-  - enabled: 1
-    path: Assets/00.Scenes/Dev_Combat.unity
-    guid: c9800b5680283064281843fce4f5d476
   - enabled: 1
     path: Assets/00.Scenes/Main.unity
     guid: 67a4bc2322c0a6c44bf91bcec7c7ccca
