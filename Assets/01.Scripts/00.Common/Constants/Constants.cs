@@ -6,6 +6,15 @@ namespace Geumeum.Common
         /// <summary> 씬 이름 </summary>
         public static class Scene
         {
+            // 런타임 흐름. 빌드 목록 0~6번이고 RunSceneCatalog가 RunSceneId와 잇는다
+            public const string BOOT          = "Boot";
+            public const string TITLE         = "Title";
+            public const string LOBBY         = "Lobby";
+            public const string FIELD         = "Field";
+            public const string BOSS_ENTRANCE = "BossEntrance";
+            public const string BOSS_ARENA    = "Boss_Arena";
+            public const string RESULT        = "Result";
+
             public const string MAIN       = "Main";
             public const string DEV_COMBAT = "Dev_Combat";
             public const string DEV_AI     = "Dev_AI";

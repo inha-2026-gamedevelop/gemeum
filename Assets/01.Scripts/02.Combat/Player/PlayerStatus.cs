@@ -46,6 +46,11 @@ namespace Geumeum.Combat
         // ReviveInvulnerable은 행동은 되지만 피해를 아예 안 받는 구간이고, 만료되면 Alive가 된다
         private double _reviveInvulnerableUntilServerTime = 0.0; // 서버 전용
 
+        // 스폰만 되고 아직 값이 정해지지 않은 구간이 있다. 씬을 옮기면 플레이어가 새로 스폰되고
+        // 그릇을 되붓기 전까지 기본값을 들고 있는데, 그 값으로 전멸이나 부활을 판정하면
+        // 실제 상태와 무관한 결과가 나온다. 값이 확정된 뒤에만 판정 대상으로 센다
+        private bool _isRunStateReady = false; // 서버 전용
+
         /****************************************
         *              Properties
         ****************************************/
@@ -233,19 +238,40 @@ namespace Geumeum.Combat
                 return;
             }
 
+            // 씬을 옮기는 동안은 판정하지 않는다. 플레이어가 하나씩 despawn되므로
+            // 살아 있던 사람이 먼저 빠지고 쓰러진 사람만 목록에 남는 중간 상태가 반드시 생긴다
+            if (RunSceneDirector.IsServerTransitioning)
+            {
+                return;
+            }
+
+            // 값이 확정된 사람만 센다. 되붓기 전의 기본값으로 판정하면 실제 상태와 무관한 결과가 나온다
+            int readyCount = 0;
             for (int i = 0; i < G_ServerPlayers.Count; ++i)
             {
+                if (!G_ServerPlayers[i]._isRunStateReady)
+                {
+                    continue;
+                }
+
+                ++readyCount;
+
                 if (!G_ServerPlayers[i].IsDead)
                 {
                     return;
                 }
             }
 
+            if (readyCount == 0)
+            {
+                return;
+            }
+
             // 로비와 Result에서의 호출은 TryFinishRun이 막는다.
             // phase 조건을 여기서 다시 쓰면 런 종료 조건이 두 군데로 갈라진다
             if (run.TryFinishRun(RunOutcome.PartyWipe))
             {
-                Debug.Log($"[PlayerStatus] 전멸로 런을 끝냈다: 인원 {G_ServerPlayers.Count}");
+                Debug.Log($"[PlayerStatus] 전멸로 런을 끝냈다: 판정 대상 {readyCount} / 전체 {G_ServerPlayers.Count}");
             }
         }
 
@@ -303,6 +329,9 @@ namespace Geumeum.Combat
             _spirit    = (combat == null) ? snapshot.Spirit  : Mathf.Clamp(snapshot.Spirit, 0f, combat.SpiritMax);
             _lifeState = lifeState;
 
+            // 되붓기가 끝났으므로 이제부터 전멸과 부활 판정의 대상이다
+            _isRunStateReady = true;
+
             return true;
         }
 
@@ -349,6 +378,10 @@ namespace Geumeum.Combat
             _stamina   = combat.StaminaMax;
             _spirit    = combat.SpiritMax;
             _lifeState = PlayerLifeState.Alive;
+
+            // 전환 중에 스폰됐다면 아직 확정값이 아니다. 되붓기 전의 만피를 실제 상태로 오해하면
+            // 쓰러져 있던 사람이 잠깐 살아 있는 것으로 보인다. 그 창은 Restore가 닫는다
+            _isRunStateReady = (!RunSceneDirector.IsServerTransitioning);
             return true;
         }
 
