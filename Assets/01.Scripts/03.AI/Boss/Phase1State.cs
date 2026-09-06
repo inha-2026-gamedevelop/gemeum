@@ -11,10 +11,11 @@ using Geumeum.Data;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 1페이즈, 가르치는 판. 지금은 패턴 1(여우불 봉 3연격, 단일 타격 MVP)과 패턴 3(순간 접근
-    /// 3연계, 단일 돌진 MVP) 두 개만 돈다. 근접 거리면 MeleeArc, 아니면 TargetedDash로 거리를
-    /// 좁힌다. 나머지 두 템플릿은 이 슬라이스가 L2로 검증된 뒤 채운다. 거리, 쿨다운 필터만 있고
-    /// 선택기의 가중치 추첨은 아직 없다(후보가 둘뿐이고 거리로 이미 갈린다)
+    /// 1페이즈, 가르치는 판. 패턴 1(여우불 봉 3연격, 단일 타격 MVP), 패턴 3(순간 접근 3연계,
+    /// 단일 돌진 MVP), 패턴 4(여우불 낙인, MarkedCircle) 세 개가 돈다. 근접 거리면 MeleeArc,
+    /// 그 밖이면 TargetedDash가 후보에 들고, MarkedCircle은 거리와 무관하게 항상 후보에 낀다 -
+    /// 후보 중 무작위로 하나를 고른다(가중치 추첨은 아직 없다, 균등 추첨이다).
+    /// 마지막 템플릿(ConeBurst)은 이 슬라이스가 L2로 검증된 뒤 채운다
     /// </summary>
     public sealed class Phase1State : BossPhaseStateBase
     {
@@ -35,6 +36,7 @@ namespace Geumeum.AI
         {
             MeleeArc,
             TargetedDash,
+            MarkedCircle,
         }
 
         /****************************************
@@ -43,7 +45,10 @@ namespace Geumeum.AI
 
         private const int MELEE_ARC_PATTERN_ID     = 1; // 여우불 봉 3연격
         private const int TARGETED_DASH_PATTERN_ID = 3; // 순간 접근 3연계
-        // 위 둘 다 GameDB.Boss._patterns의 PatternId와 맞춘다
+        private const int MARKED_CIRCLE_PATTERN_ID = 4; // 여우불 낙인
+        // 위 셋 다 GameDB.Boss._patterns의 PatternId와 맞춘다
+
+        private const int MAX_CANDIDATE_COUNT = 3; // 지금 있는 템플릿 수만큼, 늘어나면 같이 늘린다
 
         // TODO: BossPatternSO.PatternEntry에 템플릿별 필드(Range, AngleDegrees, DashSpeed 등)가
         // 생기면 SO로 옮긴다. 지금은 스키마가 00.Common 공용 파일이라 팀장 확인 없이 필드를
@@ -56,6 +61,8 @@ namespace Geumeum.AI
         private const float DASH_DISTANCE   = 8f;   // m, 1페이즈 돌진 거리
         private const float DASH_HIT_RADIUS = 1.2f; // m, 돌진 도착 지점 명중 판정 반경
 
+        private const float MARKED_CIRCLE_RADIUS = 3.5f; // m, 1페이즈 낙인 반경
+
         /****************************************
         *                Fields
         ****************************************/
@@ -63,6 +70,7 @@ namespace Geumeum.AI
         private readonly BossController  _controller;
         private readonly NetworkIdentity _selfIdentity;
         private readonly int             _playerLayerMask;
+        private readonly int[]           _candidatePatternIds = new int[MAX_CANDIDATE_COUNT]; // 매 선택마다 재사용, 할당 없음
 
         private AttackState _state              = AttackState.Idle;
         private float       _stateTimer         = 0f;
@@ -73,6 +81,7 @@ namespace Geumeum.AI
         private BossPatternSO.PatternEntry _activePattern;
         private PatternKind                _activeKind;
         private Vector3                    _dashDestination;
+        private Vector3                    _markedCenter; // MarkedCircle 전용, 예고 시작 시점에 고정
         private uint                       _activeAttackInstanceId;
         private bool                       _activeParried;
         private BossAttackExecution        _activeExecution; // 늦게 도착한 이전 공격의 OnParried를 걸러내는 참조
@@ -123,22 +132,46 @@ namespace Geumeum.AI
             }
 
             float distance = Vector3.Distance(Self.position, Target.position);
+            int   candidateCount = 0;
 
             if (distance <= MELEE_RANGE)
             {
-                if (GameDB.Boss.TryGetPattern(MELEE_ARC_PATTERN_ID, out BossPatternSO.PatternEntry meleePattern))
-                {
-                    BeginAttack(meleePattern, PatternKind.MeleeArc);
-                }
+                _candidatePatternIds[candidateCount] = MELEE_ARC_PATTERN_ID;
+                ++candidateCount;
+            }
+            else
+            {
+                _candidatePatternIds[candidateCount] = TARGETED_DASH_PATTERN_ID;
+                ++candidateCount;
+            }
 
+            // MarkedCircle은 거리 무관 패턴이라 항상 후보에 낀다
+            _candidatePatternIds[candidateCount] = MARKED_CIRCLE_PATTERN_ID;
+            ++candidateCount;
+
+            int chosenPatternId = _candidatePatternIds[Random.Range(0, candidateCount)];
+
+            if (!GameDB.Boss.TryGetPattern(chosenPatternId, out BossPatternSO.PatternEntry pattern))
+            {
                 return;
             }
 
-            // 사거리 밖이면 거리를 좁히는 돌진으로 대응한다
-            if (GameDB.Boss.TryGetPattern(TARGETED_DASH_PATTERN_ID, out BossPatternSO.PatternEntry dashPattern))
+            BeginAttack(pattern, KindOf(chosenPatternId));
+        }
+
+        private static PatternKind KindOf(int patternId)
+        {
+            if (patternId == TARGETED_DASH_PATTERN_ID)
             {
-                BeginAttack(dashPattern, PatternKind.TargetedDash);
+                return PatternKind.TargetedDash;
             }
+
+            if (patternId == MARKED_CIRCLE_PATTERN_ID)
+            {
+                return PatternKind.MarkedCircle;
+            }
+
+            return PatternKind.MeleeArc;
         }
 
         private void BeginAttack(BossPatternSO.PatternEntry pattern, PatternKind kind)
@@ -160,17 +193,23 @@ namespace Geumeum.AI
             {
                 _dashDestination = Self.position + (direction * DASH_DISTANCE);
             }
+            else if (kind == PatternKind.MarkedCircle)
+            {
+                // 위치 확정 후 잠금 - 예고 중 대상이 움직여도 낙인 중심은 안 따라간다
+                _markedCenter = _activeTarget.position;
+            }
 
             TryOpenParryWindow(pattern);
 
             uint targetNetId = _activeTarget.TryGetComponent(out NetworkIdentity targetIdentity) ? targetIdentity.netId : 0u;
+            Vector3 cueOrigin = (kind == PatternKind.MarkedCircle) ? _markedCenter : Self.position;
 
             BossTelegraphCue cue = new BossTelegraphCue
             {
                 AttackInstanceId = _activeAttackInstanceId,
                 PatternId        = pattern.PatternId,
                 TargetNetId      = targetNetId,
-                Origin           = Self.position,
+                Origin           = cueOrigin,
                 Direction        = direction,
                 ImpactServerTime = NetworkTime.time + pattern.TelegraphDuration,
             };
@@ -215,6 +254,20 @@ namespace Geumeum.AI
                     Self.position,
                     Self.forward,
                     DASH_HIT_RADIUS,
+                    360f,
+                    _activePattern.Damage,
+                    attackerNetId,
+                    _playerLayerMask);
+                return;
+            }
+
+            if (_activeKind == PatternKind.MarkedCircle)
+            {
+                // 원점이 보스가 아니라 예고 시작 시점에 고정한 낙인 중심이다, 각도 제한도 없다
+                BossPatternRunner.ExecuteMeleeArc(
+                    _markedCenter,
+                    Vector3.forward,
+                    MARKED_CIRCLE_RADIUS,
                     360f,
                     _activePattern.Damage,
                     attackerNetId,
