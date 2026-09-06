@@ -119,8 +119,15 @@ namespace Geumeum.Common
             StopCrossFade();
             StopSilence();
 
-            if (_activeSource != null) { _activeSource.Stop(); }
-            if (_idleSource != null)   { _idleSource.Stop(); }
+            if (_activeSource != null)
+            {
+                _activeSource.Stop();
+            }
+
+            if (_idleSource != null)
+            {
+                _idleSource.Stop();
+            }
 
             CurrentTrack = BgmTrack.None;
         }
@@ -128,23 +135,44 @@ namespace Geumeum.Common
         /// <summary> 일시정지. 이탈자를 기다리는 동안 곡의 위치를 잃지 않는다 </summary>
         public void Pause()
         {
-            if (_activeSource != null) { _activeSource.Pause(); }
-            if (_idleSource != null)   { _idleSource.Pause(); }
+            if (_activeSource != null)
+            {
+                _activeSource.Pause();
+            }
+
+            if (_idleSource != null)
+            {
+                _idleSource.Pause();
+            }
         }
 
         /// <summary> 일시정지한 곡을 그 자리에서 재개한다 </summary>
         public void UnPause()
         {
-            if (_activeSource != null) { _activeSource.UnPause(); }
-            if (_idleSource != null)   { _idleSource.UnPause(); }
+            if (_activeSource != null)
+            {
+                _activeSource.UnPause();
+            }
+
+            if (_idleSource != null)
+            {
+                _idleSource.UnPause();
+            }
         }
 
         private IEnumerator CoPlayAfterSilence(BgmTrack track, float silenceSeconds)
         {
             StopCrossFade();
 
-            if (_activeSource != null) { _activeSource.Stop(); }
-            if (_idleSource != null)   { _idleSource.Stop(); }
+            if (_activeSource != null)
+            {
+                _activeSource.Stop();
+            }
+
+            if (_idleSource != null)
+            {
+                _idleSource.Stop();
+            }
 
             CurrentTrack = BgmTrack.None;
 

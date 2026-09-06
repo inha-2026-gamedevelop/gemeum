@@ -206,7 +206,10 @@ namespace Geumeum.Data
 
                 for (int j = 0; j < candidates.Length; ++j)
                 {
-                    if (candidates[j] != null) { clips.Add(candidates[j]); }
+                    if (candidates[j] != null)
+                    {
+                        clips.Add(candidates[j]);
+                    }
                 }
             }
         }
@@ -214,12 +217,35 @@ namespace Geumeum.Data
         /// <summary> 비어 있는 믹서 참조 이름을 모은다. GameDB 부트 검사가 쓴다 </summary>
         public void CollectMissingGroups(List<string> missing)
         {
-            if (_mixer == null)         { missing.Add("SoundCatalog.Mixer"); }
-            if (_bgm == null)           { missing.Add("SoundCatalog.BGM"); }
-            if (_localCritical == null) { missing.Add("SoundCatalog.Local_Critical"); }
-            if (_localNormal == null)   { missing.Add("SoundCatalog.Local_Normal"); }
-            if (_remote == null)        { missing.Add("SoundCatalog.SFX_Remote"); }
-            if (_world == null)         { missing.Add("SoundCatalog.SFX_World"); }
+            if (_mixer == null)
+            {
+                missing.Add("SoundCatalog.Mixer");
+            }
+
+            if (_bgm == null)
+            {
+                missing.Add("SoundCatalog.BGM");
+            }
+
+            if (_localCritical == null)
+            {
+                missing.Add("SoundCatalog.Local_Critical");
+            }
+
+            if (_localNormal == null)
+            {
+                missing.Add("SoundCatalog.Local_Normal");
+            }
+
+            if (_remote == null)
+            {
+                missing.Add("SoundCatalog.SFX_Remote");
+            }
+
+            if (_world == null)
+            {
+                missing.Add("SoundCatalog.SFX_World");
+            }
         }
 
         private void EnsureLookup()

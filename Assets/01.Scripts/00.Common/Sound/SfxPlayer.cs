@@ -93,7 +93,7 @@ namespace Geumeum.Common
         /// </summary>
         public static void PauseAll()
         {
-            if (_isPaused || (_sources == null))
+            if ((_isPaused) || (_sources == null))
             {
                 return;
             }
@@ -102,7 +102,10 @@ namespace Geumeum.Common
 
             for (int i = 0; i < _sources.Length; ++i)
             {
-                if (_sources[i] != null) { _sources[i].Pause(); }
+                if (_sources[i] != null)
+                {
+                    _sources[i].Pause();
+                }
             }
         }
 
@@ -118,7 +121,10 @@ namespace Geumeum.Common
 
             for (int i = 0; i < _sources.Length; ++i)
             {
-                if (_sources[i] != null) { _sources[i].UnPause(); }
+                if (_sources[i] != null)
+                {
+                    _sources[i].UnPause();
+                }
             }
         }
 
@@ -264,7 +270,7 @@ namespace Geumeum.Common
 
             int lastFrame;
 
-            if (_lastPlayFrame.TryGetValue(id, out lastFrame) && (lastFrame == Time.frameCount))
+            if ((_lastPlayFrame.TryGetValue(id, out lastFrame)) && (lastFrame == Time.frameCount))
             {
                 return true;
             }
@@ -273,7 +279,7 @@ namespace Geumeum.Common
             {
                 float lastTime;
 
-                if (_lastPlayTime.TryGetValue(id, out lastTime) && ((Time.unscaledTime - lastTime) < minInterval))
+                if ((_lastPlayTime.TryGetValue(id, out lastTime)) && ((Time.unscaledTime - lastTime) < minInterval))
                 {
                     return true;
                 }

@@ -87,8 +87,15 @@ namespace Geumeum.Combat
         [Server]
         public void ClearRole()
         {
-            _weapon?.ServerClearForNewRun();
-            _character?.ServerClearForNewRun();
+            if (_weapon != null)
+            {
+                _weapon.ServerClearForNewRun();
+            }
+
+            if (_character != null)
+            {
+                _character.ServerClearForNewRun();
+            }
         }
 
         [Server]

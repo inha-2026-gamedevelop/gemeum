@@ -419,12 +419,35 @@ namespace Geumeum.Combat
             // 방향키를 쓰지 않는다. 에디터 Game 뷰가 화살표 키를 가져가는 경우가 있어
             // 눌러도 아무 일이 없는 것처럼 보인다. 문자 키는 그런 충돌이 없다
             _tuneDelta = Vector3.zero;
-            if (Input.GetKey(KeyCode.J)) { _tuneDelta.x -= 1f; }
-            if (Input.GetKey(KeyCode.L)) { _tuneDelta.x += 1f; }
-            if (Input.GetKey(KeyCode.I)) { _tuneDelta.z += 1f; }
-            if (Input.GetKey(KeyCode.K)) { _tuneDelta.z -= 1f; }
-            if (Input.GetKey(KeyCode.U)) { _tuneDelta.y += 1f; }
-            if (Input.GetKey(KeyCode.O)) { _tuneDelta.y -= 1f; }
+            if (Input.GetKey(KeyCode.J))
+            {
+                _tuneDelta.x -= 1f;
+            }
+
+            if (Input.GetKey(KeyCode.L))
+            {
+                _tuneDelta.x += 1f;
+            }
+
+            if (Input.GetKey(KeyCode.I))
+            {
+                _tuneDelta.z += 1f;
+            }
+
+            if (Input.GetKey(KeyCode.K))
+            {
+                _tuneDelta.z -= 1f;
+            }
+
+            if (Input.GetKey(KeyCode.U))
+            {
+                _tuneDelta.y += 1f;
+            }
+
+            if (Input.GetKey(KeyCode.O))
+            {
+                _tuneDelta.y -= 1f;
+            }
 
             // 시간 스케일을 건드려도 조정은 되어야 하므로 unscaled를 쓴다
             float dt = Time.unscaledDeltaTime;
@@ -456,8 +479,15 @@ namespace Geumeum.Combat
             }
 
             float scaleDelta = 0f;
-            if (Input.GetKey(KeyCode.RightBracket)) { scaleDelta += 1f; }
-            if (Input.GetKey(KeyCode.LeftBracket))  { scaleDelta -= 1f; }
+            if (Input.GetKey(KeyCode.RightBracket))
+            {
+                scaleDelta += 1f;
+            }
+
+            if (Input.GetKey(KeyCode.LeftBracket))
+            {
+                scaleDelta -= 1f;
+            }
 
             if (!Mathf.Approximately(scaleDelta, 0f))
             {
@@ -615,9 +645,20 @@ namespace Geumeum.Combat
             }
 
             string missing = "";
-            if (!HasParameter(PARAM_SPEED))  { missing += PARAM_SPEED + " "; }
-            if (!HasParameter(PARAM_ROLL))   { missing += PARAM_ROLL + " "; }
-            if (!HasParameter(PARAM_ATTACK)) { missing += PARAM_ATTACK + " "; }
+            if (!HasParameter(PARAM_SPEED))
+            {
+                missing += PARAM_SPEED + " ";
+            }
+
+            if (!HasParameter(PARAM_ROLL))
+            {
+                missing += PARAM_ROLL + " ";
+            }
+
+            if (!HasParameter(PARAM_ATTACK))
+            {
+                missing += PARAM_ATTACK + " ";
+            }
 
             if (missing.Length > 0)
             {

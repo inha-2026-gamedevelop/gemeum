@@ -43,14 +43,20 @@ namespace Geumeum.Common
             {
                 SfxPlayer.PauseAll();
 
-                if (BgmPlayer.HasInstance) { BgmPlayer.Instance.Pause(); }
+                if (BgmPlayer.HasInstance)
+                {
+                    BgmPlayer.Instance.Pause();
+                }
 
                 return;
             }
 
             SfxPlayer.ResumeAll();
 
-            if (BgmPlayer.HasInstance) { BgmPlayer.Instance.UnPause(); }
+            if (BgmPlayer.HasInstance)
+            {
+                BgmPlayer.Instance.UnPause();
+            }
         }
 
         /// <summary>

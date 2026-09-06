@@ -160,7 +160,7 @@ namespace Geumeum.Network
         // 늦게 도착한 초대가 방금 나간 사람을 도로 끌고 들어가는 것도 같은 경로다
         private void OnJoinRequested(ulong lobbyId)
         {
-            if (NetworkServer.active || NetworkClient.active)
+            if ((NetworkServer.active) || (NetworkClient.active))
             {
                 Debug.LogWarning($"[SteamMirrorConnector] 세션 중이라 로비 {lobbyId} 초대를 자동 수락하지 않는다. "
                     + "방 나가기 뒤에 다시 수락할 것", this);

@@ -130,7 +130,13 @@ namespace Geumeum.Network
                 return;
             }
 
-            SteamLobbyService.Instance?.JoinLobby(lobbyId);
+            SteamLobbyService lobby = SteamLobbyService.Instance;
+            if (lobby == null)
+            {
+                return;
+            }
+
+            lobby.JoinLobby(lobbyId);
         }
 
         /// <summary> 방을 만든다. 성공하면 Gathering으로 간다 </summary>
@@ -141,19 +147,37 @@ namespace Geumeum.Network
                 return;
             }
 
-            SteamLobbyService.Instance?.CreateLobby();
+            SteamLobbyService lobby = SteamLobbyService.Instance;
+            if (lobby == null)
+            {
+                return;
+            }
+
+            lobby.CreateLobby();
         }
 
         /// <summary> 초대 창을 연다 </summary>
         public void OpenInviteOverlay()
         {
-            SteamLobbyService.Instance?.OpenInviteOverlay();
+            SteamLobbyService lobby = SteamLobbyService.Instance;
+            if (lobby == null)
+            {
+                return;
+            }
+
+            lobby.OpenInviteOverlay();
         }
 
         /// <summary> 친구에게 초대를 직접 보낸다. 오버레이가 없을 때의 경로다 </summary>
         public void InviteUser(ulong friendSteamId)
         {
-            SteamLobbyService.Instance?.InviteUser(friendSteamId);
+            SteamLobbyService lobby = SteamLobbyService.Instance;
+            if (lobby == null)
+            {
+                return;
+            }
+
+            lobby.InviteUser(friendSteamId);
         }
 
         /// <summary>
@@ -163,7 +187,14 @@ namespace Geumeum.Network
         public void LeaveLobby()
         {
             StopNetworkSession();
-            SteamLobbyService.Instance?.LeaveLobby();
+
+            SteamLobbyService lobby = SteamLobbyService.Instance;
+            if (lobby == null)
+            {
+                return;
+            }
+
+            lobby.LeaveLobby();
         }
 
         /// <summary>
@@ -322,7 +353,7 @@ namespace Geumeum.Network
                 return;
             }
 
-            if (NetworkServer.active && NetworkClient.active)
+            if ((NetworkServer.active) && (NetworkClient.active))
             {
                 manager.StopHost();
                 return;
