@@ -197,16 +197,19 @@ namespace Geumeum.AI
 
             for (int i = 0; i < count; ++i)
             {
-                if (_scanBuffer[i].TryGetComponent(out IDamageable damageable) && damageable.IsDead)
+                // 콜라이더가 플레이어 자식 오브젝트에 붙어 있을 수 있어, 콜라이더 본인이 아니라
+                // 부모로 올라가며 IDamageable을 찾는다 (DamageTargetResolver 참고)
+                if ((!DamageTargetResolver.TryResolve(_scanBuffer[i], out IDamageable damageable)) || (damageable.IsDead))
                 {
                     continue; // 다운·관전 중인 플레이어는 때려도 무의미하다, 살아있는 대상만 노린다
                 }
 
-                float distance = Vector3.Distance(transform.position, _scanBuffer[i].transform.position);
+                Transform candidate = ((Component)damageable).transform;
+                float     distance  = Vector3.Distance(transform.position, candidate.position);
                 if (distance < nearestDistance)
                 {
                     nearestDistance = distance;
-                    nearest         = _scanBuffer[i].transform;
+                    nearest         = candidate;
                 }
             }
 
@@ -253,7 +256,7 @@ namespace Geumeum.AI
                 return;
             }
 
-            if (!target.TryGetComponent(out IDamageable damageable))
+            if (!DamageTargetResolver.TryResolve(target, out IDamageable damageable))
             {
                 return;
             }
@@ -322,7 +325,7 @@ namespace Geumeum.AI
         [Server]
         private void HandleDied(uint killerNetId)
         {
-            // HasInstance→Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다, Instance를 한 번만 받는다
+            // HasInstance->Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다, Instance를 한 번만 받는다
             GameEventBus bus = GameEventBus.Instance;
             if (bus != null)
             {
