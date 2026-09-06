@@ -42,6 +42,9 @@ namespace Geumeum.AI
         private readonly Dictionary<SpawnCluster, List<uint>> _aliveNetIdsByCluster = new Dictionary<SpawnCluster, List<uint>>();
         private readonly Dictionary<uint, SpawnCluster>       _clusterByNetId       = new Dictionary<uint, SpawnCluster>();
 
+        // 런 초기화에서 생존 개체를 지울 때 쓰는 복사 버퍼. 순회 중 사전이 바뀌는 것을 막는다
+        private readonly List<uint>                          _despawnBuffer        = new List<uint>();
+
         private Transform                _barrierCenter;
         private SpawnConfigSO.PhaseEntry _currentPhase;
         private bool                     _isPhaseActive   = false; // 현재 phase에 스폰 설정이 있는지
@@ -64,6 +67,9 @@ namespace Geumeum.AI
 
             GameEventBus.Instance.Subscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
             GameEventBus.Instance.Subscribe<EnemyDiedEvent>(HandleEnemyDied);
+
+            // 같은 세션에서 다음 판을 열면 이전 필드의 생존 개체와 점유가 그대로 남는다
+            GameEventBus.Instance.Subscribe<RunResetEvent>(HandleRunReset);
         }
 
         /// <summary> 이전 런의 클러스터 점유·생존 카운트·respawn 코루틴을 모두 비운다 </summary>
@@ -93,6 +99,7 @@ namespace Geumeum.AI
 
             bus.Unsubscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
             bus.Unsubscribe<EnemyDiedEvent>(HandleEnemyDied);
+            bus.Unsubscribe<RunResetEvent>(HandleRunReset);
         }
 
         /****************************************
@@ -115,6 +122,39 @@ namespace Geumeum.AI
             }
 
             _barrierCenter = marker.transform;
+        }
+
+        // 런이 끝나면 남은 잡귀를 지우고 점유와 카운트를 되돌린다.
+        // 목록만 비우고 개체를 두면 다음 판 필드에 이전 판의 잡귀가 서 있다
+        [Server]
+        private void HandleRunReset(RunResetEvent evt)
+        {
+            ServerDespawnAll();
+            ServerResetState();
+        }
+
+        // 이 매니저가 스폰한 개체만 지운다. 보스처럼 다른 곳이 만든 것은 건드리지 않는다.
+        //
+        // 키를 복사해 돌린다. 지금은 파괴가 사망 이벤트를 발행하지 않지만, 나중에 종료 경로에
+        // 발행이 하나 붙으면 HandleEnemyDied가 순회 중인 사전을 고쳐 그 자리에서 터진다.
+        // 런당 한 번뿐이라 이 복사가 비싸지 않다
+        [Server]
+        private void ServerDespawnAll()
+        {
+            _despawnBuffer.Clear();
+            _despawnBuffer.AddRange(_clusterByNetId.Keys);
+
+            for (int i = 0; i < _despawnBuffer.Count; ++i)
+            {
+                if (!NetworkServer.spawned.TryGetValue(_despawnBuffer[i], out NetworkIdentity identity))
+                {
+                    continue; // 이미 사라진 개체
+                }
+
+                NetworkServer.Destroy(identity.gameObject);
+            }
+
+            _despawnBuffer.Clear();
         }
 
         [Server]
