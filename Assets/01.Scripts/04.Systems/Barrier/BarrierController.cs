@@ -276,8 +276,9 @@ namespace Geumeum.Systems
         // RunManager의 타임라인을 안 건드리고 phase를 바로 다음 단계로 넘긴다.
         // BarrierPhaseSO의 StartSeconds/EndSeconds를 테스트용으로 고치면 RunPhaseTimeline.Validate가
         // 실패해 서버가 부트 검증에서 튕긴다 — 그 함정을 피하려고 만든 테스트 전용 경로다
+        // BarrierTestHarness가 자동 전환 코루틴에서 직접 호출한다 — public이지만 UNITY_EDITOR 밖에서는 존재 자체가 없다
         [ContextMenu("Debug: Force Next Phase (Test)")]
-        private void DebugForceNextPhase()
+        public void DebugForceNextPhase()
         {
             RunPhase next = DebugGetNextPhase(_currentPhase);
             Debug.Log($"[BarrierController] 테스트로 phase를 강제 전환한다: {_currentPhase} -> {next}", this);
