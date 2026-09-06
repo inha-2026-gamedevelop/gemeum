@@ -4,8 +4,9 @@ using UnityEngine;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 보스 페이즈별 판단 베이스. 서버에서만 Tick되며, 실제 패턴 실행은 BossController가 담당한다.
-    /// 패턴 선택 로직은 아직 없다 — BossPatternSO 확정 후 4단계에서 채운다 (docs/unity/BOSS_DESIGN.md 15장)
+    /// 보스 페이즈별 판단 베이스. 서버에서만 Tick되며, 대상 스캔, 텔레그래프 RPC는 BossController가 담당한다.
+    /// 1페이즈는 MeleeArc 패턴 1개까지 구현됐다(Phase1State), 나머지 세 템플릿과 2페이즈는
+    /// 이 슬라이스가 L2로 검증된 뒤 채운다
     /// </summary>
     public abstract class BossPhaseStateBase
     {
@@ -25,6 +26,13 @@ namespace Geumeum.AI
             Self   = self;
             Status = status;
         }
+
+        /****************************************
+        *              Properties
+        ****************************************/
+
+        /// <summary> 공격 후보 대상, BossController가 주기적으로 채워준다 </summary>
+        public Transform Target { get; set; }
 
         /****************************************
         *                Methods

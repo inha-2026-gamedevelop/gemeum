@@ -1,0 +1,33 @@
+// System
+using System;
+
+// Unity
+using UnityEngine;
+
+namespace Geumeum.Common
+{
+    /// <summary>
+    /// 보스 공격 예고 1건의 서버 확정 값. 판정과 클라이언트 표현이 이 값을 함께 쓴다.
+    /// Mirror Weaver가 읽어 쓸 수 있도록
+    /// public 값 필드의 mutable struct로 둔다, 서버는 생성 뒤 복사본을 바꾸지 않는다
+    /// </summary>
+    [Serializable]
+    public struct BossTelegraphCue
+    {
+        /// <summary> 보스별 단조 증가 공격 ID, 0은 "값 없음" 예약이라 쓰지 않는다 </summary>
+        public uint AttackInstanceId;
+
+        /// <summary> 로컬 GameDB.Boss 조회 키 </summary>
+        public int PatternId;
+
+        /// <summary> 개인 대상 netId, 지면/공용 cue면 0 </summary>
+        public uint TargetNetId;
+
+        /// <summary> 판정과 표현이 공유하는 서버 확정 원본 위치, 방향 </summary>
+        public Vector3 Origin;
+        public Vector3 Direction;
+
+        /// <summary> NetworkTime.time 기준 절대 impact 시각 </summary>
+        public double ImpactServerTime;
+    }
+}
