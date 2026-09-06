@@ -1,3 +1,6 @@
+// System
+using System.Collections.Generic;
+
 // Unity
 using UnityEngine;
 
@@ -27,6 +30,11 @@ namespace Geumeum.Combat
         [SyncVar(hook = nameof(OnSpiritChanged))]    private float           _spirit    = 0f;
         [SyncVar(hook = nameof(OnLifeStateChanged))] private PlayerLifeState _lifeState = PlayerLifeState.Alive;
         [SyncVar] private bool            _isInvincible = false; // 구르기, 패링 성공처럼 생명 상태는 그대로인 일시 무적
+
+        // 서버가 스폰한 플레이어 전부. 전멸 판정이 "생존자가 하나도 없는가"를 물어야 하는데
+        // 물리 질의는 반경 밖을 못 보고 로비 슬롯은 접속이지 캐릭터가 아니다.
+        // 스폰과 소멸이 곧 등록과 해제라 목록과 실제가 어긋날 자리가 없다
+        private static readonly List<PlayerStatus> G_ServerPlayers = new List<PlayerStatus>();
 
         private double _lastStaminaSpendServerTime = -1.0; // 서버 전용, 회복 시작을 늦추는 기준 시각
 
@@ -163,6 +171,10 @@ namespace Geumeum.Combat
 
         public override void OnStartServer()
         {
+            // 등록은 초기화보다 먼저 한다. 아래가 GameDB 문제로 실패해도 이 캐릭터는 존재하고,
+            // 목록에서 빠지면 전멸 판정이 그 사람을 아예 세지 않아 남은 둘이 죽어도 런이 끝난다
+            G_ServerPlayers.Add(this);
+
             if (!TryApplyStartingState())
             {
                 return;
@@ -179,12 +191,62 @@ namespace Geumeum.Combat
 
         public override void OnStopServer()
         {
+            G_ServerPlayers.Remove(this);
+
+            // 마지막 생존자가 이탈로 사라지면 남은 사람이 전부 쓰러진 상태가 된다.
+            // 죽음만 보고 있으면 이 경로를 놓치고, 그때는 런이 전멸이 아니라 이탈로 끝나
+            // 남은 둘이 40분치 정산을 못 본다
+            //
+            // TODO(민성): 보스맵 씬 전환을 붙이기 전에 이 호출을 막을 조건을 먼저 만든다.
+            // 씬을 옮기며 플레이어가 하나씩 despawn되면 살아 있던 사람이 먼저 빠지고
+            // 쓰러진 사람만 목록에 남는 중간 상태가 생기고, 그 틈에 전멸이 확정된다
+            ServerCheckPartyWipe();
+
             if (AuthorityTickScheduler.ServerInstance == null)
             {
                 return;
             }
 
             AuthorityTickScheduler.ServerInstance.Unregister(ServerRegenTick);
+        }
+
+        /// <summary>
+        /// 살아 있는 사람이 하나도 남지 않았으면 런을 전멸로 끝낸다.
+        ///
+        /// 전멸이 새로 성립하는 길은 둘뿐이라 그 두 곳에서만 부른다 - 마지막 생존자가 쓰러지거나,
+        /// 이탈로 목록에서 빠지거나. 부활은 반대 방향으로만 움직이므로 매 틱 전원을 훑을 이유가 없다.
+        ///
+        /// 전원이 쓰러지면 각자에게 남아 있던 자동 부활 타이머는 버린다. 30초는 동료가 일으켜 주기를
+        /// 기다리는 시간이지 아무도 없을 때의 안전망이 아니다 - 셋이 같은 자리에서 함께 일어나 봐야
+        /// 무적 2초 뒤에 자기를 죽인 무리를 그대로 다시 만난다
+        /// </summary>
+        public static void ServerCheckPartyWipe()
+        {
+            RunManager run = RunManager.ServerInstance;
+            if (run == null)
+            {
+                return;
+            }
+
+            if (G_ServerPlayers.Count == 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < G_ServerPlayers.Count; ++i)
+            {
+                if (!G_ServerPlayers[i].IsDead)
+                {
+                    return;
+                }
+            }
+
+            // 로비와 Result에서의 호출은 TryFinishRun이 막는다.
+            // phase 조건을 여기서 다시 쓰면 런 종료 조건이 두 군데로 갈라진다
+            if (run.TryFinishRun(RunOutcome.PartyWipe))
+            {
+                Debug.Log($"[PlayerStatus] 전멸로 런을 끝냈다: 인원 {G_ServerPlayers.Count}");
+            }
         }
 
         /****************************************
@@ -240,7 +302,7 @@ namespace Geumeum.Combat
         // 신력은 자연 회복하지 않는다, 물약 전용 희소 자원이라 여기서 건드리지 않는다
         private void ServerRegenTick(float fixedDeltaTime)
         {
-            if (IsDead || !GameDB.IsInitialized)
+            if ((IsDead) || (!GameDB.IsInitialized))
             {
                 return;
             }

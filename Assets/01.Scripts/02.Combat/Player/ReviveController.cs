@@ -151,6 +151,51 @@ namespace Geumeum.Combat
         }
 
         /****************************************
+        *              Server Callbacks
+        ****************************************/
+
+        public override void OnStartServer()
+        {
+            if (!GameEventBus.HasInstance)
+            {
+                Debug.LogError("[ReviveController] GameEventBus가 없어 재개 통지를 받을 수 없다", this);
+                return;
+            }
+
+            GameEventBus.Instance.Subscribe<RunResumedEvent>(OnRunResumed);
+        }
+
+        public override void OnStopServer()
+        {
+            if (!GameEventBus.HasInstance)
+            {
+                return;
+            }
+
+            GameEventBus.Instance.Unsubscribe<RunResumedEvent>(OnRunResumed);
+        }
+
+        /// <summary>
+        /// 런이 얼어 있던 만큼 관전 종료 시각을 뒤로 민다.
+        ///
+        /// 종료 시각이 NetworkTime 절대 시각이라 멈춰 있는 동안에도 계속 다가온다.
+        /// 밀지 않으면 이탈자를 3분 기다린 판에서 그 전에 쓰러진 사람이 관전을 한 번도 하지 않고
+        /// 재개 첫 틱에 일어나며, 노잣돈은 그대로 빠진다.
+        ///
+        /// 무적이나 후딜처럼 짧은 시각은 밀지 않는다 - 몇 분 멈췄다 돌아왔는데 그때까지 굳어 있는 쪽이
+        /// 오히려 이상하고, 저쪽은 만료되는 것이 맞다
+        /// </summary>
+        private void OnRunResumed(RunResumedEvent resumed)
+        {
+            if (_spectateEndServerTime <= 0.0)
+            {
+                return;
+            }
+
+            _spectateEndServerTime += resumed.PausedSeconds;
+        }
+
+        /****************************************
         *              Server API
         ****************************************/
 
@@ -182,6 +227,10 @@ namespace Geumeum.Combat
                 if (_status.ServerBeginSpectate())
                 {
                     _spectateEndServerTime = now + combat.SpectateDuration;
+
+                    // 관전으로 넘어간 뒤에 보는 것은 이 전이가 죽음마다 정확히 한 번이기 때문이다 -
+                    // Downed는 피해를 받은 쪽에서 만들어지므로 같은 틱에 셋이 죽으면 순서가 정해지지 않는다
+                    PlayerStatus.ServerCheckPartyWipe();
                 }
 
                 return; // 전이한 틱에는 타이머를 세지 않는다
