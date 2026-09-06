@@ -27060,8 +27060,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0ebe2f6e358fbce48ab3f556b04e6d6e, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.BarrierTestHarness
+  _barrierController: {fileID: 1633082180}
+  _testPhaseDurationSeconds: 10
+  _autoAdvanceEnabled: 0
 --- !u!1 &1637030590
 GameObject:
   m_ObjectHideFlags: 0

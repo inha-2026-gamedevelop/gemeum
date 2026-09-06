@@ -68,8 +68,26 @@ namespace Geumeum.Systems
         *              Unity Event
         ****************************************/
 
-        private void OnEnable()  => BarrierStateLocator.Register(this);
-        private void OnDisable() => BarrierStateLocator.Unregister(this);
+        private void OnEnable()
+        {
+            BarrierStateLocator.Register(this);
+
+#if UNITY_EDITOR
+            if (_showPillar && Application.isPlaying)
+            {
+                CreatePillar();
+            }
+#endif
+        }
+
+        private void OnDisable()
+        {
+            BarrierStateLocator.Unregister(this);
+
+#if UNITY_EDITOR
+            DestroyPillar();
+#endif
+        }
 
         /****************************************
         *              Server Callbacks
@@ -302,6 +320,20 @@ namespace Geumeum.Systems
         *          Gizmos (Editor Only)
         ****************************************/
 
+        [Header("확인용 시각화 (Editor Only, 정식 아트 아님)")]
+        [SerializeField] private bool       _showPillar      = true;
+        [SerializeField] private float      _pillarHeight    = 60f;
+        [SerializeField] private Material   _pillarMaterial  = null; // 비워두면 반투명 기본 머티리얼을 만든다
+        [SerializeField] private LayerMask  _groundLayerMask = ~0;   // 지형 높이를 찾을 때 쏘는 레이가 맞을 레이어
+
+        private const int   PILLAR_SEGMENTS      = 48;
+        private const float MIN_PILLAR_RADIUS    = 0.01f; // 0 스케일은 Unity가 경고를 뱉으니 최소값으로 클램프(m)
+        private const float GROUND_RAYCAST_ABOVE = 1000f; // 지형보다 확실히 높은 지점에서 아래로 쏜다
+
+        private Transform _pillarTransform;
+        private Mesh      _runtimePillarMesh;
+        private Material  _runtimePillarMaterial;
+
         // NetworkTime.time은 런타임에만 유효하다 — 에디트 모드에서 호출하면 예외가 난다
         private void OnDrawGizmos()
         {
@@ -319,28 +351,99 @@ namespace Geumeum.Systems
             }
 
             Gizmos.color = IsActive ? new Color(1f, 0.25f, 0.25f, 0.9f) : Color.gray;
-            DrawWireCircleXZ(center, radius);
+            BarrierGizmoUtility.DrawWireCircleXZ(center, radius);
 
             // 목표 반경도 옅게 같이 그려서 축소가 어디까지 갈지 미리 본다
             Gizmos.color = new Color(1f, 0.25f, 0.25f, 0.25f);
-            DrawWireCircleXZ(_transitionState.TargetCenter, _transitionState.TargetRadius);
+            BarrierGizmoUtility.DrawWireCircleXZ(_transitionState.TargetCenter, _transitionState.TargetRadius);
         }
 
-        private static void DrawWireCircleXZ(Vector3 center, float radius, int segments = 64)
+        // Game 뷰에서도 보이는 반투명 기둥. Gizmos는 Scene 뷰 전용이라 별도로 메쉬를 만든다
+        private void Update()
         {
-            if (radius <= 0f)
+            UpdatePillar();
+        }
+
+        private void CreatePillar()
+        {
+            GameObject pillar = new GameObject("BarrierPillar (Auto)");
+            pillar.hideFlags = HideFlags.DontSave; // 확인용 오브젝트라 씬에 저장되지 않는다
+
+            MeshFilter   meshFilter   = pillar.AddComponent<MeshFilter>();
+            MeshRenderer meshRenderer = pillar.AddComponent<MeshRenderer>();
+
+            _runtimePillarMesh    = BarrierGizmoUtility.BuildOpenCylinderMesh(PILLAR_SEGMENTS);
+            meshFilter.sharedMesh = _runtimePillarMesh;
+
+            if (_pillarMaterial != null)
+            {
+                meshRenderer.sharedMaterial = _pillarMaterial;
+            }
+            else
+            {
+                _runtimePillarMaterial      = BarrierGizmoUtility.BuildFallbackMaterial(new Color(1f, 0.25f, 0.25f, 0.25f));
+                meshRenderer.sharedMaterial = _runtimePillarMaterial;
+            }
+
+            _pillarTransform = pillar.transform;
+        }
+
+        private void DestroyPillar()
+        {
+            if (_pillarTransform != null)
+            {
+                Destroy(_pillarTransform.gameObject);
+                _pillarTransform = null;
+            }
+
+            if (_runtimePillarMesh != null)
+            {
+                Destroy(_runtimePillarMesh);
+                _runtimePillarMesh = null;
+            }
+
+            if (_runtimePillarMaterial != null)
+            {
+                Destroy(_runtimePillarMaterial);
+                _runtimePillarMaterial = null;
+            }
+        }
+
+        private void UpdatePillar()
+        {
+            if (_pillarTransform == null)
             {
                 return;
             }
 
-            Vector3 prev = center + new Vector3(radius, 0f, 0f);
-            for (int i = 1; i <= segments; ++i)
+            if (!Application.isPlaying || (Radius <= 0f))
             {
-                float   angle = (i / (float) segments) * Mathf.PI * 2f;
-                Vector3 next  = center + new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
-                Gizmos.DrawLine(prev, next);
-                prev = next;
+                _pillarTransform.gameObject.SetActive(false);
+                return;
             }
+
+            _pillarTransform.gameObject.SetActive(true);
+
+            Vector3 center = Center;
+            float   radius = Mathf.Max(Radius, MIN_PILLAR_RADIUS);
+            float   groundY = ResolveGroundY(center);
+
+            // 기본 Cylinder 프리미티브는 지름 1m, 높이 2m다 — 반경·원하는 높이에 맞춰 스케일한다
+            _pillarTransform.position   = new Vector3(center.x, groundY + (_pillarHeight * 0.5f), center.z);
+            _pillarTransform.localScale = new Vector3(radius * 2f, _pillarHeight * 0.5f, radius * 2f);
+        }
+
+        // Center.y는 XZ 판정 전용이라 항상 0이다 — 실제 지형 높이는 여기서 레이캐스트로 찾는다.
+        // 못 찾으면(콜라이더 없음 등) center.y를 그대로 써서 최소한 예전 동작으로 돌아간다
+        private float ResolveGroundY(Vector3 center)
+        {
+            Vector3 origin = new Vector3(center.x, GROUND_RAYCAST_ABOVE, center.z);
+            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, GROUND_RAYCAST_ABOVE * 2f, _groundLayerMask))
+            {
+                return hit.point.y;
+            }
+
+            return center.y;
         }
 #endif
     }

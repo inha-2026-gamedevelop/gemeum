@@ -52,7 +52,7 @@ namespace Geumeum.Systems
             }
 
             _currentHealth = Mathf.Max(_currentHealth - damage.Amount, 0f);
-            Debug.Log($"[BarrierDamageTestDummy] {damage.Amount:F1} 피해, 남은 HP {_currentHealth:F1}/{_maxHealth:F1}", this);
+            // Debug.Log($"[BarrierDamageTestDummy] {damage.Amount:F1} 피해, 남은 HP {_currentHealth:F1}/{_maxHealth:F1}", this);
         }
     }
 }
