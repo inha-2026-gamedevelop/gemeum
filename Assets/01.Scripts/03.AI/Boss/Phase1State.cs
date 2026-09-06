@@ -15,7 +15,10 @@ namespace Geumeum.AI
     /// MVP), 패턴 3(순간 접근 3연계, TargetedDash, 단일 돌진 MVP), 패턴 4(여우불 낙인,
     /// MarkedCircle), 패턴 5(여우 구슬 충격파, ConeBurst). 거리 대역별로 근접/중거리/원거리
     /// 후보 하나씩과, 거리 무관인 MarkedCircle이 항상 낀다 - 후보 중 무작위로 하나를 고른다
-    /// (가중치 추첨은 아직 없다, 균등 추첨이다)
+    /// (가중치 추첨은 아직 없다, 균등 추첨이다).
+    /// 전투 시작 직후엔 오프닝 고정 시퀀스(1 -> 2 -> 4)가 먼저 돈다, 쿨다운을 무시하고 순서대로
+    /// 발동한다 - 패턴 2(반월 베기)는 패턴 1과 같은 MeleeArc 판정(사거리, 각도 동일)이고
+    /// 윈드업만 짧고 패링이 안 된다, 독립 쿨다운이 없어 후보 추첨 대상이 아니다
     /// </summary>
     public sealed class Phase1State : BossPhaseStateBase
     {
@@ -45,10 +48,11 @@ namespace Geumeum.AI
         ****************************************/
 
         private const int MELEE_ARC_PATTERN_ID     = 1; // 여우불 봉 3연격
+        private const int DERIVED_MELEE_PATTERN_ID = 2; // 반월 베기, 패턴 1의 파생. 오프닝 전용, 후보 추첨 대상 아님
         private const int TARGETED_DASH_PATTERN_ID = 3; // 순간 접근 3연계
         private const int MARKED_CIRCLE_PATTERN_ID = 4; // 여우불 낙인
         private const int CONE_BURST_PATTERN_ID    = 5; // 여우 구슬 충격파
-        // 위 넷 다 GameDB.Boss._patterns의 PatternId와 맞춘다
+        // 위 다섯 다 GameDB.Boss._patterns의 PatternId와 맞춘다
 
         private const int MAX_CANDIDATE_COUNT = 4; // 지금 있는 템플릿 수만큼, 늘어나면 같이 늘린다
 
@@ -72,6 +76,9 @@ namespace Geumeum.AI
         *                Fields
         ****************************************/
 
+        // 오프닝 고정 시퀀스(9.3절): 추첨 없이 이 순서대로, 쿨다운 무시하고 발동한다
+        private static readonly int[] OPENING_SEQUENCE = { MELEE_ARC_PATTERN_ID, DERIVED_MELEE_PATTERN_ID, MARKED_CIRCLE_PATTERN_ID };
+
         private readonly BossController  _controller;
         private readonly NetworkIdentity _selfIdentity;
         private readonly int             _playerLayerMask;
@@ -81,6 +88,7 @@ namespace Geumeum.AI
         private float       _stateTimer         = 0f;
         private float       _cooldownRemaining  = 0f;
         private uint        _nextParryWindowId  = 0;
+        private int         _openingIndex       = 0; // OPENING_SEQUENCE.Length에 도달하면 오프닝이 끝난 것
 
         private Transform                  _activeTarget;
         private BossPatternSO.PatternEntry _activePattern;
@@ -132,7 +140,26 @@ namespace Geumeum.AI
 
         private void TickIdle()
         {
-            if ((_cooldownRemaining > 0f) || (Target == null))
+            if (Target == null)
+            {
+                return;
+            }
+
+            if (_openingIndex < OPENING_SEQUENCE.Length)
+            {
+                // 오프닝은 쿨다운을 안 보고, 추첨도 없이 정해진 순서 그대로 발동한다
+                int openingPatternId = OPENING_SEQUENCE[_openingIndex];
+                if (!GameDB.Boss.TryGetPattern(openingPatternId, out BossPatternSO.PatternEntry openingPattern))
+                {
+                    return;
+                }
+
+                ++_openingIndex;
+                BeginAttack(openingPattern, KindOf(openingPatternId));
+                return;
+            }
+
+            if (_cooldownRemaining > 0f)
             {
                 return;
             }
