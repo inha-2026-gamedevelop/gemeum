@@ -105,17 +105,21 @@ Assets/
 | **`Dev_System/` (폴더)** | **현재** | 게임플레이 시스템 작업 씬 **셋**. 소유자 @kjw1237 — `Dev_Barrier` · `Dev_Lobby` · `Dev_Title` |
 | `Dev_Art.unity` | **미생성** | 테크니컬 아트 작업 씬. 소유자 @AidenKim923 |
 
-**런타임 씬은 일곱 개다 (2026-09-06 확정).** 아래는 전부 미생성이고 **이름은 제안**이다. 만들 때 `Main.unity`와 `Dev_System/`의 기존 씬을 어디에 흡수할지 함께 정한다.
+**런타임 씬은 일곱 개다 (2026-09-06 신설).** `Assets/00.Scenes/Release/`에 **빈 껍데기로 만들어 빌드 목록에 등록했다.** 내용물은 아직 비어 있고, 전환 골격을 먼저 검증한 뒤 채운다. `Main.unity`와 `Dev_System/`의 기존 씬을 어디에 흡수할지는 내용물을 채울 때 정한다.
 
-| 씬 | 네트워크 | 역할 · 소유 |
-|---|---|---|
-| `Boot.unity` 프리워밍 | 오프라인 | `GameDBBootstrap`, 셰이더·프리팹 워밍. **영속 매니저를 여기서 만든다** |
-| `Title.unity` 게임시작 | 오프라인. Mirror `offlineScene` | 타이틀 UI, 호스트·참가 진입. 현재 `Dev_Title`이 원형 |
-| `Lobby.unity` 로비 | 온라인. Mirror `onlineScene` | `LobbyController` · `LobbyRoster`. 현재 `Dev_Lobby`가 원형 |
-| `Field.unity` 파밍 | 온라인 | `SpawnManager` · `BarrierController` · 클러스터 · 객주. **`Main.unity`가 이 역할을 이어받는다** |
-| `BossEntrance.unity` 보스입장 | 온라인 | 전실. 전원 로드 확인과 트라이 편성 UI. 판정 없음 |
-| `Boss_Arena.unity` 보스 | 온라인 | 아레나 두 벌 · `BossSpawner`. 팀장 + 보스 담당자 공동 소유 |
-| `Result.unity` 게임종료 | 온라인 | 정산 UI. 런 결과 스냅샷만 읽는다 |
+| 씬 (`00.Scenes/Release/`) | 상태 | 네트워크 | 역할 · 소유 |
+|---|---|---|---|
+| `Boot.unity` 프리워밍 | **현재(빈 껍데기)** | 오프라인 | `GameDBBootstrap`, 셰이더·프리팹 워밍. **영속 매니저를 여기서 만든다** |
+| `Title.unity` 게임시작 | **현재(빈 껍데기)** | 오프라인. Mirror `offlineScene` | 타이틀 UI, 호스트·참가 진입. 현재 `Dev_Title`이 원형 |
+| `Lobby.unity` 로비 | **현재(빈 껍데기)** | 온라인. Mirror `onlineScene` | `LobbyController` · `LobbyRoster`. 현재 `Dev_Lobby`가 원형 |
+| `Field.unity` 파밍 | **현재(빈 껍데기)** | 온라인 | `SpawnManager` · `BarrierController` · 클러스터 · 객주. **`Main.unity`가 이 역할을 이어받는다** |
+| `BossEntrance.unity` 보스입장 | **현재(빈 껍데기)** | 온라인 | 전실. 전원 로드 확인과 트라이 편성 UI. 판정 없음 |
+| `Boss_Arena.unity` 보스 | **현재(빈 껍데기)** | 온라인 | 아레나 두 벌 · `BossSpawner`. 팀장 + 보스 담당자 공동 소유 |
+| `Result.unity` 게임종료 | **현재(빈 껍데기)** | 온라인 | 정산 UI. 런 결과 스냅샷만 읽는다 |
+
+**빌드 목록의 0번이 `Boot`으로 바뀌었다.** 이전에는 `Dev_Combat`이 0번이라 빌드한 실행 파일이 개발 씬에서 시작했다. 기존 Dev 씬 넷은 목록 뒤쪽에 그대로 남아 있어 이름으로 여는 경로가 끊기지 않는다.
+
+`.github/CODEOWNERS`에 `/Assets/00.Scenes/Release/` 폴더 규칙을 함께 넣었다. 존재하지 않는 경로를 GitHub이 조용히 무시하는 성질 때문에, 폴더로 잡지 않으면 새 씬에 리뷰 담당자가 비게 된다.
 
 **전실은 별도 씬이다.** 보스 씬 안의 루트로 합치면 큰 씬을 한 번만 읽고 전실이 곧 대기실이 되어 전환이 하나 줄지만, **그 최적화는 보류한다**(2026-09-06 팀장 판단). 합치더라도 아래 전환 계약은 그대로다.
 
