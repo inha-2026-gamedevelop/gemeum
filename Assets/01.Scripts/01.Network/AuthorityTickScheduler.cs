@@ -40,6 +40,10 @@ namespace Geumeum.Network
         private readonly List<TickCallback>     _pendingAdds     = new List<TickCallback>();
         private readonly HashSet<Action<float>> _pendingRemovals = new HashSet<Action<float>>();
 
+        // 정지 게이트를 지나지 않는 제어 콜백. 이탈로 멈춰 있는 동안에도 돌아야 하는 것이 여기 붙는다 -
+        // 종료 후보 확정이 시뮬레이션과 함께 멈추면 대기를 끊어도 런이 끝나지 않는다
+        private System.Action _controlTick = null;
+
         private bool _isSorted             = true;
         private bool _isTicking            = false;
         private bool _isSimulationEnabled  = true; // Result 확정 뒤 멱등하게 전체 gameplay tick을 정지한다
@@ -50,6 +54,14 @@ namespace Geumeum.Network
 
         /// <summary> 서버 프로세스의 인스턴스, 클라이언트에서는 null이다 </summary>
         public static AuthorityTickScheduler ServerInstance { get; private set; }
+
+        /// <summary>
+        /// 서버 시뮬레이션 틱의 번호. FixedUpdate마다 하나씩 오른다.
+        ///
+        /// 같은 물리 스텝 안에서 일어난 판정은 같은 번호에 속한다.
+        /// "이번 틱에 들어온 후보"와 "지난 틱에 들어온 후보"를 가르는 데 쓴다
+        /// </summary>
+        public ulong TickId { get; private set; } = 0UL;
 
         /****************************************
         *              Unity Event
@@ -63,10 +75,15 @@ namespace Geumeum.Network
                 return;
             }
 
+            ++TickId;
+
             // 등록, 해제 반영은 시뮬레이션이 멈춰 있어도 한다. 이 처리가 정지 게이트 안에 있으면
             // Result 구간 동안 큐가 무한정 자라고, 그사이 파괴된 오브젝트의 델리게이트가
             // 다음 런을 켜는 순간 한꺼번에 되살아난다
             FlushPendingChanges();
+
+            // 제어 콜백은 정지 게이트보다 앞이다. 멈춰 있는 동안 종료를 확정할 수 있어야 한다
+            _controlTick?.Invoke();
 
             if (!_isSimulationEnabled)
             {
@@ -98,7 +115,7 @@ namespace Geumeum.Network
         *                Methods
         ****************************************/
 
-        // 등록을 먼저, 해제를 나중에 반영한다. 같은 창에 등록과 해제가 함께 들어오면 해제가 이겨야 한다 —
+        // 등록을 먼저, 해제를 나중에 반영한다. 같은 창에 등록과 해제가 함께 들어오면 해제가 이겨야 한다 -
         // 델리게이트가 같으면 RemoveAll이 방금 넣은 항목까지 지우므로 순서를 뒤집으면 유령 등록이 남는다
         private void FlushPendingChanges()
         {
@@ -129,7 +146,8 @@ namespace Geumeum.Network
 
         public override void OnStopServer()
         {
-            _isTicking = false;
+            _isTicking   = false;
+            _controlTick = null;
             _callbacks.Clear();
             _pendingAdds.Clear();
             _pendingRemovals.Clear();
@@ -162,6 +180,33 @@ namespace Geumeum.Network
         public void Unregister(Action<float> callback)
         {
             _pendingRemovals.Add(callback);
+        }
+
+        /// <summary>
+        /// 정지 게이트를 지나지 않는 제어 콜백을 등록한다. 멈춰 있는 동안에도 매 틱 불린다.
+        /// 이동, AI, 자원 회복처럼 게임 진행에 속하는 것은 여기 넣지 않는다
+        /// </summary>
+        [Server]
+        public void RegisterControl(System.Action callback)
+        {
+            if (callback == null)
+            {
+                return;
+            }
+
+            _controlTick += callback;
+        }
+
+        /// <summary> 제어 콜백을 해제한다 </summary>
+        [Server]
+        public void UnregisterControl(System.Action callback)
+        {
+            if (callback == null)
+            {
+                return;
+            }
+
+            _controlTick -= callback;
         }
 
         /// <summary>

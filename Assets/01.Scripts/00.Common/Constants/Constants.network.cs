@@ -23,7 +23,7 @@ namespace Geumeum.Common
             public const float MAX_INPUT_DELTA_TIME  = 0.1f;  // 입력 하나로 진행시킬 수 있는 최대 시간(초)
             // 패링 창이 닫히고 타격이 확정되기까지의 여유(초). 밸런스가 아니라 네트워크 계약값으로,
             // 150ms 지연과 60Hz 서버 틱에서도 판정이 타격보다 먼저 끝나도록 잡은 값이다.
-            // 조정할 때는 docs/unity/PARRY_SYSTEM_DESIGN.md 3.1절을 함께 고친다
+            // 패링 설계 문서의 같은 값도 함께 고친다
             public const float PARRY_RESOLUTION_LEAD = 0.18f;
 
             public const float MAX_INPUT_TIME_BEHIND = 0.5f;  // 이만큼 이상 과거인 입력 시각은 잘라낸다(초)
@@ -31,7 +31,7 @@ namespace Geumeum.Common
 
             // 패링 window 전체가 impactTime - 0.50 ~ impactTime - 0.18 구간이라, 이동용 0.5초를 그대로 쓰면
             // clamp 범위가 window를 통째로 덮어 아무것도 제한하지 못한다. 패링은 전용 하한을 쓴다.
-            // 조정할 때는 docs/unity/PARRY_SYSTEM_DESIGN.md 3.2절을 함께 고친다
+            // 패링 설계 문서의 같은 값도 함께 고친다
             public const float PARRY_MAX_INPUT_TIME_BEHIND = 0.25f; // rtt가 비정상으로 커도 넘지 못하는 절대 상한(초)
             public const float PARRY_INPUT_TIME_TOLERANCE  = 0.05f; // rtt 흔들림과 서버 틱 여유(초)
             public const float PARRY_MIN_REQUEST_INTERVAL  = 0.05f; // 거부 응답도 이 간격보다 자주 처리하지 않는다(초)

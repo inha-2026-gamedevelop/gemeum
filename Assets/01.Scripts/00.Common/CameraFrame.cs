@@ -6,8 +6,8 @@ namespace Geumeum.Common
     /// <summary>
     /// 카메라가 매 프레임 밀어 넣는 화면 기준 값. 오브젝트가 아니라 값 하나만 건넨다.
     /// 이동을 카메라 기준으로 바꾸려면 02.Combat이 카메라의 yaw를 알아야 하는데,
-    /// 02.Combat이 05.Art를 참조하는 것은 의존 방향(04-architecture 8.1) 위반이다.
-    /// 로케이터를 하나 더 만들지 않은 이유는 <b>카메라 각도가 갈아 끼울 구현체가 아니라 그냥 숫자</b>여서다 -
+    /// 02.Combat이 05.Art를 참조하는 것은 의존 방향 위반이다.
+    /// 로케이터를 하나 더 만들지 않은 이유는 카메라 각도가 갈아 끼울 구현체가 아니라 그냥 숫자여서다 -
     /// ICombatFeedback, IBarrierState의 로케이터는 구현이 통째로 갈릴 수 있는 것에 쓰는 장치다.
     /// 카메라가 없으면 Yaw는 0이라 입력 축이 그대로 월드 방향이 되어 지금과 똑같이 동작하고,
     /// 카메라를 붙이면 저절로 살아난다
@@ -23,9 +23,36 @@ namespace Geumeum.Common
 
         /// <summary>
         /// 카메라 회전 입력을 받아도 되는지. 마우스를 쓰는 UI가 열릴 때 UI가 끈다.
-        /// <b>UI가 끄고 카메라가 읽는 방향이라</b> 05.Art가 06.UI를 참조하지 않는다
+        /// UI가 끄고 카메라가 읽는 방향이라 05.Art가 06.UI를 참조하지 않는다
         /// </summary>
         public static bool InputEnabled { get; set; } = true;
+
+        /// <summary>
+        /// 락온이 걸려 있는지. 전투(LockOnController)가 밀고 카메라가 읽는다 -
+        /// Yaw와 반대 방향이지만 같은 원칙이다. 카메라가 전투를 참조하지 않으므로
+        /// 락온이 없는 씬(캐릭터 미리보기 등)에서도 리그가 그대로 돈다
+        /// </summary>
+        public static bool LockOnActive { get; set; } = false;
+
+        /// <summary> 락온 대상의 조준점(월드). LockOnActive가 true일 때만 유효하다 </summary>
+        public static Vector3 LockOnPoint { get; set; } = Vector3.zero;
+
+        /// <summary>
+        /// 락온 중 쓸 붐 길이(m). 대상마다 다르다 - 잡귀는 기본 거리, 보스 몸통은 꼬리 펼침이
+        /// 프레임에 들어와야 해서 더 멀다. 안 보이면 싸울 수 없으므로 연출이 아니라 조작이다
+        /// </summary>
+        public static float LockOnDistance { get; set; } = 0f;
+
+        /// <summary>
+        /// 락온 상태를 한 번에 밀어 넣는다. 세 값을 따로 쓰면 한 프레임 어긋난 조합이 나온다 -
+        /// 대상은 바뀌었는데 거리가 이전 값이면 카메라가 한 프레임 엉뚱한 길이로 선다
+        /// </summary>
+        public static void SetLockOn(bool active, Vector3 point, float distance)
+        {
+            LockOnActive   = active;
+            LockOnPoint    = point;
+            LockOnDistance = distance;
+        }
 
         /****************************************
         *                Methods
@@ -59,6 +86,8 @@ namespace Geumeum.Common
         {
             Yaw          = 0f;
             InputEnabled = true;
+
+            SetLockOn(false, Vector3.zero, 0f);
         }
     }
 }

@@ -6,7 +6,7 @@ namespace Geumeum.Common
         None        = 0, // 아직 끝나지 않았다
         Victory     = 1, // 보스 처치. 보스 연결 전까지는 어떤 경로도 이 값을 커밋하지 않는다
         TimeExpired = 2,
-        PartyWipe   = 3, // 전멸 판정 경로는 아직 없다, 값만 예약한다
+        PartyWipe   = 3, // 전원이 쓰러졌다. PlayerStatus가 감지하고 RunManager가 확정한다
         PlayerLeft  = 4,
     }
 }

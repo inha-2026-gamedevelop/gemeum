@@ -57,7 +57,7 @@ namespace Geumeum.Network
 
             TryAbandonPausedRun();
 
-            if ((_devStartHostKey == KeyCode.None) || isNetworkActive)
+            if ((_devStartHostKey == KeyCode.None) || (isNetworkActive))
             {
                 return;
             }
@@ -173,7 +173,10 @@ namespace Geumeum.Network
                 LobbyController.ServerInstance.ServerRemoveSlot(conn);
             }
 
-            GeumeumAuthenticator.ServerInstance?.ServerForget(conn.connectionId);
+            if (GeumeumAuthenticator.ServerInstance != null)
+            {
+                GeumeumAuthenticator.ServerInstance.ServerForget(conn.connectionId);
+            }
 
             PauseRunOnLeave(conn);
 

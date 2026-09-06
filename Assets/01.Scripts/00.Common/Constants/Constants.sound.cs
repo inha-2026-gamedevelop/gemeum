@@ -2,7 +2,7 @@ namespace Geumeum.Common
 {
     public static partial class Constants
     {
-        /// <summary> 사운드 계약값. 크로스페이드 길이 · 볼륨 같은 연출 수치는 SoundCatalogSO에 있다 </summary>
+        /// <summary> 사운드 계약값. 크로스페이드 길이, 볼륨 같은 연출 수치는 SoundCatalogSO에 있다 </summary>
         public static class Sound
         {
             public const int SFX_SOURCE_COUNT = 16; // 동시에 울릴 수 있는 효과음 수, 넘치면 가장 오래된 소스가 재설정된다

@@ -160,7 +160,7 @@ namespace Geumeum.Network
             }
 
             // 런이 진행 중이면 새 사람을 받지 않는다.
-            // 다만 두고 간 자리가 있는 사람은 돌아올 수 있어야 한다 — 이게 일시정지 재접속 경로다
+            // 다만 두고 간 자리가 있는 사람은 돌아올 수 있어야 한다 - 이게 일시정지 재접속 경로다
             var manager = NetworkManager.singleton as GeumeumNetworkManager;
             if ((manager != null) && (manager.IsAdmissionLocked))
             {

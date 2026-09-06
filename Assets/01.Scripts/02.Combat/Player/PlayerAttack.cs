@@ -19,7 +19,7 @@ namespace Geumeum.Combat
     /// 입력을 그대로 믿으면 사람마다 다른 적이 죽는다.
     /// 근접과 원거리는 선딜, 소모, 판정 방식이 달라 무기에서 경로를 갈라 쓴다
     /// </summary>
-    public class PlayerAttack : NetworkBehaviour
+    public class PlayerAttack : NetworkBehaviour, IPlayerAction
     {
         /****************************************
         *                Types
@@ -64,6 +64,7 @@ namespace Geumeum.Combat
         private ParryGauge                _gauge;
         private PlayerAnimationController _animation;
         private PlayerPresentation        _presentation;
+        private LockOnController          _lockOn;
 
         // readonly로 두면 메서드 호출마다 방어 복사본이 만들어져 수락 기록이 남지 않는다
         private RequestIdTracker _requestIds = new RequestIdTracker();
@@ -78,6 +79,10 @@ namespace Geumeum.Combat
         // 창을 놓치면 1단으로 되돌아간다. 근접이 아니면 항상 0(무의미)이다
         private int    _comboStage           = 0;
         private double _comboExpireServerTime = 0d;
+
+        // TryBuildContext가 뽑아 CommitAction이 쓰는 이번 요청의 무기 값.
+        // 커밋에서 다시 계산하면 그 사이에 무기가 바뀌었을 때 선딜과 소모가 어긋난다
+        private AttackProfile _pendingProfile;
 
         private uint _nextRequestId = 1u;
 
@@ -109,6 +114,7 @@ namespace Geumeum.Combat
 
             _animation    = GetComponent<PlayerAnimationController>();
             _presentation = GetComponent<PlayerPresentation>();
+            _lockOn       = GetComponent<LockOnController>();
         }
 
         private void Update()
@@ -130,41 +136,61 @@ namespace Geumeum.Combat
         [Command]
         private void CmdRequestAttack(uint requestId)
         {
-            if (!_requestIds.TryAccept(requestId))
+            ActionRejection rejection = PlayerActionPipeline.TryExecute(
+                ref _requestIds, requestId, this, NetworkTime.time);
+
+            if (rejection == ActionRejection.None)
             {
                 return;
             }
 
+            TargetActionRejected(rejection);
+        }
+
+        /****************************************
+        *              Player Action
+        ****************************************/
+
+        /// <summary>
+        /// 이번 공격의 게이트 입력을 만든다. 무기에서 뽑은 선딜, 후딜, 소모를 여기서 확정하고
+        /// 커밋까지 들고 간다 - 같은 요청 안에서 두 번 계산하면 그 사이에 무기가 바뀔 수 있다
+        /// </summary>
+        public bool TryBuildContext(double serverTime, out PlayerActionContext context)
+        {
+            context = default;
+
             if ((!GameDB.IsInitialized) || (_status == null) || (_weapon == null))
             {
-                return;
+                return false;
             }
 
             // 배분 전에는 무기 값이 의미가 없다. 게이트도 막지만 여기서 읽지 않는 것이 먼저다
             if (!_weapon.HasWeapon)
             {
-                return;
+                return false;
             }
 
-            double         now     = NetworkTime.time;
-            CombatConfigSO combat  = GameDB.Combat;
-            AttackProfile  profile = ResolveProfile(_weapon.Weapon, combat);
+            _pendingProfile = ResolveProfile(_weapon.Weapon, GameDB.Combat);
 
             // 방울처럼 기본 공격이 없는 무기는 요청 자체를 받지 않는다
-            if (!profile.HasAttack)
+            if (!_pendingProfile.HasAttack)
             {
-                return;
+                return false;
             }
 
-            if (!CanStartAttack(now, profile))
-            {
-                return;
-            }
+            context = BuildContext(serverTime, _pendingProfile);
+            return true;
+        }
 
-            if (!_status.TrySpendStamina(profile.StaminaCost))
-            {
-                return;
-            }
+        public bool TrySpendResource(in PlayerActionContext context)
+        {
+            return _status.TrySpendStamina(context.ResourceCost);
+        }
+
+        public void CommitAction(in PlayerActionContext context)
+        {
+            double        now     = context.ServerTime;
+            AttackProfile profile = _pendingProfile;
 
             _isSwinging         = true;
             _swingReach         = profile.Reach;
@@ -172,11 +198,11 @@ namespace Geumeum.Combat
             _recoveryServerTime = _hitServerTime + profile.RecoveryDuration;
 
             // 콤보는 근접에서만 돈다. 창 안에 재입력했으면 다음 단계로, 아니면 1단으로 되돌아간다.
-            // 판정은 무기·거리와 무관하게 항상 MeleeBasePower 하나를 쓴다 - 표현만 세 클립으로 갈린다
+            // 판정은 무기, 거리와 무관하게 항상 MeleeBasePower 하나를 쓴다 - 표현만 세 클립으로 갈린다
             _comboStage = (profile.Reach == AttackReach.Melee)
                 ? (((_comboStage > 0) && (now <= _comboExpireServerTime)) ? ((_comboStage % Constants.Combat.MELEE_COMBO_STAGE_COUNT) + 1) : 1)
                 : 0;
-            _comboExpireServerTime = _recoveryServerTime + combat.MeleeComboWindowDuration;
+            _comboExpireServerTime = _recoveryServerTime + GameDB.Combat.MeleeComboWindowDuration;
 
             // 표현은 수락 시점에 알린다. 판정 시점까지 기다리면 선딜 동안 아무 동작도 나오지 않는다.
             // 무기 종류는 이미 SyncVar로 가 있으므로 값을 실어 보내지 않는다
@@ -201,8 +227,19 @@ namespace Geumeum.Combat
         }
 
         /// <summary>
+        /// 요청이 거부된 사유를 요청자에게만 돌려준다.
+        /// 조용히 버리면 사람은 "입력이 씹혔다"고 느끼고, 우리는 3인 테스트에서
+        /// 그것이 지연인지 거부인지 구분할 수 없다
+        /// </summary>
+        [TargetRpc]
+        private void TargetActionRejected(ActionRejection rejection)
+        {
+            LocalCombatState.RaiseActionRejected(rejection);
+        }
+
+        /// <summary>
         /// 근접 판정 결과를 모든 화면에 알린다. 맞았는지 헛쳤는지는 서버만 아는데,
-        /// 헛스윙 구분은 게이지 보존 규칙과 한 쌍이라 소리로 돌려줘야 한다 (사운드 설계 2.2).
+        /// 헛스윙 구분은 게이지 보존 규칙과 한 쌍이라 소리로 돌려줘야 한다.
         /// 표현 전용이고 판정은 이미 서버에서 끝나 있다
         /// </summary>
         [ClientRpc]
@@ -287,7 +324,7 @@ namespace Geumeum.Combat
             }
         }
 
-        private bool CanStartAttack(double now, AttackProfile profile)
+        private PlayerActionContext BuildContext(double now, AttackProfile profile)
         {
             bool isOtherActionInProgress = ((_roll != null) && (_roll.IsRolling))
                 || ((_parry != null) && (_parry.IsActionInProgress(now)));
@@ -295,7 +332,7 @@ namespace Geumeum.Combat
             RunPhase phase    = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
             bool     isPaused = ((RunManager.ServerInstance != null) && (RunManager.ServerInstance.IsPaused));
 
-            var context = new PlayerActionContext(
+            return new PlayerActionContext(
                 phase,
                 _status.LifeState,
                 isPaused,
@@ -305,13 +342,11 @@ namespace Geumeum.Combat
                 _recoveryServerTime,
                 _status.Stamina,
                 profile.StaminaCost);
-
-            return PlayerActionGate.CanStartAction(context);
         }
 
         /// <summary>
-        /// 이번 공격이 향하는 평면 방향. transform.forward를 쓰면 안 된다 —
-        /// 플레이어 루트는 Rigidbody가 회전을 막고 있고(Player.prefab FreezeRotation X·Y·Z)
+        /// 이번 공격이 향하는 평면 방향. transform.forward를 쓰면 안 된다 -
+        /// 플레이어 루트는 Rigidbody가 회전을 막고 있고(Player.prefab FreezeRotation X,Y,Z)
         /// 코드에서도 루트를 돌리는 곳이 없어 항상 월드 +Z로 고정된다.
         /// 방향은 자식 VisualPivot에만 적용되므로, 서버가 매 틱 확정하는
         /// PlayerPresentation의 값이 판정이 쓸 수 있는 유일한 방향 소스다.
@@ -432,7 +467,8 @@ namespace Geumeum.Combat
 
         /// <summary>
         /// 화살을 띄운다. 판정은 화살이 서버 틱을 돌며 직접 한다.
-        /// 락온이 아직 없어 기획서 4.2 비락온 규칙만 적용된다 - 발사각 보정 없이 구형 명중 보조만 있다
+        /// 락온 중이면 발사각을 조준점 쪽으로 최대 12도만 당기고, 아니면
+        /// 비락온 규칙(발사각 보정 없이 구형 명중 보조만)이 그대로 적용된다
         /// </summary>
         [Server]
         private void FireArrow(CombatConfigSO combat)
@@ -443,17 +479,81 @@ namespace Geumeum.Combat
                 return;
             }
 
+            ArrowConfigSO arrowConfig = GameDB.Arrow;
+
             Vector3 forward = ResolveAimForward();
 
-            // 발밑이나 제 몸 안에서 나가면 첫 틱부터 자기 자신 근처를 훑는다
+            // 발밑이나 제 몸 안에서 나가면 첫 틱부터 자기 자신 근처를 훑는다.
+            // 총구를 보정 전 방향으로 잡는 이유는 조준점까지의 각도를 재려면 기준점이 먼저 있어야 해서다
             Vector3 origin = transform.position
                 + (Vector3.up * combat.RangedMuzzleHeight)
                 + (forward * combat.RangedMuzzleForward);
 
+            uint guidanceTargetNetId = 0u;
+            byte guidanceTargetPart  = 0;
+
+            if (TryResolveLockedAim(arrowConfig, origin, forward, out Vector3 snapped))
+            {
+                forward             = snapped;
+                guidanceTargetNetId = _lockOn.TargetNetId;
+                guidanceTargetPart  = _lockOn.TargetPartIndex;
+            }
+
             ArrowProjectile arrow = Instantiate(_arrowPrefab, origin, Quaternion.LookRotation(forward));
-            arrow.ServerInitialize(forward, combat.RangedBasePower, netId, _targetMask.value, GameDB.Arrow);
+            arrow.ServerInitialize(
+                forward, combat.RangedBasePower, netId, _targetMask.value, arrowConfig,
+                guidanceTargetNetId, guidanceTargetPart);
 
             NetworkServer.Spawn(arrow.gameObject);
+        }
+
+        /// <summary>
+        /// 락온 대상 쪽으로 발사각을 당길 수 있는지 발사 순간에 다시 확인한다.
+        ///
+        /// 12도는 탐색 반각 35도와 다른 값이다 - 탐색됐다고 발사 보정까지 허용되는 것은 아니다.
+        /// 선딜 0.25초 동안 대상이 죽거나 숨거나 크게 움직였을 수 있으므로 생존, 거리, 시야, 각도를
+        /// 전부 여기서 다시 본다. 실패하면 다른 적을 찾지 않고 겨눈 그대로 쏜다
+        /// </summary>
+        // 방향을 XZ로 눌러 버리지 않는다. 높낮이가 있는 지형과 공중 적을 위해 3D 벡터를 유지한다 -
+        // ResolveAimForward가 돌려주는 평면 방향과 달라지는 유일한 자리다
+        [Server]
+        private bool TryResolveLockedAim(ArrowConfigSO arrow, Vector3 muzzle, Vector3 requested, out Vector3 desired)
+        {
+            desired = requested;
+
+            if ((_lockOn == null) || (!_lockOn.IsLockedOn) || (arrow == null))
+            {
+                return false;
+            }
+
+            if (!_lockOn.ServerIsTargetValid(GameDB.Combat.LockOnHoldRange))
+            {
+                return false;
+            }
+
+            Vector3 toTarget = _lockOn.TargetAimPoint - muzzle;
+            if (toTarget.sqrMagnitude <= 0f)
+            {
+                return false;
+            }
+
+            Vector3 direction = toTarget.normalized;
+
+            if (Vector3.Angle(requested, direction) > arrow.AimAssistAngle)
+            {
+                return false;
+            }
+
+            // 총구 바로 앞에 벽이 있으면 카메라에서는 보이더라도 화살은 벽에 맞는다.
+            // 그때까지 보정해 주면 벽을 뚫고 맞히는 것처럼 보인다
+            if ((arrow.WorldMask != 0)
+                && (Physics.Raycast(muzzle, direction, toTarget.magnitude, arrow.WorldMask, QueryTriggerInteraction.Ignore)))
+            {
+                return false;
+            }
+
+            desired = direction;
+            return true;
         }
 
         [Server]

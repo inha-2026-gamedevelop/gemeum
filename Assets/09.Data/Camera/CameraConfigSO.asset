@@ -21,6 +21,10 @@ MonoBehaviour:
   _defaultInvertY: 0
   _pitchMin: -30
   _pitchMax: 60
+  _lockOnDistanceEnemy: 4.5
+  _lockOnDistanceBossBody: 9
+  _lockOnDistanceBossPart: 7
+  _lockOnTurnDegreesPerSecond: 540
   _collisionMask:
     serializedVersion: 2
     m_Bits: 229633

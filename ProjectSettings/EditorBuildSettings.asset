@@ -9,6 +9,27 @@ EditorBuildSettings:
     path: Assets/00.Scenes/Dev_Combat.unity
     guid: c9800b5680283064281843fce4f5d476
   - enabled: 1
+    path: Assets/00.Scenes/Release/Boot.unity
+    guid: c772886bacd76a74dac8cb19be1bb5cd
+  - enabled: 1
+    path: Assets/00.Scenes/Release/Title.unity
+    guid: f6432d75f5a3fe940bcf899aab271fba
+  - enabled: 1
+    path: Assets/00.Scenes/Release/Lobby.unity
+    guid: 5c6494a5b95cbd94c93dd46537673982
+  - enabled: 1
+    path: Assets/00.Scenes/Release/Field.unity
+    guid: 51ff6afc88d4da64394eac77ecb05a04
+  - enabled: 1
+    path: Assets/00.Scenes/Release/BossEntrance.unity
+    guid: 5440660d35495d64191133e801c046b4
+  - enabled: 1
+    path: Assets/00.Scenes/Release/Boss_Arena.unity
+    guid: fca0f329b4bf96d4bb55009c26c40c1a
+  - enabled: 1
+    path: Assets/00.Scenes/Release/Result.unity
+    guid: f5089e9d27a58414ba3c68168370241a
+  - enabled: 1
     path: Assets/00.Scenes/Main.unity
     guid: 67a4bc2322c0a6c44bf91bcec7c7ccca
   - enabled: 1

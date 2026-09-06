@@ -62,7 +62,7 @@ namespace Geumeum.Network
 
         /// <summary>
         /// 로비에 세션 값을 게시하고 호스트를 시작한 뒤 접속 신호를 보낸다.
-        /// 게시 → 기동 → 신호 순서를 지켜야 호스트 자신도, 나머지 멤버도 거부당하지 않는다
+        /// 게시 -> 기동 -> 신호 순서를 지켜야 호스트 자신도, 나머지 멤버도 거부당하지 않는다
         /// </summary>
         public void StartSteamHost()
         {
@@ -160,7 +160,7 @@ namespace Geumeum.Network
         // 늦게 도착한 초대가 방금 나간 사람을 도로 끌고 들어가는 것도 같은 경로다
         private void OnJoinRequested(ulong lobbyId)
         {
-            if (NetworkServer.active || NetworkClient.active)
+            if ((NetworkServer.active) || (NetworkClient.active))
             {
                 Debug.LogWarning($"[SteamMirrorConnector] 세션 중이라 로비 {lobbyId} 초대를 자동 수락하지 않는다. "
                     + "방 나가기 뒤에 다시 수락할 것", this);

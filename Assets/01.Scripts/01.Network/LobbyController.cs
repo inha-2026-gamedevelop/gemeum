@@ -91,14 +91,24 @@ namespace Geumeum.Network
         [Server]
         public void ServerRemoveSlot(NetworkConnectionToClient conn)
         {
-            LobbyRoster.ServerInstance?.ServerRemoveSlot(conn);
+            LobbyRoster roster = LobbyRoster.ServerInstance;
+            if (roster == null)
+            {
+                return;
+            }
+
+            roster.ServerRemoveSlot(conn);
         }
 
         /// <summary> 런이 끝나 로비로 돌아올 때 준비 상태와 역할 확정을 되돌린다. RunManager만 호출한다 </summary>
         [Server]
         public void ServerResetForNewRun()
         {
-            LobbyRoleCoordinator.ServerInstance?.ServerResetForNewRun();
+            LobbyRoleCoordinator coordinator = LobbyRoleCoordinator.ServerInstance;
+            if (coordinator != null)
+            {
+                coordinator.ServerResetForNewRun();
+            }
 
             if (!_devAutoReady)
             {
@@ -280,7 +290,11 @@ namespace Geumeum.Network
                 manager.UnlockAdmission();
             }
 
-            LobbyRoleCoordinator.ServerInstance?.ServerResetForNewRun();
+            LobbyRoleCoordinator coordinator = LobbyRoleCoordinator.ServerInstance;
+            if (coordinator != null)
+            {
+                coordinator.ServerResetForNewRun();
+            }
         }
 
         // 일시정지된 런에 인원이 다시 찼으면 역할을 되돌려 주고 재개한다
@@ -293,7 +307,11 @@ namespace Geumeum.Network
                 return false;
             }
 
-            LobbyRoleCoordinator.ServerInstance?.ServerRestoreRole(conn);
+            LobbyRoleCoordinator coordinator = LobbyRoleCoordinator.ServerInstance;
+            if (coordinator != null)
+            {
+                coordinator.ServerRestoreRole(conn);
+            }
 
             LobbyRoster roster          = LobbyRoster.ServerInstance;
             int         requiredPlayers = ResolveRequiredPlayers();

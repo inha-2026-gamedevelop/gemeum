@@ -12,7 +12,7 @@ using Geumeum.Network;
 namespace Geumeum.Combat
 {
     /// <summary> 구르기 요청 검증, 방향, 지속 시간, 무적 전이를 소유한다 </summary>
-    public class PlayerRollController : NetworkBehaviour
+    public class PlayerRollController : NetworkBehaviour, IPlayerAction
     {
         /****************************************
         *                Fields
@@ -24,6 +24,7 @@ namespace Geumeum.Combat
         private PlayerAttack              _attack;
         private PlayerAnimationController _animation;
         private PlayerPresentation        _presentation;
+        private LockOnController          _lockOn;
 
         private uint             _localRequestId = 0;
         private RequestIdTracker _requestIds;
@@ -33,6 +34,9 @@ namespace Geumeum.Combat
         // 서버 전용
         private Vector2 _rollDirection     = Vector2.zero;
         private double  _rollEndServerTime = 0.0;
+
+        // 이번 요청이 실어 온 방향. 게이트 입력이 아니라 커밋에서만 쓰는 값이다
+        private Vector2 _pendingDirection = Vector2.zero;
 
         /****************************************
         *              Properties
@@ -53,6 +57,7 @@ namespace Geumeum.Combat
             _attack    = GetComponent<PlayerAttack>();
             _animation    = GetComponent<PlayerAnimationController>();
             _presentation = GetComponent<PlayerPresentation>();
+            _lockOn       = GetComponent<LockOnController>();
         }
 
         private void Update()
@@ -76,7 +81,7 @@ namespace Geumeum.Combat
                 return;
             }
 
-            // 구르기는 무적 프레임의 유일한 청각 신호다 (사운드 설계 2.1)
+            // 구르기는 무적 프레임의 유일한 청각 신호다
             SfxPlayer.Play(SoundKey.Roll, transform.position, isLocalPlayer, netId);
 
             if (_animation == null)
@@ -94,46 +99,63 @@ namespace Geumeum.Combat
         [Command]
         private void CmdRequestRoll(uint requestId, Vector2 requestedDirection)
         {
-            if (!_requestIds.TryAccept(requestId))
+            // 방향은 게이트와 무관한 이번 요청의 값이라 파이프라인에 태우지 않고 먼저 받아 둔다
+            _pendingDirection = requestedDirection;
+
+            ActionRejection rejection = PlayerActionPipeline.TryExecute(
+                ref _requestIds, requestId, this, NetworkTime.time);
+
+            if (rejection == ActionRejection.None)
             {
                 return;
             }
+
+            TargetActionRejected(rejection);
+        }
+
+        /****************************************
+        *              Player Action
+        ****************************************/
+
+        public bool TryBuildContext(double serverTime, out PlayerActionContext context)
+        {
+            context = default;
 
             if ((!GameDB.IsInitialized) || (_movement == null) || (_status == null))
             {
-                return;
+                return false;
             }
 
-            double          now       = NetworkTime.time;
-            RunPhase        phase     = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
-            bool            isPaused  = ((RunManager.ServerInstance != null) && (RunManager.ServerInstance.IsPaused));
-            PlayerLifeState lifeState = _status.LifeState;
-            CombatConfigSO  combat    = GameDB.Combat;
+            bool isOtherActionInProgress = ((_parry != null) && (_parry.IsActionInProgress(serverTime)))
+                || ((_attack != null) && (_attack.IsActionInProgress(serverTime)));
 
-            bool isOtherActionInProgress = ((_parry != null) && (_parry.IsActionInProgress(now)))
-                || ((_attack != null) && (_attack.IsActionInProgress(now)));
-            PlayerActionContext context = new PlayerActionContext(
+            RunPhase phase    = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
+            bool     isPaused = ((RunManager.ServerInstance != null) && (RunManager.ServerInstance.IsPaused));
+
+            context = new PlayerActionContext(
                 phase,
-                lifeState,
+                _status.LifeState,
                 isPaused,
                 true,
                 ((_isRolling) || (isOtherActionInProgress)),
-                now,
+                serverTime,
                 _rollEndServerTime,
                 _status.Stamina,
-                combat.RollStaminaCost);
+                GameDB.Combat.RollStaminaCost);
 
-            if (!PlayerActionGate.CanStartAction(context))
-            {
-                return;
-            }
+            return true;
+        }
 
-            if (!_status.TrySpendStamina(combat.RollStaminaCost))
-            {
-                return;
-            }
+        public bool TrySpendResource(in PlayerActionContext context)
+        {
+            return _status.TrySpendStamina(context.ResourceCost);
+        }
 
-            _rollDirection = ResolveServerDirection(requestedDirection);
+        public void CommitAction(in PlayerActionContext context)
+        {
+            CombatConfigSO combat = GameDB.Combat;
+
+            _rollDirection = ResolveServerDirection(_pendingDirection);
 
             // 방향을 진행 여부보다 먼저 확정한다. 같은 배치로 도착해야 관전자가 구르기 첫 프레임부터
             // 서버가 정한 방향으로 재생한다. 순서를 바꾸면 직전 방향으로 한 프레임 구르고 꺾인다
@@ -143,9 +165,16 @@ namespace Geumeum.Combat
             }
 
             _isRolling         = true;
-            _rollEndServerTime = now + combat.RollTotalDuration;
+            _rollEndServerTime = context.ServerTime + combat.RollTotalDuration;
 
-            _status.GrantTimedInvincibility(now + combat.RollInvincibleDuration);
+            _status.GrantTimedInvincibility(context.ServerTime + combat.RollInvincibleDuration);
+        }
+
+        /// <summary> 요청이 거부된 사유를 요청자에게만 돌려준다 </summary>
+        [TargetRpc]
+        private void TargetActionRejected(ActionRejection rejection)
+        {
+            LocalCombatState.RaiseActionRejected(rejection);
         }
 
         /****************************************
@@ -203,27 +232,52 @@ namespace Geumeum.Combat
         }
 
         /// <summary>
-        /// 구르기 요청 방향. 입력이 있으면 <b>이동과 같은 규칙으로</b> 화면 기준 월드 방향으로 바꾼다 -
+        /// 구르기 요청 방향. 입력이 있으면 이동과 같은 규칙으로 화면 기준 월드 방향으로 바꾼다 -
         /// 이동만 카메라 기준이고 구르기는 월드 축이면 같은 키를 눌러도 둘이 다른 쪽으로 간다.
         /// 입력이 없으면 0을 보내고, 그때 방향은 서버가 마지막 이동 방향으로 정한다
         /// </summary>
-        /// <remarks>
-        /// 락온이 붙으면 <b>입력 없는 구르기는 대상의 반대 방향</b>이어야 한다(카메라와 락온 4.3).
-        /// 지금은 FacingDirection이 곧 이동 방향이라 그 문제가 아직 없지만,
-        /// 대상 방향이 들어오는 순간 부호를 뒤집지 않으면 보스 품으로 굴러들어간다
-        /// </remarks>
-        private static Vector2 ResolveRequestedDirection()
+        // 입력 없는 구르기는 락온 중일 때 대상의 반대 방향이다.
+        // 부호를 뒤집지 않으면 보스 품으로 굴러들어간다 - FacingDirection이 대상 방향이 된
+        // 순간부터 그렇다. 락온 중 백스텝은 패링에 실패하고 살아나는 유일한 길이라
+        // 락온을 넣는 변경과 이 부호는 한 덩이로 다뤄야 한다
+        private Vector2 ResolveRequestedDirection()
         {
             Vector2 direction = new Vector2(
                 Input.GetAxisRaw(Constants.Player.AXIS_HORIZONTAL),
                 Input.GetAxisRaw(Constants.Player.AXIS_VERTICAL));
 
-            if (direction.sqrMagnitude < (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
+            if (direction.sqrMagnitude >= (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
             {
-                return Vector2.zero;
+                return CameraFrame.ToWorld(direction.normalized);
             }
 
-            return CameraFrame.ToWorld(direction.normalized);
+            if (TryGetLockOnBackStep(out Vector2 backStep))
+            {
+                return backStep;
+            }
+
+            return Vector2.zero;
+        }
+
+        // 대상 반대편. 여기서 만들어 보내는 이유는 서버의 폴백(LastFacingDirection)이
+        // 마지막 "이동" 방향이라 락온 중 제자리 구르기를 설명하지 못하기 때문이다
+        private bool TryGetLockOnBackStep(out Vector2 direction)
+        {
+            direction = Vector2.zero;
+
+            if ((_lockOn == null) || (!_lockOn.IsLockedOn) || (_presentation == null))
+            {
+                return false;
+            }
+
+            Vector2 facing = _presentation.FacingDirection;
+            if (facing.sqrMagnitude <= (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
+            {
+                return false;
+            }
+
+            direction = -facing.normalized;
+            return true;
         }
 
         private Vector2 ResolveServerDirection(Vector2 requestedDirection)

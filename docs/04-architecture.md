@@ -46,7 +46,7 @@
 
 ```
 Assets/
-├ 00.Scenes/        씬 (Main + Dev_* 4개)                     → 3장
+├ 00.Scenes/        씬 (런타임 7개 + Dev_*)                    → 3장
 ├ 01.Scripts/       모든 C# 스크립트                           → 4장
 ├ 02.Prefabs/       프리팹 (파트별 하위 폴더)                  → 7장
 ├ 03.Image/         텍스처, 스프라이트, UI 이미지
@@ -103,8 +103,25 @@ Assets/
 | `Dev_WeatherMakerIsolation.unity` | **현재** | WeatherMaker 격리 확인용(임시). 빌드 설정 미포함 |
 | `SampleScene.unity` | **현재** | Unity 기본 생성물. 사용하지 않는다 |
 | **`Dev_System/` (폴더)** | **현재** | 게임플레이 시스템 작업 씬 **셋**. 소유자 @kjw1237 — `Dev_Barrier` · `Dev_Lobby` · `Dev_Title` |
-| `Boss_Arena.unity` | **미생성** | 보스맵. 팀장 + 보스 담당자 공동 소유 |
 | `Dev_Art.unity` | **미생성** | 테크니컬 아트 작업 씬. 소유자 @AidenKim923 |
+
+**런타임 씬은 일곱 개다 (2026-09-06 신설).** `Assets/00.Scenes/Release/`에 **빈 껍데기로 만들어 빌드 목록에 등록했다.** 내용물은 아직 비어 있고, 전환 골격을 먼저 검증한 뒤 채운다. `Main.unity`와 `Dev_System/`의 기존 씬을 어디에 흡수할지는 내용물을 채울 때 정한다.
+
+| 씬 (`00.Scenes/Release/`) | 상태 | 네트워크 | 역할 · 소유 |
+|---|---|---|---|
+| `Boot.unity` 프리워밍 | **현재(세션 매니저 배치)** | 오프라인 | `@Network` · `@Managers` · `@Diagnostics` 프리팹 인스턴스. 부트 검증기 Main 프로필 통과. 셰이더·프리팹 워밍은 미착수 |
+| `Title.unity` 게임시작 | **현재(빈 껍데기)** | 오프라인. Mirror `offlineScene` | 타이틀 UI, 호스트·참가 진입. 현재 `Dev_Title`이 원형 |
+| `Lobby.unity` 로비 | **현재(빈 껍데기)** | 온라인. Mirror `onlineScene` | `LobbyController` · `LobbyRoster`. 현재 `Dev_Lobby`가 원형 |
+| `Field.unity` 파밍 | **현재(빈 껍데기)** | 온라인 | `SpawnManager` · `BarrierController` · 클러스터 · 객주. **`Main.unity`가 이 역할을 이어받는다** |
+| `BossEntrance.unity` 보스입장 | **현재(빈 껍데기)** | 온라인 | 전실. 전원 로드 확인과 트라이 편성 UI. 판정 없음 |
+| `Boss_Arena.unity` 보스 | **현재(그레이박스)** | 온라인 | 아레나 두 벌 · 전실 · 날씨 · `BossSpawner`(미배치). 팀장 + 보스 담당자 공동 소유 |
+| `Result.unity` 게임종료 | **현재(빈 껍데기)** | 온라인 | 정산 UI. 런 결과 스냅샷만 읽는다 |
+
+**빌드 목록의 0번이 `Boot`으로 바뀌었다.** 이전에는 `Dev_Combat`이 0번이라 빌드한 실행 파일이 개발 씬에서 시작했다. 기존 Dev 씬 넷은 목록 뒤쪽에 그대로 남아 있어 이름으로 여는 경로가 끊기지 않는다.
+
+`.github/CODEOWNERS`에 `/Assets/00.Scenes/Release/` 폴더 규칙을 함께 넣었다. 존재하지 않는 경로를 GitHub이 조용히 무시하는 성질 때문에, 폴더로 잡지 않으면 새 씬에 리뷰 담당자가 비게 된다.
+
+**전실은 별도 씬이다.** 보스 씬 안의 루트로 합치면 큰 씬을 한 번만 읽고 전실이 곧 대기실이 되어 전환이 하나 줄지만, **그 최적화는 보류한다**(2026-09-06 팀장 판단). 합치더라도 아래 전환 계약은 그대로다.
 
 > 🔧 **2026-09-05 정정 — `Dev_System.unity`는 "미생성"이 아니었다.**
 > @kjw1237이 씬 하나가 아니라 **`Dev_System/` 폴더에 씬 셋**(`Dev_Barrier` · `Dev_Lobby` · `Dev_Title`)을 만들었고,
@@ -119,19 +136,44 @@ Assets/
 >
 > 다만 **씬을 새로 만들면 씬 목록이 바뀌므로 [CLAUDE.md](../CLAUDE.md)상 구조 변경에 해당한다 — 만든 뒤 팀에 알린다.** 다른 사람의 씬은 열어도 되지만 저장하지 않는다.
 
-#### 씬 전환은 런 중 한 번뿐이다 (2026-09-03 개정)
+#### 씬 전환은 런당 다섯 번이다 (2026-09-06 개정)
 
-초판은 "씬 전환 없음 — 런 전체가 `Main.unity` 하나에서 돈다"였다. **보스맵을 별도 씬으로 분리하면서 전환이 한 번 생겼다.**
+초판은 "씬 전환 없음 — 런 전체가 `Main.unity` 하나에서 돈다"였고, 2026-09-03에 보스맵을 분리하며 한 번이 되었다. **2026-09-06에 흐름 전체를 씬으로 나누면서 다섯 번이 됐다.**
+
+```
+로비 -> 파밍 -> 전실 -> 보스 -> 결과 -> 로비
+```
 
 | 경계 | 방식 |
 |---|---|
-| 로비 · 정산 화면 | 씬이 아니라 **UI 패널 전환** (초판 그대로) |
-| 개활 맵 → 보스맵 | **씬 전환.** 3차 축소 구간의 게이트 진입 시 |
+| 프리워밍 → 게임시작 → 로비 | 접속 전. Mirror의 `offlineScene`/`onlineScene`이 처리한다 |
+| 로비 → 파밍 | **씬 전환.** 3인 준비 완료로 런이 시작될 때 |
+| 파밍 → 전실 | **씬 전환.** 게이트 카운트다운 종료 또는 필드 30:00 |
+| 전실 → 보스 | **씬 전환.** 전원 도착 확인 뒤 |
 | 보스 1페이즈 → 2페이즈 | **씬 전환이 아니다.** 같은 씬 안에서 아레나 루트를 토글한다 |
+| 보스 → 결과 | **씬 전환.** 보스 사망 · 보스 시계 14:00 · 전멸 |
+| 결과 → 로비 | **씬 전환.** 참가자 상태를 복구할 필요가 없어 가장 싸다 |
 
-**분리한 이유** — 보스맵에는 잡귀도 결계도 Gaia 지형도 없어 화면에 캐릭터 넷뿐이다. 고폴리 보스 모델이 성능 문제가 되지 않고, 조명을 개활 맵과 독립적으로 잡을 수 있다.
+**분리한 이유** — 보스맵에는 잡귀도 결계도 Gaia 지형도 없어 화면에 캐릭터 넷뿐이다. 고폴리 보스 모델이 성능 문제가 되지 않고, 조명을 개활 맵과 독립으로 잡을 수 있다. 파밍 씬과 정산 화면을 나눈 것은 각 씬이 들고 있어야 할 것이 서로 겹치지 않기 때문이다.
 
-**치르는 비용 — 런 상태의 수명이 씬 수명에서 세션 수명으로 바뀐다.** `RunManager` · `LobbyController` · `LobbyRoster` · `SpawnManager` · `AuthorityTickScheduler`가 전부 씬 오브젝트인 `NetworkBehaviour`라 **씬을 바꾸면 통째로 파괴된다.** 다섯의 영속화와 플레이어 상태 이관 계약이 필요하다. 상세는 [직업 정체성과 보스 설계 8장](class-identity-and-boss-2026-09-03.md).
+**치르는 비용 — 런 상태의 수명이 씬 수명에서 세션 수명으로 바뀐다.** 아래를 씬 수명에서 꺼내야 한다.
+
+| 수명 | 대상 | 이유 |
+|---|---|---|
+| **세션 (영속)** | `RunManager` · `LobbyController` · `LobbyRoster` · `AuthorityTickScheduler` · 참가자 상태 보관소 · 씬 전환 소유자 | 런 상태와 명부는 씬보다 오래 산다. **프리워밍 씬에서 만든다** — 로비 씬에 두면 로비로 돌아올 때 두 번째 인스턴스가 생긴다 |
+| **씬** | `SpawnManager` · `BarrierController` · 클러스터 | 필드 마커와 클러스터를 캐싱한다. 따라가면 보스 씬에서 유령 참조가 된다 |
+| **씬** | `BossSpawner` · 보스 상태 머신 | 보스 씬에만 존재한다 |
+| **씬 (재구독)** | `GameEventBus` | `SceneSingleton`이라 전환에 구독이 전부 사라진다. **영속화하지 않고** 각 매니저가 `OnStartServer`에서 다시 구독한다. 영속화하면 파괴된 오브젝트의 핸들러가 남는다 |
+
+**전환 순서를 한 객체가 소유한다.** 다섯 곳에서 각각 구현하면 다섯 곳에서 각각 다르게 틀린다.
+
+```
+전환 요청 -> 입력·판정 차단, 이탈·전멸 처리 보류 -> 참가자 상태 Capture
+         -> ServerChangeScene -> 전원 로드 확인 -> 재스폰 후 Restore
+         -> 차단 해제, 보류했던 이탈·전멸을 한 번 재평가
+```
+
+**전멸 오탐이 이 구조의 가장 위험한 지점이다.** `PlayerStatus.OnStopServer`가 전멸을 검사하는데, 씬 전환마다 세 명이 차례로 despawn된다. 전환 중임을 검사하지 않으면 **전환 다섯 번이 전부 허위 전멸 후보**다. 상세는 [직업 정체성과 보스 설계 8장](class-identity-and-boss-2026-09-03.md).
 
 **보스맵 씬 편집 규칙 — 보스를 씬에 배치하지 않는다.** `BossSpawner`가 마커(빈 `Transform`)만 두고 런타임 스폰한다. 그래야 씬 편집이 개설 시 한 번으로 끝나고 이후 보스 작업이 전부 프리팹·SO 안에서 일어나, 공동 소유여도 충돌하지 않는다. 잡귀가 이미 이 구조다.
 
@@ -139,22 +181,31 @@ Assets/
 
 ```
 Boss_Arena.unity
-├ Antechamber    전실. 게이트 통과 직후 도착 지점  (2026-09-04 신설)
-├ Arena_Phase1   산속 사당 · 등불 · 담장      (시작 시 활성)
-├ Arena_Phase2   저승 물길 · 여우불 · 얼굴들   (시작 시 비활성)
-└ Shared         바닥 콜라이더 · NavMesh · 스폰 마커 · 게이트
+├ Shared         바닥(R=22) · NavMesh · 스폰 마커 · 게이트 · Staging(BossArenaPhaseView)
+├ Antechamber    전실 참배로 6x15 · 등불 2 · 빈 갓걸이 · 도착 마커 3
+├ Arena_Phase1   산속 사당 · 등불 12 · 담장 · Volume_P1      (시작 시 활성)
+├ Arena_Phase2   저승 물길 · 여우불 14 · 무너진 돌 · Volume_P2 (시작 시 비활성)
+├ Weather        WeatherMaker 구동체. 프리팹이라 부모를 가질 수 없어 루트에 둔다
+└ ArenaCam       그레이박스 확인용 임시 카메라. 플레이어 카메라가 붙으면 정리 대상
 ```
 
-**전실(`Antechamber`)은 씬 신설 없이 두 진입 경로를 하나로 받는다.**
+**2026-09-06 현재 그레이박스다.** 지오메트리는 프리미티브이고 사당 · 돌무더기 · 갓걸이 모델은 미조달이다.
+치수 · 조명 · 안개 · 포스트 프로세싱은 [보스 설계 14.1](unity/BOSS_DESIGN.md)과
+[보스 연출 설계 4장](unity/BOSS_STAGING_DESIGN.md) 기준으로 들어가 있고 Play 모드에서 관찰했다.
+`BossSpawner`는 아직 배치하지 않았다 — 보스 담당자 몫이다.
+
+**페이즈 전환은 루트 토글만으로 끝나지 않는다.** 안개 프로파일 · 하늘 프로파일 · 바닥 머티리얼 ·
+WeatherMaker 달 원반이 공용 루트에 있어 함께 갈아 끼워야 한다. `Shared/Staging`의
+`BossArenaPhaseView.ShowPhase()`가 그 다섯을 한 번에 처리한다(4.5장). 아직 부르는 곳이 없다.
+
+**전실은 두 진입 경로를 하나로 받는다.**
 
 | | 정식 런 | [보스 트라이 모드](unity/BOSS_TRIAL_MODE.md) |
 |---|---|---|
 | 도착 | 게이트 30초 카운트다운 후 전원 강제 이동 | 로비에서 직행 |
 | 전실에서 | **3인 도착 확인 → 자동 진행** | 편성 UI → 전원 준비 시 진행 |
 
-**정식 런에도 필요하다** — 현재 설계에는 씬 전환 직후 세 사람이 모두 로드되었는지 확인하는 구간이 없어, 한 명이 느리면 혼자 보스 앞에 떨어진다.
-
-⚠️ **`Boss_Arena.unity`의 진입 경로가 둘이 되므로 매니저 다섯의 영속화 계약이 두 경로 모두에서 성립해야 한다.** 씬 목록 자체는 바뀌지 않는다.
+**정식 런에도 필요하다** — 씬 전환 직후 세 사람이 모두 로드되었는지 확인하는 구간이 없으면 한 명이 느릴 때 혼자 보스 앞에 떨어진다.
 
 ### 3.2 Main.unity 하이어라키 설계
 
@@ -228,7 +279,8 @@ Main.unity
 │  ├ SoundCatalogSO.cs     SO  [현재] SoundKey → 클립 · 믹서 그룹 · 볼륨 · 중복 제거 간격.
 │  │                            믹서 그룹 5개 참조를 여기가 들고 있다 (로컬 전용) → 사운드 설계 4.2
 │  └ CameraConfigSO.cs     SO  [현재] 카메라 거리 · 높이 · 오버숄더 · 감도 기본값 · pitch 한계 ·
-│                               충돌 레이어와 반경 · FOV (로컬 전용) → 카메라와 락온 2장 · 7장
+│                               충돌 레이어와 반경 · FOV · 셰이크 6종 · 락온 거리 3종
+│                               (로컬 전용) → 카메라와 락온 2장 · 3.1 · 7장
 ├ Constants/               namespace Geumeum.Common — 코드 계약값 (partial class)
 │  ├ Constants.cs          공통: 레이어, 태그, 씬 이름
 │  ├ Constants.player.cs   입력 키/축, 판정 epsilon
@@ -242,12 +294,24 @@ Main.unity
 │  │                             몸통이 같은 NetworkIdentity일 때의 중복 제거를 여기서만 한다
 │  ├ CombatFeedbackLocator.cs static ICombatFeedback 등록·조회. 기본값은 아무것도 하지
 │  │                             않는 NullCombatFeedback → 8.3
-│  └ BarrierStateLocator.cs  static [현재] IBarrierState 등록·조회. 기본값은 결계가 꺼진 것으로
-│                                답하는 NullBarrierState라, 결계 구현 전에도 전투·AI·아트가 돈다
+│  ├ BarrierStateLocator.cs  static [현재] IBarrierState 등록·조회. 기본값은 결계가 꺼진 것으로
+│  │                             답하는 NullBarrierState라, 결계 구현 전에도 전투·AI·아트가 돈다
+│  └ RunTimeLocator.cs       static [현재] IRunTimeSource 등록·조회. RunManager가 OnEnable에서 등록하고
+│                                기본값은 0초에 멈춘 NullRunTimeSource다
 ├ Events/                  namespace Geumeum.Common — 파트 간 이벤트 계약 → 8장
 │  ├ IGameEventBus.cs      C#  타입이 지정된 이벤트 발행 · 구독 계약
-│  └ GameEventBus.cs       MB  @Managers가 소유하는 서버/로컬 이벤트 허브.
+│  ├ GameEventBus.cs       MB  @Managers가 소유하는 서버/로컬 이벤트 허브.
 │                              SceneSingleton<GameEventBus>를 상속한다
+│  ├ RunResumedEvent.cs    struct [현재] 얼었던 런이 다시 도는 순간의 정지 시간(초).
+│  │                           절대 시각으로 잡아 둔 타이머는 각자 이만큼 민다
+│  └ RunPhaseChangedEvent.cs struct [현재] 구간 전환 통지
+├ Interfaces/              namespace Geumeum.Common — 파트 경계 계약 → 8.2
+│  ├ IRunTimeSource.cs     C#  [현재] 두 시계와 정지 사유를 읽는 창구. RunManager가 구현한다
+│  ├ IRunStateCarrier.cs   C#  [현재] 참가자 값을 담고 되붓는 계약. 이탈·재접속·씬 전환이 같은 것을 쓴다
+│  ├ IRunSceneBinding.cs   C#  [현재] 씬이 바뀔 때 참조와 구독을 다시 거는 계약
+│  ├ ICombatLoadoutProvider.cs C# [현재] 장비·특성 → 유효 전투 수치. Systems가 구현하고 Combat이 읽는다
+│  ├ IRunResultProvider.cs C#  [현재] 점수 계산. Systems가 순수 함수로 구현한다
+│  └ (그 밖에 IDamageable · IBarrierState · IRecoveryTarget · ICombatFeedback 등)
 ├ Types/                   namespace Geumeum.Common — 파트 공용 열거형·값 타입
 │  ├ DamageInfo.cs         struct 서버가 확정한 피해량 · 공격자 netId · HitStrength
 │  ├ HitStrength.cs        enum 타격감 강도 (Light · Heavy · Critical)
@@ -259,16 +323,38 @@ Main.unity
 │  ├ EnemyKind.cs / EnemyVisualState.cs / ItemGrade.cs / ShopItemKind.cs
 │  ├ RunPhase.cs / RunOutcome.cs / ParryWindowKey.cs
 │  ├ SoundKey.cs / SoundChannel.cs / BgmTrack.cs [현재] 사운드 키 → 사운드 설계 2.2 · 3.1
-│  └ PlayerPlatformId.cs   struct 재접속에도 유지되는 신원. Steam은 SteamID64, 개발은 실행 인자값
+│  ├ PlayerPlatformId.cs   struct 재접속에도 유지되는 신원. Steam은 SteamID64, 개발은 실행 인자값
+│  │
+│  │  ── 아래는 2026-09-06 TL-01에서 낸 런 수명 계약 ──
+│  ├ RunId.cs              struct 런마다 새로 발급. 이전 판의 늦은 요청을 가른다
+│  ├ ParticipantId.cs      struct 참가자의 영속 키. connectionId·netId를 키로 쓰지 않는다
+│  ├ SceneRevision.cs      struct 씬 전환 세대. 이전 전환의 늦은 로드 통지를 막는다
+│  ├ BindingGeneration.cs  struct 플레이어 오브젝트 세대. 옛 몸의 요청을 막는다
+│  ├ RunSceneId.cs         enum 런 흐름의 씬 일곱 개
+│  ├ RunMode.cs            enum Standard · BossTrial · Dev. 리더보드 등록 여부가 갈린다
+│  ├ RunPauseReason.cs     enum [Flags] 정지 사유. 하나라도 남으면 재개하지 않는다
+│  ├ RunClockState.cs      struct 시계 하나의 상태. 필드와 보스가 각각 갖는다
+│  ├ TargetRef.cs          struct 런·씬 세대까지 실은 대상 참조. 본체와 부위를 같은 방식으로 지목
+│  ├ PlayerLifeSnapshotState.cs enum 보관용 생명 상태. 변환은 Combat의 어댑터가 한다
+│  ├ WeaponCombatSnapshot.cs struct 지금 무기의 확정 값 → 결계·인벤토리·상점 설계 4.3
+│  ├ CombatStatsSnapshot.cs struct 레벨·장비·특성을 반영한 유효 전투 수치
+│  ├ RunParticipantSnapshot.cs class 씬 전환·재접속 사이에 참가자 값을 담는 그릇 (서버 전용)
+│  ├ RunResultSnapshot.cs  struct 확정된 런 결과. 정산과 리더보드는 이것만 읽는다
+│  └ SceneTransitionSnapshot.cs struct 전환 한 번의 내용. 참가자 복구 여부를 여기서 정한다
 ├ Pooling/                 namespace Geumeum.Common — 로컬 표현 오브젝트 풀
 │  ├ LocalObjectPoolService.cs MB [현재] 프리팹별 ObjectPool<GameObject>.
 │  │                              PersistentSingleton을 상속한다. 호출부는 아직 없다
 │  └ LocalPoolRoot.cs      MB  [현재] 풀에 넣어도 되는 프리팹임을 선언하는 표식.
 │                              네트워크 개체를 걸러내는 화이트리스트다
-├ CameraFrame.cs           static [현재] 카메라 yaw와 입력 허용 플래그.
-│                                 카메라(05.Art)가 밀고 전투(02.Combat)가 읽는다.
-│                                 오브젝트가 아니라 값이라 로케이터가 필요 없고,
+├ CameraFrame.cs           static [현재] 카메라 yaw · 입력 허용 플래그 · 락온 상태 셋.
+│                                 yaw는 카메라(05.Art)가 밀고 전투(02.Combat)가 읽으며,
+│                                 락온은 반대로 전투가 밀고 카메라가 읽는다 — 방향은 반대여도
+│                                 "오브젝트가 아니라 값"이라는 원칙은 같다.
 │                                 카메라가 없으면 yaw 0이라 지금과 같이 동작한다
+├ AimAssistPoint.cs        MB  [현재] IAimAssistTarget의 기본 구현. 로컬 오프셋 하나로
+│                                 조준점을 만든다. 부위마다 하나씩 붙인다 —
+│                                 안 붙이면 락온이 콜라이더 bounds.center로 폴백한다
+│                                 → 카메라와 락온 3.0
 ├ Sound/                   namespace Geumeum.Common — 사운드 재생 (전부 로컬 전용)
 │  ├ SfxPlayer.cs          static [현재] SoundKey + isLocalPlayer만 받아 재생한다.
 │  │                              AudioSource 16개 라운드로빈 · 같은 프레임 중복 제거 ·
@@ -327,14 +413,21 @@ Main.unity
 ├ LobbyRoleAllocator.cs    C#  무기 셔플과 외형 충돌 해결만 담는 순수 계산기. Mirror와
 │                              UnityEngine에 의존하지 않아 접속 없이 결과를 검증할 수 있다.
 │                              이미 가진 무기·외형은 보존해 재접속 후에도 직업이 바뀌지 않는다
+├ RunSceneDirector.cs      NB  [현재] 씬 전환 소유자. Freezing -> Capturing -> Loading ->
+│                              WaitingForParticipant -> Binding -> Restoring -> Committing.
+│                              전환 중에는 SceneTransition 정지 사유를 걸어 판정을 멈춘다.
+│                              참가자 식별은 연결 번호가 아니라 인증기의 PlatformId를 쓴다
+├ SessionPersistence.cs    MB  [현재] 붙은 오브젝트를 DontDestroyOnLoad로 옮긴다.
+│                              이것이 없으면 씬이 바뀔 때마다 런 매니저가 새로 생겨 런 상태를 잃는다
 ├ RunManager.cs            NB  런 상태 머신 + 경과 시간 → 5장. 프로젝트의 심장
 ├ RunPhase.cs              C#  enum { Lobby, Farming, Shrink1, Shrink2, Shrink3, Boss, Result }
 │                              직렬화되므로 명시값 고정, 재배열 금지
 ├ RunPhaseChangedEvent.cs  struct 서버 프로세스 내부 phase 전환 payload
 ├ RunPhaseTimeline.cs      C#  phase 경계 계산 · 순서/연속성/런 길이 불변식 검사
 ├ RunTimelineBuilder.cs    static BarrierPhaseSO를 순수 타임라인으로 변환
-├ ReviveController.cs      NB  [계획] 사망 감지 → 관전 30초 → 제자리 부활,
-│                              노잣돈 차감 요청과 전멸 감지
+├ ReviveController.cs      NB  [현재] 실물은 02.Combat/Player/에 있다. 관전 30초와 협동 부활(3m·3초),
+│                              부활 위치 보정. 노잣돈 차감은 재화 시스템 대기(TODO).
+│                              전멸 감지는 여기가 아니라 서버 플레이어 목록을 가진 PlayerStatus가 한다
 ├ Dev/                     개발 전용 도구 (namespace Geumeum.Network 유지)
 │  ├ FrameRecorder.cs      MB  [현재] 이름과 달리 영상 녹화가 아니라 **성능 측정기**다.
 │  │                           F9/F10 · 전체 #if 가드. Main · Dev_Combat · Dev_Barrier에 배치.
@@ -366,6 +459,15 @@ Main.unity
 │  ├ PlayerPrediction.cs   MB  [현재] 매 프레임 로컬 예측 · 미확인 입력 버퍼 · 3단계 재조정
 │  │                           (데드존 · 지수 수렴 · 즉시 스냅)
 │  ├ PlayerActionGate.cs   C#  [현재] phase · 생명 상태 · 무기 · 진행 중 행동 · 쿨다운 · 자원 공통 검증
+│  ├ PlayerActionPipeline.cs C# [현재] 단발 행동의 유일한 서버 경로. 중복 검사 → 게이트 →
+│  │                           자원 차감 → 커밋을 이 순서로만 밟게 하고 거부 사유를 돌려준다.
+│  │                           Mirror 비의존이라 테스트에서 그대로 부른다. 패링은 지나지 않는다
+│  ├ IPlayerAction.cs      C#  [현재] 행동 하나가 파이프라인에 제공하는 세 조각.
+│  │                           구현체는 NetworkBehaviour 자신이다(요청마다 객체를 만들지 않는다)
+│  ├ ActionRejection.cs    enum [현재] 거부 사유 7종. 조용한 return과 "입력이 씹혔다"를 가른다
+│  ├ LocalCombatState.cs   static [현재] UI가 전투를 읽는 유일한 창구.
+│  │                           이산 전이는 이벤트, 연속값은 프로퍼티. 자기 캐릭터 확보 ·
+│  │                           늦은 구독 재생 · 재접속 시 구독 이관을 여기서 한 번에 푼다
 │  ├ PlayerPresentation.cs NB  [현재] 방향 · 속도를 명시적으로 보관하는 표현 상태.
 │  │                           서버는 수락한 이동, 소유 클라는 입력, 원격은 SyncVar
 │  ├ PlayerAnimationController.cs MB [현재] PlayerPresentation을 읽어 LateUpdate에서
@@ -390,8 +492,10 @@ Main.unity
 │  │                           RpcAttackStarted로 공격 시작을 모든 화면에 전파한다.
 │  │                           [계획] 연사 · 관통 · 치유 · 버프 변형은 서버가 특성 상태에서 산출
 │  ├ InteractionController.cs NB [계획] 상호작용 Command와 서버 검증
-│  └ LockOnController.cs  NB  [계획] 락온 대상 선택(로컬)과 CmdSetLockOn 서버 검증.
-│                             대상 방향으로 FacingDirection을 덮어쓴다 → 아래 정정 참고
+│  └ LockOnController.cs  NB  [현재] 락온 대상 선택(로컬)과 CmdSetLockOn 서버 검증.
+│                             대상은 (netId + 부위 번호) SyncVar 둘로 확정하고,
+│                             PlayerPresentation에 대상 Transform을 넘겨 FacingDirection을
+│                             덮어쓴다. 카메라에는 CameraFrame으로 값만 민다 → 아래 정정 참고
 ├ Weapon/                  [계획] 직업별 실행 계약. Mirror 비의존
 │  ├ IWeaponAbility.cs / IAbilityRuntime.cs
 │  ├ AbilityRequest.cs / AbilityResult.cs
@@ -425,9 +529,14 @@ Main.unity
 > 🔧 **2026-09-05 정정** — 이 트리에 `02.Combat/Camera/`가 있었고 그 아래 `CameraRig.cs [계획]`과
 > 폐기 표시된 `LockOnSystem.cs`가 있었다. **둘 다 틀렸다.** 카메라 리그는 `05.Art/Camera/`가 소유하고
 > (`02.Combat`이 `05.Art`를 참조하지 않도록 `CameraFrame`의 yaw 값만 읽는다), 락온은 2026-09-05에
-> 부활해 `Player/`의 `LockOnController.cs [계획]`가 된다 — 대상 선택은 로컬이지만 `CmdSetLockOn`은
+> 부활해 `Player/`의 `LockOnController.cs`가 된다 — 대상 선택은 로컬이지만 `CmdSetLockOn`은
 > 서버가 검증하고, 대상 방향이 `PlayerPresentation.FacingDirection`을 덮어써 남의 화면에서도 옳게 선다
 > → [카메라와 락온](unity/CAMERA_AND_LOCKON.md) 1장 · 3장 · 11장
+>
+> **2026-09-05 구현 완료.** `[계획]` 표시를 지웠다. 함께 들어온 것은 `00.Common/AimAssistPoint.cs`
+> (계약의 기본 구현)와 `CameraFrame`의 락온 값 셋이다. **`CameraFrame`은 이제 양방향이다** —
+> yaw는 `05.Art → 00.Common → 02.Combat`, 락온은 `02.Combat → 00.Common → 05.Art`로 흐른다.
+> 어느 쪽도 상대 어셈블리를 참조하지 않으므로 8.1 의존 방향은 그대로다
 
 2026-09-05 기준으로 `Player/` 17개, `Parry/` 6개, `Arrow/` 1개, `Dev/` 2개가 구현되어 있다.
 아직 없는 것은 `InteractionController`, `Weapon/`, `Camera/`, 그리고 `Arrow/`의 나머지 둘이다.
@@ -536,6 +645,9 @@ Main.unity
 ├ CombatFeedbackImpl.cs    MB  ICombatFeedback 구현체: 히트 이펙트, 셰이크, 패링 슬로우모션.
 │                              OnEnable/OnDisable에서 CombatFeedbackLocator에 등록·해제 → 8.3
 ├ ScreenEffects.cs         MB  저체력 · 결계 밖 · 쇠약 화면 효과
+├ Boss/                    [현재] 보스 아레나 연출
+│  └ BossArenaPhaseView.cs MB  페이즈 루트 · 안개 · 하늘 · 바닥 머티리얼 · 달 원반을 한 번에 교체.
+│                              판정에 관여하지 않는다. 서버 페이즈 신호에 연결하는 것은 미착수
 ├ Camera/                  [현재] → 카메라와 락온 사양
 │  ├ CameraRig.cs          MB  추적 · 충돌 · 셰이크 · 줌. LateUpdate.
 │  │                           Target이 바뀔 수 있어야 한다 — 관전 카메라가 같은 물건이다
@@ -570,10 +682,16 @@ UI는 게임 상태를 **읽기만** 한다. UI에서 상태를 직접 바꾸는
 
 모든 파트가 이것 하나에 의존하고, 이것은 어느 파트에도 의존하지 않는다.
 
+> **2026-09-06 — 시계가 둘이 되고, 참가자 상태 보관소가 옆에 선다.**
+> 필드와 보스가 독립 시계이므로 경과 시간 원본이 둘이다. 소유자는 여전히 `RunManager` 하나이고 일시정지는 두 시계에 동시에 걸린다. 점수의 기준 시간은 둘의 합이다.
+> 그리고 씬 전환이 다섯 번이 되면서 **HP · 자원 · 게이지 · 인벤토리를 씬 밖에 보관하는 자리**가 필요하다. `RunManager` 옆에 참가자 상태 보관소를 두고 이탈 · 재접속 · 씬 전환이 **같은 담고 붓는 계약**을 쓴다. 플레이어 쪽 창구는 지금처럼 `PlayerRunAgent` 하나다.
+
 ```
 [호스트 권위]
 RunManager : NetworkBehaviour
-├ SyncVar  float ElapsedSeconds     서버가 관리하는 유일한 경과 시간 원본
+├ SyncVar  RunClock FieldClock      필드 경과 시간. 0 ~ 30:00
+├ SyncVar  RunClock BossClock      보스 경과 시간. 마당 진입에서 시작, 14:00 하드 종료
+│                                   두 시계가 독립이고 소유자는 여기 하나다 (2026-09-06)
 ├ SyncVar  RunPhase Phase           Lobby → Farming → Shrink1 → Shrink2 → Shrink3 → Boss → Result
 │                                   Result → Lobby 만 역방향 (런 재시작, 2026-09-02)
 ├ SyncVar  bool IsPaused            이탈자를 기다리며 얼어 있다. phase와 직교한다
@@ -595,8 +713,8 @@ RunManager : NetworkBehaviour
 | `Farming` | 런 시작 | 실시간 10:00 | 개활 스폰, FieldLevel 0 |
 | `Shrink1` | 실시간 10:00 | 실시간 **19:00** | 결계 축소·초당 1 피해, FieldLevel 1 |
 | `Shrink2` | 실시간 **19:00** | 실시간 **25:00** | 결계 축소·객주 개방, FieldLevel 2 |
-| `Shrink3` | 실시간 **25:00** | 실시간 **26:00** | 보스맵 게이트 개방, 신규 잡귀 스폰 중단, FieldLevel 3 |
-| `Boss` | 실시간 **26:00** | 보스 사망 또는 실시간 40:00 | **보스맵 씬으로 전환**, 결계 피해 종료 |
+| `Shrink3` | 실시간 **29:30** | 실시간 **30:00** | 강제 이동 카운트다운 창, 신규 잡귀 스폰 중단, FieldLevel 3 |
+| `Boss` | 전실을 지나 마당에 진입한 시점 | 보스 사망 또는 **보스 시계 14:00** | **보스 시계가 여기서 시작한다.** 결계 피해 종료 |
 | `Result` | 승리·실패·전멸·이탈 대기 종료 | 정산 완료 후 `Lobby` 복귀 | 점수 계산, 성공 런만 리더보드 등록 |
 
 > **이 표의 시각은 [시스템 기획 2.1](01-system-design.md)이 규범이다.** 여기에는 복제본을 두지 않고, 값이 바뀌면 그쪽을 고친 뒤 이 표를 맞춘다.
@@ -693,8 +811,20 @@ Assets/09.Data/
 ├ Score/ScoreRuleSO.asset
 ├ DayCycle/DayCycleSO.asset
 ├ Sound/SoundCatalogSO.asset
-└ Camera/CameraConfigSO.asset ← 위 셋이 네트워크와 무관한 순수 로컬 리소스다
+├ Camera/CameraConfigSO.asset ← 위 셋이 네트워크와 무관한 순수 로컬 리소스다
+└ Weather/                   보스 아레나 연출 프로파일. GameDB가 아니라 렌더링 리소스다
+   ├ WM_Profile_Shrine.asset       1페이즈 안개 (WeatherMaker)
+   ├ WM_Profile_Underworld.asset   2페이즈 안개
+   ├ WM_Sky_BossNight.asset        1페이즈 하늘 (별 있음)
+   ├ WM_Sky_BossUnderworld.asset   2페이즈 하늘 (별 없음)
+   ├ WM_DayNight_BossNight.asset   자정 고정, 시간 속도 0
+   ├ VP_BossArena_P1.asset         1페이즈 포스트 프로세싱 Volume
+   └ VP_BossArena_P2.asset         2페이즈 포스트 프로세싱 Volume
 ```
+
+`Weather/`는 `GameDB` 대상이 아니다. 밸런스 수치가 아니라 렌더링 리소스이고 `GameDatabaseSO`가 참조하지 않는다.
+**WeatherMaker 프로파일은 `99.ThirdParty`의 스크립트와 텍스처를 GUID로 참조한다** — 구글 드라이브를
+동기화하지 않은 사람은 안개와 별이 빠진 채로 열린다.
 
 `GameDBBootstrap`만 `Resources/GameDB.asset`을 로드해 `GameDB.Initialize()`를 호출한다.
 호출 시점은 `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]`로 **씬 로드보다 앞이다.** `@Managers`에는
@@ -712,7 +842,12 @@ Assets/09.Data/
 ```
 Assets/02.Prefabs/
 ├ Network/
-│  └ Player.prefab            NetworkManager 등록 플레이어 프리팹 → 구성 아래 참조
+│  ├ Player.prefab            NetworkManager 등록 플레이어 프리팹 → 구성 아래 참조
+│  ├ SessionNetwork.prefab    @Network. NetworkManager · 트랜스포트 · 인증기 · Steam
+│  ├ SessionManagers.prefab   @Managers. NetworkIdentity 하나에 GameDBBootstrap · GameEventBus ·
+│  │                          LobbyController · RunManager · AuthorityTickScheduler · LobbyRoster ·
+│  │                          LobbyRoleCoordinator · RunSceneDirector · SessionPersistence
+│  └ SessionDiagnostics.prefab @Diagnostics. FrameRecorder · SessionPersistence
 ├ Enemy/
 │  ├ Heokkaebi / Changgwi / Aekgwi.prefab    잡귀 3종 (서버 스폰)
 │  ├ CurseProjectile.prefab   액귀 투사체 (서버 스폰)

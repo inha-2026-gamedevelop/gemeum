@@ -27,7 +27,7 @@ namespace Geumeum.Combat
 
         /// <summary>
         /// 무기 하나의 모델과 손 뼈 기준 부착 보정.
-        /// <b>키가 (캐릭터, 무기) 쌍인 이유</b> — 손 뼈의 방향이 캐릭터마다 다르다.
+        /// 키가 (캐릭터, 무기) 쌍인 이유 - 손 뼈의 방향이 캐릭터마다 다르다.
         /// 2026-09-04 실측: 해부학 기준으로 차사 대비 신궁 34.4도, 무녀 51.8도 어긋나 있다.
         /// 무기만으로 키를 잡으면 같은 무기를 다른 캐릭터가 들 때 그만큼 틀어진다
         /// </summary>
@@ -132,8 +132,8 @@ namespace Geumeum.Combat
 
         /// <summary>
         /// 무기 종류에 해당하는 부착 보정을 돌려준다.
-        /// public인 이유는 네트워크 없이 도는 미리보기 리그(<see cref="CharacterPreviewRig"/>)가
-        /// <b>같은 값</b>으로 무기를 붙여야 하기 때문이다. 미리보기에서 맞춘 값이 실제와 달라지면
+        /// public인 이유는 네트워크 없이 도는 미리보기 리그(CharacterPreviewRig)가
+        /// 같은 값으로 무기를 붙여야 하기 때문이다. 미리보기에서 맞춘 값이 실제와 달라지면
         /// 눈으로 맞춰 놓고도 게임에서는 여전히 어긋난다
         /// </summary>
         public bool TryResolveBinding(CharacterKind character, WeaponKind weapon, out WeaponAttachBinding binding)

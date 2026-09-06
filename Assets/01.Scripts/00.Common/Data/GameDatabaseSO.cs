@@ -74,21 +74,80 @@ namespace Geumeum.Data
         {
             missing.Clear();
 
-            if (_combat == null)     { missing.Add(nameof(CombatConfigSO)); }
-            if (_arrow == null)      { missing.Add(nameof(ArrowConfigSO)); }
-            if (_enemy == null)      { missing.Add(nameof(EnemySO)); }
-            if (_barrier == null)    { missing.Add(nameof(BarrierPhaseSO)); }
-            if (_spawn == null)      { missing.Add(nameof(SpawnConfigSO)); }
-            if (_boss == null)       { missing.Add(nameof(BossPatternSO)); }
-            if (_equipment == null)  { missing.Add(nameof(EquipmentSO)); }
-            if (_dropTable == null)  { missing.Add(nameof(DropTableSO)); }
-            if (_shop == null)       { missing.Add(nameof(ShopSO)); }
-            if (_levelCurve == null) { missing.Add(nameof(LevelCurveSO)); }
-            if (_talent == null)     { missing.Add(nameof(TalentTreeSO)); }
-            if (_score == null)      { missing.Add(nameof(ScoreRuleSO)); }
-            if (_dayCycle == null)   { missing.Add(nameof(DayCycleSO)); }
-            if (_sound == null)      { missing.Add(nameof(SoundCatalogSO)); }
-            if (_camera == null)     { missing.Add(nameof(CameraConfigSO)); }
+            if (_combat == null)
+            {
+                missing.Add(nameof(CombatConfigSO));
+            }
+
+            if (_arrow == null)
+            {
+                missing.Add(nameof(ArrowConfigSO));
+            }
+
+            if (_enemy == null)
+            {
+                missing.Add(nameof(EnemySO));
+            }
+
+            if (_barrier == null)
+            {
+                missing.Add(nameof(BarrierPhaseSO));
+            }
+
+            if (_spawn == null)
+            {
+                missing.Add(nameof(SpawnConfigSO));
+            }
+
+            if (_boss == null)
+            {
+                missing.Add(nameof(BossPatternSO));
+            }
+
+            if (_equipment == null)
+            {
+                missing.Add(nameof(EquipmentSO));
+            }
+
+            if (_dropTable == null)
+            {
+                missing.Add(nameof(DropTableSO));
+            }
+
+            if (_shop == null)
+            {
+                missing.Add(nameof(ShopSO));
+            }
+
+            if (_levelCurve == null)
+            {
+                missing.Add(nameof(LevelCurveSO));
+            }
+
+            if (_talent == null)
+            {
+                missing.Add(nameof(TalentTreeSO));
+            }
+
+            if (_score == null)
+            {
+                missing.Add(nameof(ScoreRuleSO));
+            }
+
+            if (_dayCycle == null)
+            {
+                missing.Add(nameof(DayCycleSO));
+            }
+
+            if (_sound == null)
+            {
+                missing.Add(nameof(SoundCatalogSO));
+            }
+
+            if (_camera == null)
+            {
+                missing.Add(nameof(CameraConfigSO));
+            }
 
             // 믹서 그룹이 비면 소리가 Master로 새어 나가 Local과 Remote 구분이 사라진다
             if (_sound != null)

@@ -27,6 +27,12 @@
 # ---------------------------------------------------------------
 # 씬 — 통합 씬은 반드시 팀장, 작업 씬은 담당자
 # ---------------------------------------------------------------
+
+# 런타임 흐름 씬 일곱 개 — 2026-09-06 신설.
+# Boot · Title · Lobby · Field · BossEntrance · Boss_Arena · Result 가 여기 있고
+# 런 전체가 이 순서로 지나간다. 폴더로 잡아야 나중에 씬이 늘어도 담당자가 비지 않는다
+/Assets/00.Scenes/Release/                       @AidenKim923
+
 /Assets/00.Scenes/Main.unity                     @AidenKim923
 /Assets/00.Scenes/Dev_Combat.unity               @AidenKim923
 /Assets/00.Scenes/Dev_AI.unity                   @oname36-creator

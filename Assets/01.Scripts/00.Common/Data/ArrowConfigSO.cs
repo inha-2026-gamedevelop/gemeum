@@ -20,18 +20,23 @@ namespace Geumeum.Data
         // 화살을 막는 레이어. 비어 있으면 벽을 통과해 뒤의 적을 맞힌다.
         // 판정 대상 마스크(_targetMask)와 분리한다 - 벽은 맞히는 대상이 아니라 멈추는 이유다.
         //
-        // ⚠️ 2026-09-05까지 0이라 장애물 판정이 통째로 꺼져 있었다. 코드는 완성돼 있었고
-        //    ArrowProjectile.TryFindWorldBlock이 "마스크가 0이면 무시"로 조기 반환하고 있었다.
-        //    Main 씬 실측 기준 지형은 Default(0), 바위 393개는 PW_Object_* 세 층에 있다
-        //    (Ground(8)은 콜라이더 0개). 플레이어는 넣지 않는다 - 코옵에서 팀원이 화살을 막으면 괴롭다
+        // 2026-09-05까지 0이라 장애물 판정이 통째로 꺼져 있었다. 코드는 완성돼 있었고
+        // ArrowProjectile.TryFindWorldBlock이 "마스크가 0이면 무시"로 조기 반환하고 있었다.
+        // Main 씬 실측 기준 지형은 Default(0), 바위 393개는 PW_Object_* 세 층에 있다
+        // (Ground(8)은 콜라이더 0개). 플레이어는 넣지 않는다 - 코옵에서 팀원이 화살을 막으면 괴롭다
         [SerializeField] private LayerMask _worldMask = (1 << 0) | (1 << 8) | (1 << 15) | (1 << 16) | (1 << 17);
 
         [Header("명중 보조")]
         [SerializeField] private float _unlockedHitRadius = 0.4f; // 발사각 보정 없이 명중을 보조하는 구형 판정 반경(m)
 
-        [Header("락온 - 2026-09-03 폐기, 미사용")]
-        // 락온을 넣지 않기로 확정했다(게임 디자인 2.4). 아래 셋은 어디서도 읽지 않는다.
-        // 정밀 사격이 같은 문제를 다르게 풀며, 자동 조준이 있으면 정밀 사격의 대가가 무의미해진다
+        [Header("락온 보정과 유도")]
+        // 2026-09-05 정정 - 이 항목은 2026-09-03에 "폐기, 미사용"으로 적혀 있었으나 같은 날 저녁
+        // 락온이 부활하면서 되살아났고, 2026-09-06에 실제로 소비하는 코드가 붙었다.
+        // 폐기 사유였던 "정밀 사격과 배타적"이 정밀 사격의 층이 바뀌면서 사라졌다
+        // -> 카메라와 락온 12장, 화살 조준 보정 5.4, 5.5
+        //
+        // 12도가 탐색 반각 35도와 다른 이유는 탐색됐다고 발사 보정까지 허용되는 것이 아니어서다.
+        // 유도는 락온이 걸려 있을 때만 붙고, 0.4초 동안 총 12도까지만 휜다
         [SerializeField] private float _aimAssistAngle           = 12f;
         [SerializeField] private float _guidanceDegreesPerSecond = 30f;
         [SerializeField] private float _guidanceDuration         = 0.4f;
@@ -51,7 +56,7 @@ namespace Geumeum.Data
 
         public float UnlockedHitRadius => _unlockedHitRadius;
 
-        // 락온 폐기(2026-09-03)로 아래 셋은 미사용이다. 화살 코드를 다음에 손댈 때 함께 정리한다
+        /// <summary> 발사 순간 조준점 쪽으로 당길 수 있는 최대 각도(도). PlayerAttack이 release 틱에 본다 </summary>
         public float AimAssistAngle           => _aimAssistAngle;
         public float GuidanceDegreesPerSecond => _guidanceDegreesPerSecond;
         public float GuidanceDuration         => _guidanceDuration;

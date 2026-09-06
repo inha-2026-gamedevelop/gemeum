@@ -81,7 +81,7 @@ namespace Geumeum.Network
         /// <summary> 로비에 들어갔다. 생성과 참가 모두 이 경로로 끝난다 </summary>
         public event Action<ulong> LobbyEntered;
 
-        /// <summary> 로비를 떠났거나 생성·참가에 실패했다. 사유 문자열이 따라온다 </summary>
+        /// <summary> 로비를 떠났거나 생성, 참가에 실패했다. 사유 문자열이 따라온다 </summary>
         public event Action<string> LobbyLeft;
 
         /// <summary> 멤버가 들어오거나 나갔다 </summary>
@@ -185,7 +185,7 @@ namespace Geumeum.Network
         ****************************************/
 
         /// <summary>
-        /// 로비를 만든다. AppID 480으로 개발하는 동안 Public은 쓰지 않는다 —
+        /// 로비를 만든다. AppID 480으로 개발하는 동안 Public은 쓰지 않는다 -
         /// 다른 개발자의 Spacewar 로비와 섞인다
         /// </summary>
         public void CreateLobby()

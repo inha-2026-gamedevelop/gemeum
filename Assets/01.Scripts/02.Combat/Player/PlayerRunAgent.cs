@@ -1,3 +1,6 @@
+// System
+using System.Collections.Generic;
+
 // Unity
 using UnityEngine;
 
@@ -26,6 +29,10 @@ namespace Geumeum.Combat
         private PlayerStatus     _status     = null;
         private PlayerController _controller = null;
 
+        // 상태를 담고 붓는 컴포넌트들. 초기화 때 한 번 모으고 순서를 고정한다 -
+        // 매번 GetComponents를 돌리면 순서가 보장되지 않고, 최대 HP보다 현재 HP가 먼저 들어가면 잘린다
+        private readonly List<IRunStateCarrier> _carriers = new List<IRunStateCarrier>();
+
         /****************************************
         *              Properties
         ****************************************/
@@ -44,6 +51,16 @@ namespace Geumeum.Combat
             _character = GetComponent<PlayerCharacter>();
             _status     = GetComponent<PlayerStatus>();
             _controller = GetComponent<PlayerController>();
+
+            CollectCarriers();
+        }
+
+        // 낮은 순서가 먼저 담기고 먼저 되부어진다
+        private void CollectCarriers()
+        {
+            _carriers.Clear();
+            GetComponents(_carriers);
+            _carriers.Sort((left, right) => left.CarrierOrder.CompareTo(right.CarrierOrder));
         }
 
         /****************************************
@@ -87,8 +104,15 @@ namespace Geumeum.Combat
         [Server]
         public void ClearRole()
         {
-            _weapon?.ServerClearForNewRun();
-            _character?.ServerClearForNewRun();
+            if (_weapon != null)
+            {
+                _weapon.ServerClearForNewRun();
+            }
+
+            if (_character != null)
+            {
+                _character.ServerClearForNewRun();
+            }
         }
 
         [Server]
@@ -100,6 +124,59 @@ namespace Geumeum.Combat
             }
 
             _status.ServerResetForNewRun();
+        }
+
+        /// <summary> 자기 컴포넌트들의 값을 그릇에 담는다 </summary>
+        [Server]
+        public bool CaptureRunState(RunParticipantSnapshot snapshot)
+        {
+            if ((snapshot == null) || (_carriers.Count == 0))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < _carriers.Count; ++i)
+            {
+                _carriers[i].Capture(snapshot);
+            }
+
+            snapshot.Position   = transform.position;
+            snapshot.YawDegrees = transform.eulerAngles.y;
+            return true;
+        }
+
+        /// <summary>
+        /// 그릇의 값을 되붓는다.
+        ///
+        /// 전부 검사한 뒤에 붓는다. 하나씩 검사하며 부으면 세 번째에서 실패했을 때
+        /// 앞의 둘만 적용된 상태가 남고, 그 상태로 런이 재개된다
+        /// </summary>
+        [Server]
+        public bool RestoreRunState(RunParticipantSnapshot snapshot)
+        {
+            if ((snapshot == null) || (_carriers.Count == 0))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < _carriers.Count; ++i)
+            {
+                if (_carriers[i].Validate(snapshot, out string failure))
+                {
+                    continue;
+                }
+
+                Debug.LogError($"[PlayerRunAgent] 상태를 되부을 수 없다: {failure}", this);
+                return false;
+            }
+
+            bool restored = true;
+            for (int i = 0; i < _carriers.Count; ++i)
+            {
+                restored &= _carriers[i].Restore(snapshot);
+            }
+
+            return restored;
         }
 
         [Server]

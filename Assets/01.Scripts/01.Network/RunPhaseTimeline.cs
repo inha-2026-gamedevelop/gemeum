@@ -38,14 +38,14 @@ namespace Geumeum.Network
 
         private const float TIME_EPSILON = 0.001f; // 인스펙터 입력값의 부동소수 오차 허용치(초)
 
-        // 런 데이터가 가져야 하는 구간과 순서. Lobby, Result는 런 데이터 밖의 세션 상태다
+        // 필드 시계가 가져야 하는 구간과 순서.
+        // Lobby, Result는 런 데이터 밖의 세션 상태이고, Boss는 독립 시계라 이 타임라인에 없다
         private static readonly RunPhase[] G_RequiredOrder =
         {
             RunPhase.Farming,
             RunPhase.Shrink1,
             RunPhase.Shrink2,
             RunPhase.Shrink3,
-            RunPhase.Boss,
         };
 
         private readonly Segment[] _segments;
@@ -60,7 +60,7 @@ namespace Geumeum.Network
         }
 
         /// <summary> 서버 시작 전 데이터 불변식을 검사한다, 실패하면 기본값으로 진행하지 않고 부트를 막는다 </summary>
-        public bool Validate(float runTimeLimitSeconds, out string error)
+        public bool Validate(float fieldTimeLimitSeconds, out string error)
         {
             if (_segments.Length != G_RequiredOrder.Length)
             {
@@ -100,10 +100,10 @@ namespace Geumeum.Network
             }
 
             float lastEndSeconds = _segments[_segments.Length - 1].EndSeconds;
-            float limitGap       = lastEndSeconds - runTimeLimitSeconds;
+            float limitGap       = lastEndSeconds - fieldTimeLimitSeconds;
             if ((limitGap > TIME_EPSILON) || (limitGap < -TIME_EPSILON))
             {
-                error = $"마지막 구간 종료가 런 제한 시간과 다르다: {lastEndSeconds} != {runTimeLimitSeconds}";
+                error = $"마지막 필드 구간 종료가 필드 제한 시간과 다르다: {lastEndSeconds} != {fieldTimeLimitSeconds}";
                 return false;
             }
 

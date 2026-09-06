@@ -54,7 +54,7 @@ namespace Geumeum.Combat
         [SerializeField] private KeyCode _rollKey   = KeyCode.Space;
         [SerializeField] private KeyCode _sprintKey = KeyCode.LeftShift;
 
-        [Header("무기 보정 — 실제 게임과 같은 값을 쓴다")]
+        [Header("무기 보정 - 실제 게임과 같은 값을 쓴다")]
         [Tooltip("Player.prefab. PlayerWeaponVisual의 무기별 부착 보정을 여기서 읽고, 저장도 여기로 한다")]
         [SerializeField] private GameObject _playerPrefab;
 
@@ -419,12 +419,35 @@ namespace Geumeum.Combat
             // 방향키를 쓰지 않는다. 에디터 Game 뷰가 화살표 키를 가져가는 경우가 있어
             // 눌러도 아무 일이 없는 것처럼 보인다. 문자 키는 그런 충돌이 없다
             _tuneDelta = Vector3.zero;
-            if (Input.GetKey(KeyCode.J)) { _tuneDelta.x -= 1f; }
-            if (Input.GetKey(KeyCode.L)) { _tuneDelta.x += 1f; }
-            if (Input.GetKey(KeyCode.I)) { _tuneDelta.z += 1f; }
-            if (Input.GetKey(KeyCode.K)) { _tuneDelta.z -= 1f; }
-            if (Input.GetKey(KeyCode.U)) { _tuneDelta.y += 1f; }
-            if (Input.GetKey(KeyCode.O)) { _tuneDelta.y -= 1f; }
+            if (Input.GetKey(KeyCode.J))
+            {
+                _tuneDelta.x -= 1f;
+            }
+
+            if (Input.GetKey(KeyCode.L))
+            {
+                _tuneDelta.x += 1f;
+            }
+
+            if (Input.GetKey(KeyCode.I))
+            {
+                _tuneDelta.z += 1f;
+            }
+
+            if (Input.GetKey(KeyCode.K))
+            {
+                _tuneDelta.z -= 1f;
+            }
+
+            if (Input.GetKey(KeyCode.U))
+            {
+                _tuneDelta.y += 1f;
+            }
+
+            if (Input.GetKey(KeyCode.O))
+            {
+                _tuneDelta.y -= 1f;
+            }
 
             // 시간 스케일을 건드려도 조정은 되어야 하므로 unscaled를 쓴다
             float dt = Time.unscaledDeltaTime;
@@ -456,8 +479,15 @@ namespace Geumeum.Combat
             }
 
             float scaleDelta = 0f;
-            if (Input.GetKey(KeyCode.RightBracket)) { scaleDelta += 1f; }
-            if (Input.GetKey(KeyCode.LeftBracket))  { scaleDelta -= 1f; }
+            if (Input.GetKey(KeyCode.RightBracket))
+            {
+                scaleDelta += 1f;
+            }
+
+            if (Input.GetKey(KeyCode.LeftBracket))
+            {
+                scaleDelta -= 1f;
+            }
 
             if (!Mathf.Approximately(scaleDelta, 0f))
             {
@@ -615,9 +645,20 @@ namespace Geumeum.Combat
             }
 
             string missing = "";
-            if (!HasParameter(PARAM_SPEED))  { missing += PARAM_SPEED + " "; }
-            if (!HasParameter(PARAM_ROLL))   { missing += PARAM_ROLL + " "; }
-            if (!HasParameter(PARAM_ATTACK)) { missing += PARAM_ATTACK + " "; }
+            if (!HasParameter(PARAM_SPEED))
+            {
+                missing += PARAM_SPEED + " ";
+            }
+
+            if (!HasParameter(PARAM_ROLL))
+            {
+                missing += PARAM_ROLL + " ";
+            }
+
+            if (!HasParameter(PARAM_ATTACK))
+            {
+                missing += PARAM_ATTACK + " ";
+            }
 
             if (missing.Length > 0)
             {
@@ -687,16 +728,16 @@ namespace Geumeum.Combat
 
             string source = (_hasPrefabBinding) ? "Player.prefab 바인딩" : "바인딩 없음 (대체 모델)";
             string tune =
-                "── 무기 보정 ("
+                "[ 무기 보정 ("
                 + ((_activeIndex >= 0)
                     ? (_characters[_activeIndex].Kind + ", " + _currentWeapon)
                     : "-")
-                + ") ──\n"
+                + ") ]\n"
                 + "소스  " + source + "\n"
                 + "Position  " + Format(_weaponPosition) + "\n"
                 + "Euler     " + Format(_weaponEuler) + "\n"
                 + "Scale     " + Format(_weaponScale) + "\n"
-                + "입력 " + Format(_tuneDelta) + (( _tuneDelta == Vector3.zero) ? "   (키 입력 없음)" : "   ← 들어오는 중")
+                + "입력 " + Format(_tuneDelta) + (( _tuneDelta == Vector3.zero) ? "   (키 입력 없음)" : "   <- 들어오는 중")
                 + "\n\n"
                 + "이동   J / L 좌우    I / K 앞뒤    U / O 위아래\n"
                 + "회전   Ctrl + 같은 키\n"

@@ -34,11 +34,12 @@ namespace Geumeum.Combat
         // 공격자마다 WindowId가 따로 증가하므로 재사용, 역전 요청을 막으려면 공격자별 마지막 값이 필요하다
         private readonly Dictionary<uint, uint> _lastIdByAttacker = new Dictionary<uint, uint>();
 
-        private PlayerStatus         _status;
-        private PlayerWeapon         _weapon;
-        private PlayerRollController _roll;
-        private ParryGauge           _gauge;
-        private PlayerAttack         _attack;
+        private PlayerStatus              _status;
+        private PlayerWeapon              _weapon;
+        private PlayerRollController      _roll;
+        private ParryGauge                _gauge;
+        private PlayerAttack              _attack;
+        private PlayerAnimationController _animation;
 
         private uint             _localRequestId     = 0;
         private ParryWindowKey   _clientActiveWindow = default;
@@ -60,6 +61,8 @@ namespace Geumeum.Combat
             _roll   = GetComponent<PlayerRollController>();
             _gauge  = GetComponent<ParryGauge>();
             _attack = GetComponent<PlayerAttack>();
+
+            _animation = GetComponent<PlayerAnimationController>();
         }
 
         private void Update()
@@ -237,6 +240,11 @@ namespace Geumeum.Combat
                 return;
             }
 
+            // 모션은 여기서 낸다. 성공 여부는 아래에서 갈리지만 자세는 그보다 먼저 잡혀야 하고,
+            // 스태미나를 실제로 쓴 이 지점이 "시도가 일어났다"가 확정되는 유일한 자리다.
+            // 판정 값은 아무것도 읽지 않으므로 이 호출을 지워도 0.32초 판정은 그대로 돈다
+            RpcParryStarted();
+
             // 13~14. window 없으면 허공 패링, 있으면 결과와 무관하게 여기서 한 번 소비한다
             bool             success;
             ParryResultCode  resultCode;
@@ -397,6 +405,26 @@ namespace Geumeum.Combat
         public bool IsActionInProgress(double serverTime)
         {
             return serverTime < _actionLockEndServerTime;
+        }
+
+        /****************************************
+        *              ClientRpc
+        ****************************************/
+
+        /// <summary>
+        /// 패링 자세를 모든 화면에서 재생한다. 표현 전용이고 판정은 서버에서 이미 진행 중이다.
+        /// TargetRpc가 아닌 이유는 동료가 언제 막았는지 보이지 않으면 셋이 붙는 판에서
+        /// 누가 다음 공격을 받아낼지 서로 알 수 없기 때문이다
+        /// </summary>
+        [ClientRpc]
+        private void RpcParryStarted()
+        {
+            if (_animation == null)
+            {
+                return;
+            }
+
+            _animation.PlayParry();
         }
 
         /****************************************

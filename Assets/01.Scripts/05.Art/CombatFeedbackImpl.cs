@@ -8,16 +8,14 @@ using Geumeum.Data;
 namespace Geumeum.Art
 {
     /// <summary>
-    /// <see cref="ICombatFeedback"/>의 아트 구현체. 전투는 타이밍만 호출하고 표현은 여기서 정한다.
-    /// 지금 하는 일은 <b>카메라 셰이크뿐</b>이고, 히트 이펙트와 패링 슬로우모션은 아직 없다.
+    /// ICombatFeedback의 아트 구현체. 전투는 타이밍만 호출하고 표현은 여기서 정한다.
+    /// 지금 하는 일은 카메라 셰이크뿐이고, 히트 이펙트와 패링 슬로우모션은 아직 없다.
     /// 로컬 표현이라 동기화하지 않고 판정에 관여하지 않는다
     /// </summary>
-    /// <remarks>
-    /// 04-architecture 8.3은 이 컴포넌트를 `@Local`에 두는 것으로 적고 있으나,
-    /// <b>지금 하는 일이 카메라 셰이크뿐이라 카메라에 붙였다.</b> 히트 이펙트가 붙어 카메라와
-    /// 무관한 일이 생기면 그때 `@Local`로 옮기고 리그 참조를 직렬화 필드로 받는다.
-    /// 수치는 전부 <see cref="CameraConfigSO"/>가 소유한다
-    /// </remarks>
+    // 구조 설계는 이 컴포넌트를 `@Local`에 두는 것으로 적고 있으나,
+    // 지금 하는 일이 카메라 셰이크뿐이라 카메라에 붙였다. 히트 이펙트가 붙어 카메라와
+    // 무관한 일이 생기면 그때 `@Local`로 옮기고 리그 참조를 직렬화 필드로 받는다.
+    // 수치는 전부 CameraConfigSO가 소유한다
     [RequireComponent(typeof(CameraRig))]
     public class CombatFeedbackImpl : MonoBehaviour, ICombatFeedback
     {
@@ -52,7 +50,7 @@ namespace Geumeum.Art
         ****************************************/
 
         /// <summary>
-        /// 타격 순간. <b>duration은 히트스톱 길이이지 셰이크 길이가 아니다</b> -
+        /// 타격 순간. duration은 히트스톱 길이이지 셰이크 길이가 아니다 -
         /// 셰이크 길이는 강도별로 CameraConfigSO가 갖고 있다
         /// </summary>
         public void PlayHit(HitStrength strength, float duration)
@@ -66,8 +64,8 @@ namespace Geumeum.Art
         }
 
         /// <summary>
-        /// 패링 성공. 피격보다 세게 흔든다 - <b>결과를 알리는 셰이크는 세도 되지만
-        /// 다음 패링을 방해하는 셰이크는 약해야 한다.</b> 패링 창이 0.32초다
+        /// 패링 성공. 피격보다 세게 흔든다 - 결과를 알리는 셰이크는 세도 되지만
+        /// 다음 패링을 방해하는 셰이크는 약해야 한다. 패링 창이 0.32초다
         /// </summary>
         public void PlayParrySuccess()
         {

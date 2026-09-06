@@ -12,7 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc910588cf26cfc48ae98d04fe3e3edf, type: 3}
   m_Name: ScoreRuleSO
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.ScoreRuleSO
+  _bossKillScore: 10000
+  _enemyKillScore: 30
+  _remainingTimeScorePerMinute: 400
+  _remainingCurrencyScore: 1
   _remainingHealthScore: 1
-  _remainingTimeScore: 3.3333333
-  _unspentTalentPointScore: 20
-  _remainingCurrencyScore: 2
+  _deathPenalty: 1000
+  _deathlessBonusByDeathCount:
+  - 5000
+  - 2000
+  - 500
+  - 0

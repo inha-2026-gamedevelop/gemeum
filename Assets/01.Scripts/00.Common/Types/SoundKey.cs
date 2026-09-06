@@ -8,7 +8,7 @@ namespace Geumeum.Common
     {
         None = 0,
 
-        // P0 — 없으면 보스전이 성립하지 않는 것 (SOUND_DESIGN 2.2)
+        // P0 - 없으면 보스전이 성립하지 않는 것 (SOUND_DESIGN 2.2)
         BossTellA       = 1, // 예고 템플릿 windup 1.2초
         BossTellB       = 2, // 1.5초
         BossTellC       = 3, // 2.0초
@@ -36,7 +36,7 @@ namespace Geumeum.Common
         BossGroggyEnd = 131,
         BarrierShrink = 140,
 
-        // 40분 런에서 가장 자주 들린다 (사운드 설계 2.1 6번). 잡귀 3종이 같은 키를 쓰고 클립 후보로 변형을 준다
+        // 40분 런에서 가장 자주 들린다. 잡귀 3종이 같은 키를 쓰고 클립 후보로 변형을 준다
         EnemyDeath = 150,
     }
 }

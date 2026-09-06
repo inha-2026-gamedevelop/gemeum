@@ -31,6 +31,8 @@ namespace Geumeum.Combat
         private PlayerStatus             _status;
         private PlayerRollController     _roll;
         private PlayerAttack             _attack;
+        private LockOnController         _lockOn;
+        private ReviveController         _revive;
         private NetworkTransformReliable _networkTransform;
 
         private double _lastInputSendTime = 0.0;
@@ -67,6 +69,8 @@ namespace Geumeum.Combat
             _status           = GetComponent<PlayerStatus>();
             _roll             = GetComponent<PlayerRollController>();
             _attack           = GetComponent<PlayerAttack>();
+            _lockOn           = GetComponent<LockOnController>();
+            _revive           = GetComponent<ReviveController>();
             _networkTransform = GetComponent<NetworkTransformReliable>();
         }
 
@@ -288,6 +292,20 @@ namespace Geumeum.Combat
             if (_attack != null)
             {
                 _attack.ServerUpdateState(now);
+            }
+
+            // 대상이 죽거나 사라졌으면 여기서 락온을 끊는다. 자기 Update를 따로 돌지 않는 이유는
+            // 권위 판정이 전부 이 틱 하나를 지나야 순서가 정해지기 때문이다
+            if (_lockOn != null)
+            {
+                _lockOn.ServerUpdateState();
+            }
+
+            // 관전 타이머와 구조 진행. 이동 처리보다 먼저 돌려야 부활로 옮겨진 위치가
+            // 같은 틱의 ApplyPlanarVelocity에 반영된다
+            if (_revive != null)
+            {
+                _revive.ServerUpdateState(now);
             }
 
             Vector2 direction = Vector2.zero;

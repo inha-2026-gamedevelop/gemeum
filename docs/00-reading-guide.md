@@ -87,7 +87,9 @@
 | [몬스터 공격 → 패링 창 연결](unity/MONSTER_PARRY_LINK_DESIGN.md) | 창귀 돌진이 패링 창을 여는 수직 슬라이스와 최소 텔레그래프 | 몬스터 · 보스 |
 | [PlayerAttack 공통 계약](unity/PLAYER_ATTACK_DESIGN.md) | 검 · 활 · 방울 공통 공격 계약, 서버 권위 화살 | 네트워크 · 전투 |
 | [보스 설계](unity/BOSS_DESIGN.md) | 보스 1마리 2페이즈, 실행 템플릿 4개와 데이터 항목 8개 | 몬스터 · 보스 |
-| [보스 패턴 계약](unity/BOSS_PATTERN_CONTRACT.md) | 패턴 10개 · 선택기 · 엇박 · **그로기 게이지** · 14분 시간 구조 · **꼬리 3덩이와 25% 게이트** · 담당자용 빈 표 | 몬스터·보스 |
+| [보스 패턴 계약](unity/BOSS_PATTERN_CONTRACT.md) | 패턴 10개 · 선택기 · 엇박 · **그로기 게이지** · 보스 독립 14분 시계 · **꼬리 3덩이와 25% 게이트** · **최종 구간 원혼 셋** · 담당자용 빈 표 | 몬스터·보스 |
+| [보스 연출 설계](unity/BOSS_STAGING_DESIGN.md) | 페이즈 전환 15초의 컷신·먹 커튼·색값 타임라인 | 테크니컬 아트 · 몬스터·보스 |
+| [보스 트라이 모드](unity/BOSS_TRIAL_MODE.md) | 30분을 건너뛰고 보스만 반복하는 진입 경로, 편성 예산, 리더보드 미등록 | 네트워크 · 게임플레이 시스템 |
 | [카메라와 락온](unity/CAMERA_AND_LOCKON.md) | **카메라 리그 · 락온 · 이동/조준/구르기 · 스트레이프 애니메이션 · 셰이크 · 컷신 · 화살 유도.** 값까지 정한 구현 사양 | 네트워크 · 전투 · 테크니컬 아트 |
 | [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) | 결계 축소 · 피해, 4칸 인벤토리, 드랍 · 노잣돈 · 객주 | 게임플레이 시스템 |
 | [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md) | Humanoid 리타게팅, Override Controller, 서버 cue와 에셋 소싱 | 테크니컬 아트 |
