@@ -43,6 +43,7 @@ namespace Geumeum.Combat
         private const string PARAM_ROLL_SPEED  = "RollSpeed";
         private const string PARAM_ATTACK      = "Attack";
         private const string PARAM_COMBO_STAGE = "ComboStage";
+        private const string PARAM_PARRY       = "Parry";
 
         // 락온 스트레이프용 2D Freeform Directional 파라미터.
         // 1D(Speed) 트리와 2D 트리를 IsLockOn으로 갈라 쓴다 - 비락온에서는 이동 방향이 곧
@@ -92,6 +93,7 @@ namespace Geumeum.Combat
         private bool _hasComboStageParam = false;
         private bool _hasStrafeParams    = false;
         private bool _hasDeathParam      = false;
+        private bool _hasParryParam      = false;
 
         /****************************************
         *              Unity Event
@@ -281,6 +283,21 @@ namespace Geumeum.Combat
         }
 
         /// <summary>
+        /// 패링 모션을 한 번 재생한다. 성공과 실패를 가리지 않는다 - 성공 연출은 셰이크와 소리가 맡고,
+        /// 여기서 나누면 판정이 끝나기를 기다려야 해서 자세가 늦게 나온다.
+        /// ParryController의 RpcParryStarted가 모든 화면에서 호출하므로 남의 패링도 보인다
+        /// </summary>
+        public void PlayParry()
+        {
+            if ((_animator == null) || (!_hasParryParam))
+            {
+                return;
+            }
+
+            _animator.SetTrigger(PARAM_PARRY);
+        }
+
+        /// <summary>
         /// PlayerWeapon의 SyncVar 훅이 무기가 바뀔 때마다 호출한다.
         /// 모델 교체와 무기 도착 순서가 보장되지 않아 양쪽에서 각각 다시 시도한다
         /// </summary>
@@ -323,6 +340,7 @@ namespace Geumeum.Combat
             // 없으면 파라미터를 넣지 않고 1D 트리 그대로 쓴다 - 매 프레임 경고가 쌓이지 않는다
             _hasStrafeParams = (HasParameter(PARAM_MOVE_X)) && (HasParameter(PARAM_MOVE_Y)) && (HasParameter(PARAM_IS_LOCK_ON));
             _hasDeathParam   = HasParameter(PARAM_IS_DEAD);
+            _hasParryParam   = HasParameter(PARAM_PARRY);
             _smoothedMove    = Vector2.zero;
         }
 
