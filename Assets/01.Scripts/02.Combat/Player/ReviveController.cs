@@ -59,6 +59,7 @@ namespace Geumeum.Combat
         private PlayerAttack         _attack;
         private ParryController      _parry;
         private Rigidbody            _rigidbody;
+        private CapsuleCollider      _capsule;
 
         private int _playerLayerMask = 0;
 
@@ -66,6 +67,14 @@ namespace Geumeum.Combat
 
         // 소유 클라이언트 전용. 키를 누른 순간에만 요청을 보내고 떼면 취소한다
         private bool _isHoldingRescue = false;
+
+        // 홀드 한 번의 세대. 누를 때마다 오른다.
+        //
+        // 이전에는 키를 뗄 때 서버가 보내 준 대상 netId가 도착해 있어야만 취소를 보냈다.
+        // 짧게 눌렀다 떼면 SyncVar가 오기 전에 손을 떼게 되고, 그러면 취소가 아예 나가지 않아
+        // 서버는 계속 일으키고 있다. 클라이언트는 뗀 줄 알고 서버는 잡고 있는 유령 홀드다
+        private uint _holdGeneration = 0u; // 소유 클라이언트 전용
+        private uint _serverHoldGeneration = 0u; // 서버 전용, 지금 받아들인 홀드의 세대
 
         /****************************************
         *                Events
@@ -136,6 +145,7 @@ namespace Geumeum.Combat
             _attack    = GetComponent<PlayerAttack>();
             _parry     = GetComponent<ParryController>();
             _rigidbody = GetComponent<Rigidbody>();
+            _capsule   = GetComponent<CapsuleCollider>();
 
             _playerLayerMask = LayerMask.GetMask(Constants.Layer.PLAYER);
         }
@@ -377,9 +387,64 @@ namespace Geumeum.Combat
             }
 
             Vector3 inset = center + (delta.normalized * (barrier.Radius * combat.ReviveBarrierInsetRatio));
-            inset.y = position.y; // 높이는 그대로 둔다. 지형은 물리가 맞춘다
+            inset.y = position.y;
 
-            return inset;
+            return ResolveGroundedPosition(inset, position);
+        }
+
+        /// <summary>
+        /// 후보 지점을 지면에 앉힌다. 찾지 못하면 원래 자리를 쓴다.
+        ///
+        /// 결계 보정은 XZ만 옮기고 높이는 죽은 자리의 것을 그대로 들고 있었다.
+        /// 경사나 절벽, 건물 위에서 죽으면 "결계 안"과 "설 수 있는 자리"가 달라져
+        /// 지하나 공중에 나타난다. 지형은 물리가 맞춰 준다고 가정할 수 없다
+        /// </summary>
+        [Server]
+        private Vector3 ResolveGroundedPosition(Vector3 candidate, Vector3 fallback)
+        {
+            Vector3 probeOrigin = candidate + (Vector3.up * Constants.Player.REVIVE_PROBE_UP);
+            float   probeLength = (Constants.Player.REVIVE_PROBE_UP + Constants.Player.REVIVE_PROBE_DISTANCE);
+            // Ground 레이어는 정의만 되어 있고 지금 씬의 바닥은 Default에 있다.
+            // 둘 다 보지 않으면 이 보정이 어느 씬에서도 동작하지 않는다
+            int     groundMask  = LayerMask.GetMask(Constants.Layer.GROUND, Constants.Layer.DEFAULT);
+
+            if (!Physics.Raycast(probeOrigin, Vector3.down, out RaycastHit hit, probeLength, groundMask, QueryTriggerInteraction.Ignore))
+            {
+                Debug.LogWarning($"[ReviveController] 부활 지점 아래에서 지면을 찾지 못해 사망 지점을 쓴다: {candidate}", this);
+                return fallback;
+            }
+
+            Vector3 grounded = hit.point + (Vector3.up * Constants.Player.REVIVE_GROUND_OFFSET);
+
+            // 지면을 찾았어도 벽 속일 수 있다. 설 자리가 막혀 있으면 원래 자리가 낫다
+            if (IsBlocked(grounded))
+            {
+                Debug.LogWarning($"[ReviveController] 부활 지점이 막혀 있어 사망 지점을 쓴다: {grounded}", this);
+                return fallback;
+            }
+
+            return grounded;
+        }
+
+        // 플레이어 캡슐이 들어갈 자리가 비어 있는지. 캡슐 콜라이더가 없으면 검사하지 않는다
+        [Server]
+        private bool IsBlocked(Vector3 groundPosition)
+        {
+            if (_capsule == null)
+            {
+                return false;
+            }
+
+            float radius = _capsule.radius;
+            float height = Mathf.Max(_capsule.height, (radius * 2f));
+
+            Vector3 bottom = groundPosition + (Vector3.up * radius);
+            Vector3 top    = groundPosition + (Vector3.up * (height - radius));
+
+            // 자기 자신은 아직 옛 자리에 있으므로 걸리지 않는다. 지형과 다른 몸만 본다
+            int blockingMask = LayerMask.GetMask(Constants.Layer.GROUND, Constants.Layer.DEFAULT);
+
+            return Physics.CheckCapsule(bottom, top, radius, blockingMask, QueryTriggerInteraction.Ignore);
         }
 
         [Server]
@@ -465,7 +530,7 @@ namespace Geumeum.Combat
         ****************************************/
 
         [Command]
-        private void CmdBeginRescue(uint targetNetId)
+        private void CmdBeginRescue(uint targetNetId, uint holdGeneration)
         {
             if (!GameDB.IsInitialized)
             {
@@ -476,6 +541,14 @@ namespace Geumeum.Combat
             {
                 return; // 스스로를 일으킬 수는 없다
             }
+
+            // 늦게 도착한 옛 세대의 시작은 받지 않는다. 이미 뗀 키로 다시 잡히면 안 된다
+            if (holdGeneration <= _serverHoldGeneration)
+            {
+                return;
+            }
+
+            _serverHoldGeneration = holdGeneration;
 
             if (!TryGetRescueTarget(targetNetId, out ReviveController target))
             {
@@ -493,9 +566,21 @@ namespace Geumeum.Combat
             }
         }
 
+        /// <summary>
+        /// 홀드를 놓는다. 대상이 잡혀 있든 아니든 세대만 맞으면 받는다 -
+        /// 시작 요청이 아직 처리되지 않았을 수도 있고, 그때도 취소는 성립해야 한다
+        /// </summary>
         [Command]
-        private void CmdCancelRescue()
+        private void CmdCancelRescue(uint holdGeneration)
         {
+            if (holdGeneration < _serverHoldGeneration)
+            {
+                return; // 이미 지나간 홀드의 취소다, 새 홀드를 끊으면 안 된다
+            }
+
+            // 시작보다 취소가 먼저 도착할 수 있다. 세대를 올려 두면 뒤늦게 온 시작이 거부된다
+            _serverHoldGeneration = holdGeneration;
+
             ServerCancelRescue();
         }
 
@@ -510,10 +595,11 @@ namespace Geumeum.Combat
             if ((isHeld) && (!_isHoldingRescue))
             {
                 _isHoldingRescue = true;
+                ++_holdGeneration;
 
                 if (TryFindNearestDownedAlly(out uint targetNetId))
                 {
-                    CmdBeginRescue(targetNetId);
+                    CmdBeginRescue(targetNetId, _holdGeneration);
                 }
 
                 return;
@@ -523,10 +609,9 @@ namespace Geumeum.Combat
             {
                 _isHoldingRescue = false;
 
-                if (_rescueTargetNetId != NO_TARGET)
-                {
-                    CmdCancelRescue();
-                }
+                // 서버가 보내 준 대상이 아직 도착하지 않았어도 보낸다.
+                // 도착을 기다리면 짧게 눌렀다 뗀 홀드가 서버에 그대로 남는다
+                CmdCancelRescue(_holdGeneration);
             }
         }
 

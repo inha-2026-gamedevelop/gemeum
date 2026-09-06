@@ -36,6 +36,11 @@ namespace Geumeum.Common
             public const float MOVE_INPUT_EPSILON = 0.01f; // 스틱 드리프트로 이동 입력이 계속 나가는 것을 막는다
             public const float GROUND_CHECK_EXTRA = 0.05f; // 접지 판정 레이 여유 길이(m)
             public const int   PARTY_SIZE         = 3;     // 런 고정 인원
+
+            // 부활 지점을 지면에 앉힐 때 쓰는 탐침. 밸런스가 아니라 판정 여유값이다
+            public const float REVIVE_PROBE_UP       = 3f;    // 후보 지점 위 이만큼에서 아래로 쏜다(m)
+            public const float REVIVE_PROBE_DISTANCE = 12f;   // 아래로 훑는 최대 거리(m)
+            public const float REVIVE_GROUND_OFFSET  = 0.05f; // 지면에 박히지 않게 띄우는 높이(m)
         }
     }
 }
