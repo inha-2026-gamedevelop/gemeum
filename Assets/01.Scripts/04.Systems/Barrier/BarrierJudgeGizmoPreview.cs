@@ -91,7 +91,7 @@ namespace Geumeum.Systems
             }
 
             Vector3 probePosition = (_probe != null) ? _probe.position : transform.position;
-            Debug.Log($"[BarrierJudgeGizmoPreview] radius={CurrentRadius():F2}, outside={IsOutsideNow(probePosition)}");
+            // Debug.Log($"[BarrierJudgeGizmoPreview] radius={CurrentRadius():F2}, outside={IsOutsideNow(probePosition)}");
         }
 
         private void OnDrawGizmos()
