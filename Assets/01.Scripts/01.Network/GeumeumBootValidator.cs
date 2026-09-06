@@ -46,7 +46,7 @@ namespace Geumeum.Network
             }
 
             RunPhaseTimeline timeline = RunTimelineBuilder.Build(barrier);
-            if (!timeline.Validate(barrier.RunTimeLimitSeconds, out string error))
+            if (!timeline.Validate(barrier.FieldTimeLimitSeconds, out string error))
             {
                 failures.Add("결계 단계 데이터가 런 상태 머신 계약을 어긴다 - " + error);
             }

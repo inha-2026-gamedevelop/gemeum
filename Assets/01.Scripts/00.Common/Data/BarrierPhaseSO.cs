@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 // Unity
 using UnityEngine;
+using UnityEngine.Serialization;
 
 // 프로젝트 내부
 using Geumeum.Common;
@@ -25,6 +26,9 @@ namespace Geumeum.Data
         public struct PhaseEntry
         {
             public RunPhase Phase;
+
+            // 필드 시계 기준이다. Boss 항목의 두 값은 쓰이지 않는다 -
+            // 보스는 진입 시각과 무관한 독립 시계이고, 이 항목은 FieldLevel 조회용으로만 남아 있다
             public float    StartSeconds;    // 런 시작 기준 경과 시간(초)
             public float    EndSeconds;      // 이 시각에 다음 단계로 전환
             public int      FieldLevel;      // 드랍 가중치, 강화 배수의 키
@@ -38,8 +42,11 @@ namespace Geumeum.Data
         *                Fields
         ****************************************/
 
-        [Header("런 길이")]
-        [SerializeField] private float _runTimeLimitSeconds = 2400f; // 마지막 단계의 EndSeconds와 일치시킬 것
+        // 필드 구간의 상한이다. 보스전은 여기에 이어 붙지 않고 자기 시계로 14분을 센다.
+        // 이 값에 도달하면 실패가 아니라 보스맵으로 강제 이동한다
+        [Header("필드 길이")]
+        [FormerlySerializedAs("_runTimeLimitSeconds")]
+        [SerializeField] private float _fieldTimeLimitSeconds = 1800f; // Shrink3의 EndSeconds와 일치시킬 것
 
         [Header("반경")]
         // TODO(민성): 맵 레이아웃 확정 후 아트 파트가 실측해 채운다
@@ -60,7 +67,7 @@ namespace Geumeum.Data
         *              Properties
         ****************************************/
 
-        public float RunTimeLimitSeconds       => _runTimeLimitSeconds;
+        public float FieldTimeLimitSeconds     => _fieldTimeLimitSeconds;
         public float MaxRadius                 => _maxRadius;
         public float ShrinkDuration            => _shrinkDuration;
         public float WarningLeadTime           => _warningLeadTime;

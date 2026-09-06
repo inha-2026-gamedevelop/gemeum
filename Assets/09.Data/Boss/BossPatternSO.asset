@@ -15,6 +15,9 @@ MonoBehaviour:
   _maxHealth: 0
   _phases: []
   _patterns: []
+  _bossTimeLimitSeconds: 840
+  _enrageStartSeconds: 810
+  _enrageWarningSeconds: 720
   _groggyGaugeMax: 100
   _gaugeReductions:
   - Character: 0

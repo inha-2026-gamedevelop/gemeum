@@ -69,6 +69,18 @@ namespace Geumeum.Data
         // 아래는 2026-09-05 확정 설계다
         // 값은 전부 임시값이고 구조만 확정이다. 바뀌지 않는 것은 "감소식, 세 직업, 게이지 100"이다
 
+        // 보스 시계는 필드 시계에 이어 붙지 않는다. 언제 들어오든 진입 순간부터 14분이다.
+        // 필드 상한은 BarrierPhaseSO가, 보스 상한은 여기가 소유한다
+        [Header("보스 시계")]
+        [Tooltip("보스전 하드 제한(초). 도달하면 실패로 끝난다")]
+        [SerializeField] private float _bossTimeLimitSeconds = 840f;
+
+        [Tooltip("광폭화 시작(초). 하드 제한 30초 전이라 마지막 30초가 다른 게임이 된다")]
+        [SerializeField] private float _enrageStartSeconds = 810f;
+
+        [Tooltip("광폭화 경고(초). 여우불이 붉게 돈다, 연출만이고 수치 변화는 없다")]
+        [SerializeField] private float _enrageWarningSeconds = 720f;
+
         [Header("그로기 게이지")]
         [Tooltip("게이지 최대치. 셋이 함께 깎아 0에서 그로기가 열린다")]
         [SerializeField] private float _groggyGaugeMax = 100f;
@@ -119,6 +131,15 @@ namespace Geumeum.Data
         ****************************************/
 
         public float MaxHealth  => _maxHealth;
+
+        /// <summary> 보스전 하드 제한(초) </summary>
+        public float BossTimeLimitSeconds => _bossTimeLimitSeconds;
+
+        /// <summary> 광폭화 시작(초) </summary>
+        public float EnrageStartSeconds => _enrageStartSeconds;
+
+        /// <summary> 광폭화 경고(초), 연출 전용 </summary>
+        public float EnrageWarningSeconds => _enrageWarningSeconds;
         public int   PhaseCount => (_phases == null) ? 0 : _phases.Length;
 
         public float GroggyGaugeMax => _groggyGaugeMax;

@@ -18,14 +18,17 @@ namespace Geumeum.Network
     /// 런 시계와 상태 머신. 경과 시간과 RunPhase의 원본은 여기 하나뿐이다.
     /// 각 파트는 시간을 다시 계산하지 않고 RunPhaseChangedEvent만 본다
     /// </summary>
-    public class RunManager : NetworkBehaviour
+    public class RunManager : NetworkBehaviour, IRunTimeSource
     {
         /****************************************
         *                Fields
         ****************************************/
 
-        [SyncVar] private float      _elapsedSeconds = 0f;
-        [SyncVar] private RunOutcome _outcome        = RunOutcome.None;
+        // 시계는 둘이고 서로 독립이다. 필드는 0~30분 상한, 보스는 진입 순간부터 14분이다.
+        // 값을 쓰는 곳은 여기 하나뿐이고 보스전은 시작 시점만 요청한다
+        [SyncVar] private float      _elapsedSeconds     = 0f;
+        [SyncVar] private float      _bossElapsedSeconds = 0f;
+        [SyncVar] private RunOutcome _outcome            = RunOutcome.None;
 
         // 훅은 서버 판정이 아니라 각 클라이언트의 로컬 표현 전용이다
         [SyncVar(hook = nameof(OnPhaseChangedLocal))] private RunPhase _phase = RunPhase.Lobby;
@@ -40,6 +43,8 @@ namespace Geumeum.Network
         private Coroutine        _tickRoutine            = null;
         private Coroutine        _returnRoutine          = null;   // 서버 전용, Result -> Lobby 복귀 대기
         private double           _pauseStartServerTime   = 0.0;    // 서버 전용, 멈춘 시각. 재개할 때 시계를 이만큼 민다
+        private double           _bossStartServerTime    = 0.0;    // 서버 전용, 보스 시계의 기준 시각
+        private bool             _hasBossClockStarted    = false;  // 서버 전용, 보스 시계가 도는 중인지
 
         private readonly List<RunPhase> _enteredBuffer = new List<RunPhase>();
         private WaitForSeconds          _tickWait      = null;
@@ -57,9 +62,35 @@ namespace Geumeum.Network
         /// <summary> 이탈자를 기다리며 세계가 얼어 있다. 시계도 멈춘다 </summary>
         public bool IsPaused => _isPaused;
 
-        public float      ElapsedSeconds => _elapsedSeconds;
-        public RunPhase   Phase          => _phase;
-        public RunOutcome Outcome        => _outcome;
+        /// <summary> 필드 구간의 경과 시간(초). 보스전에서는 더 이상 늘지 않는다 </summary>
+        public float ElapsedSeconds => _elapsedSeconds;
+
+        /// <summary> 보스전 경과 시간(초). 보스 시계가 시작하기 전에는 0이다 </summary>
+        public float BossElapsedSeconds => _bossElapsedSeconds;
+
+        /// <summary> 점수가 쓰는 기준 시간. 두 시계의 합이고 전실, 컷신, 이탈 대기는 들어가지 않는다 </summary>
+        public float ScoreElapsedSeconds => (_elapsedSeconds + _bossElapsedSeconds);
+
+        /****************************************
+        *           Interface Members
+        ****************************************/
+
+        // 결계, 스폰, 보스, UI가 이 클래스를 직접 참조하지 않고 시간을 읽는 창구다.
+        // 값은 SyncVar라 클라이언트에서도 같은 답이 나온다
+        double IRunTimeSource.FieldElapsedSeconds    => _elapsedSeconds;
+        double IRunTimeSource.BossElapsedSeconds     => _bossElapsedSeconds;
+        double IRunTimeSource.GameplayElapsedSeconds => ScoreElapsedSeconds;
+
+        /// <summary>
+        /// 지금 걸려 있는 정지 사유.
+        ///
+        /// 아직 사유가 하나뿐이라 bool 하나에서 옮겨 적는다. 사유를 여럿 관리하는 것은
+        /// 씬 전환과 보스 연출이 들어오는 시점의 일이고, 그때 이 프로퍼티의 안쪽만 바뀐다
+        /// </summary>
+        public RunPauseReason PauseReasons => (_isPaused ? RunPauseReason.ParticipantMissing : RunPauseReason.None);
+
+        public RunPhase   Phase   => _phase;
+        public RunOutcome Outcome => _outcome;
 
         /// <summary> 드랍 가중치, 잡귀 강화 배수의 키. Phase에서 파생되므로 따로 동기화하지 않는다 </summary>
         public int FieldLevel
@@ -83,6 +114,11 @@ namespace Geumeum.Network
         /****************************************
         *              Unity Event
         ****************************************/
+
+        // 로케이터 등록을 서버 콜백에 두면 클라이언트에는 구현이 없어 UI가 시간을 읽지 못한다.
+        // 결계가 같은 이유로 OnEnable에서 등록한다
+        private void OnEnable()  => RunTimeLocator.Register(this);
+        private void OnDisable() => RunTimeLocator.Unregister(this);
 
         private void Awake()
         {
@@ -173,9 +209,12 @@ namespace Geumeum.Network
             _runStartServerTime     = NetworkTime.time;
             _previousElapsedSeconds = 0f;
             _elapsedSeconds         = 0f;
+            _bossElapsedSeconds     = 0f;
+            _bossStartServerTime    = 0.0;
+            _hasBossClockStarted    = false;
             _outcome                = RunOutcome.None;
 
-            AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(true);
+            SetSimulationEnabled(true);
 
             CommitPhase(firstPhase);
             StartTick();
@@ -202,7 +241,7 @@ namespace Geumeum.Network
             CommitPhase(RunPhase.Result);
 
             // 등록은 그대로 두고 이동, AI, 자원 회복 tick만 멈춘다. 새 런 시작 때만 다시 켠다
-            AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(false);
+            SetSimulationEnabled(false);
 
             StartReturnToLobby();
             return true;
@@ -224,7 +263,7 @@ namespace Geumeum.Network
             _pauseStartServerTime = NetworkTime.time;
 
             StopTick();
-            AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(false);
+            SetSimulationEnabled(false);
 
             Debug.Log($"[RunManager] 런을 일시정지했다: {reason}, phase={_phase}, 경과={_elapsedSeconds:F1}초");
             return true;
@@ -239,15 +278,34 @@ namespace Geumeum.Network
                 return false;
             }
 
-            // 시계는 NetworkTime.time에서 역산하므로, 시작 시각을 멈춘 만큼 미뤄야 경과 시간이 그대로다
-            _runStartServerTime += (NetworkTime.time - _pauseStartServerTime);
+            // 시계는 NetworkTime.time에서 역산하므로, 시작 시각을 멈춘 만큼 미뤄야 경과 시간이 그대로다.
+            // 두 시계를 함께 밀지 않으면 보스전에서 멈췄다 돌아왔을 때 그만큼 제한이 줄어든다
+            double pausedSeconds = NetworkTime.time - _pauseStartServerTime;
+
+            if (_hasBossClockStarted)
+            {
+                _bossStartServerTime += pausedSeconds;
+            }
+
+            _runStartServerTime  += pausedSeconds;
             _pauseStartServerTime = 0.0;
             _isPaused             = false;
 
-            AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(true);
+            SetSimulationEnabled(true);
             StartTick();
 
-            Debug.Log($"[RunManager] 런을 재개했다: phase={_phase}, 경과={_elapsedSeconds:F1}초");
+            // 런 시계 말고도 절대 시각으로 잡아 둔 타이머가 있다. 그쪽은 여기서 직접 만지지 않고
+            // 밀린 양만 알린다 - 관전 30초처럼 얼마나 남았는지가 중요한 값은 각자 소유자가 민다
+            if (!GameEventBus.HasInstance)
+            {
+                Debug.LogError("[RunManager] GameEventBus가 없어 재개를 알리지 못했다, 관전 타이머가 어긋난다", this);
+            }
+            else
+            {
+                GameEventBus.Instance.Publish(new RunResumedEvent(pausedSeconds));
+            }
+
+            Debug.Log($"[RunManager] 런을 재개했다: phase={_phase}, 경과={_elapsedSeconds:F1}초, 멈춘 시간={pausedSeconds:F1}초");
             return true;
         }
 
@@ -259,6 +317,26 @@ namespace Geumeum.Network
             {
                 Debug.Log($"[RunManager] 런 중단: {reason}");
             }
+        }
+
+        /// <summary>
+        /// 보스 구간을 열고 보스 시계를 시작한다.
+        ///
+        /// 지금은 필드 상한에 닿았을 때 여기서 바로 넘어간다. 씬 전환 소유자가 생기면
+        /// 전실을 지나 마당에 진입한 것을 확인한 뒤 그쪽이 이 메서드를 부른다 -
+        /// 로딩과 전실 대기가 보스 14분에 들어가면 안 되기 때문이다
+        /// </summary>
+        [Server]
+        public bool ServerBeginBossPhase()
+        {
+            if ((_phase == RunPhase.Lobby) || (_phase == RunPhase.Result) || (_phase == RunPhase.Boss))
+            {
+                return false;
+            }
+
+            CommitPhase(RunPhase.Boss);
+            ServerStartBossClock();
+            return true;
         }
 
         /// <summary> 같은 씬에서 서버가 재시작해도 이전 런의 phase, 시각, outcome이 남지 않게 한다 </summary>
@@ -273,8 +351,11 @@ namespace Geumeum.Network
             _isPaused               = false;
             _pauseStartServerTime   = 0.0;
             _elapsedSeconds         = 0f;
+            _bossElapsedSeconds     = 0f;
             _previousElapsedSeconds = 0f;
             _runStartServerTime     = 0.0;
+            _bossStartServerTime    = 0.0;
+            _hasBossClockStarted    = false;
         }
 
         /// <summary>
@@ -293,12 +374,15 @@ namespace Geumeum.Network
             StopReturnToLobby();
 
             _elapsedSeconds         = 0f;
+            _bossElapsedSeconds     = 0f;
             _previousElapsedSeconds = 0f;
             _runStartServerTime     = 0.0;
+            _bossStartServerTime    = 0.0;
+            _hasBossClockStarted    = false;
 
             // TryFinishRun이 껐던 시뮬레이션을 여기서 되돌린다. 켜는 곳이 StartRun과 ResumeRun뿐이면
             // 로비로 돌아온 순간부터 다음 런이 시작될 때까지 이동, 스태미나 회복이 서버에서 죽어 있다
-            AuthorityTickScheduler.ServerInstance?.SetSimulationEnabled(true);
+            SetSimulationEnabled(true);
 
             SetPhase(RunPhase.Lobby);
 
@@ -312,13 +396,47 @@ namespace Geumeum.Network
                 manager.UnlockAdmission();
             }
 
-            LobbyController.ServerInstance?.ServerResetForNewRun();
+            LobbyController lobby = LobbyController.ServerInstance;
+            if (lobby != null)
+            {
+                lobby.ServerResetForNewRun();
+            }
+
             Debug.Log("[RunManager] 로비로 복귀했다, 입장 잠금 해제");
         }
 
         /****************************************
         *                Methods
         ****************************************/
+
+        // 스케줄러는 씬에 없을 수도 있고 종료 중에 파괴되기도 한다. Unity 오브젝트라 == null로 봐야
+        // 파괴된 뒤를 걸러낸다
+        private static void SetSimulationEnabled(bool isEnabled)
+        {
+            AuthorityTickScheduler scheduler = AuthorityTickScheduler.ServerInstance;
+            if (scheduler == null)
+            {
+                return;
+            }
+
+            scheduler.SetSimulationEnabled(isEnabled);
+        }
+
+        // 보스 시계를 연다. 두 번 부르면 이미 흐른 시간이 0으로 돌아가므로 첫 호출만 받는다
+        [Server]
+        private void ServerStartBossClock()
+        {
+            if (_hasBossClockStarted)
+            {
+                return;
+            }
+
+            _bossStartServerTime = NetworkTime.time;
+            _hasBossClockStarted = true;
+            _bossElapsedSeconds  = 0f;
+
+            Debug.Log("[RunManager] 보스 시계를 시작했다: 필드 경과=" + _elapsedSeconds.ToString("F1") + "초");
+        }
 
         private void StartReturnToLobby()
         {
@@ -363,36 +481,84 @@ namespace Geumeum.Network
             _tickRoutine = null;
         }
 
-        // 경과 시간을 누적하지 않고 서버 시각에서 매번 환산한다, 틱이 밀려도 시계가 어긋나지 않는다
+        // 경과 시간을 누적하지 않고 서버 시각에서 매번 환산한다, 틱이 밀려도 시계가 어긋나지 않는다.
+        // 필드 상한에 닿으면 실패가 아니라 보스 구간으로 넘어가고, 그 뒤로는 보스 시계를 센다
         private IEnumerator CoServerTick()
         {
-            float runTimeLimitSeconds = GameDB.Barrier.RunTimeLimitSeconds;
+            float fieldTimeLimitSeconds = GameDB.Barrier.FieldTimeLimitSeconds;
+            float bossTimeLimitSeconds  = GameDB.Boss.BossTimeLimitSeconds;
 
             while (_phase != RunPhase.Result)
             {
-                float elapsedSeconds = (float) (NetworkTime.time - _runStartServerTime);
-                bool  isTimeUp       = (elapsedSeconds >= runTimeLimitSeconds);
-                if (isTimeUp)
+                if (_phase == RunPhase.Boss)
                 {
-                    elapsedSeconds = runTimeLimitSeconds;
+                    if (ServerTickBossClock(bossTimeLimitSeconds))
+                    {
+                        break;
+                    }
+
+                    yield return _tickWait;
+                    continue;
                 }
 
-                AdvancePhases(elapsedSeconds);
-
-                _previousElapsedSeconds = elapsedSeconds;
-                _elapsedSeconds         = elapsedSeconds;
-
-                // TODO(민성): 보스 사망으로도 Result에 들어가야 한다, 보스 파트 연결 시 추가
-                if (isTimeUp)
-                {
-                    TryFinishRun(RunOutcome.TimeExpired);
-                    break;
-                }
+                ServerTickFieldClock(fieldTimeLimitSeconds);
 
                 yield return _tickWait;
             }
 
             _tickRoutine = null;
+        }
+
+        // 필드 시계. 상한에 닿으면 실패가 아니라 보스 구간으로 넘긴다
+        [Server]
+        private void ServerTickFieldClock(float fieldTimeLimitSeconds)
+        {
+            float elapsedSeconds = (float) (NetworkTime.time - _runStartServerTime);
+            bool  isFieldOver    = (elapsedSeconds >= fieldTimeLimitSeconds);
+            if (isFieldOver)
+            {
+                elapsedSeconds = fieldTimeLimitSeconds;
+            }
+
+            AdvancePhases(elapsedSeconds);
+
+            _previousElapsedSeconds = elapsedSeconds;
+            _elapsedSeconds         = elapsedSeconds;
+
+            if (isFieldOver)
+            {
+                ServerBeginBossPhase();
+            }
+        }
+
+        // 보스 시계. 상한에 닿으면 실패로 끝낸다, 끝냈으면 true
+        [Server]
+        private bool ServerTickBossClock(float bossTimeLimitSeconds)
+        {
+            // 보스 구간인데 시계가 아직 없으면 여기서 연다.
+            // 씬 전환이 붙기 전의 Dev 경로와 서버 재시작 bootstrap이 이 자리를 지난다
+            if (!_hasBossClockStarted)
+            {
+                ServerStartBossClock();
+            }
+
+            float bossElapsedSeconds = (float) (NetworkTime.time - _bossStartServerTime);
+            bool  isTimeUp           = (bossElapsedSeconds >= bossTimeLimitSeconds);
+            if (isTimeUp)
+            {
+                bossElapsedSeconds = bossTimeLimitSeconds;
+            }
+
+            _bossElapsedSeconds = bossElapsedSeconds;
+
+            // TODO(민성): 보스 사망으로도 Result에 들어가야 한다, 보스 파트 연결 시 추가
+            if (!isTimeUp)
+            {
+                return false;
+            }
+
+            TryFinishRun(RunOutcome.TimeExpired);
+            return true;
         }
 
         // 틱 한 번에 경계를 여러 개 지나갔으면 정의된 순서로 각각 한 번씩 전환한다

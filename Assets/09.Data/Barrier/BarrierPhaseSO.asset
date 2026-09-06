@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e2fcd3433826054e87bf988e1aa4950, type: 3}
   m_Name: BarrierPhaseSO
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.BarrierPhaseSO
-  _runTimeLimitSeconds: 2400
+  _fieldTimeLimitSeconds: 1800
   _maxRadius: 400
   _shrinkDuration: 30
   _warningLeadTime: 10
