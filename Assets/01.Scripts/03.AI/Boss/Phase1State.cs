@@ -337,6 +337,7 @@ namespace Geumeum.AI
 
             _activeParried = true;
             _controller.RpcCancelTelegraph(_activeAttackInstanceId);
+            _controller.ServerReduceGroggyGauge(CharacterKind.Chasa); // 검 사용자만 패링에 성공할 수 있다
         }
 
         private void TryOpenParryWindow(BossPatternSO.PatternEntry pattern)

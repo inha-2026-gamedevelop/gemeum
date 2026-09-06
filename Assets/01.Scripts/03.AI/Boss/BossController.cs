@@ -24,6 +24,18 @@ namespace Geumeum.AI
     public class BossController : NetworkBehaviour
     {
         /****************************************
+        *                Types
+        ****************************************/
+
+        // 그로기 게이지, 그로기, 면역은 페이즈와 무관하게 보스 전체에 걸리는 상태라 여기서 관리한다
+        private enum GroggyPhase
+        {
+            Active, // 평상시, 카운터가 게이지를 깎는다
+            Groggy, // 게이지 0 도달, 패턴 발동을 멈춘다
+            Immune, // 그로기 종료 직후, 게이지는 최대치지만 카운터가 안 먹는다
+        }
+
+        /****************************************
         *                Fields
         ****************************************/
 
@@ -40,6 +52,10 @@ namespace Geumeum.AI
         private int                _playerLayerMask;
         private uint               _nextAttackInstanceId = 0;
         private readonly Collider[] _targetScanBuffer = new Collider[TARGET_SCAN_BUFFER_SIZE];
+
+        private GroggyPhase _groggyPhase      = GroggyPhase.Active;
+        private float       _groggyGauge      = 0f;
+        private float       _groggyStateTimer = 0f;
 
         /****************************************
         *              Unity Event
@@ -58,6 +74,8 @@ namespace Geumeum.AI
         {
             _status.Initialize();
             _status.Died += HandleDied;
+
+            _groggyGauge = GameDB.Boss.GroggyGaugeMax;
 
             _currentPhaseIndex = 1;
             _currentPhaseState = CreatePhaseState(_currentPhaseIndex);
@@ -110,6 +128,7 @@ namespace Geumeum.AI
                 return;
             }
 
+            TickGroggyState(deltaTime);
             CommitPendingPhaseTransitions();
 
             _targetScanTimer += deltaTime;
@@ -119,7 +138,41 @@ namespace Geumeum.AI
                 RefreshTarget();
             }
 
+            if (_groggyPhase == GroggyPhase.Groggy)
+            {
+                return; // 그로기 중엔 패턴을 새로 고르거나 발동하지 않는다
+            }
+
             _currentPhaseState.Tick(deltaTime);
+        }
+
+        /// <summary>
+        /// 그로기, 면역 구간의 시간 경과만 담당한다. 게이지를 0으로 만드는 것은
+        /// ServerReduceGroggyGauge다, 여기서는 시간만 흐른다
+        /// </summary>
+        [Server]
+        private void TickGroggyState(float deltaTime)
+        {
+            switch (_groggyPhase)
+            {
+                case GroggyPhase.Groggy:
+                    _groggyStateTimer += deltaTime;
+                    if (_groggyStateTimer >= GameDB.Boss.GroggyDuration)
+                    {
+                        _groggyPhase      = GroggyPhase.Immune;
+                        _groggyStateTimer = 0f;
+                        _groggyGauge      = GameDB.Boss.GroggyGaugeMax;
+                    }
+                    break;
+                case GroggyPhase.Immune:
+                    _groggyStateTimer += deltaTime;
+                    if (_groggyStateTimer >= GameDB.Boss.GroggyImmunityDuration)
+                    {
+                        _groggyPhase      = GroggyPhase.Active;
+                        _groggyStateTimer = 0f;
+                    }
+                    break;
+            }
         }
 
         [Server]
@@ -213,6 +266,51 @@ namespace Geumeum.AI
         internal void ServerBeginTelegraph(BossTelegraphCue cue)
         {
             RpcBeginTelegraph(cue);
+        }
+
+        /// <summary>
+        /// 카운터 1회가 그로기 게이지를 깎는다. 그로기, 면역 중에는 먹지 않는다.
+        /// 지금은 차사 패링 성공만 이 경로를 탄다 - 검 사용자만 패링에 성공할 수 있으므로
+        /// 호출부에서 캐릭터 종류를 따로 조회하지 않고 CharacterKind.Chasa를 고정으로 넘긴다.
+        /// TODO: 신궁 시전 취소, 무녀 표식 공명 카운터는 각 파트 이벤트 연결 후 추가한다
+        /// </summary>
+        [Server]
+        internal void ServerReduceGroggyGauge(CharacterKind character)
+        {
+            if (_groggyPhase != GroggyPhase.Active)
+            {
+                return;
+            }
+
+            if (!GameDB.Boss.TryGetGaugeReduction(character, out float amount))
+            {
+                return;
+            }
+
+            _groggyGauge = Mathf.Max(_groggyGauge - amount, 0f);
+            if (_groggyGauge <= 0f)
+            {
+                EnterGroggy();
+            }
+        }
+
+        /// <summary>
+        /// TODO: 진행 중이던 공격 취소, 패링 창 닫기는 후속 슬라이스에서 채운다.
+        /// 지금은 진행 중이던 공격이 자연스럽게 끝난 뒤 다음 Idle 전환부터 멈춘다
+        /// </summary>
+        [Server]
+        private void EnterGroggy()
+        {
+            _groggyPhase      = GroggyPhase.Groggy;
+            _groggyStateTimer = 0f;
+            RpcGroggyEnter();
+        }
+
+        /// <summary> 그로기 진입 연출. 로컬 표현이라 각 클라이언트가 자기 화면에서 재생한다 </summary>
+        [ClientRpc]
+        private void RpcGroggyEnter()
+        {
+            CombatFeedbackLocator.Current.PlayGroggyEnter();
         }
 
         /// <summary>
