@@ -59,7 +59,7 @@ namespace Geumeum.Systems
             }
         }
 
-        // 목표 중심은 아직 원점 고정이다 — RunManager(다른 파트 소유)의 시작점·보스점 SyncVar 확정이 선행 조건
+        // 중심은 매 단계 RollTargetCenter가 이전 원 안에서 무작위로 고른 지점이다 — 고정 경로가 아니다
         public Vector3 Center => BarrierJudge.GetCenter(_transitionState, NetworkTime.time);
 
         public float Radius => BarrierJudge.GetRadius(_transitionState, NetworkTime.time);
@@ -153,21 +153,44 @@ namespace Geumeum.Systems
             bool  hasEntry    = GameDB.Barrier.TryGetPhase(phase, out BarrierPhaseSO.PhaseEntry entry);
             float targetRadius = hasEntry ? (entry.RadiusRatio * GameDB.Barrier.MaxRadius) : 0f;
 
-            double now = NetworkTime.time;
+            Vector3 previousCenter = _transitionState.TargetCenter;
+            float   previousRadius = _transitionState.TargetRadius;
+            Vector3 targetCenter   = RollTargetCenter(previousCenter, previousRadius, targetRadius);
 
-            // 중심은 원점 고정이다 — 시작점→보스점 보간은 RunManager의 지점 SyncVar가 생긴 뒤 채운다
+            double now = NetworkTime.time;
             _transitionState = new BarrierTransitionState
             {
-                FromCenter      = _transitionState.TargetCenter,
-                TargetCenter    = Vector3.zero,
-                FromRadius      = _transitionState.TargetRadius,
+                FromCenter      = previousCenter,
+                TargetCenter    = targetCenter,
+                FromRadius      = previousRadius,
                 TargetRadius    = targetRadius,
                 StartServerTime = now,
                 EndServerTime   = now + GameDB.Barrier.ShrinkDuration,
                 Revision        = _transitionState.Revision + 1,
             };
 
+            // 실제 RunManager 이벤트와 디버그 강제 전환 양쪽 다 여기를 거치므로, 로그도 한 곳에서만 찍는다
+            Debug.Log($"[BarrierController] phase 전환: {_currentPhase} -> {phase}, 반경 {previousRadius:F1}m -> {targetRadius:F1}m, 중심 {previousCenter} -> {targetCenter}", this);
+
             _currentPhase = phase;
+        }
+
+        // 팀장 확정(2026-09-06 구두) — 결계는 고정된 보스 지점으로 수렴하지 않고, 매 단계 이전 원 안의
+        // 아직 좁혀지지 않은 영역에서 무작위로 다음 중심을 고른다. 새 원이 이전 원을 벗어나지 않도록
+        // 반경 차이(previousRadius - targetRadius) 안에서만 오프셋을 굴린다 — 그러면 새 원이 항상
+        // 이전 원에 완전히 포함된다. 01-system-design.md 2.1.1(고정 시작점→보스점 수렴)과는 다른 방식이니
+        // 문서 갱신이 필요하다.
+        // 순수 계산 함수라 [Server]를 달지 않는다 — 호출부인 ServerCommitPhase가 이미 서버 전용이다
+        private static Vector3 RollTargetCenter(Vector3 previousCenter, float previousRadius, float targetRadius)
+        {
+            float maxOffset = Mathf.Max(previousRadius - targetRadius, 0f);
+            if (maxOffset <= 0f)
+            {
+                return previousCenter;
+            }
+
+            Vector2 offset = Random.insideUnitCircle * maxOffset;
+            return previousCenter + new Vector3(offset.x, 0f, offset.y);
         }
 
         // AuthorityTickScheduler가 물리 스텝마다 호출한다. 최대 3명만 순회하고, 밖에 있는 대상에게만
