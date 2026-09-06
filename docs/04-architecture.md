@@ -109,7 +109,7 @@ Assets/
 
 | 씬 (`00.Scenes/Release/`) | 상태 | 네트워크 | 역할 · 소유 |
 |---|---|---|---|
-| `Boot.unity` 프리워밍 | **현재(빈 껍데기)** | 오프라인 | `GameDBBootstrap`, 셰이더·프리팹 워밍. **영속 매니저를 여기서 만든다** |
+| `Boot.unity` 프리워밍 | **현재(세션 매니저 배치)** | 오프라인 | `@Network` · `@Managers` · `@Diagnostics` 프리팹 인스턴스. 부트 검증기 Main 프로필 통과. 셰이더·프리팹 워밍은 미착수 |
 | `Title.unity` 게임시작 | **현재(빈 껍데기)** | 오프라인. Mirror `offlineScene` | 타이틀 UI, 호스트·참가 진입. 현재 `Dev_Title`이 원형 |
 | `Lobby.unity` 로비 | **현재(빈 껍데기)** | 온라인. Mirror `onlineScene` | `LobbyController` · `LobbyRoster`. 현재 `Dev_Lobby`가 원형 |
 | `Field.unity` 파밍 | **현재(빈 껍데기)** | 온라인 | `SpawnManager` · `BarrierController` · 클러스터 · 객주. **`Main.unity`가 이 역할을 이어받는다** |
@@ -413,6 +413,12 @@ Main.unity
 ├ LobbyRoleAllocator.cs    C#  무기 셔플과 외형 충돌 해결만 담는 순수 계산기. Mirror와
 │                              UnityEngine에 의존하지 않아 접속 없이 결과를 검증할 수 있다.
 │                              이미 가진 무기·외형은 보존해 재접속 후에도 직업이 바뀌지 않는다
+├ RunSceneDirector.cs      NB  [현재] 씬 전환 소유자. Freezing -> Capturing -> Loading ->
+│                              WaitingForParticipant -> Binding -> Restoring -> Committing.
+│                              전환 중에는 SceneTransition 정지 사유를 걸어 판정을 멈춘다.
+│                              참가자 식별은 연결 번호가 아니라 인증기의 PlatformId를 쓴다
+├ SessionPersistence.cs    MB  [현재] 붙은 오브젝트를 DontDestroyOnLoad로 옮긴다.
+│                              이것이 없으면 씬이 바뀔 때마다 런 매니저가 새로 생겨 런 상태를 잃는다
 ├ RunManager.cs            NB  런 상태 머신 + 경과 시간 → 5장. 프로젝트의 심장
 ├ RunPhase.cs              C#  enum { Lobby, Farming, Shrink1, Shrink2, Shrink3, Boss, Result }
 │                              직렬화되므로 명시값 고정, 재배열 금지
@@ -836,7 +842,12 @@ Assets/09.Data/
 ```
 Assets/02.Prefabs/
 ├ Network/
-│  └ Player.prefab            NetworkManager 등록 플레이어 프리팹 → 구성 아래 참조
+│  ├ Player.prefab            NetworkManager 등록 플레이어 프리팹 → 구성 아래 참조
+│  ├ SessionNetwork.prefab    @Network. NetworkManager · 트랜스포트 · 인증기 · Steam
+│  ├ SessionManagers.prefab   @Managers. NetworkIdentity 하나에 GameDBBootstrap · GameEventBus ·
+│  │                          LobbyController · RunManager · AuthorityTickScheduler · LobbyRoster ·
+│  │                          LobbyRoleCoordinator · RunSceneDirector · SessionPersistence
+│  └ SessionDiagnostics.prefab @Diagnostics. FrameRecorder · SessionPersistence
 ├ Enemy/
 │  ├ Heokkaebi / Changgwi / Aekgwi.prefab    잡귀 3종 (서버 스폰)
 │  ├ CurseProjectile.prefab   액귀 투사체 (서버 스폰)
