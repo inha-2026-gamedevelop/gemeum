@@ -189,6 +189,8 @@ namespace Geumeum.Systems
 
             _nextDamageServerTime = now + GameDB.Barrier.DamageTickInterval;
 
+            EnsureTargetAdaptersRegistered();
+
             if (!GameDB.Barrier.TryGetPhase(_currentPhase, out BarrierPhaseSO.PhaseEntry entry))
             {
                 return;
@@ -217,6 +219,29 @@ namespace Geumeum.Systems
                 }
 
                 target.TakeDamage(DamageInfo.FromEnvironment(damageAmount));
+            }
+        }
+
+        // Player.prefab(다른 파트 소유)을 건드리지 않으려고, 접속자 오브젝트에 서버가 직접 어댑터를 붙인다.
+        // BarrierTargetAdapter는 NetworkBehaviour가 아닌 순수 MonoBehaviour라 AddComponent가 스폰 동기화에 관여하지 않는다.
+        // 1초 피해 tick 안에서만 호출해 매 프레임 GetComponent를 반복하지 않는다
+        [Server]
+        private void EnsureTargetAdaptersRegistered()
+        {
+            foreach (KeyValuePair<int, NetworkConnectionToClient> pair in NetworkServer.connections)
+            {
+                NetworkIdentity identity = pair.Value?.identity;
+                if (identity == null)
+                {
+                    continue;
+                }
+
+                if (identity.gameObject.GetComponent<BarrierTargetAdapter>() != null)
+                {
+                    continue;
+                }
+
+                identity.gameObject.AddComponent<BarrierTargetAdapter>();
             }
         }
 

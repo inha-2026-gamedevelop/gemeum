@@ -1,25 +1,26 @@
 // Unity
 using UnityEngine;
 
-// 서드파티
-using Mirror;
-
 // 프로젝트 내부
 using Geumeum.Common;
 
 namespace Geumeum.Systems
 {
     /// <summary>
-    /// 플레이어 루트의 IDamageable/IRecoveryTarget을 초기화 시점에 한 번 캐싱해 결계 서버 registry에 등록한다.
-    /// BarrierController의 서버 피해 tick이 매 틱 GetComponent/Find를 반복하지 않도록 이 어댑터가 대신 캐싱을 갖고 있는다
+    /// 플레이어 루트의 IDamageable을 초기화 시점에 한 번 캐싱해 결계 서버 registry에 등록한다.
+    /// BarrierController의 서버 피해 tick이 매 틱 GetComponent/Find를 반복하지 않도록 이 어댑터가 대신 캐싱을 갖고 있는다.
+    ///
+    /// NetworkBehaviour가 아니라 순수 MonoBehaviour다 — 어차피 registry는 서버 프로세스 안에서만 의미가 있고,
+    /// BarrierController가 서버에서 접속자 오브젝트에 직접 AddComponent로 붙인다(3.2.1절). NetworkBehaviour였다면
+    /// Player.prefab에 미리 박아둬야 하고, 다른 파트 소유 프리팹을 승인 없이 건드리게 된다
     /// </summary>
-    public class BarrierTargetAdapter : NetworkBehaviour
+    public class BarrierTargetAdapter : MonoBehaviour
     {
         /****************************************
         *                Fields
         ****************************************/
 
-        private IDamageable     _damageable;
+        private IDamageable _damageable;
 
         /****************************************
         *              Properties
@@ -28,11 +29,10 @@ namespace Geumeum.Systems
         public IDamageable Damageable => _damageable;
 
         /****************************************
-        *              Server Callbacks
+        *              Unity Event
         ****************************************/
 
-        // registry는 서버 피해 판정 전용이라 서버에서만 등록한다, 클라이언트에는 이 목록 자체가 없다
-        public override void OnStartServer()
+        private void Awake()
         {
             _damageable = GetComponent<IDamageable>();
 
@@ -45,7 +45,7 @@ namespace Geumeum.Systems
             BarrierTargetRegistry.Register(this);
         }
 
-        public override void OnStopServer()
+        private void OnDestroy()
         {
             BarrierTargetRegistry.Unregister(this);
         }
