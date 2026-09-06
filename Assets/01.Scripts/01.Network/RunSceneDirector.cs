@@ -80,6 +80,19 @@ namespace Geumeum.Network
             _waitArrivalPoll = new WaitForSeconds(ARRIVAL_POLL);
         }
 
+        // 씬 전환 중 Mirror 가 OnStopClient 를 부르면서 구독이 풀리고 다시 걸리지 않는다.
+        // 그러면 도착 통지가 한 번도 안 가고 매 전환이 타임아웃까지 기다린다.
+        // 이 오브젝트는 세션 내내 살아 있으므로 Mirror 수명이 아니라 자기 수명에 건다
+        private void OnEnable()
+        {
+            SceneManager.sceneLoaded += OnClientSceneLoaded;
+        }
+
+        private void OnDisable()
+        {
+            SceneManager.sceneLoaded -= OnClientSceneLoaded;
+        }
+
         public override void OnStartServer()
         {
             ServerInstance = this;
@@ -113,6 +126,12 @@ namespace Geumeum.Network
             {
                 LocalInstance = null;
             }
+        }
+
+        // 자기 로드가 끝난 것은 클라이언트 자신만 안다. 서버는 이 통지를 받아야 전원 도착을 판정한다
+        private void OnClientSceneLoaded(Scene loaded, LoadSceneMode mode)
+        {
+            ClientReportArrived();
         }
 
         /****************************************
@@ -369,18 +388,33 @@ namespace Geumeum.Network
             return participant.IsValid;
         }
 
+        /// <summary>
+        /// 전원이 새 씬에 도착했는가.
+        ///
+        /// Mirror가 씬을 옮길 때 모든 연결을 not ready로 내리고, 각자 로드를 마치면 다시 ready가 된다.
+        /// 그것이 곧 도착 신호라 따로 만들지 않는다 - 직접 만든 Command 는 전환 중 not ready 구간에
+        /// 걸려 한 번도 도달하지 못했다(실측: 도착 0으로 매번 타임아웃).
+        /// CmdReportArrived 는 보조 신호로 남겨 두고, 둘 중 하나만 와도 도착으로 친다
+        /// </summary>
         [Server]
         private bool ServerHasEveryoneArrived()
         {
             int expected = 0;
+            int arrived  = 0;
             foreach (KeyValuePair<int, NetworkConnectionToClient> pair in NetworkServer.connections)
             {
-                if (pair.Value == null)
+                NetworkConnectionToClient connection = pair.Value;
+                if (connection == null)
                 {
                     continue;
                 }
 
                 ++expected;
+
+                if ((connection.isReady) || (_arrivedConnections.Contains(connection.connectionId)))
+                {
+                    ++arrived;
+                }
             }
 
             if (expected == NO_CONNECTION)
@@ -388,7 +422,7 @@ namespace Geumeum.Network
                 return true;
             }
 
-            return (_arrivedConnections.Count >= expected);
+            return (arrived >= expected);
         }
 
         /// <summary> 클라이언트가 도착을 알린다. 세대가 어긋난 늦은 통지는 버린다 </summary>
@@ -405,7 +439,12 @@ namespace Geumeum.Network
                 return;
             }
 
-            if (_state != RunTransitionState.WaitingForParticipant)
+            // Loading 도 받는다. 서버가 자기 로드를 마치기 전에 끝낸 클라이언트가 있고,
+            // 호스트 자신의 통지는 항상 그 시점에 온다. WaitingForParticipant 만 받으면
+            // 매 전환이 도착 대기 타임아웃까지 간다
+            bool isAccepting = ((_state == RunTransitionState.Loading) ||
+                                (_state == RunTransitionState.WaitingForParticipant));
+            if (!isAccepting)
             {
                 return;
             }
