@@ -142,6 +142,7 @@ private void OnDisable() => BarrierStateLocator.Unregister(this);
 | `IsActive` | `RunPhase`가 `Farming`·`Shrink1`·`Shrink2`·`Shrink3`일 때만 `true`. `Lobby`·`Boss`·`Result`는 `false` |
 | `Center` · `Radius` | 보간 **중인 현재 값**. 전환 30초 동안 매 호출마다 다르다. `IsActive == false`면 의미 없음 — 호출부가 먼저 확인한다 |
 | `IsOutside(pos)` | XZ 평면 거리만. 높이는 보지 않는다. `IsActive == false`면 항상 `false` |
+| `IsOutsideTarget(pos)` | 같은 규칙이되 **확정된 목표 원**으로 판정한다. 몰이 대상 선정 전용이며 피해에 쓰지 않는다 |
 | `GetHealingMultiplier(pos)` | 아래 표 |
 
 **`Center`·`Radius`를 프레임을 넘겨 캐싱하지 않는다.** 전환 중에는 값이 계속 변한다. 한 프레임 안에서 여러 번 쓰려고 지역 변수에 받는 것은 된다.
@@ -165,10 +166,19 @@ private void OnDisable() => BarrierStateLocator.Unregister(this);
 
 [착수 계획 D6-b](../action-plan-2026-09-03.md)의 "결계 축소 시 밖의 잡귀를 안쪽으로 이동"은 **몬스터 파트가 구현**하되 판정은 여기를 쓴다.
 
+**2026-09-06 정정 — 어느 원으로 판정하느냐를 API로 가른다.** 이전 계약은 `RunPhaseChangedEvent`를 받은 순간 `IsOutside()`를 한 번 부르라는 것이었는데, **그 시점의 현재 원은 아직 거의 이전 원이다.** 30초에 걸쳐 줄어드는 중이므로 새 원 때문에 밀려날 잡귀를 대부분 놓친다.
+
+| 멤버 | 어느 원 | 쓰는 곳 |
+|---|---|---|
+| `IsOutsideTarget(pos)` | **확정된 목표 원.** 보간을 기다리지 않는다 | 몰이 대상 선정, 클러스터 활성 판정 |
+| `IsOutside(pos)` | **보간 중인 현재 원** | 실제 결계 피해, 회복 배수 |
+
 ```csharp
-// 03.AI — RunPhaseChangedEvent 를 받았을 때 한 번
-if (BarrierStateLocator.Current.IsOutside(enemy.position)) { /* 안쪽으로 이동 */ }
+// 03.AI — 축소 10초 전 경고 시점에 한 번. 목표 원으로 본다
+if (BarrierStateLocator.Current.IsOutsideTarget(enemy.position)) { /* 안쪽으로 이동 + 강화 */ }
 ```
+
+**강화는 전환 하나당 한 번이다.** `BarrierTransitionState.Revision`을 개체에 태그해 같은 전환에서 두 번 강화되지 않게 한다. 강화 시 현재 HP는 비율을 보존하고, **처치 보상 배수는 강화 시점 값을 개체에 기록해 사망 이벤트에 싣는다** ([게임 디자인 5.3](../02-game-design.md)).
 
 **직접 거리 계산 금지.** `SpawnManager`가 자기 XZ 규칙을 다시 구현하면 결계 중심이 움직일 때(D9) 어긋난다. 그리고 이 판정은 **서버에서만** 한다 — 잡귀 위치는 서버 권위다.
 
@@ -232,7 +242,7 @@ Command를 `ShopKeeper`에 `requiresAuthority = false`로 두지 않는다. 플�
 
 | 필드 | 타입 | 현재 기본값 후보 | 사용 |
 |---|---|---:|---|
-| `_runTimeLimitSeconds` | `float` | 2400초 | RunManager 제한 |
+| `_fieldTimeLimitSeconds` | `float` | **1800초** | 필드 구간 상한. 보스전은 여기에 이어 붙지 않고 자기 시계로 센다 |
 | `_maxRadius` | `float` | 400m, 맵 실측 필요 | `RadiusRatio == 1` |
 | `_shrinkDuration` | `float` | 30초 | 반경 전환 |
 | `_warningLeadTime` | `float` | 10초 | 경고 |
@@ -319,18 +329,37 @@ Command를 `ShopKeeper`에 `requiresAuthority = false`로 두지 않는다. 플�
 
 **물약:** 클라이언트는 슬롯 index를 보낸다. 서버가 종류와 수량, 생명 상태, 회복 봉쇄, HP/신력 부족 여부를 확인한 뒤 `IRecoveryTarget`에 적용하고 stack을 1 감소시킨다. 적용 실패 시 stack을 소비하지 않는다.
 
-**양도:** 클라이언트는 자기 슬롯 index와 대상 player netId를 보낸다. 서버가 자기 자신이 아닌지, 송신자 소유, 대상 접속/생존, 3m 거리, 대상 슬롯/동일 물약 stack 여유를 확인한다. 대상의 새 slot 값을 먼저 계산하고, 수신 slot Set 뒤 송신 slot을 Empty로 Set한다. 두 조작은 Unity 서버 메인 스레드의 한 호출 안에서 처리하며 예외 시 두 이전 값을 복원한다.
+**양도 (2026-09-06 개정) — 단방향 밀어넣기가 아니라 요청과 수락 두 단계다.** 이전 절차는 대상 슬롯에 곧바로 넣는 방식이었는데, [게임 디자인 6.5](../02-game-design.md)는 받는 쪽의 수락을 요구한다. 원치 않는 무기를 떠안기지 않기 위해서다.
+
+```
+TradeRequest { RequestId, FromNetId, ToNetId, FromSlotIndex, ItemInstanceId, ExpiresRunTime }
+```
+
+1. 보내는 쪽이 슬롯과 대상을 지정해 요청을 만든다. 서버가 아래 공통 조건을 검사하고 요청을 보관한 뒤 대상에게 알린다.
+2. 받는 쪽이 수락하면 **서버가 같은 조건을 처음부터 다시 검사한다.** 요청과 수락 사이에 거리가 벌어지거나 누가 죽거나 슬롯이 찼을 수 있다.
+3. 대상의 새 slot 값을 먼저 계산하고, 수신 slot Set 뒤 송신 slot을 Empty로 Set한다. 두 조작은 서버 메인 스레드의 한 호출 안에서 처리하며 예외 시 두 이전 값을 복원한다.
+4. 만료 시각이 지난 요청은 수락해도 거부한다. 아이템 인스턴스가 그 사이 사라졌으면 그것도 거부 사유다.
+
+**줍기 · 양도 · 구매는 같은 서버 조건을 쓴다.**
+
+```
+CanInteract(player, kind) = 생존  AND  거리  AND  (마지막으로 피해를 주거나 받은 지 5초 경과)
+```
+
+**협동 부활만 비전투 조건의 명시적 예외다.** 동료는 대부분 전투 한복판에서 쓰러지므로 여기에 비전투 조건을 걸면 "지금 파고들까, 물러설까"라는 결정 자체가 사라진다.
+
+**무기 교체가 이 경로를 지난다 (2026-09-06).** 런 중 편성이 자유로 확정되면서 양도와 장착이 실제로 직업을 바꾸는 수단이 된다. 교체 시 특성 포인트 무료 초기화와 패링 게이지 0을 함께 적용한다.
 
 ### 5.3 구매
 
 1. 클라이언트가 객주 UI에서 상품과, 권종이면 자기 장비 `instanceId`를 선택한다.
 2. `InteractionController.CmdBuy(requestId, shopNetId, kind, targetInstanceId)` 호출.
-3. 서버가 request ID, `RunPhase == ShopSO.OpenPhase`, 플레이어 생존/관전 아님, 상점과 3m 이내, 상품 존재를 검사한다.
+3. 서버가 request ID, `RunPhase == ShopSO.OpenPhase`, 플레이어 생존/관전 아님, 상점과 3m 이내, **마지막 전투로부터 5초 경과**, 상품 존재를 검사한다. 전투 시각 검증이 빠져 있었다 (2026-09-06 보강).
 4. 물약은 stack 여유, 권종은 대상 장비가 장착/인벤토리 중 어디에 있는지와 소유·등급/롤 가능 여부를 **지출 전에** 검사한다. RNG도 이때 굴려 이전/다음 slot 또는 weapon snapshot을 가진 불변 `ShopTransactionPlan`을 만든다.
 5. `CurrencyManager.TrySpend(serverPrice)`가 성공하면 plan의 이미 검증된 값 대입만 수행한다. 적용 중 예외가 나면 이전 snapshot/slot을 복원하고 `Refund(serverPrice)`한 뒤 fatal 로그와 `CommitFailed`를 반환한다.
 6. 서버가 갱신된 wallet/SyncList/snapshot을 동기화하고 해당 호출자에게 성공·실패 코드를 `TargetRpc`로 보낸다. 고정 ring 안의 동일 request ID는 이전 결과 코드만 재전송하고, 더 오래된 ID는 `DuplicateRequest`만 보내며 상태를 다시 바꾸지 않는다.
 
-실패 코드는 최소 `DuplicateRequest`, `WrongPhase`, `TooFar`, `Dead`, `UnknownItem`, `CarryLimit`, `NotOwner`, `InsufficientFunds`, `MaxGrade`, `InventoryFull`, `CommitFailed`로 구분한다. bool 하나만 보내면 UI와 로그가 실제 거부 원인을 설명할 수 없다.
+실패 코드는 최소 `DuplicateRequest`, `WrongPhase`, `TooFar`, `Dead`, `InCombat`, `UnknownItem`, `CarryLimit`, `NotOwner`, `InsufficientFunds`, `MaxGrade`, `InventoryFull`, `Expired`, `CommitFailed`로 구분한다. bool 하나만 보내면 UI와 로그가 실제 거부 원인을 설명할 수 없다.
 
 동시 구매는 서버 메인 스레드 도착 순서대로 처리한다. 두 요청이 같은 잔액을 본 뒤 각각 빼는 구조가 아니라 `TrySpend` 안에서 검사와 차감을 한 메서드로 수행한다.
 
@@ -339,7 +368,17 @@ Command를 `ShopKeeper`에 `requiresAuthority = false`로 두지 않는다. 플�
 1. `03-boss-design.md`에서 **기존 `EnemyDiedEvent`에 보강하기로 한** `ForEnemy/ForBoss` factory와 nullable kind 불변식을 먼저 구현한다. 그 뒤 `EnemyController`/`BossStatus`가 각 factory를 서버에서 한 번 호출한다. 현재 코드에는 factory가 없으므로 03의 Common 계약 보강이 이 단계의 선행 의존성이다.
 2. `DropDirector`는 일반 적이면 사망 시 현재 `RunManager.FieldLevel`을 다시 읽지 않고 event의 `FieldLevelAtSpawn`으로 `DropTableSO → EquipmentSO` 순서의 장비를 생성해 등록된 `DroppedItem` 프리팹을 서버 spawn한다. `RewardMultiplier`는 장비 등급 가중치에 곱하지 않고 3번의 화폐/경험치 소비자만 쓴다. 보스면 factory가 고정한 FieldLevel 3 snapshot으로 팀 보상 1회를 생성한다.
 3. `CurrencyManager`는 일반 적의 `EnemySO.CurrencyMin/Max * spawn 시점 RewardMultiplier`를 서버 RNG로 확정해 `TryCredit`한다. 보스 보상 화폐가 필요하면 별도 SO 필드가 확정되기 전에는 0으로 둔다.
-4. `ReviveController`는 사망 1회가 확정될 때 Common `PartyCurrencyLossRequestedEvent`를 발행한다. `CurrencyManager`는 `GameDB.Combat.ReviveCurrencyLossRatio`와 현재 잔액으로 손실액을 한 번 계산해 `ApplyLossRatio`하고 0 아래로 내리지 않는다.
+4. **재화 차감은 사망이 아니라 부활이 확정되는 순간이다 (2026-09-06 개정).** 이전 절차는 "사망 확정 때 20%"였는데, **사망 순간에는 자동으로 일어날지 동료가 일으켜 줄지 알 수 없다.** 비율이 자동 20%와 구조 10%로 다르므로 시점을 나눈다.
+
+   ```
+   사망 확정      -> 사망 통계 +1 (점수의 사망 감점과 무사망 보너스가 이것을 센다)
+   부활 확정      -> ReviveController가 방식별 비율로 PartyCurrencyLossRequestedEvent 발행
+                     자동 = GameDB.Combat.ReviveCurrencyLossRatio
+                     구조 = GameDB.Combat.RescueCurrencyLossRatio
+   전멸           -> 부활이 일어나지 않는다. 차감 없이 런이 실패로 끝난다
+   ```
+
+   `CurrencyManager`는 받은 비율과 현재 잔액으로 손실액을 한 번 계산해 `ApplyLossRatio`하고 0 아래로 내리지 않는다. **보스 최종 구간의 삼켜짐은 사망이 아니므로 통계에도 차감에도 들어가지 않는다** ([게임 디자인 10.4](../02-game-design.md)).
 5. `EnemyDiedEvent`, 부활 death instance ID, boss reward flag를 각각 dedupe한다. 이탈/중복 이벤트에도 장비·화폐·손실이 두 번 적용되지 않는다.
 
 ## 6. 단계별 구현 순서
