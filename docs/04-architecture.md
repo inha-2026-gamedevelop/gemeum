@@ -114,7 +114,7 @@ Assets/
 | `Lobby.unity` 로비 | **현재(빈 껍데기)** | 온라인. Mirror `onlineScene` | `LobbyController` · `LobbyRoster`. 현재 `Dev_Lobby`가 원형 |
 | `Field.unity` 파밍 | **현재(빈 껍데기)** | 온라인 | `SpawnManager` · `BarrierController` · 클러스터 · 객주. **`Main.unity`가 이 역할을 이어받는다** |
 | `BossEntrance.unity` 보스입장 | **현재(빈 껍데기)** | 온라인 | 전실. 전원 로드 확인과 트라이 편성 UI. 판정 없음 |
-| `Boss_Arena.unity` 보스 | **현재(빈 껍데기)** | 온라인 | 아레나 두 벌 · `BossSpawner`. 팀장 + 보스 담당자 공동 소유 |
+| `Boss_Arena.unity` 보스 | **현재(그레이박스)** | 온라인 | 아레나 두 벌 · 전실 · 날씨 · `BossSpawner`(미배치). 팀장 + 보스 담당자 공동 소유 |
 | `Result.unity` 게임종료 | **현재(빈 껍데기)** | 온라인 | 정산 UI. 런 결과 스냅샷만 읽는다 |
 
 **빌드 목록의 0번이 `Boot`으로 바뀌었다.** 이전에는 `Dev_Combat`이 0번이라 빌드한 실행 파일이 개발 씬에서 시작했다. 기존 Dev 씬 넷은 목록 뒤쪽에 그대로 남아 있어 이름으로 여는 경로가 끊기지 않는다.
@@ -181,10 +181,22 @@ Assets/
 
 ```
 Boss_Arena.unity
-├ Arena_Phase1   산속 사당 · 등불 · 담장      (시작 시 활성)
-├ Arena_Phase2   저승 물길 · 여우불 · 얼굴들   (시작 시 비활성)
-└ Shared         바닥 콜라이더 · NavMesh · 스폰 마커
+├ Shared         바닥(R=22) · NavMesh · 스폰 마커 · 게이트 · Staging(BossArenaPhaseView)
+├ Antechamber    전실 참배로 6x15 · 등불 2 · 빈 갓걸이 · 도착 마커 3
+├ Arena_Phase1   산속 사당 · 등불 12 · 담장 · Volume_P1      (시작 시 활성)
+├ Arena_Phase2   저승 물길 · 여우불 14 · 무너진 돌 · Volume_P2 (시작 시 비활성)
+├ Weather        WeatherMaker 구동체. 프리팹이라 부모를 가질 수 없어 루트에 둔다
+└ ArenaCam       그레이박스 확인용 임시 카메라. 플레이어 카메라가 붙으면 정리 대상
 ```
+
+**2026-09-06 현재 그레이박스다.** 지오메트리는 프리미티브이고 사당 · 돌무더기 · 갓걸이 모델은 미조달이다.
+치수 · 조명 · 안개 · 포스트 프로세싱은 [보스 설계 14.1](unity/BOSS_DESIGN.md)과
+[보스 연출 설계 4장](unity/BOSS_STAGING_DESIGN.md) 기준으로 들어가 있고 Play 모드에서 관찰했다.
+`BossSpawner`는 아직 배치하지 않았다 — 보스 담당자 몫이다.
+
+**페이즈 전환은 루트 토글만으로 끝나지 않는다.** 안개 프로파일 · 하늘 프로파일 · 바닥 머티리얼 ·
+WeatherMaker 달 원반이 공용 루트에 있어 함께 갈아 끼워야 한다. `Shared/Staging`의
+`BossArenaPhaseView.ShowPhase()`가 그 다섯을 한 번에 처리한다(4.5장). 아직 부르는 곳이 없다.
 
 **전실은 두 진입 경로를 하나로 받는다.**
 
@@ -627,6 +639,9 @@ Main.unity
 ├ CombatFeedbackImpl.cs    MB  ICombatFeedback 구현체: 히트 이펙트, 셰이크, 패링 슬로우모션.
 │                              OnEnable/OnDisable에서 CombatFeedbackLocator에 등록·해제 → 8.3
 ├ ScreenEffects.cs         MB  저체력 · 결계 밖 · 쇠약 화면 효과
+├ Boss/                    [현재] 보스 아레나 연출
+│  └ BossArenaPhaseView.cs MB  페이즈 루트 · 안개 · 하늘 · 바닥 머티리얼 · 달 원반을 한 번에 교체.
+│                              판정에 관여하지 않는다. 서버 페이즈 신호에 연결하는 것은 미착수
 ├ Camera/                  [현재] → 카메라와 락온 사양
 │  ├ CameraRig.cs          MB  추적 · 충돌 · 셰이크 · 줌. LateUpdate.
 │  │                           Target이 바뀔 수 있어야 한다 — 관전 카메라가 같은 물건이다
@@ -790,8 +805,20 @@ Assets/09.Data/
 ├ Score/ScoreRuleSO.asset
 ├ DayCycle/DayCycleSO.asset
 ├ Sound/SoundCatalogSO.asset
-└ Camera/CameraConfigSO.asset ← 위 셋이 네트워크와 무관한 순수 로컬 리소스다
+├ Camera/CameraConfigSO.asset ← 위 셋이 네트워크와 무관한 순수 로컬 리소스다
+└ Weather/                   보스 아레나 연출 프로파일. GameDB가 아니라 렌더링 리소스다
+   ├ WM_Profile_Shrine.asset       1페이즈 안개 (WeatherMaker)
+   ├ WM_Profile_Underworld.asset   2페이즈 안개
+   ├ WM_Sky_BossNight.asset        1페이즈 하늘 (별 있음)
+   ├ WM_Sky_BossUnderworld.asset   2페이즈 하늘 (별 없음)
+   ├ WM_DayNight_BossNight.asset   자정 고정, 시간 속도 0
+   ├ VP_BossArena_P1.asset         1페이즈 포스트 프로세싱 Volume
+   └ VP_BossArena_P2.asset         2페이즈 포스트 프로세싱 Volume
 ```
+
+`Weather/`는 `GameDB` 대상이 아니다. 밸런스 수치가 아니라 렌더링 리소스이고 `GameDatabaseSO`가 참조하지 않는다.
+**WeatherMaker 프로파일은 `99.ThirdParty`의 스크립트와 텍스처를 GUID로 참조한다** — 구글 드라이브를
+동기화하지 않은 사람은 안개와 별이 빠진 채로 열린다.
 
 `GameDBBootstrap`만 `Resources/GameDB.asset`을 로드해 `GameDB.Initialize()`를 호출한다.
 호출 시점은 `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]`로 **씬 로드보다 앞이다.** `@Managers`에는
