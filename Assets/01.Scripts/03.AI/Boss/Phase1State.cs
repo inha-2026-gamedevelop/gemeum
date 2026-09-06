@@ -11,11 +11,11 @@ using Geumeum.Data;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 1페이즈, 가르치는 판. 패턴 1(여우불 봉 3연격, 단일 타격 MVP), 패턴 3(순간 접근 3연계,
-    /// 단일 돌진 MVP), 패턴 4(여우불 낙인, MarkedCircle) 세 개가 돈다. 근접 거리면 MeleeArc,
-    /// 그 밖이면 TargetedDash가 후보에 들고, MarkedCircle은 거리와 무관하게 항상 후보에 낀다 -
-    /// 후보 중 무작위로 하나를 고른다(가중치 추첨은 아직 없다, 균등 추첨이다).
-    /// 마지막 템플릿(ConeBurst)은 이 슬라이스가 L2로 검증된 뒤 채운다
+    /// 1페이즈, 가르치는 판. 네 템플릿이 전부 돈다 - 패턴 1(여우불 봉 3연격, MeleeArc, 단일 타격
+    /// MVP), 패턴 3(순간 접근 3연계, TargetedDash, 단일 돌진 MVP), 패턴 4(여우불 낙인,
+    /// MarkedCircle), 패턴 5(여우 구슬 충격파, ConeBurst). 거리 대역별로 근접/중거리/원거리
+    /// 후보 하나씩과, 거리 무관인 MarkedCircle이 항상 낀다 - 후보 중 무작위로 하나를 고른다
+    /// (가중치 추첨은 아직 없다, 균등 추첨이다)
     /// </summary>
     public sealed class Phase1State : BossPhaseStateBase
     {
@@ -37,6 +37,7 @@ namespace Geumeum.AI
             MeleeArc,
             TargetedDash,
             MarkedCircle,
+            ConeBurst,
         }
 
         /****************************************
@@ -46,9 +47,10 @@ namespace Geumeum.AI
         private const int MELEE_ARC_PATTERN_ID     = 1; // 여우불 봉 3연격
         private const int TARGETED_DASH_PATTERN_ID = 3; // 순간 접근 3연계
         private const int MARKED_CIRCLE_PATTERN_ID = 4; // 여우불 낙인
-        // 위 셋 다 GameDB.Boss._patterns의 PatternId와 맞춘다
+        private const int CONE_BURST_PATTERN_ID    = 5; // 여우 구슬 충격파
+        // 위 넷 다 GameDB.Boss._patterns의 PatternId와 맞춘다
 
-        private const int MAX_CANDIDATE_COUNT = 3; // 지금 있는 템플릿 수만큼, 늘어나면 같이 늘린다
+        private const int MAX_CANDIDATE_COUNT = 4; // 지금 있는 템플릿 수만큼, 늘어나면 같이 늘린다
 
         // TODO: BossPatternSO.PatternEntry에 템플릿별 필드(Range, AngleDegrees, DashSpeed 등)가
         // 생기면 SO로 옮긴다. 지금은 스키마가 00.Common 공용 파일이라 팀장 확인 없이 필드를
@@ -62,6 +64,9 @@ namespace Geumeum.AI
         private const float DASH_HIT_RADIUS = 1.2f; // m, 돌진 도착 지점 명중 판정 반경
 
         private const float MARKED_CIRCLE_RADIUS = 3.5f; // m, 1페이즈 낙인 반경
+
+        private const float CONE_RANGE         = 9f;  // m, 충격파 사거리
+        private const float CONE_ANGLE_DEGREES = 60f; // 도, 충격파 부채꼴 전체 각도
 
         /****************************************
         *                Fields
@@ -80,6 +85,7 @@ namespace Geumeum.AI
         private Transform                  _activeTarget;
         private BossPatternSO.PatternEntry _activePattern;
         private PatternKind                _activeKind;
+        private Vector3                    _lockedForward;  // 예고 시작 시점에 고정한 방향(방향 완전 잠금)
         private Vector3                    _dashDestination;
         private Vector3                    _markedCenter; // MarkedCircle 전용, 예고 시작 시점에 고정
         private uint                       _activeAttackInstanceId;
@@ -134,9 +140,15 @@ namespace Geumeum.AI
             float distance = Vector3.Distance(Self.position, Target.position);
             int   candidateCount = 0;
 
+            // 근접/중거리/원거리 거리 대역별로 후보 하나씩만 낀다
             if (distance <= MELEE_RANGE)
             {
                 _candidatePatternIds[candidateCount] = MELEE_ARC_PATTERN_ID;
+                ++candidateCount;
+            }
+            else if (distance <= CONE_RANGE)
+            {
+                _candidatePatternIds[candidateCount] = CONE_BURST_PATTERN_ID;
                 ++candidateCount;
             }
             else
@@ -171,6 +183,11 @@ namespace Geumeum.AI
                 return PatternKind.MarkedCircle;
             }
 
+            if (patternId == CONE_BURST_PATTERN_ID)
+            {
+                return PatternKind.ConeBurst;
+            }
+
             return PatternKind.MeleeArc;
         }
 
@@ -188,6 +205,8 @@ namespace Geumeum.AI
             Vector3 direction = _activeTarget.position - Self.position;
             direction.y = 0f;
             direction   = (direction.sqrMagnitude > 0.0001f) ? direction.normalized : Self.forward;
+
+            _lockedForward = direction; // 방향 완전 잠금 - 예고 중 대상이 움직여도 안 따라간다
 
             if (kind == PatternKind.TargetedDash)
             {
@@ -275,13 +294,23 @@ namespace Geumeum.AI
                 return;
             }
 
-            Vector3 forward = _activeTarget.position - Self.position;
-            forward.y = 0f;
-            forward   = (forward.sqrMagnitude > 0.0001f) ? forward.normalized : Self.forward;
+            if (_activeKind == PatternKind.ConeBurst)
+            {
+                BossPatternRunner.ExecuteMeleeArc(
+                    Self.position,
+                    _lockedForward,
+                    CONE_RANGE,
+                    CONE_ANGLE_DEGREES,
+                    _activePattern.Damage,
+                    attackerNetId,
+                    _playerLayerMask);
+                return;
+            }
 
+            // MeleeArc. 방향은 예고 시작 시점에 잠근 값을 쓴다(방향 완전 잠금)
             BossPatternRunner.ExecuteMeleeArc(
                 Self.position,
-                forward,
+                _lockedForward,
                 MELEE_RANGE,
                 MELEE_ANGLE_DEGREES,
                 _activePattern.Damage,
