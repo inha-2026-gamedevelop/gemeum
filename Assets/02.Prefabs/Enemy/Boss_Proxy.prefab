@@ -268,6 +268,8 @@ GameObject:
   - component: {fileID: 3479074051583608334}
   - component: {fileID: 8810839888769572094}
   - component: {fileID: 8151792791714746811}
+  - component: {fileID: 111111111111111111}
+  - component: {fileID: 222222222222222222}
   m_Layer: 0
   m_Name: Boss_Proxy
   m_TagString: Untagged
@@ -344,3 +346,28 @@ MonoBehaviour:
   rotationSensitivity: 0.01
   positionPrecision: 0.01
   scalePrecision: 0.01
+--- !u!114 &111111111111111111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6072234761862628928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a42eaa5a31eb3741b488caab44b65c2, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.AI.BossStatus
+--- !u!114 &222222222222222222
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6072234761862628928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a2e2606bcb5e5d4280ee9935145ef41, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.AI.BossController
+  _status: {fileID: 111111111111111111}
