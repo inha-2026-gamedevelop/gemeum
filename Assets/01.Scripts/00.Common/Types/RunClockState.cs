@@ -3,14 +3,7 @@ using System;
 
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// 시계 하나의 상태. 필드와 보스가 각각 하나씩 갖는다.
-    ///
-    /// 경과 시간을 매 틱 누적하지 않고 "멈출 때까지 쌓인 값 + 지금 돌고 있는 만큼"으로 환산한다.
-    /// 틱이 밀려도 시계가 어긋나지 않고, 같은 값을 받은 클라이언트가 서버와 같은 결과를 낸다.
-    ///
-    /// Mirror가 SyncVar로 실을 수 있도록 public 값 필드만 두고 참조 타입을 넣지 않는다
-    /// </summary>
+    /// <summary> 시계 하나의 상태. 필드와 보스가 각각 하나씩 갖는다 </summary>
     [Serializable]
     public struct RunClockState : IEquatable<RunClockState>
     {
@@ -55,7 +48,7 @@ namespace Geumeum.Common
             double running = (nowServerTime - ResumeServerTime);
             if (running < 0.0)
             {
-                return AccumulatedSeconds; // 시각이 뒤로 간 경우, 쌓인 값을 줄이지 않는다
+                return AccumulatedSeconds;
             }
 
             return (AccumulatedSeconds + running);

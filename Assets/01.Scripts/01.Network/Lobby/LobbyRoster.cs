@@ -24,12 +24,13 @@ namespace Geumeum.Network
         public WeaponKind     Weapon;
         public bool           HasCharacter;
         public CharacterKind  Character;
+
+        /// <summary> 로비에서 고른 희망. 확정된 Character와 달리 서로 겹칠 수 있다 </summary>
+        public bool           HasPreference;
+        public CharacterKind  PreferredCharacter;
     }
 
-    /// <summary>
-    /// 누가 로비에 있는지의 원본. 슬롯 목록과 이탈자가 두고 간 자리를 소유한다.
-    /// 준비 판정은 LobbyController가, 역할 배분은 LobbyRoleCoordinator가 맡는다
-    /// </summary>
+    /// <summary> 누가 로비에 있는지의 원본. 슬롯 목록과 이탈자가 두고 간 자리를 소유한다 </summary>
     public class LobbyRoster : NetworkBehaviour
     {
         /****************************************
@@ -61,8 +62,6 @@ namespace Geumeum.Network
 
         private readonly SyncList<LobbySlot> _slots = new SyncList<LobbySlot>();
 
-        // 플랫폼 ID로 보관하므로 두 명 이상이 동시에 빠져도 각자 자기 자리로 정확히 돌아온다.
-        // 예전에는 선입선출 큐라 순서가 뒤바뀔 수 있었다
         private readonly Dictionary<ulong, VacatedSeat> _vacatedSeats = new Dictionary<ulong, VacatedSeat>();
 
         /****************************************
@@ -108,13 +107,15 @@ namespace Geumeum.Network
 
             _slots.Add(new LobbySlot
             {
-                PlatformId    = ResolvePlatformId(conn),
-                ConnectionId  = conn.connectionId,
-                IsReady       = false,
-                HasWeapon     = false,
-                Weapon        = default,
-                HasCharacter = false,
-                Character    = default,
+                PlatformId         = ResolvePlatformId(conn),
+                ConnectionId       = conn.connectionId,
+                IsReady            = false,
+                HasWeapon          = false,
+                Weapon             = default,
+                HasCharacter       = false,
+                Character          = default,
+                HasPreference      = false,
+                PreferredCharacter = default,
             });
 
             return true;
@@ -172,9 +173,7 @@ namespace Geumeum.Network
             return false;
         }
 
-        /// <summary>
-        /// 이 신원이 두고 간 자리가 있는가. 입장 잠금 중에 누구를 다시 받을지 인증기가 이걸로 가른다
-        /// </summary>
+        /// <summary> 이 신원이 두고 간 자리가 있는가 </summary>
         public bool HasVacatedSeat(ulong platformId)
         {
             return (platformId != 0UL) && (_vacatedSeats.ContainsKey(platformId));
@@ -197,7 +196,6 @@ namespace Geumeum.Network
 
             _vacatedSeats.Remove(platformId);
 
-            // 역할은 슬롯에만 적어 둔다. 실제 확정은 런이 열릴 때 LobbyRoleCoordinator가 한 번에 한다
             LobbySlot slot     = _slots[index];
             slot.HasWeapon     = seat.HasWeapon;
             slot.Weapon        = seat.Weapon;
@@ -238,15 +236,13 @@ namespace Geumeum.Network
         *                Methods
         ****************************************/
 
-        // 자리와 역할만으로는 돌아온 사람이 1레벨 시작 상태로 되살아난다.
-        // HP, 자원, 패링 게이지, 관전 남은 시간까지 함께 맡긴다
         [Server]
         private void RememberRunState(IPlayerRunLifecycle lifecycle, in LobbySlot slot)
         {
             RunManager run = RunManager.ServerInstance;
             if ((run == null) || (run.Phase == RunPhase.Lobby))
             {
-                return; // 로비에서의 이탈은 보존할 런 상태가 없다
+                return;
             }
 
             RunParticipantSnapshot snapshot = new RunParticipantSnapshot
@@ -255,8 +251,6 @@ namespace Geumeum.Network
                 Participant = new ParticipantId(slot.PlatformId),
                 SceneId     = RunSceneId.Field,
 
-                // 역할은 슬롯이 이미 들고 있다. 되붓는 것도 LobbyRoleCoordinator가 하므로
-                // 여기서는 기록만 남긴다
                 Character   = slot.Character,
                 Weapon      = slot.Weapon,
             };
@@ -270,8 +264,6 @@ namespace Geumeum.Network
             RunParticipantRegistry.ServerStore(snapshot);
         }
 
-        // 자리를 돌려준 직후에 부른다. 실패하면 시작 상태 그대로 두고 로그를 남긴다 -
-        // 반쯤 복구된 채로 재개하는 것보다 낫다
         [Server]
         private void RestoreRunState(IPlayerRunLifecycle lifecycle, ulong platformId)
         {
@@ -284,7 +276,7 @@ namespace Geumeum.Network
             ParticipantId participant = new ParticipantId(platformId);
             if (!RunParticipantRegistry.TryTake(run.RunId, participant, out RunParticipantSnapshot snapshot))
             {
-                return; // 맡겨 둔 것이 없다, 처음 들어온 사람이다
+                return;
             }
 
             if (!lifecycle.RestoreRunState(snapshot))
@@ -296,7 +288,6 @@ namespace Geumeum.Network
             Debug.Log($"[LobbyRoster] platformId={platformId}의 런 상태를 되돌렸다: HP={snapshot.Health:F1}, 관전 잔여={snapshot.SpectateRemainingSeconds:F1}초");
         }
 
-        // 승인된 연결의 신원을 인증기에서 받는다. 없으면 0이고 자리 보존이 동작하지 않는다
         [Server]
         private ulong ResolvePlatformId(NetworkConnectionToClient conn)
         {
@@ -314,14 +305,12 @@ namespace Geumeum.Network
             return id.Value;
         }
 
-        // Mirror는 OnServerDisconnect보다 먼저 NetworkServer.connections에서 연결을 지우므로
-        // connectionId로 되찾을 수 없다. 아직 identity가 살아 있는 conn을 직접 받아 읽는다
         [Server]
         private void RememberVacatedSeat(NetworkConnectionToClient conn, in LobbySlot slot)
         {
             if ((conn.identity == null) || (slot.PlatformId == 0UL))
             {
-                return; // 신원이 없으면 돌아왔을 때 알아볼 방법이 없다
+                return;
             }
 
             if (!conn.identity.TryGetComponent(out IPlayerRunLifecycle lifecycle))

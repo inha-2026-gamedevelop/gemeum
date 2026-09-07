@@ -9,11 +9,7 @@ using Mirror;
 
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// Steam 로비와 Mirror 연결을 아우르는 세션 단계. 상태 변경은 여기 한 곳에서만 커밋한다,
-    /// Steam 콜백과 Mirror 콜백이 각자 UI를 열고 닫으면 어느 쪽이 최신인지 알 수 없게 된다.
-    /// 설계안 5장의 11개 상태 중 3단계에 필요한 6개만 둔다 - 측정과 선출은 4단계다
-    /// </summary>
+    /// <summary> Steam 로비와 Mirror 연결을 아우르는 세션 단계 </summary>
     public class SteamSessionCoordinator : MonoBehaviour
     {
         /****************************************
@@ -82,8 +78,6 @@ namespace Geumeum.Network
                 lobby.GameServerSet  += OnGameServerSet;
             }
 
-            // Mirror의 NetworkClient.OnConnectedEvent는 NetworkManager가 대입으로 덮어쓴다.
-            // 거기 직접 구독하면 클라이언트를 시작하는 순간 지워지므로 매니저가 다시 낸 이벤트를 쓴다
             GeumeumNetworkManager.ClientConnected    += OnClientConnected;
             GeumeumNetworkManager.ClientDisconnected += OnClientDisconnected;
         }
@@ -111,7 +105,6 @@ namespace Geumeum.Network
             }
         }
 
-        // Steam 초기화는 SteamManager가 몇 프레임 걸려 끝내므로 Awake에서 단정할 수 없다
         private void Start()
         {
             RefreshSteamReady();
@@ -180,10 +173,7 @@ namespace Geumeum.Network
             lobby.InviteUser(friendSteamId);
         }
 
-        /// <summary>
-        /// 세션에서 빠진다. 로비만 나가면 Mirror 연결이 그대로 남아
-        /// 화면상 아무것도 달라지지 않는다 - 쓰는 사람에게는 나가지지 않는 것으로 보인다
-        /// </summary>
+        /// <summary> 세션에서 빠진다 </summary>
         public void LeaveLobby()
         {
             StopNetworkSession();
@@ -197,10 +187,7 @@ namespace Geumeum.Network
             lobby.LeaveLobby();
         }
 
-        /// <summary>
-        /// 호스트를 연다. 3단계에서는 선출 없이 로비 소유자가 그대로 호스트가 된다,
-        /// 후보 정렬은 4단계에서 이 앞에 끼워 넣는다
-        /// </summary>
+        /// <summary> 호스트를 연다 </summary>
         public void StartHost()
         {
             if (!CanStartHost)
@@ -212,7 +199,6 @@ namespace Geumeum.Network
             Commit(SteamSessionState.StartingHost);
             _connector.StartSteamHost();
 
-            // 커넥터가 게시까지 끝냈으면 서버가 떠 있다. 실패했으면 다시 모으는 단계로 돌린다
             Commit(NetworkServer.active ? SteamSessionState.Connecting : SteamSessionState.Gathering);
         }
 
@@ -232,7 +218,6 @@ namespace Geumeum.Network
 
         private void OnMembersChanged()
         {
-            // 단계는 그대로지만 인원이 바뀌었다. UI가 명단과 시작 가능 여부를 다시 그려야 한다
             if ((State == SteamSessionState.Gathering) || (State == SteamSessionState.Connecting))
             {
                 StateChanged?.Invoke(State);
@@ -292,7 +277,6 @@ namespace Geumeum.Network
             StateChanged?.Invoke(next);
         }
 
-        // 공용 데이터는 소유자만 쓸 수 있다. 소유자가 아니면 조용히 지나간다
         private void PublishState(SteamSessionState next)
         {
             SteamLobbyService lobby = SteamLobbyService.Instance;
@@ -319,8 +303,6 @@ namespace Geumeum.Network
             }
         }
 
-        // Steam은 게임이 꺼진 상태에서 초대를 수락하면 +connect_lobby <id>로 실행한다.
-        // 스크립트로 로비 ID를 직접 줄 때도 같은 인자를 쓴다
         private void TryJoinFromCommandLine()
         {
             string[] args = Environment.GetCommandLineArgs();
@@ -344,7 +326,6 @@ namespace Geumeum.Network
             }
         }
 
-        // 호스트면 서버와 자기 클라이언트를 함께 닫는다. 남은 두 명은 호스트 소실로 처리된다
         private static void StopNetworkSession()
         {
             NetworkManager manager = NetworkManager.singleton;
@@ -383,10 +364,7 @@ namespace Geumeum.Network
         }
     }
 
-    /// <summary>
-    /// 세션 단계. 설계안 5장의 부분집합이고, 측정, 선출, 런 관련 상태는 여기 없다.
-    /// 로비 데이터 문자열과 짝이므로 이름을 임의로 바꾸지 않는다
-    /// </summary>
+    /// <summary> 세션 단계 </summary>
     public enum SteamSessionState
     {
         Offline      = 0, // Steam 세션 없음

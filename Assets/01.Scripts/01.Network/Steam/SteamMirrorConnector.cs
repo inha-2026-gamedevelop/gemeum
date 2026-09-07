@@ -9,11 +9,7 @@ using Mirror;
 
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// Steam 로비와 Mirror 연결을 잇는다. 호스트는 세션 값을 로비에 게시하고 접속 신호를 보내며,
-    /// 나머지 멤버는 그 신호를 받아 호스트 SteamID로 접속한다.
-    /// 로비 데이터의 host는 신호를 놓친 사람의 복구용이라 신호와 함께 쓴다
-    /// </summary>
+    /// <summary> Steam 로비와 Mirror 연결을 잇는다 </summary>
     [RequireComponent(typeof(NetworkManager))]
     public class SteamMirrorConnector : MonoBehaviour
     {
@@ -60,10 +56,7 @@ namespace Geumeum.Network
         *              Public API
         ****************************************/
 
-        /// <summary>
-        /// 로비에 세션 값을 게시하고 호스트를 시작한 뒤 접속 신호를 보낸다.
-        /// 게시 -> 기동 -> 신호 순서를 지켜야 호스트 자신도, 나머지 멤버도 거부당하지 않는다
-        /// </summary>
+        /// <summary> 로비에 세션 값을 게시하고 호스트를 시작한 뒤 접속 신호를 보낸다 </summary>
         public void StartSteamHost()
         {
             if (!SteamTransportSelector.IsSteamTransport(Transport.active))
@@ -91,8 +84,6 @@ namespace Geumeum.Network
                 return;
             }
 
-            // 호스트 자신의 로컬 연결도 StartHost 안에서 인증을 거친다.
-            // 게시가 뒤에 오면 그 연결이 빈 nonce를 읽어 자기 서버에서 거부당한다
             string nonce = PublishSession(lobby, hostId);
 
             _manager.StartHost();
@@ -103,12 +94,11 @@ namespace Geumeum.Network
                 return;
             }
 
-            // 접속 신호는 서버가 실제로 열린 뒤에 보낸다, 먼저 보내면 아직 없는 서버로 접속이 몰린다
             lobby.SetGameServer(hostId);
             Debug.Log($"[SteamMirrorConnector] 접속 신호 발송: host={hostId}, nonce={nonce}");
         }
 
-        /// <summary> 로비에 참가한다. 초대 수락 콜백과 UI가 같은 경로를 쓴다 </summary>
+        /// <summary> 로비에 참가한다 </summary>
         public void JoinLobby(ulong lobbyId)
         {
             SteamLobbyService lobby = SteamLobbyService.Instance;
@@ -121,9 +111,7 @@ namespace Geumeum.Network
             lobby.JoinLobby(lobbyId);
         }
 
-        /// <summary>
-        /// 로비 데이터의 host를 보고 접속한다. 접속 신호를 놓친 채 늦게 들어온 사람의 복구 경로다
-        /// </summary>
+        /// <summary> 로비 데이터의 host를 보고 접속한다 </summary>
         public void ConnectToPublishedHost()
         {
             SteamLobbyService lobby = SteamLobbyService.Instance;
@@ -145,7 +133,6 @@ namespace Geumeum.Network
         *                Methods
         ****************************************/
 
-        // 호스트 자신도 이 신호를 받는다. 이미 서버가 돌고 있으면 자기에게 다시 붙지 않는다
         private void OnGameServerSet(ulong hostSteamId)
         {
             if (NetworkServer.active)
@@ -156,8 +143,6 @@ namespace Geumeum.Network
             ConnectTo(hostSteamId);
         }
 
-        // 세션 중에 초대를 자동으로 받으면 진행 중인 게임에서 통째로 끌려나간다.
-        // 늦게 도착한 초대가 방금 나간 사람을 도로 끌고 들어가는 것도 같은 경로다
         private void OnJoinRequested(ulong lobbyId)
         {
             if ((NetworkServer.active) || (NetworkClient.active))
@@ -195,7 +180,6 @@ namespace Geumeum.Network
             _manager.StartClient();
         }
 
-        // nonce는 매 세션 새로 만든다. 이전 세션의 인증 메시지를 그대로 재사용하는 경로를 막는다
         private string PublishSession(SteamLobbyService lobby, ulong hostId)
         {
             string nonce = Guid.NewGuid().ToString("N");

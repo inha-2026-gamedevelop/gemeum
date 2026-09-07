@@ -1,9 +1,6 @@
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// 재생 요청 키. 호출부는 클립이 아니라 이 키만 알고, 실제 클립은 SoundCatalogSO가 정한다.
-    /// 직렬화되므로 기존 값을 재배열하지 않고 뒤에만 추가한다
-    /// </summary>
+    /// <summary> 재생 요청 키. 실제 클립은 SoundCatalogSO가 정한다 </summary>
     public enum SoundKey
     {
         None = 0,
@@ -36,7 +33,6 @@ namespace Geumeum.Common
         BossGroggyEnd = 131,
         BarrierShrink = 140,
 
-        // 40분 런에서 가장 자주 들린다. 잡귀 3종이 같은 키를 쓰고 클립 후보로 변형을 준다
         EnemyDeath = 150,
     }
 }

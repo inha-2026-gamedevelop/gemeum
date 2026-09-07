@@ -7,19 +7,7 @@ using Geumeum.Data;
 
 namespace Geumeum.Combat
 {
-    /// <summary>
-    /// 네트워크 없이 캐릭터의 모델, 애니메이션, 무기 부착만 확인하는 개발용 리그다.
-    ///
-    /// 플레이어 스택(PlayerController, PlayerAttack, PlayerStatus...)은 전부 NetworkBehaviour라
-    /// 호스트를 띄우지 않으면 한 줄도 돌지 않는다. 애니메이션 하나 확인하려고 매번 접속을
-    /// 준비하는 비용이 커서, 표현 계층만 떼어 단독으로 돌린다.
-    ///
-    /// 확인할 수 있는 것: 모델 교체, 이동 블렌드, 구르기 배속, 공격 모션, 무기 부착 위치.
-    /// 확인할 수 없는 것: 판정, 스태미나, 패링, 동기화. 그것들은 서버 권위라 L3에서만 유효하다.
-    ///
-    /// 이동은 Transform을 직접 옮긴다. 실제 게임은 서버 물리 틱이 Rigidbody를 움직이므로
-    /// 여기서 느껴지는 조작감은 실제와 다르다 - 이 리그는 조작감 판단용이 아니다.
-    /// </summary>
+    /// <summary> 네트워크 없이 캐릭터의 모델, 애니메이션, 무기 부착만 확인하는 개발용 리그다 </summary>
     public class CharacterPreviewRig : MonoBehaviour
     {
         /****************************************
@@ -61,8 +49,6 @@ namespace Geumeum.Combat
         [Header("표시")]
         [SerializeField] private bool _showOverlay = true;
 
-        // 애니메이터 파라미터 이름은 PlayerAnimationController와 같은 값을 써야 한다.
-        // 다르면 실제 게임에서는 도는 모션이 여기서만 안 나와 원인을 엉뚱한 데서 찾게 된다
         private const string PARAM_SPEED      = "Speed";
         private const string PARAM_ROLL       = "Roll";
         private const string PARAM_ROLL_SPEED = "RollSpeed";
@@ -71,8 +57,6 @@ namespace Geumeum.Combat
         private const float TURN_DEGREES_PER_SEC = 720f;
         private const float SPEED_SMOOTH_TIME    = 0.12f;
 
-        // 누르고 있는 동안의 초당 변화량이다. 프레임당 값으로 두면 체감이 프레임률에 끌려다니고,
-        // 너무 작으면 눌러도 안 움직이는 것처럼 보인다
         private const float TUNE_POSITION_RATE = 0.4f;  // m/s
         private const float TUNE_EULER_RATE    = 90f;   // 도/s
         private const float TUNE_SCALE_RATE    = 0.5f;  // 배/s
@@ -89,10 +73,8 @@ namespace Geumeum.Combat
         private bool    _hasPrefabBinding = false;
         private bool    _isTuning         = false;
 
-        // 캐릭터와 무기를 따로 고른다. 보정이 (캐릭터, 무기) 쌍이라 아홉 조합을 다 볼 수 있어야 한다
         private WeaponKind _currentWeapon = WeaponKind.Sword;
 
-        // 입력이 게임에 닿고 있는지 화면으로 확인하려고 남긴다. 안 움직일 때 원인이 키인지 값인지 갈린다
         private Vector3 _tuneDelta = Vector3.zero;
 
         private Vector2 _facing         = Vector2.up;
@@ -126,7 +108,6 @@ namespace Geumeum.Combat
 
             HandleWeaponTuning();
 
-            // 조정 중에는 이동 입력이 보정 입력과 겹치지 않게 이동을 멈춘다
             if (!_isTuning)
             {
                 HandleMovement();
@@ -160,7 +141,7 @@ namespace Geumeum.Combat
             }
         }
 
-        // 캐릭터는 그대로 두고 무기만 바꾼다. 조정 중이면 지금 값을 잃지 않게 먼저 알린다
+
         private void CycleWeapon(int direction)
         {
             if (_activeIndex < 0)
@@ -177,7 +158,6 @@ namespace Geumeum.Combat
             _lastMessage = "무기 변경: " + _currentWeapon;
         }
 
-        // 무기만 다시 붙인다. 캐릭터 모델과 애니메이터는 그대로 둔다
         private void ReattachWeapon()
         {
             if (_activeWeapon != null)
@@ -219,7 +199,7 @@ namespace Geumeum.Combat
             }
 
             _activeIndex    = index;
-            _currentWeapon  = entry.Weapon; // 캐릭터를 바꾸면 그 캐릭터의 기본 무기로 돌아간다
+            _currentWeapon  = entry.Weapon;
             _rollClipLength = FindRollClipLength();
             _lastMessage    = "";
 
@@ -227,8 +207,6 @@ namespace Geumeum.Combat
             WarnMissingParameters(entry.Kind);
         }
 
-        // 무기 부착은 실제 게임에서 PlayerWeaponVisual이 하지만 그쪽은 PlayerWeapon(SyncVar)에 매여 있다.
-        // 대신 같은 컴포넌트의 부착 보정을 그대로 읽어 붙인다 - 값이 갈리면 여기서 맞춰도 게임에서 어긋난다
         private void AttachWeapon(PreviewCharacter entry)
         {
             if (string.IsNullOrEmpty(entry.HandBoneName))
@@ -244,7 +222,6 @@ namespace Geumeum.Combat
                 return;
             }
 
-            // 바인딩이 없을 때만 쓰는 대체 모델. 기본 무기와 현재 무기가 다르면 대체가 맞지 않을 수 있다
             GameObject source = (entry.Weapon == _currentWeapon) ? entry.WeaponPrefab : null;
             _weaponPosition   = Vector3.zero;
             _weaponEuler      = Vector3.zero;
@@ -274,7 +251,6 @@ namespace Geumeum.Combat
             ApplyWeaponTransform();
         }
 
-        // 인스펙터에서 배율을 비워 두면 0이 들어와 무기가 통째로 사라진다. PlayerWeaponVisual과 같은 규칙이다
         private static Vector3 ResolveScale(Vector3 scale)
         {
             bool isUnset = ((Mathf.Approximately(scale.x, 0f))
@@ -320,7 +296,6 @@ namespace Geumeum.Combat
             return null;
         }
 
-        // 실제 게임에서는 서버 물리 틱이 Rigidbody를 움직인다. 여기는 표현 확인이 목적이라 Transform을 직접 옮긴다
         private void HandleMovement()
         {
             Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
@@ -341,7 +316,6 @@ namespace Geumeum.Combat
                 _facing = input.normalized;
             }
 
-            // PlayerAnimationController와 같은 감쇠, 같은 정규화를 쓴다. 규칙이 갈리면 확인의 의미가 없다
             float smoothing = 1f - Mathf.Exp(-Time.deltaTime / SPEED_SMOOTH_TIME);
             _smoothedSpeed  = Mathf.Lerp(_smoothedSpeed, speed, smoothing);
             _animator.SetFloat(PARAM_SPEED, PlayerAnimationController.NormalizeSpeed(_smoothedSpeed));
@@ -396,8 +370,6 @@ namespace Geumeum.Combat
         *            무기 보정 조정
         ****************************************/
 
-        // 무기 위치는 눈으로 봐야 맞출 수 있다. 인스펙터에서 값을 바꾸고 Play를 다시 누르는 대신
-        // 실행 중에 밀어 보고, 마음에 들면 그대로 Player.prefab에 저장한다
         private void HandleWeaponTuning()
         {
             if (Input.GetKeyDown(KeyCode.T))
@@ -416,8 +388,6 @@ namespace Geumeum.Combat
                 : 1f;
             bool isRotating = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
 
-            // 방향키를 쓰지 않는다. 에디터 Game 뷰가 화살표 키를 가져가는 경우가 있어
-            // 눌러도 아무 일이 없는 것처럼 보인다. 문자 키는 그런 충돌이 없다
             _tuneDelta = Vector3.zero;
             if (Input.GetKey(KeyCode.J))
             {
@@ -449,16 +419,12 @@ namespace Geumeum.Combat
                 _tuneDelta.y -= 1f;
             }
 
-            // 시간 스케일을 건드려도 조정은 되어야 하므로 unscaled를 쓴다
             float dt = Time.unscaledDeltaTime;
 
             if (_tuneDelta != Vector3.zero)
             {
                 if (isRotating)
                 {
-                    // 위치 키와 축을 그대로 맞추면 손 감각과 어긋난다.
-                    // 좌우 키(J/L)는 좌우로 "돌리고"(yaw=Y), 앞뒤 키(I/K)는 앞뒤로 "눕히고"(pitch=X),
-                    // 위아래 키(U/O)는 자루를 "비튼다"(roll=Z)
                     Vector3 rotationDelta = new Vector3(_tuneDelta.z, _tuneDelta.x, _tuneDelta.y);
                     _weaponEuler = NormalizeEuler(_weaponEuler + (rotationDelta * (TUNE_EULER_RATE * factor * dt)));
                 }
@@ -468,7 +434,6 @@ namespace Geumeum.Combat
                 }
             }
 
-            // 무기 자루 방향은 대개 90도 단위로 맞으므로, 눈대중으로 돌린 값을 15도 격자에 붙인다
             if (Input.GetKeyDown(KeyCode.G))
             {
                 _weaponEuler = new Vector3(
@@ -511,7 +476,6 @@ namespace Geumeum.Combat
             }
         }
 
-        // 저장은 에디터에서만 한다. 빌드에는 프리팹 자산을 고칠 방법도, 고칠 이유도 없다
         private void SaveBindingToPrefab()
         {
 #if UNITY_EDITOR
@@ -533,7 +497,6 @@ namespace Geumeum.Combat
             var serialized          = new UnityEditor.SerializedObject(visual);
             var bindings            = serialized.FindProperty("_bindings");
 
-            // (캐릭터, 무기) 쌍이 키다. 손 뼈 방향이 캐릭터마다 달라 무기만으로는 값을 공유할 수 없다
             UnityEditor.SerializedProperty target = null;
             for (int i = 0; i < bindings.arraySize; ++i)
             {
@@ -546,7 +509,6 @@ namespace Geumeum.Combat
                 }
             }
 
-            // 아직 없는 조합이면 만들어 준다. 모델 소스는 같은 무기의 다른 항목에서 가져온다
             if (target == null)
             {
                 UnityEngine.Object modelSource = null;
@@ -583,7 +545,6 @@ namespace Geumeum.Combat
 #endif
         }
 
-        // 실제 게임과 같은 계산이다. 클립 길이를 판정 시간(RollTotalDuration)에 맞춰 당긴다
         private float ResolveRollSpeed()
         {
             if ((!GameDB.IsInitialized) || (_rollClipLength <= 0f))
@@ -595,7 +556,6 @@ namespace Geumeum.Combat
             return (duration > 0f) ? (_rollClipLength / duration) : 1f;
         }
 
-        // PlayerAnimationController와 같은 규약: 구르기 클립 이름에 roll, evade, dodge 중 하나가 들어간다
         private float FindRollClipLength()
         {
             RuntimeAnimatorController controller = (_animator != null) ? _animator.runtimeAnimatorController : null;
@@ -636,7 +596,6 @@ namespace Geumeum.Combat
             return false;
         }
 
-        // 파라미터가 없으면 모션이 안 나오는데 원인이 화면에 안 보인다. 선택 시점에 한 번 알린다
         private void WarnMissingParameters(CharacterKind kind)
         {
             if (_animator == null)
@@ -667,8 +626,6 @@ namespace Geumeum.Combat
             }
         }
 
-        // 계속 더하면 각도가 370이나 -400처럼 쌓여 읽기 어렵고, 인스펙터 값과도 달라 보인다.
-        // -180 ~ 180으로 접어 둔다
         private static Vector3 NormalizeEuler(Vector3 euler)
         {
             return new Vector3(
@@ -677,7 +634,6 @@ namespace Geumeum.Combat
                 Mathf.DeltaAngle(0f, euler.z));
         }
 
-        // 인스펙터에 그대로 옮겨 적을 수 있게 소수점 셋째 자리까지 보여준다
         private static string Format(Vector3 v)
         {
             return "(" + v.x.ToString("F3") + ", " + v.y.ToString("F3") + ", " + v.z.ToString("F3") + ")";
@@ -710,7 +666,6 @@ namespace Geumeum.Combat
                 + "T = 무기 보정 조정" + ((_isTuning) ? "  [조정 중]" : "") + "\n"
                 + _lastMessage;
 
-            // 상자 높이를 글자 수로 맞춘다. 고정 높이로 두면 줄이 늘 때마다 조용히 잘린다
             GUIStyle style = new GUIStyle(GUI.skin.box);
             style.alignment = TextAnchor.UpperLeft;
             style.fontSize  = 13;

@@ -22,8 +22,7 @@ namespace Geumeum.Art
         [Header("재생 시작 시 적용할 페이즈")]
         [SerializeField] private BossArenaPhase _startPhase = BossArenaPhase.Shrine;
 
-        // F1 은 호스트 시작, F2 는 ParryTestDummy, F3 은 런 포기, F5 는 씬 전환,
-        // F9/F10 은 프레임 기록기가 이미 쓴다. 겹치면 페이즈를 바꾸려다 런이 끝난다
+        // 페이즈 전환 키
         [Header("키")]
         [SerializeField] private KeyCode _shrineKeyCode     = KeyCode.F6;
         [SerializeField] private KeyCode _underworldKeyCode = KeyCode.F7;
@@ -45,7 +44,7 @@ namespace Geumeum.Art
                 return;
             }
 
-            // 개발 도구라 인스펙터 연결을 잊어도 동작해야 한다. 초기화 1회 폴백이고 결과를 캐싱한다
+            // 인스펙터에 연결돼 있지 않으면 씬에서 찾는다
             _phaseView = FindAnyObjectByType<BossArenaPhaseView>();
             if (_phaseView == null)
             {
@@ -60,7 +59,7 @@ namespace Geumeum.Art
                 return;
             }
 
-            // 에디터에서 2페이즈를 켜 둔 채 저장했어도 재생은 항상 같은 곳에서 시작한다
+            // 시작 페이즈를 적용한다
             _phaseView.ShowPhase(_startPhase);
         }
 

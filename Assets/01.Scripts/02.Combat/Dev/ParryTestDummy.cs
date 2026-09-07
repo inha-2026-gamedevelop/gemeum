@@ -9,10 +9,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Combat
 {
-    /// <summary>
-    /// 패링 판정 테스트 전용 더미 공격자. 몬스터 연결(OpenParryWindow 실제 호출자)이 붙기 전까지
-    /// Success, MissTiming 경로를 손으로 확인하기 위한 것이다. Dev 씬에만 배치하고 Main에는 두지 않는다
-    /// </summary>
+    /// <summary> 패링 판정 테스트 전용 더미 공격자 </summary>
     public class ParryTestDummy : NetworkBehaviour, IParryable
     {
         /****************************************

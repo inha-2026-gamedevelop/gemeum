@@ -7,10 +7,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// 런 구간의 경계 계산과 데이터 불변식 검사.
-    /// Mirror와 Unity에 의존하지 않아야 틱이 밀린 경우를 단위로 확인할 수 있다
-    /// </summary>
+    /// <summary> 런 구간의 경계 계산과 데이터 불변식 검사 </summary>
     public sealed class RunPhaseTimeline
     {
         /****************************************
@@ -38,8 +35,7 @@ namespace Geumeum.Network
 
         private const float TIME_EPSILON = 0.001f; // 인스펙터 입력값의 부동소수 오차 허용치(초)
 
-        // 필드 시계가 가져야 하는 구간과 순서.
-        // Lobby, Result는 런 데이터 밖의 세션 상태이고, Boss는 독립 시계라 이 타임라인에 없다
+        // 필드 시계가 가져야 하는 구간과 순서
         private static readonly RunPhase[] G_RequiredOrder =
         {
             RunPhase.Farming,
@@ -59,7 +55,7 @@ namespace Geumeum.Network
             _segments = segments ?? Array.Empty<Segment>();
         }
 
-        /// <summary> 서버 시작 전 데이터 불변식을 검사한다, 실패하면 기본값으로 진행하지 않고 부트를 막는다 </summary>
+        /// <summary> 서버 시작 전 데이터 불변식을 검사한다 </summary>
         public bool Validate(float fieldTimeLimitSeconds, out string error)
         {
             if (_segments.Length != G_RequiredOrder.Length)
@@ -127,10 +123,7 @@ namespace Geumeum.Network
             return false;
         }
 
-        /// <summary>
-        /// previousElapsedSeconds 이후 currentElapsedSeconds까지 새로 진입한 구간을 순서대로 담는다.
-        /// 틱이 밀려 경계를 여러 개 지나가도 건너뛰지 않고 각각 한 번씩 나온다
-        /// </summary>
+        /// <summary> previousElapsedSeconds 이후 currentElapsedSeconds까지 새로 진입한 구간을 순서대로 담는다 </summary>
         public int CollectEnteredPhases(float previousElapsedSeconds, float currentElapsedSeconds, List<RunPhase> buffer)
         {
             if (buffer == null)

@@ -2,10 +2,7 @@ using NUnit.Framework;
 using Geumeum.Common;
 using Geumeum.Network;
 
-/// <summary>
-/// 같은 틱에 종료 사유가 겹쳤을 때의 선택 규칙.
-/// 이 규칙이 틀리면 같은 상황에서 사람마다 다른 결말을 보게 되고, 증상은 3인 접속에서만 드러난다
-/// </summary>
+/// <summary> 같은 틱에 종료 사유가 겹쳤을 때의 선택 규칙 </summary>
 public class RunOutcomeArbiterTests
 {
     /// <summary> 보스를 죽인 순간 마지막 생존자가 함께 죽어도 승리다 </summary>
@@ -16,7 +13,7 @@ public class RunOutcomeArbiterTests
         Assert.AreEqual(RunOutcome.Victory, RunOutcomeArbiter.Select(RunOutcome.Victory, RunOutcome.PartyWipe));
     }
 
-    /// <summary> 전멸과 기한 만료가 겹치면 전멸이다. 더 구체적인 사실이 남는다 </summary>
+    /// <summary> 전멸과 기한 만료가 겹치면 전멸이다 </summary>
     [Test]
     public void PartyWipeBeatsTimeExpired()
     {
@@ -41,7 +38,7 @@ public class RunOutcomeArbiterTests
         Assert.AreEqual(RunOutcome.PlayerLeft, RunOutcomeArbiter.Select(RunOutcome.None, RunOutcome.PlayerLeft));
     }
 
-    /// <summary> 같은 사유가 두 번 와도 먼저 온 것을 남긴다. 확정을 두 번 하지 않는다 </summary>
+    /// <summary> 같은 사유가 두 번 와도 먼저 온 것을 남긴다 </summary>
     [Test]
     public void SameOutcomeDoesNotReplace()
     {

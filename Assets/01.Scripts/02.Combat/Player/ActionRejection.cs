@@ -1,12 +1,6 @@
 namespace Geumeum.Combat
 {
-    /// <summary>
-    /// 단발 행동 요청이 거부된 사유. None이면 수락이다.
-    /// 직렬화될 수 있으므로 명시값을 유지하고 기존 값을 재배열하지 않는다
-    /// </summary>
-    // 사유를 돌려주는 이유는 3인 테스트 때문이다. 지금까지 공격과 구르기는 거부되면 조용히
-    // return이라, 입력이 씹힌 것인지 지연인지 거부인지 사람도 로그도 구분할 수 없었다.
-    // 패링은 처음부터 ParryResultCode로 이것을 돌려주고 있었고, 그 부분만 뼈대로 끌어올린다
+    /// <summary> 단발 행동 요청이 거부된 사유. None이면 수락이다 </summary>
     public enum ActionRejection
     {
         /// <summary> 수락됐다 </summary>

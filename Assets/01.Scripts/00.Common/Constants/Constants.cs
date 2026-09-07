@@ -23,11 +23,6 @@ namespace Geumeum.Common
         }
 
         /// <summary> 레이어 이름 </summary>
-        // 2026-09-05 실측 - 이름과 실제 배치가 어긋나 있다. Main 씬 기준
-        // 지형은 GROUND(8)가 아니라 DEFAULT(0)에 있고 GROUND에는 콜라이더가 0개다.
-        // 바위 393개는 전부 WeatherMaker/PW의 PW_Object_Small/Medium/Large(15,16,17)에 있으며,
-        // 그 이름의 Small/Medium/Large는 물리 크기가 아니라 거리 분류다
-        // (Small 평균 11m, Large 평균 1.7m). 장애물 마스크를 만들 때 이름으로 짐작하지 말 것
         public static class Layer
         {
             // TODO(민성): 물리 충돌 매트릭스는 아직 전부 켜져 있다, 히트박스 확정 후 정리할 것

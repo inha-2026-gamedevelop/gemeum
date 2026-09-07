@@ -1,9 +1,6 @@
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// Steam 로비 데이터 키. 키 이름이 여러 곳에 흩어지면 한쪽만 고쳤을 때
-    /// 오타가 컴파일에 걸리지 않고 런타임에 빈 문자열로만 드러나므로 여기 하나로 모은다
-    /// </summary>
+    /// <summary> Steam 로비 데이터 키 모음 </summary>
     public static class SteamLobbyKeys
     {
         /****************************************

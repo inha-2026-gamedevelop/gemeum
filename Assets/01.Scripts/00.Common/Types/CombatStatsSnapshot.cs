@@ -3,13 +3,7 @@ using System;
 
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// 레벨, 장비, 특성을 모두 반영한 유효 전투 수치.
-    ///
-    /// 공격을 수락하는 순간 이 값을 떠 두고 그 공격은 끝까지 같은 값으로 계산한다.
-    /// 그러지 않으면 이미 날아간 화살의 피해가 도중에 바뀐 장비를 따라간다.
-    /// Revision이 바뀔 때만 다시 만들고 매 명중마다 SO와 인벤토리를 다시 뒤지지 않는다
-    /// </summary>
+    /// <summary> 레벨, 장비, 특성을 모두 반영한 유효 전투 수치. 공격을 수락하는 순간의 값을 끝까지 쓴다 </summary>
     [Serializable]
     public struct CombatStatsSnapshot : IEquatable<CombatStatsSnapshot>
     {

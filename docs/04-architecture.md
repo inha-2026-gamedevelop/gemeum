@@ -477,11 +477,13 @@ Main.unity
 │  ├ PlayerLifeState.cs    enum [현재] Alive · Downed · Spectating · ReviveInvulnerable
 │  ├ PlayerStatus.cs       NB  [현재] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable · IRecoveryTarget
 │  ├ PlayerWeapon.cs       NB  [현재] 현재 무기 SyncVar(초기 1회 배분). 훅이 무기 모델과
-│  │                           애니메이터를 함께 갱신한다. [계획] 서버 전투용 장비 snapshot 추가
+│  │                           애니메이터를 함께 갱신한다. IRunStateCarrier(순서 11) —
+│  │                           씬 전환 뒤 무기를 되붓는다. [계획] 서버 전투용 장비 snapshot 추가
 │  ├ PlayerWeaponVisual.cs MB  [현재] 활성 캐릭터 모델의 오른손 뼈에 무기 모델을 붙이는 표현 전용.
 │  │                           부착 보정값은 아직 전부 0이라 무기가 몸통에 파묻힌다
 │  ├ PlayerCharacter.cs    NB  [현재] CharacterKind SyncVar 훅으로 캐릭터 모델을 켜는 표현 전용.
-│  │                           차사 · 신궁 · 무녀 3종 바인딩 완료. 캐릭터가 무기를 정한다
+│  │                           차사 · 신궁 · 무녀 3종 바인딩 완료. 캐릭터가 무기를 정한다.
+│  │                           IRunStateCarrier(순서 10) — 씬 전환 뒤 캐릭터를 되붓는다
 │  ├ PlayerRollController.cs NB [현재] 구르기 Command와 서버 실행 · 무적 구간
 │  ├ PlayerRunAgent.cs     NB  [현재] 런 경계에서 플레이어 상태를 되돌리는 창구(IPlayerRunLifecycle)
 │  ├ PlayerActionContext.cs C# [현재] PlayerActionGate가 읽는 검증 입력 묶음
@@ -710,16 +712,16 @@ RunManager : NetworkBehaviour
 | 단계 | 진입 조건 | 종료 조건 | 서버 처리 |
 |---|---|---|---|
 | `Lobby` | 씬 로드 | 3명 준비 완료 | 런 시계 정지, 역할 배분 준비 |
-| `Farming` | 런 시작 | 실시간 10:00 | 개활 스폰, FieldLevel 0 |
-| `Shrink1` | 실시간 10:00 | 실시간 **19:00** | 결계 축소·초당 1 피해, FieldLevel 1 |
-| `Shrink2` | 실시간 **19:00** | 실시간 **25:00** | 결계 축소·객주 개방, FieldLevel 2 |
-| `Shrink3` | 실시간 **29:30** | 실시간 **30:00** | 강제 이동 카운트다운 창, 신규 잡귀 스폰 중단, FieldLevel 3 |
+| `Farming` | 런 시작 | 필드 시계 10:00 | 개활 스폰, FieldLevel 0 |
+| `Shrink1` | 필드 시계 10:00 | 필드 시계 **20:00** | 결계 축소·초당 1 피해, FieldLevel 1 |
+| `Shrink2` | 필드 시계 **20:00** | 필드 시계 **29:30** | 결계 축소·객주 개방, FieldLevel 2 |
+| `Shrink3` | 필드 시계 **29:30** | 필드 시계 **30:00** | 강제 이동 카운트다운 창, 신규 잡귀 스폰 중단, FieldLevel 3 |
 | `Boss` | 전실을 지나 마당에 진입한 시점 | 보스 사망 또는 **보스 시계 14:00** | **보스 시계가 여기서 시작한다.** 결계 피해 종료 |
 | `Result` | 승리·실패·전멸·이탈 대기 종료 | 정산 완료 후 `Lobby` 복귀 | 점수 계산, 성공 런만 리더보드 등록 |
 
 > **이 표의 시각은 [시스템 기획 2.1](01-system-design.md)이 규범이다.** 여기에는 복제본을 두지 않고, 값이 바뀌면 그쪽을 고친 뒤 이 표를 맞춘다.
 > 런타임 값은 `BarrierPhaseSO`에서 읽으며 구간이 겹치거나 끊기면 안 된다 — `phase[i].End == phase[i+1].Start`.
-> *(2026-09-04 정정: `Shrink1` 종료가 20:00으로 남아 `Shrink2` 시작 19:00과 1분 겹쳐 있었다.)*
+> *(2026-09-06 정정: 09-04 시간표(10/19/25)가 `Shrink1`·`Shrink2`에만 남아 있어, `Shrink2` 종료 25:00과 `Shrink3` 시작 29:30 사이에 **4분 30초 구멍**이 생겨 있었다. 위 불변식을 표 스스로 위반한 상태였다. 두 시계 분리(필드 30분 + 보스 독립 14분) 확정에 맞춰 10 / 20 / 29:30으로 통일한다.)*
 
 `57cb59d`에서 실제로 구현된 전환은 타임라인 경계·시간 초과·런 중 이탈이다.
 보스 사망, 전멸, 종료 사유, 점수 정산과 결계·스폰 구독자 side effect는 아직 구현 계약이다.

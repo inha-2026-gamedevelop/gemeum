@@ -3,12 +3,7 @@ using System;
 
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// 확정된 런 결과. 씬이 파괴되기 전에 떠 두고, 정산 화면과 리더보드는 이것만 읽는다.
-    ///
-    /// 살아 있는 플레이어와 잡귀 목록을 다시 훑으면 그때는 이미 씬이 바뀐 뒤라 값이 없다.
-    /// 결과가 확정된 뒤에는 이 값이 변하지 않는다
-    /// </summary>
+    /// <summary> 확정된 런 결과. 씬이 파괴되기 전에 떠 두고, 정산 화면과 리더보드는 이것만 읽는다 </summary>
     [Serializable]
     public struct RunResultSnapshot : IEquatable<RunResultSnapshot>
     {

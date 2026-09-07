@@ -50,7 +50,7 @@ namespace Geumeum.Art
         *              Properties
         ****************************************/
 
-        /// <summary> 마지막으로 적용한 페이즈. ShowPhase를 한 번도 부르지 않았으면 씬에 저장된 값과 같다 </summary>
+        /// <summary> 마지막으로 적용한 페이즈 </summary>
         public BossArenaPhase CurrentPhase { get; private set; } = BossArenaPhase.Shrine;
 
         /****************************************
@@ -81,12 +81,7 @@ namespace Geumeum.Art
         *           Interface Members
         ****************************************/
 
-        /// <summary>
-        /// 이 씬에 도착하면 아레나의 연출을 건다.
-        ///
-        /// WeatherMaker 구동체는 진입 씬에만 있고 세션 내내 산다. 씬마다 바뀌는 것은
-        /// 인스턴스가 아니라 프로파일이라, 도착 시점에 이 아레나의 값을 밀어 넣는다
-        /// </summary>
+        /// <summary> 이 씬에 도착하면 아레나의 연출을 적용한다 </summary>
         public void Bind(in SceneTransitionSnapshot transition)
         {
             ShowPhase(CurrentPhase);
@@ -100,7 +95,7 @@ namespace Geumeum.Art
         *                Methods
         ****************************************/
 
-        /// <summary> 페이즈 연출을 적용한다, 판정에 관여하지 않으므로 클라이언트에서 그대로 호출한다 </summary>
+        /// <summary> 페이즈 연출을 적용한다 </summary>
         public void ShowPhase(BossArenaPhase phase)
         {
             bool isShrine = (phase == BossArenaPhase.Shrine);
@@ -138,21 +133,14 @@ namespace Geumeum.Art
                 }
             }
 
-            // 원반만 숨긴다. 광원은 두 페이즈 모두 켜 둔다 - 물리기반 하늘이 이 광원으로
-            // 산란을 계산하므로 끄면 하늘이 통째로 검어진다 (실측: 하늘 휘도 49 -> 3)
+            // 원반만 숨기고 광원은 그대로 켜 둔다
             if (_moonRenderer != null)
             {
                 _moonRenderer.enabled = isShrine;
             }
         }
 
-        /// <summary>
-        /// 살아남은 WeatherMaker 구동체를 다시 잡는다.
-        ///
-        /// WeatherMaker는 세션 싱글턴이라 이 씬이 들고 온 것이 지워지고 앞 씬의 것이 남을 수 있다.
-        /// 그때 인스펙터 참조는 파괴된 오브젝트를 가리키므로 안개와 하늘이 통째로 적용되지 않는다.
-        /// 초기화 1회가 아니라 전환마다 확인하는 이유는 살아남는 쪽이 씬마다 달라지기 때문이다
-        /// </summary>
+        /// <summary> 살아남은 WeatherMaker 구동체를 다시 찾아 연결한다 </summary>
         private void ResolveWeatherMaker()
         {
             if (_fog == null)
@@ -189,9 +177,7 @@ namespace Geumeum.Art
                 }
             }
 
-            // 주야 프로파일은 여기서 대입하지 않는다. 구동체에 이미 직렬화돼 있고,
-            // 런타임에 다시 넣으면 프로파일이 한 번 더 복제되면서 계산된 시각이 초기화된다
-            // (실측: TimeOfDay 0 인데 Category 가 Night 이 아니라 Day 가 됐다)
+            // 주야 프로파일은 여기서 대입하지 않는다
         }
 
         [ContextMenu("1페이즈 미리보기")]

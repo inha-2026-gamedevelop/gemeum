@@ -35,7 +35,6 @@ namespace Geumeum.Combat
         private Vector2 _rollDirection     = Vector2.zero;
         private double  _rollEndServerTime = 0.0;
 
-        // 이번 요청이 실어 온 방향. 게이트 입력이 아니라 커밋에서만 쓰는 값이다
         private Vector2 _pendingDirection = Vector2.zero;
 
         /****************************************
@@ -81,7 +80,6 @@ namespace Geumeum.Combat
                 return;
             }
 
-            // 구르기는 무적 프레임의 유일한 청각 신호다
             SfxPlayer.Play(SoundKey.Roll, transform.position, isLocalPlayer, netId);
 
             if (_animation == null)
@@ -99,7 +97,6 @@ namespace Geumeum.Combat
         [Command]
         private void CmdRequestRoll(uint requestId, Vector2 requestedDirection)
         {
-            // 방향은 게이트와 무관한 이번 요청의 값이라 파이프라인에 태우지 않고 먼저 받아 둔다
             _pendingDirection = requestedDirection;
 
             ActionRejection rejection = PlayerActionPipeline.TryExecute(
@@ -157,8 +154,6 @@ namespace Geumeum.Combat
 
             _rollDirection = ResolveServerDirection(_pendingDirection);
 
-            // 방향을 진행 여부보다 먼저 확정한다. 같은 배치로 도착해야 관전자가 구르기 첫 프레임부터
-            // 서버가 정한 방향으로 재생한다. 순서를 바꾸면 직전 방향으로 한 프레임 구르고 꺾인다
             if (_presentation != null)
             {
                 _presentation.ServerSetFacing(_rollDirection);
@@ -168,12 +163,15 @@ namespace Geumeum.Combat
             _rollEndServerTime = context.ServerTime + combat.RollTotalDuration;
 
             _status.GrantTimedInvincibility(context.ServerTime + combat.RollInvincibleDuration);
+
+            GDebug.Server($"구르기, 무적 {combat.RollInvincibleDuration:F2}초 / 전체 {combat.RollTotalDuration:F2}초");
         }
 
         /// <summary> 요청이 거부된 사유를 요청자에게만 돌려준다 </summary>
         [TargetRpc]
         private void TargetActionRejected(ActionRejection rejection)
         {
+            GDebug.Warn($"구르기 거부: {rejection}");
             LocalCombatState.RaiseActionRejected(rejection);
         }
 
@@ -190,8 +188,6 @@ namespace Geumeum.Combat
                 return;
             }
 
-            // 무적 만료는 PlayerStatus가 만료 시각으로 직접 판단한다. 구르기가 먼저 끝나도
-            // 같은 시각에 걸린 다른 출처(패링 등)의 무적을 끄지 않는다
             if ((!canMove) || (now >= _rollEndServerTime))
             {
                 _isRolling = false;
@@ -231,15 +227,7 @@ namespace Geumeum.Combat
             return _localRequestId;
         }
 
-        /// <summary>
-        /// 구르기 요청 방향. 입력이 있으면 이동과 같은 규칙으로 화면 기준 월드 방향으로 바꾼다 -
-        /// 이동만 카메라 기준이고 구르기는 월드 축이면 같은 키를 눌러도 둘이 다른 쪽으로 간다.
-        /// 입력이 없으면 0을 보내고, 그때 방향은 서버가 마지막 이동 방향으로 정한다
-        /// </summary>
-        // 입력 없는 구르기는 락온 중일 때 대상의 반대 방향이다.
-        // 부호를 뒤집지 않으면 보스 품으로 굴러들어간다 - FacingDirection이 대상 방향이 된
-        // 순간부터 그렇다. 락온 중 백스텝은 패링에 실패하고 살아나는 유일한 길이라
-        // 락온을 넣는 변경과 이 부호는 한 덩이로 다뤄야 한다
+        /// <summary> 구르기 요청 방향을 화면 기준 월드 방향으로 계산한다 </summary>
         private Vector2 ResolveRequestedDirection()
         {
             Vector2 direction = new Vector2(
@@ -259,8 +247,6 @@ namespace Geumeum.Combat
             return Vector2.zero;
         }
 
-        // 대상 반대편. 여기서 만들어 보내는 이유는 서버의 폴백(LastFacingDirection)이
-        // 마지막 "이동" 방향이라 락온 중 제자리 구르기를 설명하지 못하기 때문이다
         private bool TryGetLockOnBackStep(out Vector2 direction)
         {
             direction = Vector2.zero;

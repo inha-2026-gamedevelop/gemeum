@@ -2,10 +2,7 @@ using NUnit.Framework;
 using Geumeum.Common;
 using Geumeum.Network;
 
-/// <summary>
-/// 이탈 상태 보관소의 경계 규칙.
-/// 여기가 틀리면 돌아온 사람이 남의 값을 받거나 같은 값을 두 번 받는다
-/// </summary>
+/// <summary> 이탈 상태 보관소의 경계 규칙 </summary>
 public class RunParticipantRegistryTests
 {
     private static RunParticipantSnapshot MakeSnapshot(uint runIdValue, ulong participantValue, float health)
@@ -36,7 +33,7 @@ public class RunParticipantRegistryTests
         Assert.AreEqual(17f, snapshot.Health);
     }
 
-    /// <summary> 한 번 꺼내면 사라진다. 같은 값을 두 번 되부으면 무료 회복이 된다 </summary>
+    /// <summary> 한 번 꺼내면 사라진다 </summary>
     [Test]
     public void TakingConsumesTheSnapshot()
     {
@@ -58,7 +55,7 @@ public class RunParticipantRegistryTests
         bool taken = RunParticipantRegistry.TryTake(new RunId(2u), new ParticipantId(100UL), out RunParticipantSnapshot _);
 
         Assert.IsFalse(taken);
-        Assert.AreEqual(0, RunParticipantRegistry.Count, "쓸 수 없는 값은 남겨 두지 않는다");
+        Assert.AreEqual(0, RunParticipantRegistry.Count);
     }
 
     /// <summary> 남의 신원으로는 가져갈 수 없다 </summary>
@@ -70,10 +67,10 @@ public class RunParticipantRegistryTests
         bool taken = RunParticipantRegistry.TryTake(new RunId(1u), new ParticipantId(200UL), out RunParticipantSnapshot _);
 
         Assert.IsFalse(taken);
-        Assert.IsTrue(RunParticipantRegistry.Has(new ParticipantId(100UL)), "원래 주인의 값은 그대로 남는다");
+        Assert.IsTrue(RunParticipantRegistry.Has(new ParticipantId(100UL)));
     }
 
-    /// <summary> 신원이 없으면 맡을 수 없다. 돌아왔을 때 알아볼 방법이 없기 때문이다 </summary>
+    /// <summary> 신원이 없으면 맡을 수 없다 </summary>
     [Test]
     public void SnapshotWithoutIdentityIsNotStored()
     {

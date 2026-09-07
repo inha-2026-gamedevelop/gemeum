@@ -94,6 +94,7 @@ git config --global merge.unityyamlmerge.driver \
 | 파일이나 폴더를 만들 때 | [씬 · 에셋 안전](SCENE_AND_ASSET_SAFETY.md) |
 | 커밋 · 푸시하기 직전 | [협업 규칙](../../CONTRIBUTING.md) |
 | 네트워크 코드를 쓸 때 | [네트워크 권위](NETWORK_AUTHORITY.md) |
+| 다른 파트가 만든 서버 창구를 쓸 때 | [서버 API 레퍼런스](SERVER_API_REFERENCE.md) |
 | 밸런스 수치를 다룰 때 | [밸런스 데이터 작업](BALANCE_DATA_WORKFLOW.md) |
 | 성능 문제가 실제로 생겼을 때 | [Unity 엔지니어링 패턴](UNITY_ENGINEERING_PATTERNS.md) |
 | 하늘 · 날씨 · 구름을 세팅하거나 다룰 때 | [Weather Maker 사용 가이드](WEATHER_MAKER_GUIDE.md) |

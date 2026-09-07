@@ -9,10 +9,7 @@ using Geumeum.Data;
 
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// BGM 재생. 트랙이 바뀌면 두 소스를 교차 페이드해 이어 붙인다.
-    /// 사용자 볼륨은 믹서의 노출 파라미터가 담당하므로 여기서는 페이드 비율만 다룬다
-    /// </summary>
+    /// <summary> BGM 재생. 트랙이 바뀌면 두 소스를 교차 페이드해 이어 붙인다 </summary>
     public class BgmPlayer : PersistentSingleton<BgmPlayer>
     {
         /****************************************
@@ -69,7 +66,6 @@ namespace Geumeum.Common
             SoundCatalogSO catalog = GameDB.Sound;
             AudioClip      clip    = catalog.GetBgmClip(track);
 
-            // 조달 전이라는 뜻이고 결함이 아니다
             if (clip == null)
             {
                 return;
@@ -91,11 +87,7 @@ namespace Geumeum.Common
             CurrentTrack = track;
         }
 
-        /// <summary>
-        /// 지금 흐르는 곡을 끊고, 무음을 둔 뒤 다음 트랙을 재생한다.
-        /// 꼬리가 마지막으로 떨어질 때의 무음 3초가 이것이다.
-        /// 무음 길이를 넘기지 않으면 SoundCatalogSO의 값을 쓴다
-        /// </summary>
+        /// <summary> 지금 흐르는 곡을 끊고 무음 뒤 다음 트랙을 재생한다. 무음 길이 생략 시 SoundCatalogSO 값을 쓴다 </summary>
         public void PlayAfterSilence(BgmTrack track, float silenceSeconds = -1f)
         {
             if (!GameDB.IsInitialized)
@@ -176,7 +168,6 @@ namespace Geumeum.Common
 
             CurrentTrack = BgmTrack.None;
 
-            // 히트스톱이나 슬로우모션이 걸려도 무음 길이가 늘어나면 안 된다
             yield return new WaitForSecondsRealtime(silenceSeconds);
 
             _coSilence = null;
@@ -200,7 +191,6 @@ namespace Geumeum.Common
             AudioSource outgoing = _activeSource;
             AudioSource incoming = _idleSource;
 
-            // 이전 페이드가 중간에 끊겼으면 나가는 소스가 이미 작아져 있다, 그 지점에서 이어 줄인다
             float outgoingGain = outgoing.volume;
 
             Configure(incoming, clip, isLoop, 0f);
@@ -217,7 +207,6 @@ namespace Geumeum.Common
 
             while (progress < 1f)
             {
-                // 일시정지나 슬로우모션에 페이드가 끌려가지 않게 한다
                 progress += Time.unscaledDeltaTime / duration;
 
                 float t = Mathf.Clamp01(progress);
@@ -235,7 +224,6 @@ namespace Geumeum.Common
 
         private void Configure(AudioSource source, AudioClip clip, bool isLoop, float volume)
         {
-            // Awake가 GameDB보다 빨랐으면 그룹이 비어 있다. 비면 소리가 Master로 새어 나가 덕킹이 걸리지 않는다
             if (source.outputAudioMixerGroup == null)
             {
                 source.outputAudioMixerGroup = GameDB.Sound.Bgm;

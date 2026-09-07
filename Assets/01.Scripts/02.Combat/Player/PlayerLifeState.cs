@@ -1,9 +1,6 @@
 namespace Geumeum.Combat
 {
-    /// <summary>
-    /// 플레이어 생명 상태. PlayerStatus가 서버에서만 바꾸고 SyncVar로 배포한다.
-    /// 직렬화되므로 명시값을 유지하고 기존 값을 재배열하지 않는다
-    /// </summary>
+    /// <summary> 플레이어 생명 상태 </summary>
     public enum PlayerLifeState
     {
         Alive              = 0,

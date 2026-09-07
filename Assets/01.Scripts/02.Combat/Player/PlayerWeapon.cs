@@ -9,11 +9,8 @@ using Geumeum.Common;
 
 namespace Geumeum.Combat
 {
-    /// <summary>
-    /// 이 플레이어가 쥔 무기 = 직업. 서버가 확정하고 클라이언트는 읽기만 한다.
-    /// 클라이언트가 보낸 무기 ID는 신뢰하지 않으며 판정은 항상 이 서버 상태를 본다
-    /// </summary>
-    public class PlayerWeapon : NetworkBehaviour
+    /// <summary> 이 플레이어가 쥔 무기 = 직업. 서버가 확정하고 클라이언트는 읽기만 한다 </summary>
+    public class PlayerWeapon : NetworkBehaviour, IRunStateCarrier
     {
         /****************************************
         *                Fields
@@ -29,14 +26,14 @@ namespace Geumeum.Combat
         *                Events
         ****************************************/
 
-        /// <summary> 장착 무기가 바뀌었다. 배분 전에는 기본값이 온다 </summary>
+        /// <summary> 장착 무기가 바뀌었다 </summary>
         public event System.Action<WeaponKind> WeaponChanged;
 
         /****************************************
         *              Properties
         ****************************************/
 
-        /// <summary> 런 시작 전에는 무기가 없다, 배분 전 값을 직업으로 읽지 않도록 이 값을 먼저 본다 </summary>
+        /// <summary> 런 시작 전에는 무기가 없다 </summary>
         public bool HasWeapon => _hasWeapon;
 
         public WeaponKind Weapon => _weapon;
@@ -55,11 +52,14 @@ namespace Geumeum.Combat
         *              SyncVar Hooks
         ****************************************/
 
-        // 캐릭터(PlayerCharacter)가 오른손 뼈를 켜는 시점과 무기 SyncVar 도착 순서가 보장되지 않아
-        // 두 훅 모두 무기 시각화를 다시 시도한다. PlayerCharacter의 이중 훅과 같은 이유다
         private void OnWeaponChanged(WeaponKind oldWeapon, WeaponKind newWeapon)
         {
             RefreshWeaponVisual();
+
+            if (isLocalPlayer)
+            {
+                GDebug.Log($"무기 {oldWeapon} -> {newWeapon}");
+            }
 
             WeaponChanged?.Invoke(newWeapon);
         }
@@ -70,13 +70,49 @@ namespace Geumeum.Combat
         }
 
         /****************************************
+        *           Interface Members
+        ****************************************/
+
+        public int CarrierOrder => 11;
+
+        /// <summary> 확정된 무기를 담는다 </summary>
+        public void Capture(RunParticipantSnapshot snapshot)
+        {
+            if (!_hasWeapon)
+            {
+                return;
+            }
+
+            snapshot.Weapon = _weapon;
+        }
+
+        public bool Validate(RunParticipantSnapshot snapshot, out string failure)
+        {
+            if (!System.Enum.IsDefined(typeof(WeaponKind), snapshot.Weapon))
+            {
+                failure = $"알 수 없는 무기다: {snapshot.Weapon}";
+                return false;
+            }
+
+            failure = null;
+            return true;
+        }
+
+        /// <summary> 담아 둔 무기를 되붓는다 </summary>
+        public bool Restore(RunParticipantSnapshot snapshot)
+        {
+            _weapon    = snapshot.Weapon;
+            _hasWeapon = true;
+
+            RefreshWeaponVisual();
+            return true;
+        }
+
+        /****************************************
         *              Server API
         ****************************************/
 
-        /// <summary>
-        /// 런 시작 시 배분된 무기를 확정한다. LobbyController만 호출한다.
-        /// 이미 확정된 뒤의 재호출은 거부한다, 런 도중 직업이 바뀌면 판정 결과가 달라진다
-        /// </summary>
+        /// <summary> 런 시작 시 배분된 무기를 확정한다 </summary>
         [Server]
         public bool ServerSetInitialWeapon(WeaponKind weapon)
         {
@@ -91,10 +127,7 @@ namespace Geumeum.Combat
             return true;
         }
 
-        /// <summary>
-        /// 런이 끝나 로비로 돌아갈 때 배분을 되돌린다. LobbyController만 호출한다.
-        /// 확정 여부만 내리고 무기 값은 남긴다, 다음 배분이 값을 덮어쓴다
-        /// </summary>
+        /// <summary> 런이 끝나 로비로 돌아갈 때 배분을 되돌린다 </summary>
         [Server]
         public void ServerClearForNewRun()
         {
@@ -112,7 +145,6 @@ namespace Geumeum.Combat
                 _weaponVisual.Refresh();
             }
 
-            // 손에 든 모델뿐 아니라 동작도 무기가 정한다
             if (_animation != null)
             {
                 _animation.RefreshWeaponAnimation();

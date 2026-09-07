@@ -9,10 +9,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// Steam 경로의 신원 소스. FizzySteamworks가 conn.address로 보고하는 SteamID64를 쓴다.
-    /// 클라이언트가 보낸 값은 신뢰하지 않는다, 조작하면 남의 슬롯을 가져갈 수 있다
-    /// </summary>
+    /// <summary> Steam 경로의 신원 소스. conn.address의 SteamID64를 쓴다 </summary>
     public class SteamIdentitySource : MonoBehaviour, IPlayerIdentitySource
     {
         /****************************************
@@ -36,7 +33,6 @@ namespace Geumeum.Network
                 return false;
             }
 
-            // 호스트 자신의 로컬 연결은 SteamID가 아니라 localhost로 온다
             if (conn.connectionId == NetworkConnection.LocalConnectionId)
             {
                 id = new PlayerPlatformId(SteamLocalUser.TryGetSteamId(out ulong localId) ? localId : 1UL);
@@ -49,8 +45,6 @@ namespace Geumeum.Network
                 return false;
             }
 
-            // 신원은 어디까지나 conn.address다. 클라이언트가 보낸 값은 대조용이라
-            // 어긋나면 트랜스포트 설정이 잘못됐거나 조작이므로 여기서 끊는다
             if (claimedId == 0UL)
             {
                 id     = PlayerPlatformId.None;
