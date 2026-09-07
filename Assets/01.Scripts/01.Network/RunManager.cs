@@ -724,13 +724,57 @@ namespace Geumeum.Network
             RunPhase previous = _phase;
             _phase = next;
 
-            if (!GameEventBus.HasInstance)
+            if (GameEventBus.HasInstance)
+            {
+                GameEventBus.Instance.Publish(new RunPhaseChangedEvent(previous, next));
+            }
+            else
             {
                 Debug.LogError($"[RunManager] GameEventBus가 없어 {previous} -> {next} 전환을 알리지 못했다", this);
+            }
+
+            // 구독자가 현재 씬에서 phase 변화를 처리한 뒤에 씬을 옮긴다.
+            // 순서를 뒤집으면 전환으로 파괴되는 객체가 이벤트를 못 받는다
+            ServerSyncSceneToPhase(next);
+        }
+
+        /// <summary>
+        /// phase가 요구하는 씬으로 1회 전환한다. 씬 전환의 결정은 런 상태를 소유한 여기가 하고
+        /// 실행은 RunSceneDirector가 한다.
+        ///
+        /// 개발 씬에서는 아무것도 하지 않는다 - Director가 시작 씬 이름으로 CurrentScene을 잡는데
+        /// Dev_Combat 같은 씬은 카탈로그에 없어 None이 된다. 그 상태에서 자동 전환을 걸면
+        /// 개발용 F5 경로가 매번 Field로 끌려간다
+        /// </summary>
+        [Server]
+        private void ServerSyncSceneToPhase(RunPhase next)
+        {
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            if (director == null)
+            {
                 return;
             }
 
-            GameEventBus.Instance.Publish(new RunPhaseChangedEvent(previous, next));
+            if (director.CurrentScene == RunSceneId.None)
+            {
+                return;
+            }
+
+            if (!RunSceneCatalog.TryGetSceneForPhase(next, out RunSceneId target))
+            {
+                return;
+            }
+
+            // 결계 축소는 같은 Field 안에서 일어난다, 씬을 다시 열지 않는다
+            if (director.CurrentScene == target)
+            {
+                return;
+            }
+
+            if (!director.ServerBeginTransition(target))
+            {
+                Debug.LogWarning($"[RunManager] {next} 전환에 필요한 씬 이동을 시작하지 못했다: {director.CurrentScene} -> {target}", this);
+            }
         }
     }
 }
