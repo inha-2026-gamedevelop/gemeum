@@ -360,6 +360,9 @@ namespace Geumeum.Combat
             int   hitCount   = 0;
             float spiritGain = 0f;
 
+            // 표식 소유자는 한 번만 찾는다. 맞은 수만큼 신원을 다시 조회하지 않는다
+            ParticipantId markOwner = (isBell) ? ResolveParticipantId() : ParticipantId.None;
+
             _hitTargets.Clear();
 
             int count = Physics.OverlapSphereNonAlloc(origin, range, _hitBuffer, _targetMask);
@@ -414,6 +417,9 @@ namespace Geumeum.Combat
                 if (isBell)
                 {
                     spiritGain = Mathf.Min(spiritGain + combat.SpiritGainPerHit, combat.SpiritGainMaxPerSwing);
+
+                    // 표식이 거부돼도 이 타격의 피해와 신력은 그대로다
+                    TryApplyMark(markOwner, damageable, combat);
                 }
             }
 
@@ -428,6 +434,54 @@ namespace Geumeum.Combat
             }
 
             RpcMeleeResult(hitCount > 0, (isCritical) && (hitCount > 0));
+        }
+
+        /// <summary> 이 플레이어의 영속 신원. 표식 소유권이 재접속에도 유지되도록 netId가 아니라 이 값을 쓴다 </summary>
+        [Server]
+        private ParticipantId ResolveParticipantId()
+        {
+            if ((connectionToClient == null) || (GeumeumAuthenticator.ServerInstance == null))
+            {
+                return ParticipantId.None;
+            }
+
+            if (!GeumeumAuthenticator.ServerInstance.TryGetPlatformId(
+                    connectionToClient.connectionId, out PlayerPlatformId platformId))
+            {
+                return ParticipantId.None;
+            }
+
+            return new ParticipantId(platformId.Value);
+        }
+
+        /// <summary> 맞은 대상에 표식을 건다. 부위는 아직 보스에만 있어 지금은 본체만 가리킨다 </summary>
+        [Server]
+        private static void TryApplyMark(ParticipantId owner, IDamageable damageable, CombatConfigSO combat)
+        {
+            if (!owner.IsValid)
+            {
+                return;
+            }
+
+            // GetComponent 없이 netId를 얻는다. 판정 대상은 전부 NetworkBehaviour다
+            NetworkBehaviour behaviour = damageable as NetworkBehaviour;
+            if (behaviour == null)
+            {
+                return;
+            }
+
+            RunManager       run      = RunManager.ServerInstance;
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+
+            TargetRef target = TargetRef.Create(
+                (run == null) ? default : run.RunId,
+                (director == null) ? default : director.Revision,
+                behaviour.netId,
+                TargetRef.BODY_PART_ID);
+
+            MarkRegistry.TryApply(
+                owner, target, NetworkTime.time, combat.MarkDuration, combat.MarkSlotCount,
+                out MarkRejection _);
         }
 
         /// <summary> 다음 근접 공격이 치명의 일격인가. 소비하지 않고 보기만 한다 </summary>

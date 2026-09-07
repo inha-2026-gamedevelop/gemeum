@@ -77,6 +77,10 @@ namespace Geumeum.Data
         [SerializeField] private float _spiritGainPerHit      = 5f;    // 한 명 맞힐 때 얻는 신력
         [SerializeField] private float _spiritGainMaxPerSwing = 15f;   // 한 번 휘둘러 얻을 수 있는 상한
 
+        [Header("표식")]
+        [SerializeField] private float _markDuration  = 8f; // 유지 시간(초). 같은 대상 재부여 쿨다운도 이 값을 쓴다
+        [SerializeField] private int   _markSlotCount = 2;  // 한 사람이 동시에 유지하는 수. 넘으면 가장 오래된 것이 밀린다
+
         [Header("범위 치유")]
         [SerializeField] private float _healSpiritCost        = 25f;   // 신력 비용
         [SerializeField] private float _healCastDuration      = 0.4f;  // 시전 시간(초), 이 동안 움직이면 끊긴다
@@ -160,6 +164,9 @@ namespace Geumeum.Data
         public float BellBasePower         => _bellBasePower;
         public float SpiritGainPerHit      => _spiritGainPerHit;
         public float SpiritGainMaxPerSwing => _spiritGainMaxPerSwing;
+
+        public float MarkDuration  => _markDuration;
+        public int   MarkSlotCount => _markSlotCount;
 
         public float HealSpiritCost       => _healSpiritCost;
         public float HealCastDuration     => _healCastDuration;
