@@ -59,18 +59,20 @@ namespace Geumeum.AI
         // TODO: BossPatternSO.PatternEntry에 템플릿별 필드(Range, AngleDegrees, DashSpeed 등)가
         // 생기면 SO로 옮긴다. 지금은 스키마가 00.Common 공용 파일이라 팀장 확인 없이 필드를
         // 추가하지 않고, 우리 파트 안에 임시 상수로 둔다
-        private const float MELEE_RANGE                 = 2.8f;  // m, 1페이즈 MeleeArc 사거리
+        // 2026-09-07 - 실측 키(2.109m)가 설계 가정(1.85m) 대비 x1.14라 사거리·반경류만 그 비율로 스케일했다.
+        // 속도·각도·Telegraph 시간은 BOSS_DESIGN.md 11장 원칙(Windup 고정, 사거리만 확대)대로 그대로 둔다
+        private const float MELEE_RANGE                 = 3.19f; // m, 1페이즈 MeleeArc 사거리 (2.8 x1.14)
         private const float MELEE_ANGLE_DEGREES         = 100f;  // 도, 부채꼴 전체 각도
         private const float MELEE_PARRY_WINDOW_DURATION = 0.32f; // 초, 패링 판정 창 길이
 
-        private const float DASH_SPEED      = 10f;  // m/s, 1페이즈 돌진 속도
-        private const float DASH_DISTANCE   = 8f;   // m, 1페이즈 돌진 거리
-        private const float DASH_HIT_RADIUS = 1.2f; // m, 돌진 도착 지점 명중 판정 반경
+        private const float DASH_SPEED      = 10f;   // m/s, 1페이즈 돌진 속도
+        private const float DASH_DISTANCE   = 9.12f; // m, 1페이즈 돌진 거리 (8 x1.14)
+        private const float DASH_HIT_RADIUS = 1.37f; // m, 돌진 도착 지점 명중 판정 반경 (1.2 x1.14)
 
-        private const float MARKED_CIRCLE_RADIUS = 3.5f; // m, 1페이즈 낙인 반경
+        private const float MARKED_CIRCLE_RADIUS = 3.99f; // m, 1페이즈 낙인 반경 (3.5 x1.14)
 
-        private const float CONE_RANGE         = 9f;  // m, 충격파 사거리
-        private const float CONE_ANGLE_DEGREES = 60f; // 도, 충격파 부채꼴 전체 각도
+        private const float CONE_RANGE         = 10.26f; // m, 충격파 사거리 (9 x1.14)
+        private const float CONE_ANGLE_DEGREES = 60f;     // 도, 충격파 부채꼴 전체 각도
 
         /****************************************
         *                Fields
@@ -218,6 +220,20 @@ namespace Geumeum.AI
             return PatternKind.MeleeArc;
         }
 
+        // 화면 로그용 이름. 기획 문서(boss-pattern-design) 표기를 그대로 쓴다
+        private static string PatternName(int patternId)
+        {
+            switch (patternId)
+            {
+                case MELEE_ARC_PATTERN_ID:     return "여우불 봉 3연격";
+                case DERIVED_MELEE_PATTERN_ID: return "반월 베기";
+                case TARGETED_DASH_PATTERN_ID: return "순간 접근 3연계";
+                case MARKED_CIRCLE_PATTERN_ID: return "여우불 낙인";
+                case CONE_BURST_PATTERN_ID:    return "여우 구슬 충격파";
+                default:                       return $"패턴 {patternId}";
+            }
+        }
+
         private void BeginAttack(BossPatternSO.PatternEntry pattern, PatternKind kind)
         {
             _activeTarget           = Target;
@@ -261,6 +277,9 @@ namespace Geumeum.AI
             };
 
             _controller.ServerBeginTelegraph(cue);
+
+            // BossTelegraphView가 아직 없어 예고가 화면에 안 보인다. 확인용 임시 로그 - 뷰 붙으면 지운다
+            GDebug.Server($"[보스] {PatternName(pattern.PatternId)} 예고 시작");
         }
 
         private void TickWindup(float deltaTime)
@@ -291,6 +310,9 @@ namespace Geumeum.AI
 
         private void ResolveImpact()
         {
+            // BossTelegraphView가 아직 없어 타격이 화면에 안 보인다. 확인용 임시 로그 - 뷰 붙으면 지운다
+            GDebug.Server($"[보스] {PatternName(_activePattern.PatternId)} 타격 판정");
+
             uint attackerNetId = (_selfIdentity != null) ? _selfIdentity.netId : 0u;
 
             if (_activeKind == PatternKind.TargetedDash)

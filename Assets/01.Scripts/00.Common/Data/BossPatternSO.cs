@@ -117,6 +117,13 @@ namespace Geumeum.Data
         [Tooltip("표식된 꼬리를 그로기 안에 못 부쉈을 때 보스 공격력 배수. 부술 때까지 유지되고 누적하지 않는다")]
         [SerializeField] private float _unbrokenTailAttackMultiplier = 1.2f;
 
+        [Header("최종 구간 (원혼)")]
+        [Tooltip("원혼 한 마리의 HP. 카운터 조건이 아니어도 때려서 없앨 수 있다 - 임시값, 팀 확인 후 조정")]
+        [SerializeField] private float _wonhonHealth = 200f;
+
+        [Tooltip("원혼 셋을 없애야 하는 제한시간(초). 못 넘기면 백귀야행이 발동한다 - 임시값")]
+        [SerializeField] private float _finalGauntletWindowSeconds = 8f;
+
         /****************************************
         *              Properties
         ****************************************/
@@ -157,6 +164,12 @@ namespace Geumeum.Data
         public float HealthGateRatio => _healthGateRatio;
 
         public float UnbrokenTailAttackMultiplier => _unbrokenTailAttackMultiplier;
+
+        /// <summary> 원혼 한 마리의 HP </summary>
+        public float WonhonHealth => _wonhonHealth;
+
+        /// <summary> 원혼 셋을 없애야 하는 제한시간(초), 넘기면 백귀야행 발동 </summary>
+        public float FinalGauntletWindowSeconds => _finalGauntletWindowSeconds;
 
         /****************************************
         *                Methods
