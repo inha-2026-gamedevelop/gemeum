@@ -10,6 +10,11 @@ rem   2. 개발 빌드여야 한다. NetworkLaunchArgs가 DEVELOPMENT_BUILD에서만 동작한�
 
 set "ROOT=%~dp0.."
 
+rem 런을 시작할 인원. 안 주면 씬에 저장된 값을 쓴다
+set "PLAYERS=%~1"
+set "PLAYERARGS="
+if defined PLAYERS set "PLAYERARGS=-minplayers %PLAYERS%"
+
 call :find_exe
 if not defined EXE (
     echo 개발 빌드를 찾을 수 없다.
@@ -44,7 +49,7 @@ echo.
 echo   Steam 호스트를 시작한다.
 echo   로그의 SteamID64를 다른 PC에 알려줄 것.
 
-start "" /D "%EXEDIR%" "%EXE%" -steam -host -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "%LOGFILE%"
+start "" /D "%EXEDIR%" "%EXE%" -steam -host %PLAYERARGS% -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "%LOGFILE%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0show-steam-host-id.ps1" -LogPath "%LOGFILE%"
 if errorlevel 1 echo 로그 요약 스크립트를 실행하지 못했다. show-steam-host-id.ps1이 옆에 있는지 확인할 것.

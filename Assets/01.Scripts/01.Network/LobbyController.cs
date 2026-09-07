@@ -307,13 +307,72 @@ namespace Geumeum.Network
 
         private int ResolveRequiredPlayers()
         {
-            if ((_devMinPlayers <= 0) || (_devMinPlayers > Constants.Network.MAX_PLAYERS))
+            int required = _devMinPlayers;
+
+            // 씬 파일은 머지가 안 되므로 인원을 바꾸려고 매번 씬을 고치지 않는다. 실행 인자가 있으면 그쪽이 이긴다
+            if (TryGetPlayerCountArg(out int fromArgs))
+            {
+                required = fromArgs;
+            }
+
+            if ((required <= 0) || (required > Constants.Network.MAX_PLAYERS))
             {
                 return Constants.Network.MAX_PLAYERS;
             }
 
-            return _devMinPlayers;
+            return required;
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+
+        private const string ARG_MIN_PLAYERS = "-minplayers"; // 뒤에 런을 시작할 인원이 온다
+
+        private static bool _minPlayersParsed = false;
+        private static int  _minPlayersCached = 0;
+
+        /// <summary> 실행 인자로 받은 시작 인원. 없거나 숫자가 아니면 false </summary>
+        private static bool TryGetPlayerCountArg(out int count)
+        {
+            if (_minPlayersParsed)
+            {
+                count = _minPlayersCached;
+                return (count > 0);
+            }
+
+            _minPlayersParsed = true;
+
+            string[] args = Environment.GetCommandLineArgs();
+            for (int i = 0; i < (args.Length - 1); ++i)
+            {
+                if (!string.Equals(args[i], ARG_MIN_PLAYERS, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (!int.TryParse(args[i + 1], out int parsed))
+                {
+                    Debug.LogWarning($"[LobbyController] {ARG_MIN_PLAYERS} 값이 숫자가 아니다: {args[i + 1]}");
+                    break;
+                }
+
+                _minPlayersCached = parsed;
+                Debug.Log($"[LobbyController] 실행 인자로 시작 인원을 {parsed}로 지정했다");
+                break;
+            }
+
+            count = _minPlayersCached;
+            return (count > 0);
+        }
+
+#else
+
+        private static bool TryGetPlayerCountArg(out int count)
+        {
+            count = 0;
+            return false;
+        }
+
+#endif
 
         private void LockAdmission()
         {
