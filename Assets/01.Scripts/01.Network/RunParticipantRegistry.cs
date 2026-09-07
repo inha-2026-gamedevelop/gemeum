@@ -79,7 +79,7 @@ namespace Geumeum.Network
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void ResetStatic()
         {
-            _snapshots.Clear();
+            ServerClear();
         }
     }
 }

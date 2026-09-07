@@ -13,8 +13,8 @@ namespace Geumeum.Common.Environment
         [SerializeField] private WeatherScheduleConfig config;
         [SerializeField] private WeatherMakerDayNightCycleManagerScript dayNightCycle;
 
-        private WeatherMakerWeatherZoneScript weatherZone;
-        private bool isRaining;
+        private WeatherMakerWeatherZoneScript _weatherZone;
+        private bool _isRaining;
 
         // 컴포넌트를 껐다 켜면 OnEnable이 다시 불린다. 핸들이 없으면 이전 루프가 살아 있는 채로
         // 하나가 더 붙어 두 루프가 같은 프로필을 서로 덮어쓴다
@@ -22,7 +22,7 @@ namespace Geumeum.Common.Environment
 
         private void Awake()
         {
-            weatherZone = GetComponent<WeatherMakerWeatherZoneScript>();
+            _weatherZone = GetComponent<WeatherMakerWeatherZoneScript>();
         }
 
         private void OnEnable()
@@ -73,7 +73,7 @@ namespace Geumeum.Common.Environment
                 return false;
             }
 
-            if (weatherZone == null)
+            if (_weatherZone == null)
             {
                 Debug.LogError("[WeatherRainSchedule] WeatherMakerWeatherZoneScript를 찾지 못했다", this);
                 return false;
@@ -100,10 +100,10 @@ namespace Geumeum.Common.Environment
                 float timeOfDay = dayNightCycle.TimeOfDay;
                 bool shouldRain = timeOfDay >= rainStartSeconds && timeOfDay < rainEndSeconds;
 
-                if (shouldRain != isRaining)
+                if (shouldRain != _isRaining)
                 {
-                    isRaining = shouldRain;
-                    weatherZone.SingleProfile = isRaining ? config.RainProfile : config.ClearProfile;
+                    _isRaining = shouldRain;
+                    _weatherZone.SingleProfile = _isRaining ? config.RainProfile : config.ClearProfile;
                 }
 
                 yield return wait;

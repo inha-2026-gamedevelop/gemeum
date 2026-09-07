@@ -17,7 +17,7 @@ namespace Geumeum.Combat
         *              Constants
         ****************************************/
 
-        private static readonly string[] TARGET_LAYERS = { Constants.Layer.ENEMY, Constants.Layer.BOSS };
+        private static readonly string[] G_TargetLayers = { Constants.Layer.ENEMY, Constants.Layer.BOSS };
 
         private const int CANDIDATE_BUFFER_SIZE = 64;
 
@@ -102,7 +102,7 @@ namespace Geumeum.Combat
             _status       = GetComponent<PlayerStatus>();
             _presentation = GetComponent<PlayerPresentation>();
 
-            _targetLayerMask = LayerMask.GetMask(TARGET_LAYERS);
+            _targetLayerMask = LayerMask.GetMask(G_TargetLayers);
         }
 
         private void Update()

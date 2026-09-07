@@ -88,7 +88,7 @@ namespace Geumeum.Network
             for (int i = 1; i < _segments.Length; ++i)
             {
                 float gap = _segments[i].StartSeconds - _segments[i - 1].EndSeconds;
-                if ((gap > TIME_EPSILON) || (gap < -TIME_EPSILON))
+                if (IsOutsideTimeTolerance(gap))
                 {
                     error = $"{_segments[i - 1].Phase}와 {_segments[i].Phase} 사이가 이어지지 않는다: {_segments[i - 1].EndSeconds} -> {_segments[i].StartSeconds}";
                     return false;
@@ -97,7 +97,7 @@ namespace Geumeum.Network
 
             float lastEndSeconds = _segments[_segments.Length - 1].EndSeconds;
             float limitGap       = lastEndSeconds - fieldTimeLimitSeconds;
-            if ((limitGap > TIME_EPSILON) || (limitGap < -TIME_EPSILON))
+            if (IsOutsideTimeTolerance(limitGap))
             {
                 error = $"마지막 필드 구간 종료가 필드 제한 시간과 다르다: {lastEndSeconds} != {fieldTimeLimitSeconds}";
                 return false;
@@ -105,6 +105,11 @@ namespace Geumeum.Network
 
             error = null;
             return true;
+        }
+
+        private static bool IsOutsideTimeTolerance(float gap)
+        {
+            return ((gap > TIME_EPSILON) || (gap < -TIME_EPSILON));
         }
 
         /// <summary> 경과 시간이 속한 구간을 찾는다, 어느 구간에도 없으면 false </summary>
