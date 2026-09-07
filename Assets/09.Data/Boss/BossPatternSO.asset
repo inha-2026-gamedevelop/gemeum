@@ -16,11 +16,90 @@ MonoBehaviour:
   _phases:
   - PhaseIndex: 1
     EnterHealthRatio: 1
-    PatternIds: []
+    PatternIds:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
   - PhaseIndex: 2
-    EnterHealthRatio: 0.6
-    PatternIds: []
-  _patterns: []
+    EnterHealthRatio: 0.5
+    PatternIds:
+    - 6
+    - 7
+    - 8
+    - 9
+  _patterns:
+  - PatternId: 1
+    DisplayName: 여우불 봉 3연격
+    TelegraphDuration: 1.2
+    ActiveDuration: 1
+    Cooldown: 20
+    Damage: 25
+    IsParryable: 1
+  - PatternId: 2
+    DisplayName: 반월 베기
+    TelegraphDuration: 0.8
+    ActiveDuration: 1
+    Cooldown: 15
+    Damage: 13
+    IsParryable: 0
+  - PatternId: 3
+    DisplayName: 순간 접근 3연계
+    TelegraphDuration: 1.5
+    ActiveDuration: 1
+    Cooldown: 28
+    Damage: 13
+    IsParryable: 0
+  - PatternId: 4
+    DisplayName: 여우불 낙인
+    TelegraphDuration: 1.2
+    ActiveDuration: 1
+    Cooldown: 24
+    Damage: 13
+    IsParryable: 0
+  - PatternId: 5
+    DisplayName: 여우 구슬 충격파
+    TelegraphDuration: 2
+    ActiveDuration: 1
+    Cooldown: 32
+    Damage: 13
+    IsParryable: 0
+  - PatternId: 6
+    DisplayName: 거대 꼬리치기
+    TelegraphDuration: 1.5
+    ActiveDuration: 1.5
+    Cooldown: 30
+    Damage: 35
+    IsParryable: 1
+  - PatternId: 7
+    DisplayName: 마수 돌진
+    TelegraphDuration: 1.2
+    ActiveDuration: 1
+    Cooldown: 26
+    Damage: 22
+    IsParryable: 0
+  - PatternId: 8
+    DisplayName: 표식 순환 처형
+    TelegraphDuration: 2
+    ActiveDuration: 1
+    Cooldown: 35
+    Damage: 22
+    IsParryable: 0
+  - PatternId: 9
+    DisplayName: 연쇄 부채꼴 3단
+    TelegraphDuration: 1.5
+    ActiveDuration: 1
+    Cooldown: 34
+    Damage: 22
+    IsParryable: 0
+  - PatternId: 10
+    DisplayName: 백귀야행
+    TelegraphDuration: 2
+    ActiveDuration: 1.5
+    Cooldown: 60
+    Damage: 75
+    IsParryable: 0
   _bossTimeLimitSeconds: 840
   _enrageStartSeconds: 810
   _enrageWarningSeconds: 720
