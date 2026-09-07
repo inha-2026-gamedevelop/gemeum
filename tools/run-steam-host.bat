@@ -10,10 +10,11 @@ rem   2. 개발 빌드여야 한다. NetworkLaunchArgs가 DEVELOPMENT_BUILD에서만 동작한�
 
 set "ROOT=%~dp0.."
 
-rem 런을 시작할 인원. 안 주면 씬에 저장된 값을 쓴다
+rem 3인 테스트 전용 스크립트다. 인원을 안 주면 3으로 간다 -
+rem 안 주면 씬 값(1)으로 돌아 호스트 혼자 런이 시작되고 입장이 잠긴다
 set "PLAYERS=%~1"
-set "PLAYERARGS="
-if defined PLAYERS set "PLAYERARGS=-minplayers %PLAYERS%"
+if not defined PLAYERS set "PLAYERS=3"
+set "PLAYERARGS=-minplayers %PLAYERS%"
 
 call :find_exe
 if not defined EXE (
@@ -46,8 +47,13 @@ rem 이전 로그가 남아 있으면 이번 실행 결과와 섞인다
 if exist "%LOGFILE%" del /q "%LOGFILE%"
 
 echo.
-echo   Steam 호스트를 시작한다.
-echo   로그의 SteamID64를 다른 PC에 알려줄 것.
+echo   Steam 호스트를 시작한다. %PLAYERS%명이 모이면 런이 시작된다.
+echo   아래에 뜨는 SteamID64를 다른 PC에 알려줄 것.
+echo.
+echo   [중요] 이 경로는 로비를 쓰지 않는 직접 접속이다.
+echo          게임 안에서 [방 만들기]를 누르지 말 것.
+echo          로비를 만들면 그때부터 로비 멤버만 받으므로
+echo          직접 접속한 팀원이 전부 거부된다.
 
 start "" /D "%EXEDIR%" "%EXE%" -steam -host %PLAYERARGS% -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "%LOGFILE%"
 

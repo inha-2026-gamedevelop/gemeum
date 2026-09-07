@@ -187,9 +187,17 @@ Boss_Arena.unity
 ├ Antechamber    전실 참배로 6x15 · 등불 2 · 빈 갓걸이 · 도착 마커 3
 ├ Arena_Phase1   산속 사당 · 등불 12 · 담장 · Volume_P1      (시작 시 활성)
 ├ Arena_Phase2   저승 물길 · 여우불 14 · 무너진 돌 · Volume_P2 (시작 시 비활성)
-├ Weather        WeatherMaker 구동체. 프리팹이라 부모를 가질 수 없어 루트에 둔다
-└ ArenaCam       그레이박스 확인용 임시 카메라. 플레이어 카메라가 붙으면 정리 대상
+└ BossNightWeather  WeatherMaker 구동체(`02.Prefabs/Art/BossNightWeather.prefab`).
+                    프리팹이라 부모를 가질 수 없어 루트에 둔다
 ```
+
+**카메라는 이 씬에 두지 않는다.** 진입 씬의 `Main Camera`가 `SessionPersistence`로
+`DontDestroyOnLoad`되어 따라온다. 여기에 또 두면 `MainCamera` 태그가 둘이 된다.
+
+**WeatherMaker 구동체는 씬마다 두고 중복은 런타임에 정리한다.** `Dev_Combat`에도 같은 프리팹이
+있어 씬 전환 시 둘이 되는데, WeatherMaker 자신은 중복을 감지해 에러 로그만 남기고 정리하지 않는다.
+프리팹 루트의 `WeatherMakerSingleInstanceGuard`(`00.Common/Environment/`)가 나중에 온 쪽을
+끄고 파괴해 하나만 남긴다.
 
 **2026-09-06 현재 그레이박스다.** 지오메트리는 프리미티브이고 사당 · 돌무더기 · 갓걸이 모델은 미조달이다.
 치수 · 조명 · 안개 · 포스트 프로세싱은 [보스 설계 14.1](unity/BOSS_DESIGN.md)과
@@ -198,7 +206,12 @@ Boss_Arena.unity
 
 **페이즈 전환은 루트 토글만으로 끝나지 않는다.** 안개 프로파일 · 하늘 프로파일 · 바닥 머티리얼 ·
 WeatherMaker 달 원반이 공용 루트에 있어 함께 갈아 끼워야 한다. `Shared/Staging`의
-`BossArenaPhaseView.ShowPhase()`가 그 다섯을 한 번에 처리한다(4.5장). 아직 부르는 곳이 없다.
+`BossArenaPhaseView.ShowPhase()`가 그 다섯을 한 번에 처리한다(4.5장).
+개발 확인용으로 `BossPhaseDebugSwitcher`가 부른다(F6 · F7 · F8). 런 진행에서 부르는 곳은 아직 없다.
+
+**안개 · 하늘 교체는 씬에 WeatherMaker 구동체가 있을 때만 동작한다.** `ShowPhase()`의 대입은
+전부 null 가드 안에 있어, 구동체가 없으면 프로파일 두 벌이 인스펙터에 꽂혀 있어도 **에러 없이
+조용히 넘어간다.** 증상이 "프로파일이 안 먹는다"로만 보이므로 먼저 구동체 유무를 확인한다.
 
 **전실은 두 진입 경로를 하나로 받는다.**
 

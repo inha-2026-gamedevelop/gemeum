@@ -16,6 +16,7 @@ MonoBehaviour:
   _distance: 4.5
   _sideOffset: 0.6
   _followSmoothTime: 0.08
+  _defaultPitch: 22
   _defaultSensitivityX: 0.15
   _defaultSensitivityY: 0.12
   _defaultInvertY: 0

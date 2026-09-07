@@ -101,5 +101,37 @@ namespace Geumeum.Common
                     (sceneId == RunSceneId.BossEntrance) ||
                     (sceneId == RunSceneId.Boss));
         }
+
+        /// <summary>
+        /// 이 phase가 있어야 하는 씬. 씬을 바꾸지 않는 phase면 false다.
+        ///
+        /// 결계 축소 세 단계는 전부 Field에 머문다. 축소는 씬 교체가 아니라 같은 씬 안의 반경 변화다.
+        /// BossEntrance는 여기서 경유하지 않는다 - 전실은 Boss_Arena 씬 안에 이미 있고,
+        /// 별도 씬으로 뺄지는 전원 도착 대기 계약과 함께 정해야 한다
+        /// </summary>
+        public static bool TryGetSceneForPhase(RunPhase phase, out RunSceneId sceneId)
+        {
+            switch (phase)
+            {
+                case RunPhase.Lobby:
+                    sceneId = RunSceneId.Lobby;
+                    return true;
+                case RunPhase.Farming:
+                case RunPhase.Shrink1:
+                case RunPhase.Shrink2:
+                case RunPhase.Shrink3:
+                    sceneId = RunSceneId.Field;
+                    return true;
+                case RunPhase.Boss:
+                    sceneId = RunSceneId.Boss;
+                    return true;
+                case RunPhase.Result:
+                    sceneId = RunSceneId.Result;
+                    return true;
+                default:
+                    sceneId = RunSceneId.None;
+                    return false;
+            }
+        }
     }
 }

@@ -20,8 +20,12 @@ namespace Geumeum.Common
         *              Properties
         ****************************************/
 
-        /// <summary> 인스턴스 존재 여부, 조회만으로 탐색 비용이 들지 않는다 </summary>
-        public static bool HasInstance => (_instance != null);
+        /// <summary>
+        /// 인스턴스 존재 여부, 조회만으로 탐색 비용이 들지 않는다.
+        /// Instance와 같은 종료 조건을 본다, 여기서 _isQuitting을 빼면
+        /// HasInstance는 true인데 Instance는 null인 구간이 생겨 호출부가 터진다
+        /// </summary>
+        public static bool HasInstance => ((!_isQuitting) && (_instance != null));
 
         /// <summary>
         /// 현재 인스턴스, 없으면 null.

@@ -252,27 +252,35 @@ namespace Geumeum.Combat
 
             if ((_status != null) && (_status.IsDead))
             {
+                GDebug.Log(GLogKind.Server, $"락온 거부: 요청자 {GDebug.Who(netId)} 사망 상태");
                 return;
             }
 
             if (!TryFindServerTarget(targetNetId, out Transform root))
             {
+                GDebug.Log(GLogKind.Server, $"락온 거부: 서버가 대상 {targetNetId}를 못 찾음");
                 return;
             }
 
             if ((DamageTargetResolver.TryResolve(root, out IDamageable damageable)) && (damageable.IsDead))
             {
+                GDebug.Log(GLogKind.Server, $"락온 거부: 대상 {GDebug.Who(targetNetId)} 이미 사망");
                 return;
             }
 
             float range = (GameDB.IsInitialized) ? GameDB.Combat.LockOnAcquireRange : 0f;
-            if ((root.position - transform.position).sqrMagnitude > (range * range))
+            float sqrDistance = (root.position - transform.position).sqrMagnitude;
+            if (sqrDistance > (range * range))
             {
+                GDebug.Log(GLogKind.Server,
+                    $"락온 거부: 거리 {Mathf.Sqrt(sqrDistance):F1}m > 허용 {range:F0}m" +
+                    ((range <= 0f) ? " (GameDB 미초기화)" : ""));
                 return;
             }
 
             _serverTargetNetId = targetNetId;
             _serverTargetPart  = partIndex;
+            GDebug.Log(GLogKind.Server, $"락온 확정: {GDebug.Who(netId)} -> {GDebug.Who(targetNetId)} 부위{partIndex}");
         }
 
         /****************************************
@@ -422,6 +430,7 @@ namespace Geumeum.Combat
 
             if (!GameDB.IsInitialized)
             {
+                GDebug.Warn("락온 실패: GameDB 미초기화");
                 return best;
             }
 
@@ -431,6 +440,14 @@ namespace Geumeum.Combat
 
             int count = Physics.OverlapSphereNonAlloc(
                 transform.position, range, _candidateBuffer, _targetLayerMask, QueryTriggerInteraction.Ignore);
+
+            // 탈락 사유별 집계. 후보마다 로그를 찍으면 한 번 누를 때 화면이 넘친다
+            int rejectedNoIdentity = 0;
+            int rejectedDead       = 0;
+            int rejectedNoCamera   = 0;
+            int rejectedAngle      = 0;
+            int rejectedOccluded   = 0;
+            float closestAngle     = float.MaxValue;
 
             float bestAngle    = float.MaxValue;
             float bestDistance = float.MaxValue;
@@ -452,11 +469,13 @@ namespace Geumeum.Combat
                 NetworkIdentity identity = candidate.GetComponentInParent<NetworkIdentity>();
                 if (identity == null)
                 {
+                    ++rejectedNoIdentity;
                     continue;
                 }
 
                 if ((DamageTargetResolver.TryResolve(candidate, out IDamageable damageable)) && (damageable.IsDead))
                 {
+                    ++rejectedDead;
                     continue;
                 }
 
@@ -464,16 +483,24 @@ namespace Geumeum.Combat
 
                 if (!TryGetScreenAngle(aimPoint, out float angle))
                 {
+                    ++rejectedNoCamera;
                     continue;
+                }
+
+                if (angle < closestAngle)
+                {
+                    closestAngle = angle;
                 }
 
                 if (angle > maxAngle)
                 {
+                    ++rejectedAngle;
                     continue;
                 }
 
                 if (IsOccluded(aimPoint))
                 {
+                    ++rejectedOccluded;
                     continue;
                 }
 
@@ -495,7 +522,53 @@ namespace Geumeum.Combat
                 };
             }
 
+            ReportCandidateSearch(best, count, range, maxAngle, closestAngle,
+                                  rejectedNoIdentity, rejectedDead, rejectedNoCamera, rejectedAngle, rejectedOccluded);
+
             return best;
+        }
+
+        /// <summary>
+        /// 후보 탐색 결과를 한 줄로 남긴다. 실패했을 때 어디서 걸렸는지 남기지 않으면
+        /// 3인 테스트에서 "중클릭이 안 먹는다"는 증상만 남고 원인을 좁힐 수 없다
+        /// </summary>
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        private void ReportCandidateSearch(Candidate best, int overlapCount, float range, float maxAngle,
+                                           float closestAngle, int noIdentity, int dead, int noCamera,
+                                           int overAngle, int occluded)
+        {
+            if (best.IsValid)
+            {
+                GDebug.Success($"락온 획득: {GDebug.Who(best.NetId)} 부위{best.PartIndex}");
+                return;
+            }
+
+            if (overlapCount == 0)
+            {
+                GDebug.Fail($"락온 실패: 반경 {range:F0}m 안에 대상 레이어가 없다 (mask={_targetLayerMask})");
+                return;
+            }
+
+            if (noCamera > 0)
+            {
+                GDebug.Fail($"락온 실패: Camera.main이 null이라 화면 각도를 못 잰다 ({noCamera}개)");
+                return;
+            }
+
+            if (overAngle > 0)
+            {
+                GDebug.Fail($"락온 실패: 후보 {overlapCount}개가 전부 화면 밖 (최소 {closestAngle:F0}도 > 허용 {maxAngle:F0}도)");
+                return;
+            }
+
+            if (occluded > 0)
+            {
+                GDebug.Fail($"락온 실패: 후보 {occluded}개가 전부 가려짐");
+                return;
+            }
+
+            GDebug.Fail($"락온 실패: 후보 {overlapCount}개, NetworkIdentity없음 {noIdentity} · 사망 {dead}");
         }
 
         /// <summary> 콜라이더에서 조준점과 부위 번호를 함께 구한다 </summary>
