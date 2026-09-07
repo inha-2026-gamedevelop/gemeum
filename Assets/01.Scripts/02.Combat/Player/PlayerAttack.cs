@@ -208,6 +208,7 @@ namespace Geumeum.Combat
         [TargetRpc]
         private void TargetActionRejected(ActionRejection rejection)
         {
+            GDebug.Fail($"공격 거부: {rejection}");
             LocalCombatState.RaiseActionRejected(rejection);
         }
 
@@ -229,11 +230,13 @@ namespace Geumeum.Combat
 
             if (!didHit)
             {
-                GDebug.Warn($"공격 헛침 {_comboStage}단");
+                GDebug.Warn($"{GDebug.Who(netId)} 공격 헛침 {_comboStage}단");
                 return;
             }
 
-            GDebug.Success(wasCritical ? $"치명타 {_comboStage}단" : $"적중 {_comboStage}단");
+            GDebug.Success(wasCritical
+                ? $"{GDebug.Who(netId)} 치명타 {_comboStage}단"
+                : $"{GDebug.Who(netId)} 적중 {_comboStage}단");
         }
 
         /****************************************
