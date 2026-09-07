@@ -45,6 +45,22 @@ MonoBehaviour:
   _rangedBasePower: 8
   _rangedMuzzleHeight: 1.2
   _rangedMuzzleForward: 0.6
+  _bellStartupDuration: 0.2
+  _bellRecoveryDuration: 0.35
+  _bellStaminaCost: 6
+  _bellRange: 3.5
+  _bellAngle: 360
+  _bellBasePower: 6
+  _spiritGainPerHit: 5
+  _spiritGainMaxPerSwing: 15
+  _markDuration: 8
+  _markSlotCount: 2
+  _healSpiritCost: 25
+  _healCastDuration: 0.4
+  _healRecoveryDuration: 0.4
+  _healRadius: 6
+  _healAmount: 40
+  _healCooldownDuration: 4
   _lockOnAcquireRange: 25
   _lockOnHoldRange: 30
   _lockOnAcquireAngle: 35
@@ -56,3 +72,7 @@ MonoBehaviour:
   _reviveHealthRatio: 0.5
   _reviveInvincibleDuration: 2
   _reviveCurrencyLossRatio: 0.2
+  _rescueRadius: 3
+  _rescueDuration: 3
+  _rescueCurrencyLossRatio: 0.1
+  _reviveBarrierInsetRatio: 0.9

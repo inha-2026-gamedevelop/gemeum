@@ -121,3 +121,5 @@ MonoBehaviour:
   _tailSegmentHealth: 1350
   _healthGateRatio: 0.25
   _unbrokenTailAttackMultiplier: 1.2
+  _wonhonHealth: 200
+  _finalGauntletWindowSeconds: 8
