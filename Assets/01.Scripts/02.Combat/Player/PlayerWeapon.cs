@@ -56,6 +56,11 @@ namespace Geumeum.Combat
         {
             RefreshWeaponVisual();
 
+            if (isLocalPlayer)
+            {
+                GDebug.Log($"무기 {oldWeapon} -> {newWeapon}");
+            }
+
             WeaponChanged?.Invoke(newWeapon);
         }
 

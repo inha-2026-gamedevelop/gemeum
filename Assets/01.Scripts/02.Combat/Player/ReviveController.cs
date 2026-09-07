@@ -230,6 +230,8 @@ namespace Geumeum.Combat
                 {
                     _spectateEndServerTime = now + combat.SpectateDuration;
 
+                    GDebug.Fail($"사망, {combat.SpectateDuration:F0}초 뒤 자동 부활");
+
                     PlayerStatus.ServerCheckPartyWipe();
                 }
 
@@ -279,6 +281,8 @@ namespace Geumeum.Combat
                 return;
             }
 
+            GDebug.Success("협동 부활 완료");
+
             target.ServerRevive(combat.RescueCurrencyLossRatio);
             ServerCancelRescue();
         }
@@ -299,6 +303,8 @@ namespace Geumeum.Combat
             _status.ServerRevive(combat.ReviveHealthRatio, combat.ReviveInvincibleDuration);
 
             _spectateEndServerTime = 0.0;
+
+            GDebug.Success($"부활, HP {combat.ReviveHealthRatio * 100f:F0}% / 무적 {combat.ReviveInvincibleDuration:F1}초");
 
             // TODO(민성): 재화 시스템이 생기면 여기서 차감한다
             _ = currencyLossRatio;

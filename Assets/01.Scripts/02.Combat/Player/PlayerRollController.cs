@@ -163,12 +163,15 @@ namespace Geumeum.Combat
             _rollEndServerTime = context.ServerTime + combat.RollTotalDuration;
 
             _status.GrantTimedInvincibility(context.ServerTime + combat.RollInvincibleDuration);
+
+            GDebug.Server($"구르기, 무적 {combat.RollInvincibleDuration:F2}초 / 전체 {combat.RollTotalDuration:F2}초");
         }
 
         /// <summary> 요청이 거부된 사유를 요청자에게만 돌려준다 </summary>
         [TargetRpc]
         private void TargetActionRejected(ActionRejection rejection)
         {
+            GDebug.Warn($"구르기 거부: {rejection}");
             LocalCombatState.RaiseActionRejected(rejection);
         }
 

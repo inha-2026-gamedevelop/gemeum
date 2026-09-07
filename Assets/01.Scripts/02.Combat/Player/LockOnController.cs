@@ -172,6 +172,15 @@ namespace Geumeum.Combat
         {
             ClearResolvedTarget();
             ResolveTargetIfNeeded();
+
+            // 서버가 확정한 SyncVar라 원격 화면에서도 같은 값이 찍힌다
+            if (newNetId == 0u)
+            {
+                GDebug.Log("락온 해제");
+                return;
+            }
+
+            GDebug.Log($"락온 획득 netId={newNetId}");
         }
 
         /****************************************

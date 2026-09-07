@@ -220,6 +220,20 @@ namespace Geumeum.Combat
                          : SoundKey.MeleeHit;
 
             SfxPlayer.Play(key, transform.position, isLocalPlayer, netId);
+
+            // 남의 공격까지 찍으면 3인에서 화면이 덮인다. 자기 것만 본다
+            if (!isLocalPlayer)
+            {
+                return;
+            }
+
+            if (!didHit)
+            {
+                GDebug.Warn($"공격 헛침 {_comboStage}단");
+                return;
+            }
+
+            GDebug.Success(wasCritical ? $"치명타 {_comboStage}단" : $"적중 {_comboStage}단");
         }
 
         /****************************************
@@ -431,6 +445,7 @@ namespace Geumeum.Combat
             if (spiritGain > 0f)
             {
                 _status.ServerAddSpirit(spiritGain);
+                GDebug.Server($"방울 {hitCount}명 적중, 신력 +{spiritGain:F0}");
             }
 
             RpcMeleeResult(hitCount > 0, (isCritical) && (hitCount > 0));
@@ -479,9 +494,21 @@ namespace Geumeum.Combat
                 behaviour.netId,
                 TargetRef.BODY_PART_ID);
 
-            MarkRegistry.TryApply(
+            bool applied = MarkRegistry.TryApply(
                 owner, target, NetworkTime.time, combat.MarkDuration, combat.MarkSlotCount,
-                out MarkRejection _);
+                out MarkRejection rejection);
+
+            if (applied)
+            {
+                GDebug.Server($"표식 부여 netId={behaviour.netId}");
+                return;
+            }
+
+            // 이미 걸린 대상에 또 치는 것은 정상이라 실패로 띄우지 않는다
+            if (rejection != MarkRejection.AlreadyMarked)
+            {
+                GDebug.Warn($"표식 거부: {rejection}");
+            }
         }
 
         /// <summary> 다음 근접 공격이 치명의 일격인가. 소비하지 않고 보기만 한다 </summary>

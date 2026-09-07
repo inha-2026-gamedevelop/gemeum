@@ -412,6 +412,9 @@ namespace Geumeum.Combat
         private void TargetOpenParryWindow(ParryWindowKey key)
         {
             _clientActiveWindow = key;
+
+            // 창이 열린 것을 봐야 "언제 눌러야 했는지"를 판단할 수 있다
+            GDebug.Log("패링 창 열림");
         }
 
         [TargetRpc]
@@ -432,6 +435,24 @@ namespace Geumeum.Combat
             }
 
             _lastAppliedResultId = requestId;
+
+            // 거부 8종과 성공, 타이밍 실패가 전부 여기를 지난다. 화면에 사유까지 그대로 띄운다
+            if (resultCode == ParryResultCode.Success)
+            {
+                GDebug.Success("패링 성공");
+            }
+            else if (resultCode == ParryResultCode.MissTiming)
+            {
+                GDebug.Fail("패링 실패, 타이밍");
+            }
+            else if (resultCode == ParryResultCode.MissNoWindow)
+            {
+                GDebug.Warn("패링 헛침, 열린 창 없음");
+            }
+            else
+            {
+                GDebug.Warn($"패링 거부: {resultCode}");
+            }
 
             if (resultCode == ParryResultCode.Success)
             {

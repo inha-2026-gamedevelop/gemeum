@@ -139,6 +139,8 @@ namespace Geumeum.Combat
 
             // 쿨다운은 수락 시점부터 잰다. 시전이 끊겨도 신력과 쿨다운은 돌려주지 않는다
             _cooldownEndServerTime = context.ServerTime + combat.HealCooldownDuration;
+
+            GDebug.Server($"치유 시전 시작, 신력 -{context.ResourceCost:F0}");
         }
 
         /****************************************
@@ -158,6 +160,7 @@ namespace Geumeum.Combat
             if ((_status.IsDead) || (IsRunStopped()))
             {
                 _isCasting = false;
+                GDebug.Warn("치유 시전 취소, 사망이나 런 정지");
                 return;
             }
 
@@ -173,8 +176,9 @@ namespace Geumeum.Combat
         [Server]
         private void ApplyHeal(CombatConfigSO combat)
         {
-            Vector3 origin    = transform.position;
-            float   radiusSqr = combat.HealRadius * combat.HealRadius;
+            Vector3 origin      = transform.position;
+            float   radiusSqr   = combat.HealRadius * combat.HealRadius;
+            int     healedCount = 0;
 
             // 파티가 세 명이라 연결 목록을 도는 편이 물리 쿼리보다 싸고 레이어 설정에 기대지 않는다
             foreach (NetworkConnectionToClient conn in NetworkServer.connections.Values)
@@ -197,8 +201,14 @@ namespace Geumeum.Combat
 
                 // 결계 회복 배수와 최대 HP는 TryRestoreHealth가 이미 적용한다. 여기서 또 곱하면 두 번 걸린다.
                 // 쓰러진 사람도 그 안에서 거부되므로 치유가 부활을 대신하지 않는다
-                target.TryRestoreHealth(combat.HealAmount);
+                if (target.TryRestoreHealth(combat.HealAmount))
+                {
+                    ++healedCount;
+                }
             }
+
+            GDebug.Server($"치유 적용, {healedCount}명 회복");
+            TargetHealResult(healedCount);
         }
 
         private static bool IsRunStopped()
@@ -214,7 +224,21 @@ namespace Geumeum.Combat
         [TargetRpc]
         private void TargetHealRejected(ActionRejection rejection)
         {
+            GDebug.Fail($"치유 거부: {rejection}");
             LocalCombatState.RaiseActionRejected(rejection);
+        }
+
+        /// <summary> 시전자 화면에만 결과를 띄운다. 서버가 센 숫자라 클라가 다시 세지 않는다 </summary>
+        [TargetRpc]
+        private void TargetHealResult(int healedCount)
+        {
+            if (healedCount <= 0)
+            {
+                GDebug.Warn("치유 완료, 회복된 사람 없음");
+                return;
+            }
+
+            GDebug.Success($"치유 완료, {healedCount}명 회복");
         }
     }
 }

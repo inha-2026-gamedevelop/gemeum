@@ -142,6 +142,8 @@ namespace Geumeum.Network
 
         private void OnPhaseChangedLocal(RunPhase oldPhase, RunPhase newPhase)
         {
+            GDebug.Log(GLogKind.Server, $"런 단계 {oldPhase} -> {newPhase}");
+
             RunSoundDirector.OnPhaseChanged(newPhase);
         }
 
@@ -153,6 +155,16 @@ namespace Geumeum.Network
             if (wasPaused == isPaused)
             {
                 return;
+            }
+
+            // 이탈 대기로 멈춘 것인지 씬 전환인지 사유까지 봐야 3인 테스트에서 원인을 안다
+            if (isPaused)
+            {
+                GDebug.Warn($"런 정지: {newReasons}");
+            }
+            else
+            {
+                GDebug.Log(GLogKind.Server, "런 재개");
             }
 
             RunSoundDirector.OnPausedChanged(isPaused);
