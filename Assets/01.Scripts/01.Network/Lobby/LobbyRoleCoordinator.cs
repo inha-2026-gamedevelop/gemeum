@@ -66,6 +66,8 @@ namespace Geumeum.Network
             var targets  = new IPlayerRoleAssignment[count];
             var requests = new LobbyRoleAllocator.RoleRequest[count];
 
+            int alreadyAssigned = 0;
+
             for (int i = 0; i < count; ++i)
             {
                 LobbySlot slot = roster.GetSlot(i);
@@ -78,15 +80,31 @@ namespace Geumeum.Network
 
                 if (targets[i].HasRole)
                 {
-                    Debug.LogError($"[LobbyRoleCoordinator] connectionId={slot.ConnectionId}는 이미 역할이 확정되어 있다", this);
-                    return false;
+                    ++alreadyAssigned;
                 }
 
                 requests[i] = new LobbyRoleAllocator.RoleRequest(
+                    slot.PlatformId,
                     slot.HasWeapon,
                     slot.Weapon,
                     slot.HasCharacter,
-                    slot.Character);
+                    slot.Character,
+                    slot.HasPreference,
+                    slot.PreferredCharacter);
+            }
+
+            // 같은 시작 요청이 다시 와도 다시 뽑지 않는다. 재추첨하면 이미 그 역할로
+            // 진행 중인 사람의 캐릭터가 발밑에서 바뀐다
+            if (alreadyAssigned == count)
+            {
+                return true;
+            }
+
+            if (alreadyAssigned != 0)
+            {
+                Debug.LogError(
+                    $"[LobbyRoleCoordinator] {count}명 중 {alreadyAssigned}명만 역할이 확정된 중간 상태라 배분을 멈춘다", this);
+                return false;
             }
 
             if (!LobbyRoleAllocator.TryAllocate(
@@ -137,6 +155,14 @@ namespace Geumeum.Network
                 LobbySlot slot = roster.GetSlot(i);
 
                 slot.IsReady = false;
+
+                // 확정된 역할만 지우고 희망은 남긴다. 슬롯에 지난 런의 배분이 남아 있으면
+                // 다음 배분이 그것을 이어받은 역할로 보고 잠가 버려 추첨이 영영 돌지 않는다
+                slot.HasWeapon    = false;
+                slot.Weapon       = default;
+                slot.HasCharacter = false;
+                slot.Character    = default;
+
                 roster.SetSlot(i, slot);
 
                 if (LobbyRoster.TryFindPlayerComponent(slot.ConnectionId, out IPlayerRoleAssignment role))

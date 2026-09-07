@@ -150,7 +150,7 @@ namespace Geumeum.Network
             SetSlotReady(sender.connectionId, isReady);
         }
 
-        /// <summary> 로비에서 캐릭터를 고른다 </summary>
+        /// <summary> 로비에서 원하는 캐릭터를 고른다. 확정이 아니라 희망이라 남과 겹쳐도 받는다 </summary>
         [Command(requiresAuthority = false)]
         public void CmdSelectCharacter(CharacterKind character, NetworkConnectionToClient sender = null)
         {
@@ -172,23 +172,19 @@ namespace Geumeum.Network
                 return;
             }
 
-            for (int i = 0; i < roster.SlotCount; ++i)
+            LobbySlot slot = roster.GetSlot(index);
+            if ((slot.HasPreference) && (slot.PreferredCharacter == character))
             {
-                if (i == index)
-                {
-                    continue;
-                }
-
-                LobbySlot other = roster.GetSlot(i);
-                if ((other.HasCharacter) && (other.Character == character))
-                {
-                    return;
-                }
+                return;
             }
 
-            LobbySlot slot     = roster.GetSlot(index);
-            slot.HasCharacter = true;
-            slot.Character    = character;
+            slot.HasPreference      = true;
+            slot.PreferredCharacter = character;
+
+            // 준비를 마친 뒤 희망을 바꾸면 준비를 무른다. 그러지 않으면 남들이 본 편성과
+            // 다른 조건으로 런이 시작될 수 있다
+            slot.IsReady = false;
+
             roster.SetSlot(index, slot);
         }
 

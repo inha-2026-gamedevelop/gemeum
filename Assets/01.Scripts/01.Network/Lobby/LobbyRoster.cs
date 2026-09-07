@@ -24,6 +24,10 @@ namespace Geumeum.Network
         public WeaponKind     Weapon;
         public bool           HasCharacter;
         public CharacterKind  Character;
+
+        /// <summary> 로비에서 고른 희망. 확정된 Character와 달리 서로 겹칠 수 있다 </summary>
+        public bool           HasPreference;
+        public CharacterKind  PreferredCharacter;
     }
 
     /// <summary> 누가 로비에 있는지의 원본. 슬롯 목록과 이탈자가 두고 간 자리를 소유한다 </summary>
@@ -103,13 +107,15 @@ namespace Geumeum.Network
 
             _slots.Add(new LobbySlot
             {
-                PlatformId    = ResolvePlatformId(conn),
-                ConnectionId  = conn.connectionId,
-                IsReady       = false,
-                HasWeapon     = false,
-                Weapon        = default,
-                HasCharacter = false,
-                Character    = default,
+                PlatformId         = ResolvePlatformId(conn),
+                ConnectionId       = conn.connectionId,
+                IsReady            = false,
+                HasWeapon          = false,
+                Weapon             = default,
+                HasCharacter       = false,
+                Character          = default,
+                HasPreference      = false,
+                PreferredCharacter = default,
             });
 
             return true;
