@@ -6,25 +6,50 @@ using Mirror;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Network;
 
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 액귀의 저주 투사체. 서버가 이동과 명중 판정을 모두 수행하고, 클라이언트는 표현만 한다
+    /// 액귀의 저주 투사체. 서버가 이동과 명중 판정을 모두 수행하고, 클라이언트는 표현만 한다.
+    /// AuthorityTickScheduler의 고정 틱에서 SphereCast로 구간을 훑어 이동한다,
+    /// Update에서 이동하면 호스트 프레임에 따라 결과가 갈리고 고속 이동 시 터널링도 생긴다
     /// </summary>
-    [RequireComponent(typeof(Collider))]
+    [RequireComponent(typeof(SphereCollider))]
     public class CurseProjectile : NetworkBehaviour
     {
         /****************************************
         *                Fields
         ****************************************/
 
+        private const int HIT_BUFFER_SIZE = 4; // 단일 대상 관통이라 넉넉하게 잡은 NonAlloc 버퍼 크기
+
+        [SerializeField] private SphereCollider _collider;
+
         private Vector3 _direction;
         private float   _speed;
         private float   _damage;
         private uint    _attackerNetId;
         private float   _remainingDistance;
+        private int     _targetMask;
         private bool    _initialized = false;
+
+        // 투사체마다 새로 만들면 연사할수록 GC 할당이 쌓인다
+        private readonly RaycastHit[] _hitBuffer = new RaycastHit[HIT_BUFFER_SIZE];
+
+        /****************************************
+        *              Unity Event
+        ****************************************/
+
+        private void Awake()
+        {
+            if (_collider == null)
+            {
+                _collider = GetComponent<SphereCollider>();
+            }
+
+            _targetMask = LayerMask.GetMask(Constants.Layer.PLAYER);
+        }
 
         /****************************************
         *              Server API
@@ -43,18 +68,54 @@ namespace Geumeum.AI
         }
 
         /****************************************
-        *              Unity Event
+        *              Server Callbacks
         ****************************************/
 
-        private void Update()
+        public override void OnStartServer()
         {
-            if ((!isServer) || (!_initialized))
+            // 저주 투사체는 런이 도는 중에만 생기므로 스케줄러가 이미 떠 있다.
+            // 없다면 이동시킬 주체가 없어 영영 떠 있게 되므로 그 자리에서 없앤다
+            if (AuthorityTickScheduler.ServerInstance == null)
+            {
+                Debug.LogError("[CurseProjectile] 서버 틱 스케줄러가 없어 투사체를 띄울 수 없다", this);
+                NetworkServer.Destroy(gameObject);
+                return;
+            }
+
+            AuthorityTickScheduler.ServerInstance.Register(Constants.Network.TICK_PRIORITY_PROJECTILE, ServerTick);
+        }
+
+        public override void OnStopServer()
+        {
+            if (AuthorityTickScheduler.ServerInstance == null)
             {
                 return;
             }
 
-            float step = _speed * Time.deltaTime;
-            transform.position += _direction * step;
+            AuthorityTickScheduler.ServerInstance.Unregister(ServerTick);
+        }
+
+        /****************************************
+        *              Server Tick
+        ****************************************/
+
+        // AuthorityTickScheduler가 물리 스텝마다 TICK_PRIORITY_PROJECTILE 순서로 호출한다
+        private void ServerTick(float deltaTime)
+        {
+            if (!_initialized)
+            {
+                return;
+            }
+
+            Vector3 origin = transform.position;
+            float   step   = Mathf.Min(_speed * deltaTime, _remainingDistance);
+
+            if (TryApplyHit(origin, step))
+            {
+                return; // 명중해서 사라졌다
+            }
+
+            transform.position  = origin + (_direction * step);
             _remainingDistance -= step;
 
             if (_remainingDistance <= 0f)
@@ -63,26 +124,33 @@ namespace Geumeum.AI
             }
         }
 
-        [ServerCallback]
-        private void OnTriggerEnter(Collider other)
+        /****************************************
+        *                Methods
+        ****************************************/
+
+        // 제자리 구형 판정이 아니라 이번 틱 구간을 훑어야, 한 틱 이동 거리가 판정 반경보다 커도
+        // 대상을 그대로 통과하지 않는다. 명중하면 위치를 명중 지점으로 맞춘 뒤 그 자리에서 없앤다
+        [Server]
+        private bool TryApplyHit(Vector3 origin, float step)
         {
-            if (!_initialized)
+            int count = Physics.SphereCastNonAlloc(
+                origin, _collider.radius, _direction, _hitBuffer, step, _targetMask, QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < count; ++i)
             {
-                return;
+                if ((!DamageTargetResolver.TryResolve(_hitBuffer[i].collider, out IDamageable damageable))
+                    || (damageable.IsDead))
+                {
+                    continue;
+                }
+
+                transform.position = origin + (_direction * _hitBuffer[i].distance);
+                damageable.TakeDamage(new DamageInfo(_damage, _attackerNetId, HitStrength.Light));
+                NetworkServer.Destroy(gameObject);
+                return true;
             }
 
-            if (other.gameObject.layer != LayerMask.NameToLayer(Constants.Layer.PLAYER))
-            {
-                return;
-            }
-
-            if (!other.TryGetComponent(out IDamageable damageable) || damageable.IsDead)
-            {
-                return;
-            }
-
-            damageable.TakeDamage(new DamageInfo(_damage, _attackerNetId, HitStrength.Light));
-            NetworkServer.Destroy(gameObject);
+            return false;
         }
     }
 }

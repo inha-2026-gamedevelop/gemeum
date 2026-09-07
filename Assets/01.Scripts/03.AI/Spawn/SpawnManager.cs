@@ -47,10 +47,11 @@ namespace Geumeum.AI
 
         private Transform                _barrierCenter;
         private SpawnConfigSO.PhaseEntry _currentPhase;
-        private bool                     _isPhaseActive   = false; // 현재 phase에 스폰 설정이 있는지
-        private int                      _totalAliveCount = 0;
-        private Coroutine                _respawnRoutine  = null;
-        private WaitForSeconds           _respawnWait     = null;
+        private bool                     _isPhaseActive     = false; // 현재 phase에 스폰 설정이 있는지
+        private int                      _targetConcurrent  = 0;     // [ConcurrentMin, ConcurrentMax]에서 이번 phase 진입 시 한 번 뽑은 목표치
+        private int                      _totalAliveCount   = 0;
+        private Coroutine                _respawnRoutine    = null;
+        private WaitForSeconds           _respawnWait       = null;
 
         /****************************************
         *              Server Callbacks
@@ -58,7 +59,7 @@ namespace Geumeum.AI
 
         public override void OnStartServer()
         {
-            // 같은 씬에서 StopHost→StartHost로 재시작하면 이전 런의 생존 목록·카운트가 이
+            // 같은 씬에서 StopHost->StartHost로 재시작하면 이전 런의 생존 목록, 카운트가 이
             // 컴포넌트 인스턴스에 그대로 남아 새 런이 이미 죽은 netId를 살아 있다고 본다
             ServerResetState();
 
@@ -80,16 +81,17 @@ namespace Geumeum.AI
 
             _aliveNetIdsByCluster.Clear();
             _clusterByNetId.Clear();
-            _totalAliveCount = 0;
-            _isPhaseActive   = false;
-            _currentPhase    = default;
+            _totalAliveCount  = 0;
+            _targetConcurrent = 0;
+            _isPhaseActive    = false;
+            _currentPhase     = default;
         }
 
         public override void OnStopServer()
         {
             StopRespawnRoutine();
 
-            // HasInstance→Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다(_isQuitting을
+            // HasInstance->Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다(_isQuitting을
             // HasInstance는 안 보고 Instance는 본다). Instance 한 번만 받아 그 결과로 null 체크한다
             GameEventBus bus = GameEventBus.Instance;
             if (bus == null)
@@ -170,6 +172,7 @@ namespace Geumeum.AI
                 return; // 이 구간엔 스폰 설정이 없다 (Lobby, Shrink3, Boss, Result) — 신규 스폰 중단
             }
 
+            _targetConcurrent = UnityEngine.Random.Range(_currentPhase.ConcurrentMin, _currentPhase.ConcurrentMax + 1);
             TryFillClusters();
 
             if (_currentPhase.RespawnInterval > 0f)
@@ -240,7 +243,7 @@ namespace Geumeum.AI
             _respawnRoutine = null;
         }
 
-        // 목표 동시 존재 수(ConcurrentMax)에 닿을 때까지, 비어 있고 범위 안인 클러스터를 순서대로 채운다
+        // 목표 동시 존재 수(_targetConcurrent)에 닿을 때까지, 비어 있고 범위 안인 클러스터를 순서대로 채운다
         [Server]
         private void TryFillClusters()
         {
@@ -251,7 +254,7 @@ namespace Geumeum.AI
 
             for (int i = 0; i < _clusters.Count; ++i)
             {
-                if (_totalAliveCount >= _currentPhase.ConcurrentMax)
+                if (_totalAliveCount >= _targetConcurrent)
                 {
                     return;
                 }
@@ -274,7 +277,7 @@ namespace Geumeum.AI
         [Server]
         private void PopulateCluster(SpawnCluster cluster)
         {
-            int remainingBudget = _currentPhase.ConcurrentMax - _totalAliveCount;
+            int remainingBudget = _targetConcurrent - _totalAliveCount;
             int clusterSize     = UnityEngine.Random.Range(GameDB.Spawn.ClusterSizeMin, GameDB.Spawn.ClusterSizeMax + 1);
             int spawnCount      = Mathf.Min(clusterSize, remainingBudget);
 

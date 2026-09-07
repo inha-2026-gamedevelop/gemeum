@@ -586,11 +586,12 @@ Main.unity
 │  │                           결계 축소 시 범위 밖 클러스터 비활성화
 │  └ SpawnCluster.cs       MB  씬에 배치되는 거점 마커 (3~5마리). 위치 고정 · 구성 랜덤
 └ Boss/
-   ├ BossController.cs     NB  현재 페이즈에 위임만 한다. 페이즈 전환 조건 관리
-   ├ BossStatus.cs         NB  보스 HP SyncVar. IDamageable
-   ├ BossPhaseBase.cs      C#  페이즈 추상 클래스 (enum+switch 금지 — 기술 구현 4.2)
-   ├ Phase1State.cs …      C#  페이즈별 구현. 페이즈마다 IParryable 패턴 최소 1개 필수
-   └ BossPatternTelegraph.cs NB 공격 예고 장판. 서버가 (패턴 · 시각 · 위치) 이벤트만 보내고
+   ├ BossController.cs     NB  [현재] 현재 페이즈에 위임만 한다. 페이즈 전환 조건 관리
+   ├ BossStatus.cs         NB  [현재] 보스 HP SyncVar. IDamageable
+   ├ BossPhaseStateBase.cs C#  [현재] 페이즈 추상 클래스 (enum+switch 금지 — 기술 구현 4.2)
+   ├ Phase1State.cs / Phase2State.cs C# [현재] 페이즈별 상태 전환 뼈대만 구현됨.
+   │                           패턴 선택 · 발동 로직은 아직 [계획] (4단계, BOSS_DESIGN.md 15장)
+   └ BossPatternTelegraph.cs NB [계획] 공격 예고 장판. 서버가 (패턴 · 시각 · 위치) 이벤트만 보내고
                               렌더링은 클라 — 기술 구현 3.2 "보이지만 판정에 걸리는 것"
 ```
 

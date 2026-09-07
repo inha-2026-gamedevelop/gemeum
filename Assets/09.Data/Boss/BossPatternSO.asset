@@ -12,8 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cffdf1688414c44459bf31720b1a487a, type: 3}
   m_Name: BossPatternSO
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.BossPatternSO
-  _maxHealth: 0
-  _phases: []
+  _maxHealth: 55000
+  _phases:
+  - PhaseIndex: 1
+    EnterHealthRatio: 1
+    PatternIds: []
+  - PhaseIndex: 2
+    EnterHealthRatio: 0.6
+    PatternIds: []
   _patterns: []
   _bossTimeLimitSeconds: 840
   _enrageStartSeconds: 810

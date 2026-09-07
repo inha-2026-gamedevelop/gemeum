@@ -1,0 +1,92 @@
+// System
+using System;
+
+// Unity
+using UnityEngine;
+
+// 서드파티
+using Mirror;
+
+// 프로젝트 내부
+using Geumeum.Common;
+using Geumeum.Data;
+
+namespace Geumeum.AI
+{
+    /// <summary>
+    /// 보스 HP를 관리한다. IDamageable 구현 (docs/unity/BOSS_DESIGN.md 5.1절)
+    /// </summary>
+    public class BossStatus : NetworkBehaviour, IDamageable
+    {
+        /****************************************
+        *                Fields
+        ****************************************/
+
+        [SyncVar] private float _health;
+
+        private float _maxHealth = 0f;
+        private bool  _isDead    = false;
+
+        /****************************************
+        *              Properties
+        ****************************************/
+
+        public bool  IsDead      => _isDead;
+        public float MaxHealth   => _maxHealth;
+        public float Health      => _health;
+
+        /// <summary> 0~1. 다음 페이즈 진입 판정(EnterHealthRatio)에 쓴다 </summary>
+        public float HealthRatio => (_maxHealth <= Constants.Combat.HEALTH_EPSILON) ? 0f : (_health / _maxHealth);
+
+        /// <summary> 사망 시 서버에서 발생한다, killerNetId를 전달한다. 이벤트 발행 · 오브젝트 정리는 BossController가 한다 </summary>
+        public event Action<uint> Died;
+
+        /// <summary> 치명타가 아닌 모든 피격에서 발생한다, attackerNetId 전달 </summary>
+        public event Action<uint> Damaged;
+
+        /****************************************
+        *              Server API
+        ****************************************/
+
+        /// <summary> 스폰 시점에 GameDB.Boss.MaxHealth로 HP를 확정한다 </summary>
+        [Server]
+        public void Initialize()
+        {
+            _maxHealth = GameDB.Boss.MaxHealth;
+            _health    = _maxHealth;
+            _isDead    = false;
+        }
+
+        /// <summary> 피해를 적용한다, 서버에서만 호출한다 </summary>
+        [Server]
+        public void TakeDamage(in DamageInfo damage)
+        {
+            if (_isDead)
+            {
+                return;
+            }
+
+            if (damage.Amount <= Constants.Combat.DAMAGE_EPSILON)
+            {
+                return;
+            }
+
+            _health = Mathf.Max(0f, _health - damage.Amount);
+
+            if (_health <= Constants.Combat.HEALTH_EPSILON)
+            {
+                Die(damage.AttackerNetId);
+                return;
+            }
+
+            Damaged?.Invoke(damage.AttackerNetId);
+        }
+
+        [Server]
+        private void Die(uint killerNetId)
+        {
+            _isDead = true;
+            Died?.Invoke(killerNetId);
+        }
+    }
+}
