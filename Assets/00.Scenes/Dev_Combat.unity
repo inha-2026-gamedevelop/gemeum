@@ -798,6 +798,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.RunSceneDebugTrigger
   _transitionKeyCode: 286
   _targetScene: 6
+  _reviveAllKeyCode: 285
   _showLabel: 1
 --- !u!114 &328390371
 MonoBehaviour:
@@ -896,7 +897,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8079654717937588698, guid: 7164ff36ec488874c9f3accbd8848d8a, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 10
+      value: 34
       objectReference: {fileID: 0}
     - target: {fileID: 8079654717937588698, guid: 7164ff36ec488874c9f3accbd8848d8a, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1336,7 +1337,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3114616272353367006, guid: 761130e170e5a8348872ded2b43101bd, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -8
+      value: -10
       objectReference: {fileID: 0}
     - target: {fileID: 3114616272353367006, guid: 761130e170e5a8348872ded2b43101bd, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1344,7 +1345,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3114616272353367006, guid: 761130e170e5a8348872ded2b43101bd, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 13
+      value: 37
       objectReference: {fileID: 0}
     - target: {fileID: 3114616272353367006, guid: 761130e170e5a8348872ded2b43101bd, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1454,7 +1455,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8079654717937588698, guid: 7164ff36ec488874c9f3accbd8848d8a, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 7
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 8079654717937588698, guid: 7164ff36ec488874c9f3accbd8848d8a, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1462,7 +1463,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8079654717937588698, guid: 7164ff36ec488874c9f3accbd8848d8a, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 12
+      value: 36
       objectReference: {fileID: 0}
     - target: {fileID: 8079654717937588698, guid: 7164ff36ec488874c9f3accbd8848d8a, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1610,7 +1611,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 4, y: 1, z: 4}
+  m_LocalScale: {x: 10, y: 1, z: 10}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
