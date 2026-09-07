@@ -29,30 +29,30 @@ MonoBehaviour:
     BlocksHealing: 0
   - Phase: 2
     StartSeconds: 600
-    EndSeconds: 1140
+    EndSeconds: 1200
     FieldLevel: 1
     RadiusRatio: 0.5
     DamagePerSecond: 1
     AppliesWeakened: 0
     BlocksHealing: 0
   - Phase: 3
-    StartSeconds: 1140
-    EndSeconds: 1500
+    StartSeconds: 1200
+    EndSeconds: 1770
     FieldLevel: 2
     RadiusRatio: 0.3
     DamagePerSecond: 2.5
     AppliesWeakened: 1
     BlocksHealing: 0
   - Phase: 4
-    StartSeconds: 1500
-    EndSeconds: 1560
+    StartSeconds: 1770
+    EndSeconds: 1800
     FieldLevel: 3
     RadiusRatio: 0.15
     DamagePerSecond: 5
     AppliesWeakened: 0
     BlocksHealing: 1
   - Phase: 5
-    StartSeconds: 1560
+    StartSeconds: 1800
     EndSeconds: 2400
     FieldLevel: 3
     RadiusRatio: 0.15

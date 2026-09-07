@@ -34,8 +34,8 @@ namespace Geumeum.Systems
         }
 
         /// <summary>
-        /// 위아래 뚜껑 없이 옆면만 있는 관 메쉬. 반지름 0.5·높이 -1~1로 만들어
-        /// CreatePrimitive(Cylinder)와 같은 단위 크기를 쓴다 — 호출부가 transform.localScale로
+        /// 위아래 뚜껑 없이 옆면만 있는 관 메쉬. 반지름 0.5, 높이 -1~1로 만들어
+        /// CreatePrimitive(Cylinder)와 같은 단위 크기를 쓴다. 호출부가 transform.localScale로
         /// (반경*2, 원하는높이/2, 반경*2)를 넣으면 원하는 크기가 된다.
         /// Sprites/Default처럼 Cull Off인 셰이더를 쓰면 안팎 어디서 봐도 보인다
         /// </summary>

@@ -11,7 +11,7 @@ namespace Geumeum.Systems
 {
     /// <summary>
     /// 결계만 따로 테스트할 때 로비 준비 없이 런을 강제 시작한다.
-    /// Dev_Barrier 전용 테스트 도구 — 정식 플레이 흐름(LobbyController)에는 관여하지 않는다
+    /// Dev_Barrier 전용 테스트 도구, 정식 플레이 흐름(LobbyController)에는 관여하지 않는다
     /// </summary>
     public class BarrierTestHarness : MonoBehaviour
     {
@@ -31,7 +31,7 @@ namespace Geumeum.Systems
         {
             if (RunManager.ServerInstance == null)
             {
-                Debug.LogWarning("[BarrierTestHarness] RunManager.ServerInstance가 없다 — 서버(호스트)로 실행 중인지 확인", this);
+                Debug.LogWarning("[BarrierTestHarness] RunManager.ServerInstance가 없다, 서버(호스트)로 실행 중인지 확인", this);
                 return;
             }
 
@@ -52,7 +52,7 @@ namespace Geumeum.Systems
         ****************************************/
 
         // RunManager의 실제 타임라인(10~20분 단위)을 기다리지 않고, N초마다 강제로 다음 phase로 넘긴다.
-        // BarrierPhaseSO의 실제 시간값은 건드리지 않는다 — 그러면 RunPhaseTimeline.Validate가 깨진다
+        // BarrierPhaseSO의 실제 시간값은 건드리지 않는다, 그러면 RunPhaseTimeline.Validate가 깨진다
         private void OnDisable()
         {
             StopAutoAdvance();
