@@ -27,6 +27,9 @@ namespace Geumeum.Network
         [SerializeField] private KeyCode    _transitionKeyCode = KeyCode.F5;
         [SerializeField] private RunSceneId _targetScene       = RunSceneId.Boss;
 
+        [Header("전체 부활")]
+        [SerializeField] private KeyCode _reviveAllKeyCode = KeyCode.F4;
+
         [Header("화면에 상태를 표시한다")]
         [SerializeField] private bool _showLabel = true;
 
@@ -41,6 +44,12 @@ namespace Geumeum.Network
             if (!NetworkServer.active)
             {
                 return;
+            }
+
+            // 부활은 씬 전환과 달리 RunSceneDirector가 없어도 된다
+            if (Input.GetKeyDown(_reviveAllKeyCode))
+            {
+                Geumeum.Combat.ReviveController.ServerReviveAll();
             }
 
             if (RunSceneDirector.ServerInstance == null)
@@ -82,7 +91,8 @@ namespace Geumeum.Network
             {
                 text = "씬 " + RunSceneDirector.ServerInstance.CurrentScene
                     + " / " + RunSceneDirector.ServerInstance.State
-                    + "   [" + _transitionKeyCode + "] " + _targetScene + "로 전환";
+                    + "   [" + _transitionKeyCode + "] " + _targetScene + "로 전환"
+                    + "   [" + _reviveAllKeyCode + "] 전체 부활";
             }
 
             GUI.Label(new Rect(LABEL_MARGIN, LABEL_TOP, LABEL_WIDTH, LABEL_HEIGHT), text, _labelStyle);
