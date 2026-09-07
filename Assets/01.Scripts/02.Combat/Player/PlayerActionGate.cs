@@ -3,16 +3,12 @@ using Geumeum.Common;
 
 namespace Geumeum.Combat
 {
-    /// <summary>
-    /// phase, 생명 상태, 무기, 진행 중 행동, 쿨다운, 자원의 공통 허용 여부만 계산한다.
-    /// Mirror에 의존하지 않으며 상태 변경은 각 행동의 상태 소유자가 원자적으로 커밋한다
-    /// </summary>
+    /// <summary> phase, 생명 상태, 무기, 진행 중 행동, 쿨다운, 자원의 공통 허용 여부를 계산한다 </summary>
     public static class PlayerActionGate
     {
         /// <summary> 이동, 공격, 패링, 구르기가 공통으로 요구하는 최소 조건 </summary>
         public static bool CanAct(RunPhase phase, PlayerLifeState lifeState, bool isPaused)
         {
-            // 이탈자를 기다리는 동안은 세계가 얼어 있다, 남은 사람도 움직이지 않는다
             if (isPaused)
             {
                 return false;

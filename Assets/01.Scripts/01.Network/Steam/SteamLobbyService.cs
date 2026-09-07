@@ -12,10 +12,7 @@ using Steamworks;
 
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// Steamworks 로비 API와 콜백의 유일한 창구. CSteamID와 콜백 구조체가 여기서 끝나고
-    /// 바깥에는 ulong과 문자열만 나간다, 그래야 로비 위의 코드가 KCP 경로에서도 그대로 돈다
-    /// </summary>
+    /// <summary> Steamworks 로비 API와 콜백의 유일한 창구 </summary>
     public class SteamLobbyService : MonoBehaviour
     {
         /****************************************
@@ -35,10 +32,7 @@ namespace Geumeum.Network
         *              Properties
         ****************************************/
 
-        /// <summary>
-        /// 씬에 하나만 둔다. 인증기와 접속 연결부가 찾아 쓴다.
-        /// 구독자의 OnEnable이 이 컴포넌트의 Awake보다 먼저 돌 수 있어, 아직 비어 있으면 한 번 찾아 채운다
-        /// </summary>
+        /// <summary> 씬에 하나만 둔다 </summary>
         public static SteamLobbyService Instance
         {
             get
@@ -102,10 +96,7 @@ namespace Geumeum.Network
         public bool IsOwner => (IsInLobby) && (OwnerId != 0UL)
             && SteamLocalUser.TryGetSteamId(out ulong me) && (me == OwnerId);
 
-        /// <summary>
-        /// Steam 오버레이를 쓸 수 있는가. Steam이 실행한 프로세스가 아니면 주입되지 않아
-        /// 초대 창이 조용히 열리지 않는다. 이때는 로비 ID 직접 참가로 우회한다
-        /// </summary>
+        /// <summary> Steam 오버레이를 쓸 수 있는가 </summary>
         public bool IsOverlayEnabled => SteamManager.Initialized && SteamUtils.IsOverlayEnabled();
 
         private CallResult<LobbyCreated_t> _lobbyCreated;
@@ -133,7 +124,6 @@ namespace Geumeum.Network
             Instance = this;
         }
 
-        // 콜백은 등록한 채로 두면 비활성 상태에서도 불리므로 활성 구간에만 잡아 둔다
         private void OnEnable()
         {
             if (!SteamManager.Initialized)
@@ -184,10 +174,7 @@ namespace Geumeum.Network
         *              Public API
         ****************************************/
 
-        /// <summary>
-        /// 로비를 만든다. AppID 480으로 개발하는 동안 Public은 쓰지 않는다 -
-        /// 다른 개발자의 Spacewar 로비와 섞인다
-        /// </summary>
+        /// <summary> 로비를 만든다 </summary>
         public void CreateLobby()
         {
             if (!EnsureReady())
@@ -240,8 +227,6 @@ namespace Geumeum.Network
                 return;
             }
 
-            // 오버레이가 없으면 이 호출은 실패도 예외도 없이 그냥 아무 일도 하지 않는다.
-            // 원인을 못 찾고 헤매게 되므로 여기서 미리 알린다
             if (!IsOverlayEnabled)
             {
                 Debug.LogWarning("[SteamLobbyService] Steam 오버레이를 쓸 수 없어 초대 창이 열리지 않는다. "
@@ -252,12 +237,7 @@ namespace Geumeum.Network
             SteamFriends.ActivateGameOverlayInviteDialog(new CSteamID(LobbyId));
         }
 
-        /// <summary>
-        /// 친구에게 로비 초대를 직접 보낸다. 오버레이 없이 동작하므로
-        /// 오버레이가 주입되지 않는 개발 실행에서도 초대 경로를 검증할 수 있다.
-        /// 받는 쪽은 Steam 클라이언트 알림으로 받고, 수락하면 게임이 켜져 있으면 참가 콜백이,
-        /// 꺼져 있으면 +connect_lobby 인자로 실행된다
-        /// </summary>
+        /// <summary> 친구에게 로비 초대를 직접 보낸다 </summary>
         public bool InviteUser(ulong friendSteamId)
         {
             if ((!IsInLobby) || (!SteamManager.Initialized))
@@ -327,10 +307,7 @@ namespace Geumeum.Network
             SteamMatchmaking.SetLobbyMemberData(new CSteamID(LobbyId), key, value);
         }
 
-        /// <summary>
-        /// 접속 신호를 보낸다. 전 멤버에게 LobbyGameCreated_t가 가므로 공용 데이터 폴링보다 깔끔하다.
-        /// 공용 데이터의 host는 늦게 들어온 사람의 복구용으로 따로 쓴다
-        /// </summary>
+        /// <summary> 접속 신호를 보낸다 </summary>
         public void SetGameServer(ulong hostSteamId)
         {
             if ((!IsInLobby) || (!SteamManager.Initialized))
@@ -368,7 +345,6 @@ namespace Geumeum.Network
                 return;
             }
 
-            // 소유자만 쓸 수 있는 값이라 생성 직후 여기서 채운다. 참가자는 이 값을 보고 우리 로비인지 판단한다
             EnterLobby(result.m_ulSteamIDLobby);
 
             SetData(SteamLobbyKeys.GAME,   SteamLobbyKeys.GAME_VALUE);
@@ -414,7 +390,6 @@ namespace Geumeum.Network
             MembersChanged?.Invoke();
         }
 
-        // Steam은 소유권 이전에 별도 콜백을 주지 않는다, 이 콜백에서 소유자를 다시 읽어야 안다
         private void OnLobbyDataUpdate(LobbyDataUpdate_t result)
         {
             if (result.m_ulSteamIDLobby != LobbyId)
@@ -447,8 +422,6 @@ namespace Geumeum.Network
 
         private void EnterLobby(ulong lobbyId)
         {
-            // 방을 만들면 LobbyCreated_t와 LobbyEnter_t가 같은 입장에 대해 각각 들어온다.
-            // 그대로 두면 LobbyEntered가 두 번 발행되어 구독자가 두 번 반응한다
             if (LobbyId == lobbyId)
             {
                 RefreshOwner();
@@ -538,8 +511,6 @@ namespace Geumeum.Network
         /****************************************
         *              Public API
         ****************************************/
-
-        // 호출자가 컴파일만 되게 두고 아무 일도 하지 않는다. 경로 분기는 부트 게이트가 이미 막는다
 
         public void CreateLobby()                               { WarnDisabled(); }
         public void JoinLobby(ulong lobbyId)                    { WarnDisabled(); }

@@ -9,44 +9,30 @@ using Geumeum.Common;
 
 namespace Geumeum.Combat
 {
-    /// <summary>
-    /// 화면 표현이 쓸 이동 방향과 속도를 명시적으로 보관한다.
-    /// Transform 위치 차분으로 역산하면 네트워크 보간과 재조정 보정까지 이동으로 오인하므로,
-    /// 역할별로 신뢰할 수 있는 소스에서 받는다. 판정에는 관여하지 않는다
-    /// </summary>
+    /// <summary> 화면 표현이 쓸 이동 방향과 속도를 명시적으로 보관한다 </summary>
     public class PlayerPresentation : NetworkBehaviour
     {
         /****************************************
         *                Fields
         ****************************************/
 
-        // 서버가 확정한 표현 상태. 원격 관전자는 이 값만 본다.
-        // SyncVar는 값이 바뀔 때만 전송하므로 정지, 직진 구간에서는 대역폭을 쓰지 않는다.
-        // 속력이 아니라 속도(방향 + 크기)인 이유는 락온 스트레이프 때문이다 -
-        // "옆으로 걸으며 앞을 본다"라 바라보는 방향만으로는 어느 클립을 틀지 정해지지 않는다.
-        // 필드 수는 그대로고 syncInterval 0.1초 기준 3인이 늘리는 대역폭은 초당 120바이트다
+        // 서버가 확정한 표현 상태
         [SyncVar] private Vector2 _serverFacing   = Vector2.up;
         [SyncVar] private Vector2 _serverVelocity = Vector2.zero;
 
-        // 소유 클라이언트가 서버 확인을 기다리지 않고 즉시 반영하는 값
+        // 소유 클라이언트가 즉시 반영하는 값
         private Vector2 _localFacing   = Vector2.up;
         private Vector2 _localVelocity = Vector2.zero;
         private bool    _hasLocalState = false;
 
-        // 락온 대상. 방향이 아니라 대상 자체를 들고 있는 이유는 컴포넌트 실행 순서 때문이다 -
-        // 방향을 미리 계산해 받으면 이동 입력이 먼저 들어온 프레임에 한 프레임 묵은 방향으로 선다.
-        // 여기서 그때그때 계산하면 서버 틱이든 소유자 예측이든 같은 프레임의 대상 위치를 본다.
-        // 서버와 클라이언트가 각자 자기 인스턴스의 대상을 잡으므로 이 참조는 동기화하지 않는다
+        // 락온 대상
         private Transform _lockOnTarget = null;
 
         /****************************************
         *              Properties
         ****************************************/
 
-        /// <summary>
-        /// 실제로 움직이는 평면 방향(단위 벡터). 정지 중에는 0이다.
-        /// 락온 중에는 FacingDirection과 달라진다 - 그것이 스트레이프다
-        /// </summary>
+        /// <summary> 실제로 움직이는 평면 방향(단위 벡터). 정지 중에는 0이다 </summary>
         public Vector2 MoveDirection
         {
             get
@@ -56,10 +42,7 @@ namespace Geumeum.Combat
             }
         }
 
-        /// <summary>
-        /// 모델이 바라볼 평면 방향. x가 월드 X, y가 월드 Z다.
-        /// 락온 중에는 대상 방향이고, 그 밖에는 이동 방향이다
-        /// </summary>
+        /// <summary> 모델이 바라볼 평면 방향. x가 월드 X, y가 월드 Z다 </summary>
         public Vector2 FacingDirection
         {
             get
@@ -73,15 +56,10 @@ namespace Geumeum.Combat
             }
         }
 
-        /// <summary>
-        /// 공격 판정이 향하는 평면 방향. 바라보는 방향을 따른다.
-        /// 락온 중에는 걸어가는 쪽이 아니라 잠근 대상 쪽으로 나간다
-        /// </summary>
+        /// <summary> 공격 판정이 향하는 평면 방향 </summary>
         public Vector2 AimDirection => FacingDirection;
 
-        /// <summary>
-        /// 락온이 걸려 있는지. 애니메이션이 1D(속도) 트리와 2D 스트레이프 트리를 여기서 가른다
-        /// </summary>
+        /// <summary> 락온이 걸려 있는지 </summary>
         public bool IsLockedOn => (_lockOnTarget != null);
 
         /// <summary> 표현에 쓸 평면 이동 속도(m/s) </summary>
@@ -89,18 +67,13 @@ namespace Geumeum.Combat
 
         private Vector2 Velocity => UseLocalState ? _localVelocity : _serverVelocity;
 
-        // 호스트는 스스로가 서버라 서버 값이 곧 자기 값이다
         private bool UseLocalState => (isOwned) && (!isServer) && (_hasLocalState);
 
         /****************************************
         *              Public API
         ****************************************/
 
-        /// <summary>
-        /// 락온 대상을 건네받는다. null이면 해제다.
-        /// LockOnController가 모든 인스턴스에서 부르므로 서버, 소유자, 관전자가
-        /// 같은 규칙으로 방향을 만든다 - 서버만 바꾸면 원격 화면이 이동 방향으로 서 있는다
-        /// </summary>
+        /// <summary> 락온 대상을 건네받는다. null이면 해제다 </summary>
         public void SetLockOnTarget(Transform target)
         {
             _lockOnTarget = target;
@@ -110,10 +83,7 @@ namespace Geumeum.Combat
         *              Server API
         ****************************************/
 
-        /// <summary>
-        /// 서버가 이번 틱에 실제로 적용한 이동을 표현 상태로 확정한다.
-        /// PlayerController의 권위 틱에서만 호출한다
-        /// </summary>
+        /// <summary> 서버가 이번 틱에 실제로 적용한 이동을 표현 상태로 확정한다 </summary>
         [Server]
         public void ServerSetMotion(Vector2 direction, float speed)
         {
@@ -121,10 +91,7 @@ namespace Geumeum.Combat
             _serverFacing   = ResolveFacing(direction, _serverFacing);
         }
 
-        /// <summary>
-        /// 구르기처럼 이동을 서버가 대신 정하는 행동의 방향을 먼저 확정한다.
-        /// 진행 여부 SyncVar보다 먼저 호출해야 관전자가 같은 배치에서 방향을 함께 받는다
-        /// </summary>
+        /// <summary> 구르기처럼 이동을 서버가 대신 정하는 행동의 방향을 먼저 확정한다 </summary>
         [Server]
         public void ServerSetFacing(Vector2 direction)
         {
@@ -135,10 +102,7 @@ namespace Geumeum.Combat
         *              Client API
         ****************************************/
 
-        /// <summary>
-        /// 소유 클라이언트가 자기 입력을 즉시 표현에 반영한다.
-        /// 서버 왕복을 기다리면 방향 전환이 지연으로 느껴진다
-        /// </summary>
+        /// <summary> 소유 클라이언트가 자기 입력을 즉시 표현에 반영한다 </summary>
         public void ClientPredictMotion(Vector2 direction, float speed)
         {
             if ((!isOwned) || (isServer))
@@ -151,10 +115,7 @@ namespace Geumeum.Combat
             _hasLocalState = true;
         }
 
-        /// <summary>
-        /// 이동을 서버가 대신 정하는 구간에서는 로컬 예측을 버리고 서버 값을 따른다.
-        /// 구르기 방향을 클라이언트가 계속 덮으면 관전자와 다른 방향으로 구른다
-        /// </summary>
+        /// <summary> 이동을 서버가 대신 정하는 구간에서는 로컬 예측을 버리고 서버 값을 따른다 </summary>
         public void ClientReleaseLocalState()
         {
             _hasLocalState = false;
@@ -164,11 +125,7 @@ namespace Geumeum.Combat
         *                Methods
         ****************************************/
 
-        /// <summary>
-        /// 락온 중 바라볼 방향. 대상 위치에서 그때그때 만든다.
-        /// 겹칠 만큼 가까우면 방향이 없으므로 직전 방향을 그대로 쓴다 -
-        /// 여기서 0을 돌려주면 대상을 밀착했을 때 모델이 기준 방향으로 홱 돈다
-        /// </summary>
+        /// <summary> 락온 중 바라볼 방향. 대상 위치에서 그때그때 만든다 </summary>
         private bool TryGetLockOnFacing(out Vector2 facing)
         {
             facing = Vector2.zero;
@@ -190,10 +147,7 @@ namespace Geumeum.Combat
             return true;
         }
 
-        /// <summary>
-        /// 방향과 속력을 속도 하나로 합친다. 곱하는 순서가 PlayerController의 ApplyPlanarVelocity와
-        /// 같아야 표현 속도와 실제 물리 속도가 어긋나지 않는다 - 그쪽도 방향을 정규화하지 않고 그대로 곱한다
-        /// </summary>
+        /// <summary> 방향과 속력을 속도 하나로 합친다 </summary>
         private static Vector2 ResolveVelocity(Vector2 direction, float speed)
         {
             bool isMoving = (direction.sqrMagnitude > (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
@@ -202,7 +156,6 @@ namespace Geumeum.Combat
             return (isMoving) ? (direction * speed) : Vector2.zero;
         }
 
-        // 정지 중에는 마지막 유효 방향을 유지한다. 0으로 되돌리면 멈출 때마다 모델이 기준 방향으로 홱 돈다
         private static Vector2 ResolveFacing(Vector2 direction, Vector2 previousFacing)
         {
             if (direction.sqrMagnitude <= (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))

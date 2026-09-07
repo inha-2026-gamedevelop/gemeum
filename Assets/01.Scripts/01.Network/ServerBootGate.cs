@@ -15,17 +15,14 @@ using Geumeum.Data;
 
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// 서버를 열기 전에 GameDB, 런 데이터, 스폰 프리팹을 검사한다.
-    /// 여기서 걸러지지 않으면 결함이 런 중반에야 드러나고 3인 세션 전체가 버려진다
-    /// </summary>
+    /// <summary> 서버를 열기 전에 GameDB, 런 데이터, 스폰 프리팹을 검사한다 </summary>
     public static class ServerBootGate
     {
         /****************************************
         *                Methods
         ****************************************/
 
-        /// <summary> 서버 시작 조건을 모두 만족하는지 검사한다, 실패 원인은 failures에 담는다 </summary>
+        /// <summary> 서버 시작 조건을 모두 만족하는지 검사한다 </summary>
         public static bool TryValidate(NetworkManager manager, List<string> failures)
         {
             failures.Clear();
@@ -57,7 +54,6 @@ namespace Geumeum.Network
             GeumeumBootValidator.ValidateData(GameDB.Barrier, GameDB.LevelCurve, GameDB.Spawn, failures);
         }
 
-        // Main은 로비부터 정산까지 전체 경로를 요구하고, 그 외 씬(Dev_Combat 등)은 전투 확인용 완화 프로필을 쓴다
         private static void ValidateSceneSetup(List<string> failures)
         {
             bool isMain = (SceneManager.GetActiveScene().name == Constants.Scene.MAIN);
@@ -73,8 +69,6 @@ namespace Geumeum.Network
             }
         }
 
-        // 트랜스포트와 신원 소스가 어긋나면 인증기가 신원을 엉뚱한 곳에서 얻는다.
-        // KCP는 클라이언트가 보낸 값을, Steam은 conn.address를 쓰므로 짝이 맞아야 한다
         private static void ValidateAuthenticator(NetworkManager manager, List<string> failures)
         {
             if (manager.authenticator == null)
@@ -118,7 +112,6 @@ namespace Geumeum.Network
                 failures.Add("플레이어 프리팹에 NetworkIdentity가 없다");
             }
 
-            // 없으면 역할 배분이 창구를 못 찾아 런이 조용히 열리지 않는다, 증상만으로는 원인을 찾기 어렵다
             if (manager.playerPrefab.GetComponent<IPlayerRoleAssignment>() == null)
             {
                 failures.Add("플레이어 프리팹에 역할 확정 창구(IPlayerRoleAssignment)가 없다");

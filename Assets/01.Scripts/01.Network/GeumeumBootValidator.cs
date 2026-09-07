@@ -10,10 +10,7 @@ using Geumeum.Data;
 
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// 서버 부트 게이트와 에디터 검사 메뉴가 함께 쓰는 데이터, 씬 구성 검사 규칙.
-    /// 두 곳이 각자 다른 항목을 검사하면 에디터 검사를 통과한 씬이 실제 부트에서는 걸러지지 않은 채 열릴 수 있다
-    /// </summary>
+    /// <summary> 서버 부트 게이트와 에디터 검사 메뉴가 함께 쓰는 데이터, 씬 구성 검사 규칙 </summary>
     public static class GeumeumBootValidator
     {
         /// <summary> 씬 필수 구성 검사 범위. Dev 씬은 로비, 정산 없이 전투만 켜는 경우가 있어 완화된 프로필을 쓴다 </summary>
@@ -60,7 +57,6 @@ namespace Geumeum.Network
                 return;
             }
 
-            // PlayerStatus가 시작 HP를 여기서 읽는다
             if (!levelCurve.TryGetLevel(Constants.Combat.START_LEVEL, out LevelCurveSO.LevelEntry entry))
             {
                 failures.Add("레벨 곡선에 시작 레벨 " + Constants.Combat.START_LEVEL + " 항목이 없다");
@@ -81,7 +77,6 @@ namespace Geumeum.Network
                 return;
             }
 
-            // Shrink3와 Boss는 스폰이 없는 것이 정상이라 검사 대상이 아니다
             RunPhase[] spawning = { RunPhase.Farming, RunPhase.Shrink1, RunPhase.Shrink2 };
             for (int i = 0; i < spawning.Length; ++i)
             {
@@ -119,17 +114,10 @@ namespace Geumeum.Network
             RequireInScene<RunManager>("런 매니저", failures);
             RequireInScene<FrameRecorder>("프레임 기록기", failures);
 
-            // 아래 둘이 씬에서 빠져도 서버는 그대로 열리고, 증상이 런 도중에야 드러난다.
-            // 로스터가 없으면 준비 상태를 받을 곳이 없고, 역할 조정기가 없으면 무기 배분이 통째로 실패한다
             RequireInScene<LobbyRoster>("로비 로스터", failures);
             RequireInScene<LobbyRoleCoordinator>("역할 조정기", failures);
-
-            // SpawnManager(Geumeum.AI)는 여기서 검사하지 않는다.
-            // Network 계층은 AI, Combat에 대한 의존이 0건이고 그것이 P1-2 리팩터링의 결과다.
-            // 검사 하나를 넣자고 그 경계를 되돌리지 않는다 - 스포너 검사는 AI 파트가 자기 쪽에 둔다
         }
 
-        // 씬 오브젝트에 NetworkIdentity가 있으면 Mirror가 비활성으로 두므로 비활성도 포함해 찾는다
         private static void RequireInScene<T>(string label, List<string> failures) where T : Component
         {
             var found = Object.FindAnyObjectByType<T>(FindObjectsInactive.Include);
@@ -145,7 +133,7 @@ namespace Geumeum.Network
             }
         }
 
-        // EditorOnly는 자식까지 빌드에서 제외된다, 에디터에서는 정상 동작해 발견이 늦다
+        /// <summary> 대상 위쪽에 EditorOnly 태그가 있는지 </summary>
         private static bool TryFindEditorOnlyAncestor(Transform target, out string ancestorName)
         {
             for (Transform t = target; t != null; t = t.parent)

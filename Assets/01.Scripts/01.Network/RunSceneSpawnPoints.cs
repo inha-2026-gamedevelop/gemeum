@@ -12,13 +12,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// 이 씬에 도착한 참가자를 지정된 자리로 옮긴다.
-    ///
-    /// 씬을 옮기면 플레이어는 떠나온 씬의 좌표를 그대로 들고 온다.
-    /// 아레나 밖이나 지형 아래에 서 있게 되므로 도착 시점에 한 번 자리를 잡아 준다.
-    /// 자리가 인원보다 적으면 앞에서부터 돌려 쓴다
-    /// </summary>
+    /// <summary> 이 씬에 도착한 참가자를 지정된 자리로 옮긴다 </summary>
     public class RunSceneSpawnPoints : MonoBehaviour, IRunSceneBinding
     {
         /****************************************
@@ -110,7 +104,6 @@ namespace Geumeum.Network
                 return;
             }
 
-            // 인스펙터를 비워 두면 자식이 곧 목록이다. 마커를 추가할 때 배열을 함께 고치는 것을 잊게 된다
             for (int i = 0; i < transform.childCount; ++i)
             {
                 _resolved.Add(transform.GetChild(i));

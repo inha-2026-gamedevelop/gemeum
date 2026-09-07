@@ -3,12 +3,7 @@ using System;
 
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// 지금 들고 있는 무기의 확정 값. 장비를 만든 Systems와 피해를 내는 Combat이 이것 하나로 이야기한다.
-    ///
-    /// ScriptableObject, GameObject, 배열을 넣지 않는다. Mirror가 그대로 실을 수 있어야 하고,
-    /// 참조를 넣으면 씬이 바뀔 때 죽은 참조가 남는다
-    /// </summary>
+    /// <summary> 지금 들고 있는 무기의 확정 값 </summary>
     [Serializable]
     public struct WeaponCombatSnapshot : IEquatable<WeaponCombatSnapshot>
     {
@@ -25,7 +20,6 @@ namespace Geumeum.Common
         /// <summary> 등급 범위에서 서버가 굴린 공격력. 기본 수치를 대체한다 </summary>
         public float AttackPower;
 
-        // 옵션은 최대 두 개다. 배열을 쓰지 않는 이유는 위 요약과 같다
         public EquipmentOptionKind Option0Kind;
         public float               Option0Value;
         public EquipmentOptionKind Option1Kind;

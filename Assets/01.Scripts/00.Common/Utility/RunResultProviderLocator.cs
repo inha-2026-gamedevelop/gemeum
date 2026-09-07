@@ -3,14 +3,7 @@ using UnityEngine;
 
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// 점수 계산기의 정적 로케이터.
-    ///
-    /// 점수식이 런 상태 머신 안에 있으면 배점을 고칠 때마다 Network를 건드리게 된다.
-    /// 계산은 Systems가 순수 함수로 구현하고, 런은 결과 값을 보관, 배포만 한다.
-    ///
-    /// 아직 구현이 없는 동안에는 0점을 돌려주므로 정산 경로를 먼저 완성할 수 있다
-    /// </summary>
+    /// <summary> 점수 계산기의 정적 로케이터. Systems가 구현을 등록하고 Network는 결과만 읽는다 </summary>
     public static class RunResultProviderLocator
     {
         /****************************************
@@ -68,7 +61,6 @@ namespace Geumeum.Common
         *              Null Object
         ****************************************/
 
-        // 점수 시스템이 없는 동안에도 결과 확정과 로비 복귀가 그대로 돌게 한다
         private sealed class NullRunResultProvider : IRunResultProvider
         {
             public int ScoreRuleVersion => 0;

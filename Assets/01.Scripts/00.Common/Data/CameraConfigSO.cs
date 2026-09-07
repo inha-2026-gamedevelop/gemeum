@@ -9,13 +9,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Data
 {
-    /// <summary>
-    /// 3인칭 카메라의 거리, 회전, 충돌 수치.
-    /// 네트워크를 타지 않는 로컬 리소스다 - 카메라는 완전히 클라이언트 소유이고 판정에 관여하지 않는다.
-    /// 씬마다 카메라 오브젝트가 따로 있어도 감은 여기 하나에서 나온다
-    /// </summary>
-    // 거리 넷(4.5, 9.0, 7.0, 0.6m)은 화면을 봐야 정해지는 임시값으로
-    // 남긴 것이다. Play 중에 이 에셋을 열어 밀어 보고 정한다
+    /// <summary> 3인칭 카메라의 거리, 회전, 충돌 수치 </summary>
     [CreateAssetMenu(fileName = "CameraConfigSO", menuName = "Geumeum/CameraConfigSO")]
     public class CameraConfigSO : ScriptableObject
     {
@@ -38,14 +32,6 @@ namespace Geumeum.Data
         *              Constants
         ****************************************/
 
-        // 마스크는 레이어 이름이 아니라 인덱스가 필요한데 Constants.Layer는 이름만 갖고 있다.
-        // 값은 ProjectSettings/TagManager.asset의 순서를 따른다 - 거기서 레이어를 옮기면 같이 고쳐야 한다.
-        // 어디까지나 에셋 생성 시 기본값이고, 실제로 도는 값은 인스펙터에 보인다.
-        //
-        // 2026-09-05 실측 정정 - 처음에 Default + Ground 만 넣었다가 바위를 전부 놓쳤다.
-        // Main 씬 실측: 지형은 Ground(8)가 아니라 Default(0)에 있고 Ground는 콜라이더 0개다.
-        // 바위 393개는 전부 PW_Object_* 세 층에 있다. 이름의 Small/Medium/Large는 물리 크기가
-        // 아니라 PW의 거리 분류라 크기로 걸러 넣으면 안 된다(Small 평균 11m, Large 평균 1.7m)
         private const int LAYER_DEFAULT   = 0;  // 지형이 여기 있다
         private const int LAYER_GROUND    = 8;  // 지금은 비어 있으나 지형을 옮길 자리로 남겨 둔다
         private const int LAYER_PW_SMALL  = 15; // 바위
@@ -189,10 +175,7 @@ namespace Geumeum.Data
         public ShakeSpec ShakeGroggyEnter  => _shakeGroggyEnter;
         public ShakeSpec ShakePartBreak    => _shakePartBreak;
 
-        /// <summary>
-        /// 피격 강도에 맞는 셰이크. Critical은 치명타 셰이크를 쓴다 -
-        /// HitStrength와 셰이크 종류가 1:1이 아니라 호출부가 아니라 여기서 맞춘다
-        /// </summary>
+        /// <summary> 피격 강도에 맞는 셰이크 </summary>
         public ShakeSpec ResolveHitShake(HitStrength strength)
         {
             switch (strength)

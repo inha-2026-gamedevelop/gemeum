@@ -12,11 +12,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// 로비의 준비 상태와 런 시작 게이트. 정확히 3명이 준비되어야 시작한다.
-    /// 슬롯 저장은 LobbyRoster가, 역할 배분은 LobbyRoleCoordinator가 맡고
-    /// 여기서는 두 곳을 잇는 파사드 역할도 겸한다
-    /// </summary>
+    /// <summary> 로비의 준비 상태와 런 시작 게이트 </summary>
     public class LobbyController : NetworkBehaviour
     {
         /****************************************
@@ -75,7 +71,6 @@ namespace Geumeum.Network
 
             roster.ServerRestoreVacatedSeat(conn);
 
-            // 얼어 있는 런에 돌아온 것이면 로비 준비 절차를 거치지 않는다, 하던 런을 이어서 재개한다
             if (TryResumePausedRun(conn))
             {
                 return;
@@ -121,7 +116,6 @@ namespace Geumeum.Network
                 return;
             }
 
-            // SetSlotReady가 매번 TryStartRun을 부르지만 정원이 찼을 때만 통과하므로 마지막 한 번만 연다
             for (int i = 0; i < roster.SlotCount; ++i)
             {
                 SetSlotReady(roster.GetSlot(i).ConnectionId, true);
@@ -145,7 +139,6 @@ namespace Geumeum.Network
         *              Commands
         ****************************************/
 
-        // 로비 오브젝트는 어느 클라이언트의 소유도 아니므로 권한 대신 서버가 호출자를 확인한다
         [Command(requiresAuthority = false)]
         public void CmdSetReady(bool isReady, NetworkConnectionToClient sender = null)
         {
@@ -157,10 +150,7 @@ namespace Geumeum.Network
             SetSlotReady(sender.connectionId, isReady);
         }
 
-        /// <summary>
-        /// 로비에서 캐릭터를 고른다. 무기 배분과는 무관하며, 이미 다른 사람이 고른 캐릭터는 거부한다.
-        /// 고르지 않은 채 런이 시작되면 서버가 남은 캐릭터를 배정한다
-        /// </summary>
+        /// <summary> 로비에서 캐릭터를 고른다 </summary>
         [Command(requiresAuthority = false)]
         public void CmdSelectCharacter(CharacterKind character, NetworkConnectionToClient sender = null)
         {
@@ -169,7 +159,6 @@ namespace Geumeum.Network
                 return;
             }
 
-            // 클라이언트가 보낸 값은 신뢰하지 않는다, 정의되지 않은 enum 값이 슬롯에 들어가면 모델 바인딩이 어긋난다
             if (!Enum.IsDefined(typeof(CharacterKind), character))
             {
                 Debug.LogWarning($"[LobbyController] 정의되지 않은 캐릭터 선택을 무시했다: connectionId={sender.connectionId}, character={character}", this);
@@ -183,7 +172,6 @@ namespace Geumeum.Network
                 return;
             }
 
-            // 3인칭 오버숄더라 같은 캐릭터가 둘이면 파티원을 구분할 수 없다
             for (int i = 0; i < roster.SlotCount; ++i)
             {
                 if (i == index)
@@ -208,7 +196,6 @@ namespace Geumeum.Network
         *                Methods
         ****************************************/
 
-        // CmdSetReady와 _devAutoReady 둘 다 여기로 모은다, 준비 상태를 바꾸는 경로는 하나뿐이어야 한다
         [Server]
         private void SetSlotReady(int connectionId, bool isReady)
         {
@@ -231,7 +218,6 @@ namespace Geumeum.Network
             TryStartRun();
         }
 
-        // 3명이 모두 준비된 순간을 한 번의 서버 트랜잭션으로 처리한다
         [Server]
         private void TryStartRun()
         {
@@ -261,13 +247,11 @@ namespace Geumeum.Network
                 }
             }
 
-            // 무기와 캐릭터가 세 명 모두에게 실제로 적용된 뒤에만 런을 연다
             if ((LobbyRoleCoordinator.ServerInstance == null) || (!LobbyRoleCoordinator.ServerInstance.ServerAssignRoles()))
             {
                 return;
             }
 
-            // 정원 미만으로 시작한 런은 기획된 3인 조건이 아니다, 나중에 결과를 오해하지 않도록 남긴다
             if (requiredPlayers != Constants.Network.MAX_PLAYERS)
             {
                 Debug.LogWarning($"[LobbyController] Dev 설정으로 {requiredPlayers}인 런을 시작한다. 3인 검증에는 쓸 수 없다", this);
@@ -275,8 +259,6 @@ namespace Geumeum.Network
 
             LockAdmission();
 
-            // 여기까지 오면 입장 잠금과 역할 배분이 이미 커밋돼 있다.
-            // 런이 열리지 않았는데 그대로 두면 아무도 들어올 수 없고 다시 시작할 수도 없어 세션이 영구히 잠긴다
             if (RunManager.ServerInstance.StartRun())
             {
                 return;
@@ -297,7 +279,6 @@ namespace Geumeum.Network
             }
         }
 
-        // 일시정지된 런에 인원이 다시 찼으면 역할을 되돌려 주고 재개한다
         [Server]
         private bool TryResumePausedRun(NetworkConnectionToClient conn)
         {
@@ -328,8 +309,6 @@ namespace Geumeum.Network
             return true;
         }
 
-        // 접속 정원(MAX_PLAYERS)은 그대로 두고 런 시작 조건만 낮춘다.
-        // 잘못된 값이 들어오면 조용히 따르지 않고 기획값으로 되돌린다
         private int ResolveRequiredPlayers()
         {
             if ((_devMinPlayers <= 0) || (_devMinPlayers > Constants.Network.MAX_PLAYERS))

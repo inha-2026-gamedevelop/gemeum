@@ -14,9 +14,6 @@ namespace Geumeum.Data
 
         [Header("스태미나")]
         [SerializeField] private float _staminaMax            = 100f;
-        // 2026-09-03 조정: 25/0.6초에서 올렸다. 근접 공격 사이클(선딜 0.12 + 후딜 0.28 = 0.40초)이
-        // 회복 지연 0.6초보다 짧아, 연속 공격 중에는 회복이 한 번도 시작되지 않고 있었다.
-        // 의도는 '16타를 연속으로 치라'가 아니라 전투 중 항상 패링(15),구르기(25) 여력을 남기는 것이다
         [SerializeField] private float _staminaRegenPerSecond = 35f;
         [SerializeField] private float _staminaRegenDelay     = 0.45f; // 행동 후 회복 시작까지(초)
 
@@ -47,37 +44,29 @@ namespace Geumeum.Data
         [SerializeField] private float _criticalMultiplierMin    = 2.0f;
         [SerializeField] private float _criticalMultiplierMax    = 3.0f;
 
-        // 게임 디자인 문서에 공격 수치표가 아직 없어 프로토타입 시작값으로 넣는다.
-        // 밸런싱은 여기 값만 고치면 되고 코드를 다시 빌드하지 않는다.
-        // FormerlySerializedAs는 근접, 원거리를 나누기 전 _attack* 이름으로 저장된 에셋 값을 잇는다
         [Header("근접 공격")]
         [FormerlySerializedAs("_attackStartupDuration")]
         [SerializeField] private float _meleeStartupDuration  = 0.12f; // 선딜(초)
         [FormerlySerializedAs("_attackRecoveryDuration")]
         [SerializeField] private float _meleeRecoveryDuration = 0.28f; // 후딜(초), 이 동안 다음 공격 불가
         [FormerlySerializedAs("_attackStaminaCost")]
-        [SerializeField] private float _meleeStaminaCost      = 6f;  // 2026-09-03: 12에서 낮췄다. 기본 공격이 패링 자원을 먼저 가져가지 않게 한다
+        [SerializeField] private float _meleeStaminaCost      = 6f;  // 스태미나 비용
         [FormerlySerializedAs("_attackRange")]
         [SerializeField] private float _meleeRange            = 2.2f;  // 판정 거리(m)
         [FormerlySerializedAs("_attackAngle")]
         [SerializeField] private float _meleeAngle            = 90f;   // 정면 기준 좌우 합산 각도(도)
         [FormerlySerializedAs("_attackBasePower")]
         [SerializeField] private float _meleeBasePower        = 10f;   // 장비 보정 전 기본 공격력
-        // 후딜이 끝난 시점부터 이 시간 안에 재입력하면 다음 콤보 단계로 이어진다. 놓치면 1단으로 리셋
-        [SerializeField] private float _meleeComboWindowDuration = 0.45f;
+        [SerializeField] private float _meleeComboWindowDuration = 0.45f; // 콤보 재입력 유예(초)
 
-        // 화살 비행, 유도, 명중 보조 수치는 ArrowConfigSO가 소유한다. 여기는 쏘는 쪽 수치만 둔다
         [Header("원거리 공격")]
         [SerializeField] private float _rangedStartupDuration  = 0.25f; // 선딜(초), 활을 당기는 시간이라 근접보다 길다
         [SerializeField] private float _rangedRecoveryDuration = 0.35f; // 후딜(초)
-        [SerializeField] private float _rangedStaminaCost      = 5f;    // 거리를 두고 싸우는 대신 근접보다 싸다 (2026-09-03: 8에서 낮춤)
+        [SerializeField] private float _rangedStaminaCost      = 5f;    // 스태미나 비용
         [SerializeField] private float _rangedBasePower        = 8f;    // 장비 보정 전 기본 공격력
         [SerializeField] private float _rangedMuzzleHeight     = 1.2f;  // 발사 지점 높이(m), 발밑에서 나가지 않게 한다
         [SerializeField] private float _rangedMuzzleForward    = 0.6f;  // 발사 지점 전방 오프셋(m), 자기 몸에 걸리지 않게 한다
 
-        // 락온은 표현이자 판정이다 - 바라보는 방향이 동기화되고 화살 유도가 서버 판정이라
-        // 서버도 같은 값을 봐야 한다. 그래서 로컬 리소스인 CameraConfigSO가 아니라 여기가 소유한다.
-        // 카메라 쪽 거리(잡귀 4.5 / 보스 몸통 9.0 / 꼬리 7.0)만 CameraConfigSO에 있다
         [Header("락온")]
         [SerializeField] private float _lockOnAcquireRange = 25f; // 걸 수 있는 거리(m), 서버도 이 값으로 검증한다
         [SerializeField] private float _lockOnHoldRange    = 30f; // 유지 거리(m), 경계에서 붙었다 떨어지지 않게 더 넓다
@@ -94,8 +83,7 @@ namespace Geumeum.Data
         [SerializeField] private float _reviveInvincibleDuration = 2f;   // 남은 잡귀에게 즉사하는 것을 막는다(초)
         [SerializeField] private float _reviveCurrencyLossRatio  = 0.2f; // 팀 공용 노잣돈 차감 비율(자동 부활)
 
-        // 협동 부활. 자동 부활만 있으면 코옵에서 긴장이 가장 높은 순간이 "30초 기다리기"가 되고
-        // 살아있는 팀원이 할 수 있는 일이 없다
+        [Header("협동 부활")]
         [SerializeField] private float _rescueRadius            = 3f;   // 쓰러진 팀원에게 다가가야 하는 거리(m)
         [SerializeField] private float _rescueDuration          = 3f;   // 상호작용 유지 시간(초)
         [SerializeField] private float _rescueCurrencyLossRatio = 0.1f; // 구조 부활의 노잣돈 차감(자동의 절반)

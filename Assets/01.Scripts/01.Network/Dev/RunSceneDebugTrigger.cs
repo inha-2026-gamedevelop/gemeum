@@ -23,8 +23,6 @@ namespace Geumeum.Network
         private const float LABEL_HEIGHT = 22f;
         private const float LABEL_TOP    = 32f;
 
-        // 대상을 하나만 두는 이유는 Title, Lobby, Field, BossEntrance, Result 가 아직 빈 껍데기라
-        // 그리로 보내면 아무것도 없는 곳에 갇히기 때문이다. 씬이 채워지면 늘린다
         [Header("키와 대상 씬")]
         [SerializeField] private KeyCode    _transitionKeyCode = KeyCode.F5;
         [SerializeField] private RunSceneId _targetScene       = RunSceneId.Boss;
@@ -40,7 +38,6 @@ namespace Geumeum.Network
 
         private void Update()
         {
-            // 전환은 서버가 소유한다. 클라이언트가 눌러도 아무 일이 없어야 한다
             if (!NetworkServer.active)
             {
                 return;

@@ -12,10 +12,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Combat
 {
-    /// <summary>
-    /// 로비와 런 관리자가 플레이어에게 말을 거는 단일 창구.
-    /// 무기, 캐릭터, 상태, 이동 컴포넌트를 감춰 Network 파트가 Combat 타입을 직접 참조하지 않게 한다
-    /// </summary>
+    /// <summary> 로비와 런 관리자가 플레이어에게 말을 거는 단일 창구 </summary>
     [RequireComponent(typeof(PlayerWeapon))]
     [RequireComponent(typeof(PlayerCharacter))]
     public class PlayerRunAgent : NetworkBehaviour, IPlayerRoleAssignment, IPlayerRunLifecycle
@@ -29,8 +26,7 @@ namespace Geumeum.Combat
         private PlayerStatus     _status     = null;
         private PlayerController _controller = null;
 
-        // 상태를 담고 붓는 컴포넌트들. 초기화 때 한 번 모으고 순서를 고정한다 -
-        // 매번 GetComponents를 돌리면 순서가 보장되지 않고, 최대 HP보다 현재 HP가 먼저 들어가면 잘린다
+        // 상태를 담고 붓는 컴포넌트들
         private readonly List<IRunStateCarrier> _carriers = new List<IRunStateCarrier>();
 
         /****************************************
@@ -55,7 +51,6 @@ namespace Geumeum.Combat
             CollectCarriers();
         }
 
-        // 낮은 순서가 먼저 담기고 먼저 되부어진다
         private void CollectCarriers()
         {
             _carriers.Clear();
@@ -67,10 +62,7 @@ namespace Geumeum.Combat
         *              Server API
         ****************************************/
 
-        /// <summary>
-        /// 무기와 캐릭터를 한 번에 확정한다. 하나만 적용된 채로 남으면 런이 열리지 않으므로
-        /// 둘 다 확정 가능한지 먼저 확인하고, 그래도 실패하면 앞서 적용한 것을 되돌린다
-        /// </summary>
+        /// <summary> 무기와 캐릭터를 한 번에 확정한다 </summary>
         [Server]
         public bool TryCommitRole(WeaponKind weapon, CharacterKind character)
         {
@@ -145,12 +137,7 @@ namespace Geumeum.Combat
             return true;
         }
 
-        /// <summary>
-        /// 그릇의 값을 되붓는다.
-        ///
-        /// 전부 검사한 뒤에 붓는다. 하나씩 검사하며 부으면 세 번째에서 실패했을 때
-        /// 앞의 둘만 적용된 상태가 남고, 그 상태로 런이 재개된다
-        /// </summary>
+        /// <summary> 그릇의 값을 되붓는다 </summary>
         [Server]
         public bool RestoreRunState(RunParticipantSnapshot snapshot)
         {

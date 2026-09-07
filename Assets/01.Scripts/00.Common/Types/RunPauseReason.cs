@@ -3,12 +3,7 @@ using System;
 
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// 런이 멈춰 있는 이유. 여러 개가 동시에 걸릴 수 있어 플래그다.
-    ///
-    /// bool 하나로 두면 한 명이 돌아왔다는 이유로 아직 로드 중인 씬 전환까지 재개된다.
-    /// 각 사유의 소유자는 자기 사유만 해제하고, 하나라도 남아 있으면 런은 멈춘 채다
-    /// </summary>
+    /// <summary> 런이 멈춰 있는 이유. 여러 개가 동시에 걸릴 수 있어 플래그다 </summary>
     [Flags]
     public enum RunPauseReason
     {

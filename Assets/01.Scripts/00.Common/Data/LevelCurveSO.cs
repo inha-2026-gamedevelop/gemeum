@@ -9,10 +9,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Data
 {
-    /// <summary>
-    /// 레벨별 필요 경험치와 최대 HP.
-    /// 최대 HP의 단일 소스다, 다른 SO에도 두면 두 에셋이 서로 다른 값을 주장하게 된다
-    /// </summary>
+    /// <summary> 레벨별 필요 경험치와 최대 HP </summary>
     [CreateAssetMenu(fileName = "LevelCurveSO", menuName = "Geumeum/LevelCurveSO")]
     public class LevelCurveSO : ScriptableObject
     {

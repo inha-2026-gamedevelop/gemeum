@@ -3,13 +3,7 @@ using UnityEngine;
 
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// 결계와 나머지 파트를 잇는 정적 로케이터.
-    /// 전투, AI, 아트, UI가 시스템 파트의 구현 클래스를 직접 참조하지 않게 하고,
-    /// 결계가 아직 없는 동안에는 "아무도 밖에 있지 않다"는 기본값을 돌려준다.
-    ///
-    /// 덕분에 결계 구현을 기다리지 않고 무녀 치유, 잡귀 이동, 결계 비주얼을 각자 착수할 수 있다
-    /// </summary>
+    /// <summary> 결계와 나머지 파트를 잇는 정적 로케이터. 구현이 없으면 기본값을 돌려준다 </summary>
     public static class BarrierStateLocator
     {
         /****************************************
@@ -64,7 +58,6 @@ namespace Geumeum.Common
         *              Null Object
         ****************************************/
 
-        // 결계가 아직 없는 프로토타입에서도 전투, AI, 아트 코드가 그대로 돌게 한다
         private sealed class NullBarrierState : IBarrierState
         {
             public bool    IsActive => false;

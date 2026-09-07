@@ -20,11 +20,7 @@ namespace Geumeum.Data
         *                Types
         ****************************************/
 
-        /// <summary>
-        /// 직업 하나가 카운터 한 번에 깎는 그로기 게이지 양.
-        /// 직업마다 다른 이유는 카운터 난이도가 다르기 때문이다 - 무녀는 패턴이 끝나기 3초 전을
-        /// 맞춰야 해서 패턴표를 외운 만큼 강해지고, 신궁은 락온이 조준을 돕는다
-        /// </summary>
+        /// <summary> 직업 하나가 카운터 한 번에 깎는 그로기 게이지 양 </summary>
         [Serializable]
         public struct GaugeReductionEntry
         {
@@ -66,11 +62,6 @@ namespace Geumeum.Data
         [Header("패턴")]
         [SerializeField] private PatternEntry[] _patterns;
 
-        // 아래는 2026-09-05 확정 설계다
-        // 값은 전부 임시값이고 구조만 확정이다. 바뀌지 않는 것은 "감소식, 세 직업, 게이지 100"이다
-
-        // 보스 시계는 필드 시계에 이어 붙지 않는다. 언제 들어오든 진입 순간부터 14분이다.
-        // 필드 상한은 BarrierPhaseSO가, 보스 상한은 여기가 소유한다
         [Header("보스 시계")]
         [Tooltip("보스전 하드 제한(초). 도달하면 실패로 끝난다")]
         [SerializeField] private float _bossTimeLimitSeconds = 840f;
@@ -150,10 +141,7 @@ namespace Geumeum.Data
         /// <summary> 그로기 끝의 기상 예고(초) </summary>
         public float GroggyWakeWarningDuration => _groggyWakeWarningDuration;
 
-        /// <summary>
-        /// 저항이 전혀 없는 구간(초). 총 지속에서 기상 예고를 뺀 값이라 둘을 따로 넣다가 어긋나지 않는다.
-        /// 예고가 지속보다 길게 잘못 들어와도 음수가 되지 않게 막는다
-        /// </summary>
+        /// <summary> 저항이 전혀 없는 구간(초) </summary>
         public float GroggyHelplessDuration => Mathf.Max(_groggyDuration - _groggyWakeWarningDuration, 0f);
 
         public float GroggyImmunityDuration => _groggyImmunityDuration;
@@ -177,7 +165,6 @@ namespace Geumeum.Data
         /// <summary> 페이즈 정보를 찾는다, 없으면 false </summary>
         public bool TryGetPhase(int phaseIndex, out PhaseEntry entry)
         {
-            // 아직 값을 채우기 전이면 배열이 null이다. PhaseCount는 이미 막고 있었는데 여기가 빠져 있었다
             if (_phases == null)
             {
                 entry = default;
@@ -197,11 +184,7 @@ namespace Geumeum.Data
             return false;
         }
 
-        /// <summary>
-        /// 이 직업이 카운터 한 번에 깎는 게이지 양을 찾는다, 없으면 false.
-        /// 딜은 여기를 거치지 않는다 - 딜이 게이지를 깎으면 그 순간 딜미터가 되고
-        /// 무녀는 영원히 꼴찌가 된다. 딜은 HP를, 카운터는 게이지를 깎는다
-        /// </summary>
+        /// <summary> 이 직업이 카운터 한 번에 깎는 게이지 양을 찾는다, 없으면 false </summary>
         public bool TryGetGaugeReduction(CharacterKind character, out float amount)
         {
             if (_gaugeReductions != null)

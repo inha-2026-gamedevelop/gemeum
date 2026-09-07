@@ -6,10 +6,7 @@ using UnityEngine;
 
 namespace Geumeum.Data
 {
-    /// <summary>
-    /// 실시간과 게임 내 시각의 매핑, 시간대별 조명 프리셋.
-    /// 네트워크를 타지 않는 로컬 리소스다, 서버는 경과 시간만 보내고 조명은 각 클라가 계산한다
-    /// </summary>
+    /// <summary> 실시간과 게임 내 시각의 매핑, 시간대별 조명 프리셋 </summary>
     [CreateAssetMenu(fileName = "DayCycleSO", menuName = "Geumeum/DayCycleSO")]
     public class DayCycleSO : ScriptableObject
     {
@@ -91,7 +88,6 @@ namespace Geumeum.Data
                 }
             }
 
-            // 범위 밖이면 마지막 프리셋으로 고정, 프리셋을 끝까지 채우면 해소된다
             from = _presets[_presets.Length - 1];
             to   = _presets[_presets.Length - 1];
             return true;

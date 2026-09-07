@@ -3,16 +3,7 @@ using UnityEngine;
 
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// 씬 전환과 재접속 사이에 참가자의 값을 담아 두는 그릇.
-    ///
-    /// 디스크 세이브가 아니라 서버 메모리 안의 값이다. 런이 끝나면 버린다.
-    /// 평소 현재 값의 주인은 각 서버 컴포넌트이고, 이 그릇은 담고 붓는 순간에만 주인이 된다 -
-    /// 양쪽이 매 틱 각자 갱신하면 원본이 둘이 되어 어느 쪽이 맞는지 알 수 없게 된다.
-    ///
-    /// 값 타입이 아니라 클래스인 이유는 배열을 담고 부분적으로 채워 나가기 때문이다.
-    /// 네트워크로 보내지 않으므로 Mirror 직렬화 제약을 받지 않는다
-    /// </summary>
+    /// <summary> 씬 전환과 재접속 사이에 참가자의 값을 담아 두는 그릇 </summary>
     public class RunParticipantSnapshot
     {
         /****************************************
@@ -61,16 +52,12 @@ namespace Geumeum.Common
         /// <summary> 지금 들고 있는 무기의 확정 값 </summary>
         public WeaponCombatSnapshot EquippedWeapon { get; set; }
 
-        // TODO(민성): 인벤토리 4칸과 특성 배분은 Systems가 자기 데이터 모델을 확정한 뒤
-        // 같은 그릇에 담는다. 여기서 먼저 모양을 정하면 그쪽 설계를 앞질러 못 박게 된다.
-        // 팀 공용 노잣돈은 참가자 값이 아니라 런 값이라 여기 넣지 않는다
+        // TODO(민성): 인벤토리 4칸과 특성 배분은 Systems 데이터 모델 확정 후 추가
 
         // 위치
         public Vector3 Position { get; set; }
         public float   YawDegrees { get; set; }
 
-        // 짧은 실제 시간 상태는 남은 양이 아니라 절대 만료 시각으로 담는다.
-        // 몇 분 멈췄다 돌아왔는데 무적이 그대로 남아 있는 쪽이 오히려 이상하다
         public double InvincibleUntilServerTime { get; set; }
 
         /****************************************

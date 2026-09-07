@@ -10,11 +10,7 @@ using Mirror.FizzySteam;
 
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// 시작 시 한 번 트랜스포트 경로를 정한다. 기본은 KCP이고 -steam 인자가 있을 때만 FizzySteamworks로 바꾼다.
-    /// 런타임 폴백과 MultiplexTransport를 쓰지 않는 이유는 접속 경로가 둘이면 인증기가 신원을
-    /// 어느 쪽에서 얻을지 연결마다 갈리기 때문이다
-    /// </summary>
+    /// <summary> 시작 시 트랜스포트 경로를 정한다. 기본은 KCP, -steam 인자가 있으면 FizzySteamworks다 </summary>
     [RequireComponent(typeof(NetworkManager))]
     public class SteamTransportSelector : MonoBehaviour
     {
@@ -37,17 +33,14 @@ namespace Geumeum.Network
         *              Properties
         ****************************************/
 
-        /// <summary> Steam 경로로 시작했다. 신원 소스와 부트 검사가 이 값으로 짝을 맞춘다 </summary>
+        /// <summary> Steam 경로로 시작했는지 </summary>
         public bool IsSteamPath { get; private set; } = false;
 
         /****************************************
         *              Public API
         ****************************************/
 
-        /// <summary>
-        /// 이 트랜스포트가 Steam 경로인지. 신원 소스 선택과 부트 게이트의 짝 검사가 같은 답을 써야 해서
-        /// 판정을 여기 하나로 모았다, 두 곳이 갈리면 게이트를 통과한 조합이 런타임에 어긋난다
-        /// </summary>
+        /// <summary> 이 트랜스포트가 Steam 경로인지 </summary>
         public static bool IsSteamTransport(Transport transport)
         {
             return (transport is FizzySteamworks);
@@ -57,8 +50,6 @@ namespace Geumeum.Network
         *              Unity Event
         ****************************************/
 
-        // NetworkLaunchArgs가 Start에서 접속을 시작하므로 그 전에 트랜스포트를 확정해야 한다.
-        // NetworkManager.singleton은 이 시점에 아직 없을 수 있어 같은 오브젝트에서 직접 찾는다
         private void Awake()
         {
             _manager = GetComponent<NetworkManager>();
@@ -74,8 +65,6 @@ namespace Geumeum.Network
                 return;
             }
 
-            // NetworkManager.Awake가 transport 필드로 Transport.active를 덮으므로 둘 다 바꾼다.
-            // 두 Awake의 실행 순서에 기대지 않기 위해서다
             _manager.transport = _steamTransport;
             Transport.active   = _steamTransport;
             IsSteamPath        = true;
@@ -98,7 +87,6 @@ namespace Geumeum.Network
         *                Methods
         ****************************************/
 
-        // 0단계 스파이크의 관측 지점이다. 자기 SteamID를 알아야 다른 PC가 -client 인자로 접속할 수 있다
         private void LogSteamIdentity()
         {
             if (!SteamLocalUser.TryGetSteamId(out ulong steamId))

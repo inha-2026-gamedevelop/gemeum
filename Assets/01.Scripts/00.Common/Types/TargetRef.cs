@@ -3,13 +3,7 @@ using System;
 
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// 피해와 표식, 락온, 화살이 함께 가리키는 대상. 본체와 부위를 같은 방식으로 지목한다.
-    ///
-    /// netId만으로는 부족하다. 보스 몸통과 꼬리 세 덩이가 하나의 netId 아래에 있고,
-    /// 씬이 바뀌면 같은 netId가 다른 오브젝트에 다시 발급된다.
-    /// 런과 씬 세대를 함께 실어 다른 판, 다른 씬의 대상을 지목하지 못하게 한다
-    /// </summary>
+    /// <summary> 피해와 표식, 락온, 화살이 함께 가리키는 대상. 런과 씬 세대, netId, 부위 id로 지목한다 </summary>
     [Serializable]
     public struct TargetRef : IEquatable<TargetRef>
     {

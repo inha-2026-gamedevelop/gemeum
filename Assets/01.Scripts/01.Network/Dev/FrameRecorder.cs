@@ -14,12 +14,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// 런 구간별 프레임 시간을 모아 CSV로 남긴다.
-    /// 리슨 서버라 호스트가 3인분을 지므로, 호스트와 클라이언트를 같은 구간에서 비교해야 부하를 판단할 수 있다.
-    /// 프레임 시간은 표본 배열이 아니라 히스토그램에 누적한다 - 저장 비용이 측정 시간에 비례하면
-    /// 자동 저장이 스스로 프레임을 끊어 측정값을 오염시킨다
-    /// </summary>
+    /// <summary> 런 구간별 프레임 시간을 모아 CSV로 남긴다 </summary>
     public class FrameRecorder : MonoBehaviour
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -41,10 +36,10 @@ namespace Geumeum.Network
         [SerializeField] private int _targetFrameRate = Constants.Diagnostics.TARGET_FRAME_RATE;
 
         private int[][]  _phaseBuckets;      // [RunPhase][버킷] 프레임 수
-        private int[]    _mergedBuckets;     // 전체 행을 만들 때만 쓰는 재사용 버퍼
+        private int[]    _mergedBuckets;     // 전체 행을 만들 때 쓰는 버퍼
         private long[]   _phaseFrames;       // 구간별 프레임 수
         private double[] _phaseTotalSeconds; // 구간별 누적 프레임 시간
-        private float[]  _phaseWorstSeconds; // 구간별 최악 프레임, 히스토그램 양자화와 무관하게 실측을 남긴다
+        private float[]  _phaseWorstSeconds; // 구간별 최악 프레임
         private long[]   _phaseOverBudget;   // 구간별 예산 초과 프레임 수
 
         private int  _bucketCount = 0;
@@ -68,7 +63,6 @@ namespace Geumeum.Network
             _phaseCount  = Enum.GetValues(typeof(RunPhase)).Length;
             _bucketCount = Mathf.CeilToInt(Constants.Diagnostics.HISTOGRAM_MAX_MS / Constants.Diagnostics.HISTOGRAM_BUCKET_MS);
 
-            // 게임 루프에서 할당이 일어나지 않도록 여기서 한 번만 잡는다
             _phaseBuckets = new int[_phaseCount][];
             for (int i = 0; i < _phaseCount; ++i)
             {
@@ -92,7 +86,6 @@ namespace Geumeum.Network
             HandleKeys();
         }
 
-        // 화면에 보이지 않으면 기록이 도는지 알 수 없다, 개발 빌드에서만 뜬다
         private void OnGUI()
         {
             if (!_showOverlay)
@@ -105,7 +98,6 @@ namespace Geumeum.Network
 
         private void OnApplicationQuit()
         {
-            // 표본이 0이어도 로그는 남긴다, 아무 흔적이 없으면 왜 안 됐는지 알 수 없다
             if (_sampleCount <= 0)
             {
                 Debug.LogWarning($"[FrameRecorder] 표본 없이 종료했다 (워밍업 {Constants.Diagnostics.WARMUP_FRAMES}프레임을 넘기지 못함)");
@@ -119,7 +111,6 @@ namespace Geumeum.Network
         *                Methods
         ****************************************/
 
-        // 상한이 없으면 한 PC의 인스턴스들이 서로 자원을 뺏어 네트워크 비용과 렌더링 경쟁이 섞인다
         private void ApplyFrameRateCap()
         {
             if (_targetFrameRate <= 0)
@@ -127,13 +118,12 @@ namespace Geumeum.Network
                 return;
             }
 
-            QualitySettings.vSyncCount  = 0; // vSync가 켜져 있으면 targetFrameRate가 무시된다
+            QualitySettings.vSyncCount  = 0;
             Application.targetFrameRate = _targetFrameRate;
         }
 
         private void Record()
         {
-            // 씬 로드 직후의 튀는 프레임을 표본에서 뺀다
             if (_warmupLeft > 0)
             {
                 --_warmupLeft;
@@ -151,7 +141,7 @@ namespace Geumeum.Network
             }
             else if (bucket >= _bucketCount)
             {
-                bucket = _bucketCount - 1; // 마지막 버킷이 초과분을 받는다, 최악값은 따로 실측으로 남긴다
+                bucket = _bucketCount - 1;
             }
 
             ++_phaseBuckets[phaseIndex][bucket];
@@ -171,7 +161,6 @@ namespace Geumeum.Network
             ++_sampleCount;
         }
 
-        // RunManager는 서버에도 클라이언트에도 있는 씬 오브젝트다, 조회는 한 번만 한다
         private RunPhase ResolvePhase()
         {
             if (_runManager == null)
@@ -182,7 +171,6 @@ namespace Geumeum.Network
             return (_runManager == null) ? RunPhase.Lobby : _runManager.Phase;
         }
 
-        // RunPhase에 새 값이 끼어들어도 배열 밖을 짚지 않게 한다
         private int ResolvePhaseIndex()
         {
             int index = (int) ResolvePhase();
@@ -193,7 +181,7 @@ namespace Geumeum.Network
         {
             if (Input.GetKeyDown(_writeKeyCode))
             {
-                Write(true); // 사람이 직접 눌렀으므로 저장 경로를 알려 준다
+                Write(true);
             }
 
             if (Input.GetKeyDown(_overlayKeyCode))
@@ -202,7 +190,6 @@ namespace Geumeum.Network
             }
         }
 
-        // 비정상 종료로 측정을 통째로 잃지 않도록 주기적으로 덮어쓴다
         private void HandleAutosave()
         {
             if (_sampleCount <= 0)
@@ -246,7 +233,7 @@ namespace Geumeum.Network
                 + nl + Screen.width + "x" + Screen.height + "   F9 저장, F10 표시";
         }
 
-        /// <summary> 지금까지 누적한 통계를 CSV로 남긴다. 비용은 측정 시간과 무관하다 </summary>
+        /// <summary> 지금까지 누적한 통계를 CSV로 남긴다 </summary>
         public void Write(bool announce = false)
         {
             if (_sampleCount <= 0)
@@ -307,8 +294,6 @@ namespace Geumeum.Network
                 Constants.Diagnostics.FRAME_LOG_PREFIX + "_" + role + "_" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".csv");
             File.WriteAllText(path, csv.ToString());
 
-            // 자동 저장과 종료 저장까지 알리면 접속 로그가 프레임 기록에 묻힌다.
-            // 사람이 직접 부른 경우에만 경로를 남긴다
             if (announce)
             {
                 Debug.Log($"[FrameRecorder] {_sampleCount}프레임 기록을 남겼다: {path}");
@@ -335,10 +320,7 @@ namespace Geumeum.Network
                 + "," + ((float) overBudget / frames).ToString("P1"));
         }
 
-        /// <summary>
-        /// 누적 히스토그램을 앞에서부터 훑어 목표 순위가 들어 있는 버킷을 찾는다.
-        /// 버킷 수가 고정이라 측정 시간이 길어져도 비용이 늘지 않는다
-        /// </summary>
+        /// <summary> 누적 히스토그램을 앞에서부터 훑어 목표 순위가 들어 있는 버킷을 찾는다 </summary>
         private float PercentileMs(int[] buckets, long frames, float ratio)
         {
             long targetRank = (long) Mathf.Round(ratio * (frames - 1));

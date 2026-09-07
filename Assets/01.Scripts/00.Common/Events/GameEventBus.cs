@@ -31,7 +31,6 @@ namespace Geumeum.Common
                 return;
             }
 
-            // 호출 중 구독이 바뀌어도 이 호출은 발행 시점의 목록으로 끝난다
             ((Action<T>) registered).Invoke(payload);
         }
 
@@ -77,7 +76,6 @@ namespace Geumeum.Common
         *              Singleton
         ****************************************/
 
-        // 씬이 끝나면 남은 구독은 전부 무효다, 들고 있으면 파괴된 오브젝트를 붙잡는다
         protected override void OnSingletonDestroy()
         {
             _handlers.Clear();

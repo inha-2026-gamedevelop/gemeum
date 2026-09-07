@@ -3,13 +3,7 @@ using System;
 
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// 런 참가자의 영속 신원. 인증을 마친 <see cref="PlayerPlatformId"/>에서 결정한다.
-    ///
-    /// connectionId는 재접속마다, netId는 씬 전환마다 새로 발급된다.
-    /// 상태 보관과 복구의 키로 그 둘을 쓰면 같은 사람을 다른 사람으로 보게 되므로
-    /// 참가자를 가리키는 자리에는 반드시 이 값을 쓴다
-    /// </summary>
+    /// <summary> 런 참가자의 영속 신원. 인증을 마친 <see cref="PlayerPlatformId"/>에서 결정한다 </summary>
     public readonly struct ParticipantId : IEquatable<ParticipantId>
     {
         /****************************************

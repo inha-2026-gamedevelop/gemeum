@@ -9,16 +9,10 @@ using Mirror;
 
 namespace Geumeum.Network
 {
-    /// <summary>
-    /// 실행 인자로 호스트, 클라이언트를 바로 시작한다. 3대에서 반복 테스트할 때
-    /// 매번 HUD에 IP를 타이핑하지 않게 하려는 것이고, 개발 빌드와 에디터에서만 동작한다
-    /// </summary>
+    /// <summary> 실행 인자로 호스트, 클라이언트를 바로 시작한다 </summary>
     public class NetworkLaunchArgs : MonoBehaviour
     {
-        /// <summary>
-        /// 개발 경로에서 인증기가 실어 보낼 신원. 출시 빌드에서는 항상 0이고 Steam이 신원을 정한다.
-        /// 인증기가 Awake보다 늦게 읽을 수 있어 정적 값으로 둔다
-        /// </summary>
+        /// <summary> 개발 경로에서 인증기가 실어 보낼 신원 </summary>
         public static ulong RequestedPlatformId { get; private set; } = 0UL;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -37,7 +31,6 @@ namespace Geumeum.Network
         *              Unity Event
         ****************************************/
 
-        // NetworkManager가 Awake에서 singleton을 세우므로 그 뒤에 읽는다
         private void Start()
         {
             NetworkManager manager = NetworkManager.singleton;
@@ -78,7 +71,6 @@ namespace Geumeum.Network
         *                Methods
         ****************************************/
 
-        // 사람마다 다른 값을 줘야 재접속 슬롯 복구를 검증할 수 있다. 안 주면 인증기가 연결 번호로 대신 만든다
         private void ApplyPlatformId(string[] args)
         {
             if (!TryFindValue(args, ARG_PLATFORM_ID, out string raw))
@@ -96,7 +88,6 @@ namespace Geumeum.Network
             Debug.Log($"[NetworkLaunchArgs] 신원을 {value}로 지정했다");
         }
 
-        // 포트는 트랜스포트가 소유한다. 호스트와 클라이언트가 같은 값을 써야 하므로 시작 전에 맞춘다
         private void ApplyPort(string[] args)
         {
             if (!TryFindValue(args, ARG_PORT, out string rawPort))
@@ -137,7 +128,6 @@ namespace Geumeum.Network
             return false;
         }
 
-        // 값이 빠진 채 플래그만 오면 다음 인자를 값으로 오해하지 않도록 '-'로 시작하는 것은 거른다
         private static bool TryFindValue(string[] args, string flag, out string value)
         {
             value = null;

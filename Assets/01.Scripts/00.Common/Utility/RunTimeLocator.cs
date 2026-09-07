@@ -3,12 +3,7 @@ using UnityEngine;
 
 namespace Geumeum.Common
 {
-    /// <summary>
-    /// 런 시간 창구의 정적 로케이터.
-    ///
-    /// 결계, 스폰, 보스, UI가 Network 파트의 구체 타입을 참조하지 않고 시간을 읽게 한다.
-    /// 런 매니저가 없는 개발 씬에서는 0을 돌려주므로 호출부에 null 체크가 없다
-    /// </summary>
+    /// <summary> 런 시간 창구의 정적 로케이터. Network의 구체 타입 없이 시간을 읽게 한다 </summary>
     public static class RunTimeLocator
     {
         /****************************************
@@ -63,7 +58,6 @@ namespace Geumeum.Common
         *              Null Object
         ****************************************/
 
-        // 런 매니저가 없는 Dev 씬에서도 결계, AI, UI 코드가 그대로 돌게 한다
         private sealed class NullRunTimeSource : IRunTimeSource
         {
             public double FieldElapsedSeconds    => 0.0;

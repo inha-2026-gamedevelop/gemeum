@@ -22,16 +22,13 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
-        // 대상당 활성 창은 항상 최대 1개다. 새 공격이 등록되면 소비 여부와 무관하게 이전 창을 밀어낸다
+        // 대상당 활성 창은 항상 최대 1개다
         private ParryWindow _activeWindow;
 
-        // 활성 슬롯과 별개로 직전에 소비된 창의 tombstone을 하나 더 보관한다. 활성 슬롯 하나만 쓰면
-        // tombstone이 될 창이 다른 공격의 등록으로 덮여 사라지고, 뒤늦게 온 중복 요청이
-        // RejectedWindowConsumed가 아니라 RejectedWindowMismatch로 잘못 떨어진다
+        // 직전에 소비된 창의 tombstone
         private ParryWindowKey _consumedWindowKey;
         private double         _consumedWindowImpactTime;
 
-        // 공격자마다 WindowId가 따로 증가하므로 재사용, 역전 요청을 막으려면 공격자별 마지막 값이 필요하다
         private readonly Dictionary<uint, uint> _lastIdByAttacker = new Dictionary<uint, uint>();
 
         private PlayerStatus              _status;
@@ -43,12 +40,12 @@ namespace Geumeum.Combat
 
         private uint             _localRequestId     = 0;
         private ParryWindowKey   _clientActiveWindow = default;
-        private uint             _lastAppliedResultId = 0; // 소유 클라 전용, 늦게 온 옛 결과가 최신 상태를 되감지 않게 한다
+        private uint             _lastAppliedResultId = 0; // 소유 클라 전용
         private RequestIdTracker _requestIds;
 
         // 서버 전용
         private double _actionLockEndServerTime = 0.0; // startup 또는 recovery가 끝나는 시각
-        private double _lastRequestServerTime   = -1.0; // 거부 응답도 이 간격보다 자주 처리하지 않는다
+        private double _lastRequestServerTime   = -1.0;
 
         /****************************************
         *              Unity Event
@@ -116,7 +113,7 @@ namespace Geumeum.Combat
             // 1. request ID, 시각 유한성 검사
             if ((request.RequestId == 0) || (!IsFinite(request.ClientEstimatedServerTime)))
             {
-                return; // 검증조차 안 되는 request는 결과도 보내지 않는다
+                return;
             }
 
             // 2. duplicate/역순 검사
@@ -127,8 +124,6 @@ namespace Geumeum.Combat
 
             double now = NetworkTime.time;
 
-            // 거부 요청도 자원, 상태를 바꾸지 않으므로 비용 없이 연타될 수 있다. 최소 간격 미만이면
-            // 결과도 보내지 않고 조용히 버린다. 정상 입력은 선딜, 후딜 때문에 이 간격에 걸리지 않는다
             if ((_lastRequestServerTime >= 0.0) && ((now - _lastRequestServerTime) < Constants.Network.PARRY_MIN_REQUEST_INTERVAL))
             {
                 return;
@@ -211,8 +206,7 @@ namespace Geumeum.Combat
                     return;
                 }
 
-                // 9. 서버 수신 시각이 impact 이전인지 확인. 피해를 적용한 뒤 롤백하지 않으므로
-                // 마감을 넘겨 도착한 입력은 실패가 아니라 거부다
+                // 9. 서버 수신 시각이 impact 이전인지 확인
                 if (now >= window.ImpactTime)
                 {
                     TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedResolutionClosed, now);
@@ -233,16 +227,13 @@ namespace Geumeum.Combat
 
             double parryActivationTime = effectiveInputTime + combat.ParryStartupDuration;
 
-            // 12. 스태미나. 여기까지 통과한 시도만 자원과 행동 상태를 바꾼다
+            // 12. 스태미나 확인
             if (!_status.TrySpendStamina(combat.ParryStaminaCost))
             {
                 TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedStamina, now);
                 return;
             }
 
-            // 모션은 여기서 낸다. 성공 여부는 아래에서 갈리지만 자세는 그보다 먼저 잡혀야 하고,
-            // 스태미나를 실제로 쓴 이 지점이 "시도가 일어났다"가 확정되는 유일한 자리다.
-            // 판정 값은 아무것도 읽지 않으므로 이 호출을 지워도 0.32초 판정은 그대로 돈다
             RpcParryStarted();
 
             // 13~14. window 없으면 허공 패링, 있으면 결과와 무관하게 여기서 한 번 소비한다
@@ -269,7 +260,7 @@ namespace Geumeum.Combat
 
             if (success)
             {
-                // 16. 성공 보상. window를 먼저 비운 뒤 공격 측에 알린다
+                // 16. 성공 보상
                 _actionLockEndServerTime = startupEnd;
 
                 _status.RestoreStaminaToMax();
@@ -301,10 +292,7 @@ namespace Geumeum.Combat
         *              Server API
         ****************************************/
 
-        /// <summary>
-        /// 공격 소스가 확정한 타격 시각에서 역산해 이 플레이어를 노리는 패링 창을 연다.
-        /// 대상당 활성 창은 하나뿐이므로, 소비 여부와 무관하게 기존 창을 밀어낸다
-        /// </summary>
+        /// <summary> 공격 소스가 확정한 타격 시각에서 역산해 이 플레이어를 노리는 패링 창을 연다 </summary>
         [Server]
         public bool OpenParryWindow(IParryable source, ParryWindowKey key, double telegraphStartTime, double impactTime)
         {
@@ -323,8 +311,6 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            // 같은 공격자의 이전 번호는 재사용, 순서 역전으로 보고 거부한다.
-            // 공격자별 비교라 다른 공격자가 같은 번호를 써도 서로 방해하지 않는다
             if ((_lastIdByAttacker.TryGetValue(key.AttackerNetId, out uint lastWindowId)) && (key.WindowId <= lastWindowId))
             {
                 return false;
@@ -333,10 +319,9 @@ namespace Geumeum.Combat
             float duration = Mathf.Clamp(source.ParryWindowDuration, 0f, GameDB.Combat.ParryWindowDurationMax);
             if (duration <= 0f)
             {
-                return false; // 패링 불가 공격이다
+                return false;
             }
 
-            // 판정이 타격보다 먼저 끝나야 지연 환경에서도 결과를 확정할 수 있다
             double windowEnd   = impactTime - Constants.Network.PARRY_RESOLUTION_LEAD;
             double windowStart = windowEnd - duration;
 
@@ -347,7 +332,6 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            // 텔레그래프보다 먼저 열리면 플레이어가 예고를 보기 전에 판정이 시작된다
             if (windowStart < telegraphStartTime)
             {
                 Debug.LogWarning($"[ParryController] 텔레그래프가 짧아 창을 열지 못했다 {key} "
@@ -384,10 +368,7 @@ namespace Geumeum.Combat
             return true;
         }
 
-        /// <summary>
-        /// 공격이 취소되거나 공격자가 사라졌을 때 창을 즉시 닫는다. 현재 활성 창과 정확히
-        /// 일치할 때만 닫는다 - 늦게 끝난 이전 공격이 새 창을 닫아서는 안 된다
-        /// </summary>
+        /// <summary> 공격이 취소되거나 공격자가 사라졌을 때 창을 즉시 닫는다 </summary>
         [Server]
         public void CloseParryWindow(ParryWindowKey key)
         {
@@ -411,11 +392,7 @@ namespace Geumeum.Combat
         *              ClientRpc
         ****************************************/
 
-        /// <summary>
-        /// 패링 자세를 모든 화면에서 재생한다. 표현 전용이고 판정은 서버에서 이미 진행 중이다.
-        /// TargetRpc가 아닌 이유는 동료가 언제 막았는지 보이지 않으면 셋이 붙는 판에서
-        /// 누가 다음 공격을 받아낼지 서로 알 수 없기 때문이다
-        /// </summary>
+        /// <summary> 패링 자세를 모든 화면에서 재생한다 </summary>
         [ClientRpc]
         private void RpcParryStarted()
         {
@@ -437,7 +414,6 @@ namespace Geumeum.Combat
             _clientActiveWindow = key;
         }
 
-        // 이미 다른 창으로 넘어간 뒤 늦게 도착한 닫기는 무시한다
         [TargetRpc]
         private void TargetCloseParryWindow(ParryWindowKey key)
         {
@@ -450,7 +426,6 @@ namespace Geumeum.Combat
         [TargetRpc]
         private void TargetParryResult(uint requestId, ParryWindowKey windowKey, ParryResultCode resultCode, double serverResolvedAt)
         {
-            // 더 오래된 결과가 늦게 도착해도 이미 반영된 최신 상태를 되감지 않는다
             if (requestId <= _lastAppliedResultId)
             {
                 return;
@@ -463,8 +438,6 @@ namespace Geumeum.Combat
                 CombatFeedbackLocator.Current.PlayParrySuccess();
             }
 
-            // 이 TargetRpc는 패링한 본인에게만 오므로 항상 내 소리다.
-            // 거부(Rejected*)에는 소리를 내지 않는다 - 창이 없었거나 요청이 반려된 것이지 타이밍을 놓친 것이 아니다
             if ((resultCode == ParryResultCode.Success) || (resultCode == ParryResultCode.MissTiming))
             {
                 SfxPlayer.Play(
@@ -492,8 +465,6 @@ namespace Geumeum.Combat
             return _localRequestId;
         }
 
-        // ImpactTime까지는 서버 판정용 레코드를 살려 둔다. EndServerTime 직후 지우면 지연으로
-        // 늦게 도착한 요청이 판정도 못 받고 버려진다
         private void CleanupExpiredWindow(double now)
         {
             if ((_activeWindow != null) && (_activeWindow.IsExpired(now)))
