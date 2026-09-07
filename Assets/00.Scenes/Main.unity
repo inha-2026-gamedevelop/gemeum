@@ -18375,7 +18375,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.FrameRecorder
   _writeKeyCode: 290
   _overlayKeyCode: 291
-  _targetFrameRate: 60
+  _targetFrameRate: 0
 --- !u!4 &1227912689
 Transform:
   m_ObjectHideFlags: 0

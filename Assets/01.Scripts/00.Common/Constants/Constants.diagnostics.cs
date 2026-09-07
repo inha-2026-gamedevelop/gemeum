@@ -16,9 +16,9 @@ namespace Geumeum.Common
             public const float HISTOGRAM_BUCKET_MS = 0.05f;
             public const float HISTOGRAM_MAX_MS    = 200f;
 
-            // 같은 PC에서 여러 인스턴스를 띄우면 상한 없는 렌더링이 서로 자원을 뺏어
-            // 네트워크 비용과 렌더링 경쟁을 분리할 수 없다. 0이면 상한 없음
-            public const int TARGET_FRAME_RATE = 60;
+            // 0이면 상한 없음. 같은 PC에서 여러 인스턴스를 비교 측정할 때만 값을 준다 —
+            // 상한 없는 렌더링이 서로 자원을 뺏으면 네트워크 비용과 렌더링 경쟁을 분리할 수 없다
+            public const int TARGET_FRAME_RATE = 0;
 
             public const float PERCENTILE_MEDIAN = 0.50f;
             public const float PERCENTILE_HIGH   = 0.95f; // 체감 끊김은 평균이 아니라 여기서 드러난다
