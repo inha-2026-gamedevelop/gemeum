@@ -503,6 +503,18 @@ namespace Geumeum.Combat
             return true;
         }
 
+        /// <summary> 신력을 최대치까지만 채운다. 넘치는 분은 버린다 </summary>
+        [Server]
+        public void ServerAddSpirit(float amount)
+        {
+            if ((amount <= 0f) || (IsDead))
+            {
+                return;
+            }
+
+            _spirit = Mathf.Min(_spirit + amount, GetSpiritMax());
+        }
+
         /// <summary> 일시 무적을 만료 시각까지 연장한다 </summary>
         [Server]
         public void GrantTimedInvincibility(double untilServerTime)

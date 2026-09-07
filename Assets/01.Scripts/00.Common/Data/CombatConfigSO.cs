@@ -67,6 +67,24 @@ namespace Geumeum.Data
         [SerializeField] private float _rangedMuzzleHeight     = 1.2f;  // 발사 지점 높이(m), 발밑에서 나가지 않게 한다
         [SerializeField] private float _rangedMuzzleForward    = 0.6f;  // 발사 지점 전방 오프셋(m), 자기 몸에 걸리지 않게 한다
 
+        [Header("방울 공격")]
+        [SerializeField] private float _bellStartupDuration   = 0.20f; // 선딜(초)
+        [SerializeField] private float _bellRecoveryDuration  = 0.35f; // 후딜(초)
+        [SerializeField] private float _bellStaminaCost       = 6f;    // 스태미나 비용
+        [SerializeField] private float _bellRange             = 3.5f;  // 판정 반경(m), 자기 주위 전부
+        [SerializeField] private float _bellAngle             = 360f;  // 판정 각도(도), 등 뒤도 맞는다
+        [SerializeField] private float _bellBasePower         = 6f;    // 장비 보정 전 기본 공격력, 근접의 0.6배
+        [SerializeField] private float _spiritGainPerHit      = 5f;    // 한 명 맞힐 때 얻는 신력
+        [SerializeField] private float _spiritGainMaxPerSwing = 15f;   // 한 번 휘둘러 얻을 수 있는 상한
+
+        [Header("범위 치유")]
+        [SerializeField] private float _healSpiritCost        = 25f;   // 신력 비용
+        [SerializeField] private float _healCastDuration      = 0.4f;  // 시전 시간(초), 이 동안 움직이면 끊긴다
+        [SerializeField] private float _healRecoveryDuration  = 0.4f;  // 후딜(초)
+        [SerializeField] private float _healRadius            = 6f;    // 회복 반경(m)
+        [SerializeField] private float _healAmount            = 40f;   // 대상 한 명이 받는 회복량
+        [SerializeField] private float _healCooldownDuration  = 4f;    // 쿨다운(초)
+
         [Header("락온")]
         [SerializeField] private float _lockOnAcquireRange = 25f; // 걸 수 있는 거리(m), 서버도 이 값으로 검증한다
         [SerializeField] private float _lockOnHoldRange    = 30f; // 유지 거리(m), 경계에서 붙었다 떨어지지 않게 더 넓다
@@ -133,6 +151,22 @@ namespace Geumeum.Data
         public float RangedBasePower        => _rangedBasePower;
         public float RangedMuzzleHeight     => _rangedMuzzleHeight;
         public float RangedMuzzleForward    => _rangedMuzzleForward;
+
+        public float BellStartupDuration   => _bellStartupDuration;
+        public float BellRecoveryDuration  => _bellRecoveryDuration;
+        public float BellStaminaCost       => _bellStaminaCost;
+        public float BellRange             => _bellRange;
+        public float BellAngle             => _bellAngle;
+        public float BellBasePower         => _bellBasePower;
+        public float SpiritGainPerHit      => _spiritGainPerHit;
+        public float SpiritGainMaxPerSwing => _spiritGainMaxPerSwing;
+
+        public float HealSpiritCost       => _healSpiritCost;
+        public float HealCastDuration     => _healCastDuration;
+        public float HealRecoveryDuration => _healRecoveryDuration;
+        public float HealRadius           => _healRadius;
+        public float HealAmount           => _healAmount;
+        public float HealCooldownDuration => _healCooldownDuration;
 
         public float LockOnAcquireRange          => _lockOnAcquireRange;
         public float LockOnHoldRange             => _lockOnHoldRange;

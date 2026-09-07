@@ -29,6 +29,7 @@ namespace Geumeum.Combat
         private PlayerAttack             _attack;
         private LockOnController         _lockOn;
         private ReviveController         _revive;
+        private HealController           _heal;
         private NetworkTransformReliable _networkTransform;
 
         private double _lastInputSendTime = 0.0;
@@ -67,6 +68,7 @@ namespace Geumeum.Combat
             _attack           = GetComponent<PlayerAttack>();
             _lockOn           = GetComponent<LockOnController>();
             _revive           = GetComponent<ReviveController>();
+            _heal             = GetComponent<HealController>();
             _networkTransform = GetComponent<NetworkTransformReliable>();
         }
 
@@ -269,6 +271,11 @@ namespace Geumeum.Combat
             if (_revive != null)
             {
                 _revive.ServerUpdateState(now);
+            }
+
+            if (_heal != null)
+            {
+                _heal.ServerUpdateState(now);
             }
 
             Vector2 direction = Vector2.zero;

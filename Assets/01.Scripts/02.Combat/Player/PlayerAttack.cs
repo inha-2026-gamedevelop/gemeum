@@ -254,7 +254,7 @@ namespace Geumeum.Combat
             }
             else
             {
-                ApplyMeleeHit(combat);
+                ApplySweepHit(combat, _swingReach);
             }
 
             _isSwinging = false;
@@ -283,6 +283,13 @@ namespace Geumeum.Combat
                         combat.RangedStartupDuration,
                         combat.RangedRecoveryDuration,
                         combat.RangedStaminaCost);
+
+                case AttackReach.Area:
+                    return new AttackProfile(
+                        AttackReach.Area,
+                        combat.BellStartupDuration,
+                        combat.BellRecoveryDuration,
+                        combat.BellStaminaCost);
 
                 default:
                     return default;
@@ -330,20 +337,32 @@ namespace Geumeum.Combat
             return new Vector3(facing.x, 0f, facing.y).normalized;
         }
 
+        /// <summary> 검과 방울이 함께 쓰는 즉시 판정. 반경과 각도만 무기가 정한다 </summary>
         [Server]
-        private void ApplyMeleeHit(CombatConfigSO combat)
+        private void ApplySweepHit(CombatConfigSO combat, AttackReach reach)
         {
+            bool  isBell    = (reach == AttackReach.Area);
+            float range     = (isBell) ? combat.BellRange     : combat.MeleeRange;
+            float angle     = (isBell) ? combat.BellAngle     : combat.MeleeAngle;
+            float basePower = (isBell) ? combat.BellBasePower : combat.MeleeBasePower;
+
             Vector3 origin  = transform.position;
             Vector3 forward = ResolveAimForward();
-            float   cosHalf = Mathf.Cos(combat.MeleeAngle * 0.5f * Mathf.Deg2Rad);
+            float   cosHalf = Mathf.Cos(angle * 0.5f * Mathf.Deg2Rad);
 
-            bool  isCritical = IsCriticalReady(combat);
+            // 360도는 각도 검사 자체를 건너뛴다. cos(180도)가 정확히 -1이 아니라
+            // 바로 등 뒤에 선 적의 내적이 문턱을 아슬아슬하게 밑돌 수 있다
+            bool ignoresFacing = (angle >= Constants.Combat.FULL_CIRCLE_DEGREES);
+
+            // 치명의 일격은 패링 게이지로만 차오르는데 패링은 검 전용이라 방울은 대상이 아니다
+            bool  isCritical = (!isBell) && (IsCriticalReady(combat));
             float multiplier = (isCritical) ? Random.Range(combat.CriticalMultiplierMin, combat.CriticalMultiplierMax) : 1f;
             int   hitCount   = 0;
+            float spiritGain = 0f;
 
             _hitTargets.Clear();
 
-            int count = Physics.OverlapSphereNonAlloc(origin, combat.MeleeRange, _hitBuffer, _targetMask);
+            int count = Physics.OverlapSphereNonAlloc(origin, range, _hitBuffer, _targetMask);
 
             for (int i = 0; i < count; ++i)
             {
@@ -362,7 +381,7 @@ namespace Geumeum.Combat
                     continue;
                 }
 
-                if (Vector3.Dot(forward, toTarget.normalized) < cosHalf)
+                if ((!ignoresFacing) && (Vector3.Dot(forward, toTarget.normalized) < cosHalf))
                 {
                     continue;
                 }
@@ -385,16 +404,27 @@ namespace Geumeum.Combat
                 _hitTargets.Add(damageable);
 
                 damageable.TakeDamage(new DamageInfo(
-                    combat.MeleeBasePower * multiplier,
+                    basePower * multiplier,
                     netId,
                     (isCritical) ? HitStrength.Critical : HitStrength.Light));
 
                 ++hitCount;
+
+                // 적 하나가 콜라이더를 여러 개 가져도 _hitTargets가 걸러 주므로 한 번만 오른다
+                if (isBell)
+                {
+                    spiritGain = Mathf.Min(spiritGain + combat.SpiritGainPerHit, combat.SpiritGainMaxPerSwing);
+                }
             }
 
             if ((isCritical) && (hitCount > 0))
             {
                 _gauge.ServerTryConsume();
+            }
+
+            if (spiritGain > 0f)
+            {
+                _status.ServerAddSpirit(spiritGain);
             }
 
             RpcMeleeResult(hitCount > 0, (isCritical) && (hitCount > 0));

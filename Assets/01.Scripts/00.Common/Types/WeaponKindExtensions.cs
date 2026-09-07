@@ -13,6 +13,7 @@ namespace Geumeum.Common
             {
                 case WeaponKind.Sword: return AttackReach.Melee;
                 case WeaponKind.Bow:   return AttackReach.Ranged;
+                case WeaponKind.Bell:  return AttackReach.Area;
                 default:               return AttackReach.None;
             }
         }
