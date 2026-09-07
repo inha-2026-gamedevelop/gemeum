@@ -181,7 +181,7 @@ namespace Geumeum.Combat
         {
             G_ServerPlayers.Remove(this);
 
-            // TODO(민성): 보스맵 씬 전환을 붙이기 전에 이 호출을 막을 조건을 먼저 만든다
+            // 씬 전환 중에는 ServerCheckPartyWipe 안의 IsServerTransitioning 가드가 전멸 판정을 막는다
             ServerCheckPartyWipe();
 
             if (AuthorityTickScheduler.ServerInstance == null)

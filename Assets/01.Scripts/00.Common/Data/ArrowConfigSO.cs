@@ -12,7 +12,6 @@ namespace Geumeum.Data
         ****************************************/
 
         [Header("비행")]
-        // TODO(민성): 기본 비행 속도는 미정, 플레이 테스트로 확정할 것
         [SerializeField] private float _arrowSpeed    = 30f; // m/s
         [SerializeField] private float _arrowLifetime = 3f;  // 미명중 시 소멸까지(초)
 

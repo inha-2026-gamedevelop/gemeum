@@ -52,7 +52,6 @@ namespace Geumeum.Data
         *                Fields
         ****************************************/
 
-        // TODO(민성): 페이즈 수, 패턴 세부는 AI 파트(@oname36-creator)가 확정 후 채운다
         [Header("보스")]
         [SerializeField] private float _maxHealth = 0f;
 
