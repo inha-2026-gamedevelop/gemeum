@@ -70,6 +70,26 @@ namespace Geumeum.Network
             IsSteamPath        = true;
 
             Debug.Log("[SteamTransportSelector] Steam 경로로 시작한다, 트랜스포트를 FizzySteamworks로 바꿨다");
+
+            HideKcpHud();
+        }
+
+        /// <summary> Mirror 기본 HUD는 주소와 포트로 붙는 KCP용이다. Steam 경로에서는 눌러도 되지 않아 감춘다 </summary>
+        private void HideKcpHud()
+        {
+            NetworkManagerHUD hud = GetComponent<NetworkManagerHUD>();
+            if (hud == null)
+            {
+                hud = FindFirstObjectByType<NetworkManagerHUD>(FindObjectsInactive.Include);
+            }
+
+            if (hud == null)
+            {
+                return;
+            }
+
+            hud.enabled = false;
+            Debug.Log("[SteamTransportSelector] KCP용 Mirror HUD를 껐다, Steam 로비 HUD만 쓴다");
         }
 
         private void Start()
