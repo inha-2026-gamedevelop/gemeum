@@ -108,6 +108,12 @@ namespace Geumeum.Combat
         {
             HealthChanged?.Invoke(newValue, _maxHealth);
 
+            // 서버가 확정한 SyncVar라 세 화면이 같은 값을 찍는다
+            float delta = (newValue - oldValue);
+            GDebug.Log(
+                (delta < 0f) ? GLogKind.Fail : GLogKind.Success,
+                $"{GDebug.Who(netId)} HP {oldValue:F0} -> {newValue:F0} ({delta:+0;-0}) / {_maxHealth:F0}");
+
             if (newValue < oldValue)
             {
                 SfxPlayer.Play(SoundKey.PlayerHurt, transform.position, isLocalPlayer, netId);

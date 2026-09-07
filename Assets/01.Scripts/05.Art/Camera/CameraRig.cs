@@ -47,6 +47,7 @@ namespace Geumeum.Art
         private float _currentDistance  = 0f;
         private float _distanceVelocity = 0f;
 
+        private bool _defaultPitchApplied = false;
         private bool _cursorLocked = false;
 
         // 셰이크 슬롯
@@ -126,7 +127,8 @@ namespace Geumeum.Art
         {
             _camera = GetComponent<Camera>();
 
-            // 씬에 놓인 각도를 시작값으로 삼는다
+            // yaw는 씬에 놓인 각도를 시작값으로 삼는다. pitch는 GameDB가 깨어난 뒤 설정값으로 덮는다 —
+            // 씬 각도를 그대로 쓰면 씬을 만지는 사람에 따라 게임 시작 각도가 따라 바뀐다
             Vector3 euler = transform.eulerAngles;
             _yaw   = euler.y;
             _pitch = NormalizeAngle(euler.x);
@@ -135,6 +137,18 @@ namespace Geumeum.Art
         private void OnDisable()
         {
             ReleaseCursor();
+        }
+
+        // 커서는 LateUpdate가 아니라 여기서 다룬다. LateUpdate는 카메라 대상이 없으면 먼저 빠져나가는데,
+        // 로비처럼 아직 플레이어가 없는 상태에서도 ESC로 커서를 꺼낼 수 있어야 한다
+        private void Update()
+        {
+            if (Input.GetKeyDown(Constants.Player.KEY_TOGGLE_CURSOR))
+            {
+                CameraFrame.InputEnabled = !CameraFrame.InputEnabled;
+            }
+
+            UpdateCursorState();
         }
 
         private void LateUpdate()
@@ -155,7 +169,7 @@ namespace Geumeum.Art
                 return;
             }
 
-            UpdateCursorState();
+            ApplyDefaultPitchOnce(config);
             UpdateLook(config);
 
             // 전투가 읽는 화면 기준 yaw
@@ -168,6 +182,18 @@ namespace Geumeum.Art
         /****************************************
         *                Methods
         ****************************************/
+
+        /// <summary> 첫 프레임에 한 번만 설정값 각도로 맞춘다. 그 뒤에는 사람이 돌린 각도를 덮으면 안 된다 </summary>
+        private void ApplyDefaultPitchOnce(CameraConfigSO config)
+        {
+            if (_defaultPitchApplied)
+            {
+                return;
+            }
+
+            _defaultPitchApplied = true;
+            _pitch               = Mathf.Clamp(config.DefaultPitch, config.PitchMin, config.PitchMax);
+        }
 
         private bool TryResolveTarget()
         {

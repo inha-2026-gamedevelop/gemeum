@@ -4,6 +4,9 @@ using System.Diagnostics;
 // Unity
 using UnityEngine;
 
+// 서드파티
+using Mirror;
+
 namespace Geumeum.Common
 {
     /// <summary> 화면 로그 한 줄의 성격. 색과 접두어를 정한다 </summary>
@@ -49,6 +52,44 @@ namespace Geumeum.Common
 
         private static int _count = 0; // 채워진 줄 수
         private static int _head  = 0; // 다음에 쓸 자리
+
+        /****************************************
+        *              Naming
+        ****************************************/
+
+        /// <summary> netId를 사람이 읽는 이름으로 바꾼다. 3인 화면에서 누가 누구인지 구분하려고 쓴다 </summary>
+        public static string Who(uint netId)
+        {
+            if (netId == 0u)
+            {
+                return "없음";
+            }
+
+            // 서버와 클라이언트가 각자 자기 사전을 본다. 호스트는 둘 다 있고 값이 같다
+            if ((NetworkServer.active) && (NetworkServer.spawned.TryGetValue(netId, out NetworkIdentity onServer)))
+            {
+                return Describe(onServer, netId);
+            }
+
+            if ((NetworkClient.active) && (NetworkClient.spawned.TryGetValue(netId, out NetworkIdentity onClient)))
+            {
+                return Describe(onClient, netId);
+            }
+
+            return "#" + netId;
+        }
+
+        private static string Describe(NetworkIdentity identity, uint netId)
+        {
+            if (identity == null)
+            {
+                return "#" + netId;
+            }
+
+            // 프리팹 이름에 (Clone)이 붙어 화면 한 줄을 잡아먹는다
+            string label = identity.gameObject.name.Replace("(Clone)", string.Empty).Trim();
+            return label + "#" + netId;
+        }
 
         /****************************************
         *              Properties

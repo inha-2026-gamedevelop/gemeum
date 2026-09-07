@@ -176,11 +176,11 @@ namespace Geumeum.Combat
             // 서버가 확정한 SyncVar라 원격 화면에서도 같은 값이 찍힌다
             if (newNetId == 0u)
             {
-                GDebug.Log("락온 해제");
+                GDebug.Log($"{GDebug.Who(netId)} 락온 해제 ({GDebug.Who(oldNetId)})");
                 return;
             }
 
-            GDebug.Log($"락온 획득 netId={newNetId}");
+            GDebug.Log($"{GDebug.Who(netId)} -> {GDebug.Who(newNetId)} 락온");
         }
 
         /****************************************

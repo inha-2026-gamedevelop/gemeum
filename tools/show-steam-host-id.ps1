@@ -13,10 +13,13 @@ Write-Host "  게임이 Steam에 붙을 때까지 기다린다 (최대 $($Timeou
 
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 $steamId  = $null
+$lobbyId  = $null
 
 while ((Get-Date) -lt $deadline) {
     if (Test-Path -LiteralPath $LogPath) {
         $hit = Select-String -Path $LogPath -Pattern 'SteamID64=(\d+)' -ErrorAction SilentlyContinue | Select-Object -First 1
+        $lobbyHit = Select-String -Path $LogPath -Pattern 'lobbyId=(\d+)' -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($lobbyHit) { $lobbyId = $lobbyHit.Matches[0].Groups[1].Value }
         if ($hit) { $steamId = $hit.Matches[0].Groups[1].Value; break }
 
         # 초기화에 실패하면 ID가 영영 안 나오므로 그때도 빠져나온다
@@ -57,12 +60,25 @@ if (-not $steamId) {
 Write-Host ""
 Write-Host "    내 SteamID64 : $steamId" -ForegroundColor Green
 Write-Host ""
+if ($lobbyId) {
+    Write-Host "    로비 ID      : $lobbyId" -ForegroundColor Green
+    Write-Host ""
+}
 Write-Host "  다른 PC에서 실행할 명령:"
-Write-Host "    run-steam-client.bat $steamId" -ForegroundColor Cyan
+if ($lobbyId) {
+    Write-Host "    run-steam-client.bat $lobbyId" -ForegroundColor Cyan
+    Write-Host "    (방에 들어와 기다린다. 인원이 차면 여기서 [호스트 시작]을 누를 것)" -ForegroundColor DarkGray
+} else {
+    Write-Host "    run-steam-client.bat $steamId" -ForegroundColor Cyan
+    Write-Host "    (로비 없이 이미 열린 서버에 바로 붙는다)" -ForegroundColor DarkGray
+}
 Write-Host ""
 
+# 클라이언트가 바로 쓸 수 있는 값을 넣는다. 로비가 있으면 로비 ID가 먼저다
+$copyValue = if ($lobbyId) { $lobbyId } else { $steamId }
+
 try {
-    Set-Clipboard -Value $steamId
+    Set-Clipboard -Value $copyValue
     Write-Host "  (클립보드에 복사했다)" -ForegroundColor DarkGray
 }
 catch {

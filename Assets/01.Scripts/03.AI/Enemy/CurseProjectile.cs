@@ -22,12 +22,15 @@ namespace Geumeum.AI
         *                Fields
         ****************************************/
 
+        private const float DIRECTION_EPSILON = 0.0001f; // 0 벡터로 LookRotation을 부르면 에러가 난다
+
         private const int HIT_BUFFER_SIZE = 4; // 단일 대상 관통이라 넉넉하게 잡은 NonAlloc 버퍼 크기
 
         [SerializeField] private SphereCollider _collider;
 
-        private Vector3 _direction;
-        private float   _speed;
+        // 클라이언트가 스스로 같은 직선을 그리도록 발사 조건만 보낸다
+        [SyncVar] private Vector3 _direction;
+        [SyncVar] private float   _speed;
         private float   _damage;
         private uint    _attackerNetId;
         private float   _remainingDistance;
@@ -65,6 +68,34 @@ namespace Geumeum.AI
             _attackerNetId     = attackerNetId;
             _remainingDistance = maxDistance;
             _initialized       = true;
+
+            // 스폰 회전이 발사 방향과 다르면 첫 프레임에 옆을 보고 날아간다
+            if (_direction.sqrMagnitude > DIRECTION_EPSILON)
+            {
+                transform.rotation = Quaternion.LookRotation(_direction);
+            }
+        }
+
+        /****************************************
+        *                Client
+        ****************************************/
+
+        // 서버는 위치를 매 틱 보내지 않는다. 방향과 속도만 받아 각자 같은 직선을 그린다.
+        // 판정은 서버에서만 하므로 여기 계산은 보여주기 전용이고, 틀려도 게임 결과가 갈리지 않는다
+        private void Update()
+        {
+            if (isServer)
+            {
+                return;
+            }
+
+            if ((_speed <= 0f) || (_direction.sqrMagnitude <= DIRECTION_EPSILON))
+            {
+                return;
+            }
+
+            transform.position += _direction * (_speed * Time.deltaTime);
+            transform.rotation  = Quaternion.LookRotation(_direction);
         }
 
         /****************************************

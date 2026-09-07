@@ -25,5 +25,23 @@ namespace Geumeum.Network
             return (steamId != 0UL);
 #endif
         }
+
+        /// <summary> Steam에 표시되는 자기 이름. Steam 경로가 아니면 false </summary>
+        public static bool TryGetPersonaName(out string personaName)
+        {
+#if DISABLESTEAMWORKS
+            personaName = null;
+            return false;
+#else
+            if (!SteamManager.Initialized)
+            {
+                personaName = null;
+                return false;
+            }
+
+            personaName = SteamFriends.GetPersonaName();
+            return (!string.IsNullOrWhiteSpace(personaName));
+#endif
+        }
     }
 }

@@ -287,6 +287,39 @@ namespace Geumeum.Combat
             ServerCancelRescue();
         }
 
+        private const float DEV_REVIVE_CURRENCY_LOSS = 0f; // 개발용 부활은 재화를 깎지 않는다
+
+        /// <summary> 개발용 전체 부활. 쓰러진 사람을 한 번에 세운다 - 3인 테스트에서 다시 붙는 시간을 줄인다 </summary>
+        [Server]
+        public static int ServerReviveAll()
+        {
+            int revived = 0;
+
+            foreach (NetworkIdentity identity in NetworkServer.spawned.Values)
+            {
+                if (identity == null)
+                {
+                    continue;
+                }
+
+                if (!identity.TryGetComponent(out ReviveController controller))
+                {
+                    continue;
+                }
+
+                if ((controller._status == null) || (!controller._status.IsDead))
+                {
+                    continue;
+                }
+
+                controller.ServerRevive(DEV_REVIVE_CURRENCY_LOSS);
+                ++revived;
+            }
+
+            GDebug.Server($"전체 부활: {revived}명");
+            return revived;
+        }
+
         /// <summary> 부활을 확정한다 </summary>
         [Server]
         private void ServerRevive(float currencyLossRatio)

@@ -1,7 +1,7 @@
 # 인게임 HUD 기술 설계
 
-> 상태: 캔버스 규격 · 우상단 시간 슬롯 확정본 / 나머지 화면 미착수
-> 기준일: 2026-09-06
+> 상태: 캔버스 규격 · 우상단 시간 슬롯 확정본 / 생성 프롬프트 7장 추가(2026-09-07) / 구현 미착수
+> 기준일: 2026-09-07
 > 대상: `Assets/01.Scripts/06.UI/Combat/`, HUD 캔버스, UI 이미지 에셋 일체
 
 UI는 평가자가 보는 유일한 층이다. 로직이 정확해도 화면에 없으면 없는 기능이다 — [주차 계획](../weekly-plan-2026-09-04.md)에서 UI 최소본을 W3로 당긴 이유가 이것이다.
@@ -126,6 +126,8 @@ UI는 평가자가 보는 유일한 층이다. 로직이 정확해도 화면에 
 | 축소 경고 배너 | **필요** | |
 | 보스 방향 마커 | **필요** | |
 | 파티원 상태 플레이트 | **필요** | 초상 테두리 |
+| 미니맵 프레임 (좌상단) | **필요** | 내부 지도는 셰이더 · 도형 |
+| 보스 그로기 게이지 | 체력 바 프레임 재사용 | 높이만 줄여 쓴다. 채움은 `fillAmount` |
 | 재화 아이콘 (노잣돈) | **필요** | |
 | 결계 원 (월드) | 불필요 | 셰이더 |
 | 미니맵 원 | 불필요 | 셰이더 · 도형 |
@@ -148,6 +150,10 @@ UI는 평가자가 보는 유일한 층이다. 로직이 정확해도 화면에 
 | 체력 계열 바 프레임 | 400 × 40 | **800 × 80** | 좌우 24 |
 | 슬롯 프레임 (정사각) | 72 × 72 | **144 × 144** | 사방 20 |
 | 아이콘류 | 64 × 64 | **128 × 128** | — |
+| 배경 패널 (공용) | 가변 | **512 × 256** | 좌우 32 · 상하 24 |
+| 미니맵 프레임 (축소) | 240 × 240 | **480 × 480** | — |
+| 파티원 플레이트 | 220 × 56 | **440 × 112** | 좌우 24 |
+| 보스 체력 바 프레임 | 900 × 56 | **1800 × 112** | 좌우 40 |
 
 **임포트 설정**: Texture Type `Sprite (2D and UI)` · Mesh Type `Full Rect` · Compression `High Quality` · 9-slice는 Sprite Editor에서 Border 지정.
 
@@ -202,3 +208,801 @@ UI는 평가자가 보는 유일한 층이다. 로직이 정확해도 화면에 
 | L3 | 시간 동기 | **3인 접속 상태에서 같은 순간의 숫자가 일치**하는지 확인. 런 도중 접속한 클라이언트가 올바른 잔여 시간을 표시하는지 확인 |
 
 **L3가 이 문서에서 가장 중요하다.** 단일 플레이에서 타이머는 항상 맞다. 틀리는 것은 세 사람이 붙었을 때이고, 특히 **런 도중 접속한 클라이언트**다.
+
+---
+
+## 7. 생성 프롬프트 (2026-09-07 추가)
+
+> 이 장은 **이미지를 실제로 뽑기 위한 입력**이다. 3.2의 제작 규격과 3.4의 색 문법을 프롬프트 문장으로 옮긴 것이고, 규격이 바뀌면 여기도 같이 고친다.
+
+### 7.0 공통 규칙 — v3 (2026-09-07 2차 개정)
+
+> **v2를 폐기한다.** v1이 밋밋하다는 지적에 장식으로 답한 것이 잘못이었다. 결과는 여우 머리와 술과 발광이 붙은 **양산형 중화풍 UI**였고, 화면에서 차지하는 면적도 과했다.
+>
+> 밋밋함의 해법은 장식이 아니라 **생각**이다. 이 프로젝트에는 이미 쓸 수 있는 생각이 있다 — **먹과 오방색**이다.
+
+#### v2가 틀린 지점
+
+| v2에 내가 쓴 것 | 왜 틀렸나 |
+|---|---|
+| `NINE FOX TAILS breaking the outline` | HUD는 일러스트가 아니다. 실루엣이 프레임 밖으로 나가면 게임 화면을 가린다 |
+| `strong beveled highlight` · `wet specular` | 입체 금속 테두리가 곧 "중국 양산형"의 문법이다. 3D 베벨을 넣는 순간 그 인상이 된다 |
+| `tarnished brass`, `najeon inlay` 남발 | 재질을 늘릴수록 화려해질 뿐 한국적이 되지 않는다 |
+| 크기 규율 없음 | 그래서 전부 거대하게 나왔다. **HUD는 작아야 한다** |
+
+**참조한 화면(사용자 제시)의 특징**은 정반대다 — 얇은 선, 반투명한 어두운 판, 작은 원형 아이콘, 금색 헤어라인 한 줄. **장식이 거의 없는데 싸구려로 안 보인다.** 절제가 곧 완성도다.
+
+```
+STYLE BASE v3 (prepend to every prompt):
+Minimal Korean ink-painting (수묵) game UI asset. Dark fantasy, moonless night.
+
+CONSTRUCTION — flat and thin, never sculpted:
+A translucent near-black panel (85% opacity) with a SINGLE HAIRLINE STROKE as its
+border, drawn like one confident brush stroke — slightly uneven thickness, a dry
+brush break somewhere along its length, a tiny ink pool where the stroke ends.
+NO bevel, NO 3D metal rim, NO embossing, NO specular highlight, NO drop shadow,
+NO glow. The asset is FLAT GRAPHIC DESIGN, not a rendered object.
+
+COLOR — obangsaek (오방색), the five directional colors of yin-yang and wu-xing:
+ink black (#1A1A1A) as the ground, hanji off-white (#E8E0CE) for surfaces,
+and ONE accent per element chosen from: 청 blue-green (#2E6E5B), 적 cinnabar
+(#B33A2E), 황 gochang yellow (#C9A227), 백 white, 흑 black.
+Each element uses ONE accent only. Never more than one.
+
+STROKE ANATOMY — this is what separates real 수묵 from a paint smear:
+every stroke has three phases. 입필: it begins with a dark POOLED BLOB where the
+loaded brush first touches. 갈필: mid-stroke the brush runs dry, leaving thin WHITE
+STREAKS scratched through the ink (비백, flying white). 출필: it ends TAPERED to a
+fine point, lifting off the paper, never a blunt cut.
+
+TEXTURE — the only richness allowed:
+visible hanji fiber grain, and ink BLEEDING outward into the paper (선염) along one
+side of each stroke, as if brushed while the paper was still damp.
+
+BACKGROUND — must be keyable (see 7.0.5):
+Output PNG with real alpha transparency. If alpha is not supported, place the asset
+on a COMPLETELY FLAT, PURE #FF00FF MAGENTA FIELD — one solid colour, no gradient,
+no vignette, no shadow, no reflection, no texture, nothing but the asset.
+The magenta must not appear anywhere inside the asset itself.
+
+no text, no letters, no numbers, no tassels, no creatures,
+no chains, no rivets, no ornamental filigree, no watermark.
+```
+
+**`no tassels, no creatures, no filigree`를 명시적으로 금지어에 넣었다.** v1·v2가 붙인 것이 정확히 이 셋이고, 안 적으면 생성기가 반드시 다시 붙인다.
+
+### 7.0.1 크기 규율 — HUD는 작아야 한다
+
+v2가 실패한 가장 실질적인 이유다. **화면 면적을 먼저 정하고 그 안에서 디자인한다.**
+
+| 요소 | 1080p 화면 크기 | 화면 폭 대비 |
+|---|---|---|
+| 우상단 시간 | 180 × 40 | 9% |
+| 좌상단 미니맵 | 180 × 180 | 9% |
+| 체력 계열 바 | 320 × 14 | 17% · **높이 14px** |
+| 파티 플레이트 | 180 × 40 | 9% |
+| 보스 바 | 720 × 28 | 37% · **높이 28px** |
+
+**3.2의 제작 크기(2× 원칙)는 이 값의 두 배로 다시 계산한다.** 이전 표는 v2 기준이라 전부 과하다 — 체력 바가 400×40이었는데 실제로는 320×14면 충분하다.
+
+**보스 바조차 높이 28px다.** 참조 화면의 보스 바가 그 정도이고, 그래도 충분히 읽힌다. 커야 중요해 보이는 것이 아니라 **위치(상단 중앙)가 중요도를 만든다.**
+
+### 7.0.2 계층 — 장식이 아니라 색으로 가른다
+
+v2는 계층을 장식 밀도로 만들려 했다. **오방색을 쓰면 색 하나로 갈린다.**
+
+| 등급 | 대상 | 오방색 | 형태 |
+|---|---|---|---|
+| **1급** | 보스 바 | **흑 + 청록 획 하나** | 다른 것보다 폭만 넓다. 장식은 없다 |
+| **2급** | 시간 · 미니맵 | **황(#C9A227) 헤어라인** | 획 하나 + 작은 먹점 |
+| **3급** | 파티 · 체력 | **백 한지 + 적 획** | 가장 얇다. 획도 반만 그린다 |
+
+**획을 반만 그리는 것**이 수묵의 문법이다. 테두리를 사방으로 두르지 않고 위와 왼쪽만 긋고 나머지는 열어 둔다. 그러면 절제된 동시에 심심하지 않다.
+
+### 7.0.4 한국성 신호 넷 — 장식을 늘리지 않고 더한다 (v3.1)
+
+v3 시트는 절제와 크기가 맞았으나 *"살짝 더 한국적이었으면"* 이라는 평가를 받았다.
+**획이 붓이 아니라 마커 자국처럼 보였고, 오방색이 색으로만 있고 형태로는 없었다.**
+
+장식을 늘리면 v2로 되돌아간다. 대신 **작지만 한국 회화에만 있는 신호 넷**을 넣는다.
+
+| 신호 | 어디에 | 왜 이것인가 |
+|---|---|---|
+| **붓획 3단계**(입필·갈필·출필) | 모든 획 | 마커와 붓을 가르는 것은 굵기가 아니라 **시작·중간·끝이 다르다는 것**이다. 시작은 먹이 고이고, 중간은 갈필로 흰 줄이 긁히고(비백), 끝은 뾰족하게 빠진다 |
+| **오방색 5점** | 미니맵 방위 | 동청·서백·남적·북흑 **+ 중앙 황**. 4점이면 나침반이지만 **5점이면 오방(五方)** 이다. 음양오행을 형태로 넣는 가장 작은 방법 |
+| **문살 격자** | 파티 아이콘 소켓 | 한국 창호의 살 구성. 사각 테두리를 격자로 바꾸는 것뿐인데 출처가 분명해진다 |
+| ~~낙관 인장~~ | ~~시간 옆~~ | **2026-09-07 폐기.** 실물에서 한자가 들어갔고, 도장은 화면 구석에서 정보가 아니라 잡음이었다. 나머지 셋으로 한국성은 충분히 선다 |
+
+**넷 다 크기가 작고 개수가 정해져 있다.** 이것이 v2와 다른 점이다 — v2는 장식의 밀도를 올렸고, 여기서는 **의미가 있는 표식 넷을 정확히 한 번씩** 쓴다.
+
+한지 결과 선염(번짐)도 STYLE BASE에 넣었다. 종이에 스민 자국은 화면에서 보일 듯 말 듯하지만, 없으면 획이 스티커처럼 뜬다.
+
+---
+
+### 7.0.3 음양오행을 쓰는 이유
+
+*"한국적"*을 재료(한지·놋쇠)로 풀면 중화권 UI와 구분되지 않는다. **재료는 겹치지만 색 체계는 겹치지 않는다.**
+
+오방색은 방위·오행과 묶인 규칙이라 **의미를 부여할 수 있다** — 그믐의 기존 색 문법(아군=한지 백색+주묵, 적=여우불 청록)이 이미 오방색의 부분집합이다. 확장하면:
+
+| 색 | 오행 | HUD 적용 |
+|---|---|---|
+| 흑(黑) 북 | 수(水) | 모든 패널의 바탕. 그믐 밤 |
+| 백(白) 서 | 금(金) | 한지 면 · 파티 · 체력 |
+| 적(赤) 남 | 화(火) | 주묵 부적 획 · 아군 표시 |
+| 청(靑) 동 | 목(木) | 여우불 · 적 · 보스 |
+| 황(黃) 중앙 | 토(土) | 시간 · 미니맵 등 "중심" 정보 |
+
+**우상단 시간과 좌상단 미니맵이 왜 황색인가**에 답이 생긴다 — 중앙(土)은 방위를 매기는 기준이고, 시간과 지도가 정확히 그 역할이다. 색이 근거를 갖는 순간 화면이 임의로 보이지 않는다.
+
+### 7.0.5 배경과 투명 — 생성물은 "획"만이다
+
+**반투명한 검은 판은 이미지로 받지 않는다. 엔진이 만든다.**
+
+생성 AI는 부분 투명(알파 그라디언트)을 거의 못 낸다. 85% 검은 판을 그림으로 받으려 하면
+**불투명한 검은 사각형**이 나오고, 그걸 화면에 올리면 게임 화면이 가려진다.
+
+| 층 | 누가 만드나 | 어떻게 |
+|---|---|---|
+| 뒤 — 반투명 검은 판 | **엔진** | `Image` 컴포넌트에 색 `#1A1A1A`, 알파 `0.85`. 이미지 없음 |
+| 앞 — 붓 획 · 문살 · 점 | **생성 이미지** | 투명 배경 PNG |
+
+**이게 3.1의 원칙 그대로다** — 색과 도형으로 되는 것은 이미지로 받지 않는다. 판의 불투명도를
+10월에 조정하고 싶어지면, 이미지를 다시 뽑는 대신 인스펙터에서 알파만 옮기면 된다.
+
+#### 알파를 못 내는 생성기를 쓸 때
+
+`#FF00FF` 마젠타 단색 위에 뽑고 키잉으로 뺀다. 마젠타를 쓰는 이유는 **오방색 다섯 색
+어디에도 없어서** 획 안쪽 색과 섞이지 않기 때문이다. 검정·흰색 배경은 먹 획과 한지 흰빛에
+그대로 걸린다.
+
+프롬프트에 반드시 `no gradient, no vignette, no shadow`를 함께 넣는다 — 배경에 그림자나
+비네트가 깔리면 단색이 아니게 되어 한 번에 못 뺀다.
+
+⚠️ **흰 배경으로 나왔다면 그대로 쓰지 않는다.** 흰색을 키로 빼면 먹 획 안의 비백(飛白) —
+붓이 마르며 생긴 흰 줄 — 까지 같이 뚫린다. 획이 좀먹은 것처럼 된다.
+흰 배경 결과물은 **알파 채널이 실제로 있는지 먼저 확인**하고, 없으면 마젠타로 다시 뽑는다.
+
+#### 후처리 3단계
+
+1. **키잉** — 마젠타를 알파로 뺀다
+2. **가장자리 정리** — 키잉 뒤 획 테두리에 마젠타 잔상(fringe)이 남는다. Defringe 또는
+   가장자리 1px 침식으로 지운다. **이걸 안 하면 어두운 화면에서 획에 분홍 테두리가 보인다**
+3. **여백 자르기** — 3.2의 제작 크기로 크롭. 아이콘은 사방 여백을 남긴다(7.4)
+
+**한지 결과 종이 번짐은 획 안쪽에만 넣는다.** 배경 전체에 종이 질감을 깔면 그 질감까지
+불투명하게 따라 들어와서 화면을 덮는다.
+
+---
+
+### 7.0.6 조립 — 생성 이미지 한 장으로는 화면에 못 올린다
+
+7.0.5에서 "판은 엔진이 만든다"고 했는데, **조립 방법을 안 적어서 생성물만으로는 글자 자리가
+뚫려 보인다**는 문제가 나왔다(2026-09-07 실측). 판이 없으면 밝은 게임 화면 위에서 흰 숫자가
+안 읽힌다.
+
+**HUD 요소 하나는 게임오브젝트 하나가 아니라 세 층의 겹침이다.**
+
+값이 차오르는 요소(체력·스태미나·신력·보스 바)는 **테두리가 채움보다 위**에 있어야 한다.
+채움 아래에 두면 체력이 줄면서 테두리도 같이 잘려 나간다.
+
+```
+Timer                (글자만 있는 요소 - 2층)
+ ├ Panel             Image · Sprite = Panel_Back.png (9-slice)          <- 생성물
+ │                   Color #1A1A1A · Alpha 0.85                       <- 엔진이 틴트
+ ├ Border            Image · Sprite = Timer_Border.png                  <- 생성물
+ └ Label             TextMeshProUGUI                                    <- 숫자
+
+HealthBar            (값이 차오르는 요소 - 3층)
+ ├ Track             Image · Sprite = Bar_Track.png                     <- 생성물 (빈 자리)
+ ├ Fill              Image · Sprite = Bar_Fill_HP.png                   <- 생성물 (차오름)
+ │                   Image Type = Filled · Horizontal · Origin Left
+ ├ Border            Image · Sprite = Bar_Border.png                    <- 생성물 (항상 온전)
+ │                   Raycast Target 끄기
+ └ Label             TextMeshProUGUI (선택)
+```
+
+**Border가 Fill보다 아래 형제로 있으면 안 된다.** Unity UI는 계층 순서대로 그리므로,
+Border가 마지막이어야 채움 위에 얹힌다.
+
+**순서가 곧 그리는 순서다.** Panel이 맨 아래라 숫자가 읽히고, Border가 그 위에 얹히고,
+Label이 맨 위다. Panel에 `Sprite`를 넣지 않는 것이 핵심이다 — 색만 있는 `Image`는
+스프라이트 없이도 사각형을 그린다.
+
+| 층 | 무엇 | 왜 |
+|---|---|---|
+| Panel | `Panel_Back.png` + 색 `#1A1A1A` · 알파 `0.85` | 가독성. **모양과 질감은 이미지, 색과 짙기는 엔진**(7.0.7) |
+| Border | 생성 스프라이트 | 붓 획. **투명 배경이라 판 위에 그대로 얹힌다** |
+| Label | TMP | 3.1대로 글자는 이미지가 아니다 |
+
+**Border 스프라이트의 색을 흰색으로 두고 `Image.color`로 틴트한다.** 그러면 오방색을
+바꿀 때 이미지를 다시 안 뽑아도 된다 — 시간(황)·파티(적)·보스(청)가 같은 획을 쓸 수 있다.
+
+#### 7.0.7 배경 패널 스프라이트 — 판도 이미지로 받되, 색은 받지 않는다
+
+처음에는 판을 스프라이트 없는 `Image`(단색 사각형)로 잡았다. **붓 획 옆에서 그 사각형만
+공장제로 보인다** — 획은 가장자리가 불규칙한데 판만 자로 잰 직사각형이기 때문이다.
+
+그렇다고 7.0.5의 문제가 사라진 것은 아니다. 생성기는 반투명을 못 낸다.
+
+**그래서 역할을 가른다.**
+
+| 무엇 | 어디서 |
+|---|---|
+| 판의 **모양과 질감** (한지 결, 붓으로 칠한 불규칙한 가장자리) | **생성 이미지** |
+| 판의 **색과 짙기** | **엔진** — `Image.color` `#1A1A1A`, 알파 `0.85` |
+
+**이미지는 흰색으로 뽑는다.** 흰 텍스처에 어두운 색을 틴트하면 원하는 짙기가 나오고,
+알파는 인스펙터 숫자 하나로 남는다. 반대로 어둡게 뽑아 오면 다시 밝게 만들 수 없다.
+
+**1장으로 시간·파티 이름·(필요하면) 그 밖의 판을 전부 쓴다.** 9-slice로 늘린다.
+
+제작 512 × 256 · 9-slice Border 좌우 32 · 상하 24
+
+```
+A single rectangular BACKGROUND PANEL texture for a game UI, painted in
+Korean ink-painting style, isolated on transparent background
+(or a flat pure magenta field if alpha is unsupported).
+
+IT IS PAINTED IN WHITE AND LIGHT GREY ONLY — no color at all. The engine will
+tint it dark, so anything colored here is a mistake.
+
+The panel is a soft rectangle washed on with a wide flat brush: its EDGES ARE
+SLIGHTLY IRREGULAR AND FEATHERED, never a ruler-straight cut, with one or two
+places where the brush ran dry along the border.
+Visible hanji paper fiber across its surface, plus a few faint fiber flecks.
+
+THE CENTER IS A UNIFORM FLAT FIELD with no pattern, no gradient toward the middle,
+and no ornament, so it can be stretched horizontally and vertically.
+Only the outer few percent carries the brushed edge treatment.
+
+No border line, no frame, no stroke outline, no bevel, no shadow, no glow,
+no text, no letters, no numbers.
+```
+
+⚠️ **`no border line`을 넣는 이유** — 테두리는 별도 장(7.3.3 · 7.1)이 담당한다. 판에까지
+외곽선이 들어가면 겹쳐서 두 줄로 보인다.
+
+⚠️ **`PAINTED IN WHITE AND LIGHT GREY ONLY`** — 여기서 색을 받으면 엔진 틴트와 곱해져
+의도하지 않은 색이 된다. 뽑고 나서 회색조인지 눈으로 확인한다.
+
+**9-slice 확인**: Sprite Editor에서 Border를 잡은 뒤, 인스펙터에서 가로로 3배 늘려 본다.
+가운데가 늘어나고 네 모서리의 붓 자국이 그대로면 성공이다. **모서리 붓 자국이 늘어나면
+Border 값이 너무 작은 것**이다.
+
+---
+
+#### 판이 필요 없는 요소
+
+| 요소 | 판 | 이유 |
+|---|---|---|
+| 시간 · 파티 이름 | **필요** | 글자가 올라간다 |
+| 미니맵 링 | 불필요 | 가운데는 지도가 채운다 |
+| 자원 바(트랙·채움) | 불필요 | 트랙 자체가 판 역할을 한다(7.3.1) |
+| 아이콘 | 불필요 | 문살 소켓 안에 들어간다 |
+
+#### 한 장으로 받고 싶다면
+
+조립이 번거로우면 **획 뒤에 옅은 먹 담채(淡彩)를 함께 그리게** 할 수도 있다.
+프롬프트에 아래를 더한다.
+
+```
+Behind the stroke, a soft translucent ink wash (담채) fills the panel area —
+a thin, unevenly brushed dark grey field, darker near the stroke and fading out,
+clearly semi-transparent, never a solid opaque rectangle.
+```
+
+**다만 권하지 않는다.** 생성기의 반투명은 값이 들쭉날쭉해서 요소마다 배경 짙기가 달라지고,
+그걸 나중에 맞추려면 이미지를 전부 다시 뽑아야 한다. 엔진 알파는 숫자 하나다.
+
+---
+
+### 7.1 우상단 시간
+
+180 × 40 화면 · **황(黃) 계열** · 2급
+
+```
+ONLY THE BORDER STROKE of a game timer panel, very wide and short (4.5:1).
+The panel background itself is NOT drawn — the engine supplies it.
+Flat graphic design. Its border is a SINGLE THIN BRUSH STROKE in muted gold
+(#C9A227) that runs along the TOP EDGE AND DOWN THE LEFT SIDE ONLY —
+the right and bottom stay open, unbordered.
+The stroke has uneven thickness and one dry-brush break.
+A small ink dot terminates the stroke at the upper left.
+
+The interior stays EMPTY and transparent ON PURPOSE — a dark panel and a number
+are layered underneath by the engine, so the stroke must not cover that area.
+Keep the stroke tight to the edges; nothing crosses the middle.
+No seal, no stamp, no bevel, no metal, no glow, no ornament.
+```
+
+---
+
+### 7.2 좌상단 미니맵
+
+180 × 180 화면 · **황(黃) 계열** · 2급
+Tab 확대본은 같은 프레임을 스케일한다.
+
+```
+A minimal circular frame for a game minimap, drawn as ONE SINGLE INK BRUSH RING
+(일필휘지) in muted gold (#C9A227) on transparent background — one continuous
+sweep of the brush, thicker where it starts, thinning and breaking where it ends,
+NOT a perfect geometric circle.
+The center is COMPLETELY EMPTY AND TRANSPARENT.
+
+FIVE tiny dots mark the obangsaek directions and are the only color in the piece:
+blue-green at the east (right), white at the west (left), red at the south (bottom),
+black at the north (top), and one yellow dot at the very center-bottom of the ring.
+Each dot is a single wet brush touch that bleeds slightly into the paper.
+Nothing else. Flat, no metal ring, no rivets, no bevel, no glow.
+```
+
+**일필휘지(한 붓에 그린 원)** 가 핵심이다. 완벽한 원을 요구하면 나침반 금속 링이 나온다.
+
+---
+
+### 7.3 좌하단 자원 (HP · 스태미나 · 신력) — 트랙과 채움을 나눈다
+
+320 × 44 화면(3줄 합계) · 3급
+
+**한 자원당 이미지 세 장이다.** `Image.fillAmount`는 **한 스프라이트를 왼쪽부터 잘라 보여주는 것**이라, 비었을 때 보이는 판(트랙)과 차오르는 획(채움)을 같은 그림으로 쓸 수 없다.
+
+| 층 | 파일 | 무엇 | Image Type |
+|---|---|---|---|
+| 1 (아래) | `Bar_Track.png` | 비었을 때 보이는 자리. **1장으로 3자원 공용** | `Simple` |
+| 2 | `Bar_Fill_HP.png` 등 | 차오르는 획. **자원마다 1장** | **`Filled` · Horizontal · Origin Left** |
+| 3 (위) | `Bar_Border.png` | 끝단 마감과 외곽선. **1장으로 3자원 공용** | `Simple` |
+
+**Border가 왜 따로 필요한가.** 테두리를 채움 이미지에 그려 넣으면 체력이 절반일 때
+**오른쪽 테두리가 같이 사라진다.** 바가 끝나는 자리를 알 수 없게 되고, 그러면 "얼마나 남았나"가
+아니라 "바가 얼마나 짧은가"로 읽힌다.
+
+| 줄 | 자원 | 채움 색 | 굵기 |
+|---|---|---|---|
+| 1 | HP | **적(赤) 火** `#B33A2E` | 14px |
+| 2 | 스태미나 | **백(白) 金** `#E8E0CE` | 10px |
+| 3 | 신력 | **황(黃) 土** `#C9A227` | 8px |
+
+---
+
+#### 7.3.1 트랙 (비었을 때) — 1장
+
+```
+A single horizontal EMPTY GAUGE TRACK for a game HUD, extremely thin (ratio 23:1),
+flat Korean ink-painting style, isolated on transparent background
+(or a flat pure magenta field if alpha is unsupported).
+
+It is a MID-GREY INK STROKE (#6A6A6A) — light enough to stay visible on top of a
+near-black panel, but clearly drained of color so it never reads as "filled".
+Do NOT paint it near-black; it will vanish against the panel behind it.
+
+SILHOUETTE — it must match the fill stroke exactly (7.3.2):
+a soft pooled blob at the LEFT end, then a CONSISTENT, UNBROKEN HEIGHT all the way
+to the RIGHT EDGE of the image, CUT OFF FLAT there. It does NOT taper and does NOT
+end in a point. Dry-brush white streaks (비백) run through it as texture only.
+Faint hanji paper fiber inside it.
+
+No color accent, no fill, no frame, no bevel, no metal, no glow.
+```
+
+**트랙은 회색이다.** 색을 넣으면 비어 있을 때도 자원이 남은 것처럼 보인다.
+
+---
+
+#### 7.3.2 채움 (차오르는 획) — 자원마다 1장
+
+⚠️ **채움 이미지는 오른쪽 끝을 뾰족하게 만들지 않는다.** `fillAmount`가 오른쪽부터 잘라내므로, 뾰족한 꼬리는 **가득 찼을 때만 보이고 나머지 구간에서는 통째로 사라진다.** 그러면 100%와 99%가 완전히 다른 모양이 된다.
+
+```
+A single horizontal GAUGE FILL stroke for a game HUD, extremely thin (ratio 23:1),
+flat Korean ink-painting style, isolated on transparent background
+(or a flat pure magenta field if alpha is unsupported).
+
+PAINTED IN WHITE ONLY — the engine tints it per resource (red, off-white, gold,
+teal). Any color painted here would multiply with that tint.
+
+The dry-brush streaks (비백) must be HOLES IN THE ALPHA CHANNEL — actual
+transparency where the brush ran dry — NOT white paint on top of the stroke.
+If they are painted white, tinting will flood them and the texture disappears.
+The LEFT end has a POOLED BLOB where the loaded brush landed.
+From there the stroke runs at a CONSISTENT, UNBROKEN HEIGHT all the way to the
+right edge of the image and is CUT OFF FLAT there — it does NOT taper, does NOT
+thin out, does NOT end in a point. The right edge must look like the stroke
+continues past the frame.
+The alpha holes run along its length as texture only, never breaking the stroke
+into separate pieces.
+
+No frame, no outline, no bevel, no glow, no background.
+```
+
+**색만 바꿔 3장을 뽑는다** — 스태미나는 `hanji off-white (#E8E0CE)`, 신력은 `muted gold (#C9A227)`. 굵기 차이는 임포트에서 세로로 줄여 만든다(원본은 같은 비율).
+
+---
+
+#### 7.3.3 테두리 (항상 온전) — 1장 공용
+
+⚠️ **가운데가 완전히 뚫려 있어야 한다.** 안쪽이 조금이라도 칠해져 있으면 그 아래 채움이 가려진다.
+
+```
+ONLY THE OUTLINE of an extremely thin horizontal gauge (ratio 23:1),
+flat Korean ink-painting style, isolated on transparent background
+(or a flat pure magenta field if alpha is unsupported).
+
+The INTERIOR IS COMPLETELY HOLLOW AND TRANSPARENT — a window, not a surface.
+Nothing is painted inside it; a colored bar will show through from underneath.
+
+Draw only:
+- a hanji off-white (#E8E0CE) hairline running along the TOP EDGE,
+- a small ink cap at the LEFT end where the brush landed,
+- a small ink cap at the RIGHT end marking where the gauge ends.
+The bottom edge stays open, unbordered.
+
+Every mark shows brush anatomy: pooled, dry-streaked, tapered.
+No fill, no shading, no background, no bevel, no glow.
+```
+
+**오른쪽 끝 마감이 이 장의 존재 이유다.** 채움은 줄어들어도 이 표시는 남아서
+"여기까지가 최대치"를 계속 알려 준다.
+
+---
+
+#### 7.3.3 왜 이렇게 나누나
+
+| 안 나눴을 때 | 증상 |
+|---|---|
+| 트랙 없이 채움만 | HP가 0이 되면 **바가 화면에서 사라진다.** 죽었는지 UI가 꺼진 건지 구분이 안 된다 |
+| 채움에 뾰족한 꼬리 | 99%에서 꼬리가 잘려 **모양이 급변**한다 |
+| 트랙에 색 | 비어 있어도 자원이 남아 보인다 |
+| 테두리를 채움에 그려 넣음 | **체력이 줄면 오른쪽 테두리도 같이 사라진다.** 최대치를 알 수 없다 |
+| 테두리 안쪽이 칠해짐 | 채움이 가려져 바가 영영 비어 보인다 |
+| **트랙과 채움의 실루엣이 다름** | 채움이 절반일 때 **굵기가 계단처럼 튄다.** 둘은 같은 모양이어야 한다 |
+| 트랙이 너무 어두움 | `#1A1A1A` 판 위에서 **트랙이 안 보인다.** 빈 바가 아예 없는 것처럼 읽힌다 |
+| 획이 중간에 끊긴 채움 | `fillAmount` 경계가 끊긴 자리에 걸리면 **바가 두 동강 난 것처럼** 보인다 |
+
+**임포트**: 두 장 다 `Sprite (2D and UI)` · `Full Rect`. 채움 스프라이트만 `Image Type = Filled`, `Fill Method = Horizontal`, `Fill Origin = Left`.
+
+**같은 규칙이 파티 플레이트(7.5)와 보스 바(7.6)에도 그대로 적용된다.** 세 곳이 같은 트랙·채움 문법을 쓰면 나중에 색만 갈아 끼워도 톤이 안 깨진다.
+
+---
+
+### 7.4 직업 아이콘 3종 (검 · 활 · 방울)
+
+64 × 64 화면 · 128 × 128 제작 · **문살 소켓 안에 들어간다**(7.5)
+
+**세 장을 한 세션에서 연달아 뽑는다.** 따로 뽑으면 획 굵기와 여백이 어긋나 파티창에 세 줄로 쌓였을 때 바로 티가 난다.
+
+| 아이콘 | 직업 | 액센트 | 근거 |
+|---|---|---|---|
+| 검 | 차사 | **적(赤)** `#B33A2E` | 패링으로 그로기를 여는 정면의 힘 |
+| 활 | 신궁 | **백(白)** `#E8E0CE` | 정밀 사격, 거리를 두는 냉정함 |
+| 방울 | 무녀 | **황(黃)** `#C9A227` | 신력·공명, 중앙에서 파티를 잇는다 |
+
+**액센트는 획 하나뿐이다.** 아이콘 전체를 색칠하면 문살 소켓 안에서 시끄러워지고, 세 개가 나란히 있을 때 색 덩어리 셋으로만 읽힌다.
+
+---
+
+#### 7.4.1 공통 프롬프트 (모든 아이콘에 붙인다)
+
+```
+A single minimal Korean ink-brush pictogram (수묵) for a game UI icon,
+centered on a transparent square canvas with generous even margin on all four
+sides — it will be placed inside a small window frame, so nothing may touch the edges.
+
+Drawn with ONLY 3-5 confident brush strokes. Black sumi ink.
+Each stroke shows real brush anatomy: pooled where it starts, dry-brush white
+streaks (비백) through the middle, tapering where it lifts off.
+EXACTLY ONE accent stroke in [ACCENT COLOR] — a single short mark, not a fill.
+
+Flat graphic design. No plate, no frame, no circle behind it, no shading,
+no gradient, no glow, no outline, no perspective, no background.
+No text, no letters, no numbers.
+All three icons in this set must share the same stroke weight and the same
+visual mass, so they read as siblings.
+```
+
+#### 7.4.2 개별 지시
+
+```
+[검 · 차사 · accent = cinnabar red #B33A2E]
+A straight single-edged Korean ritual sword (환도) seen edge-on, blade vertical,
+point upward. Two strokes for the blade, one for the guard, one for the grip.
+The accent is a single short red mark at the grip wrap.
+
+[활 · 신궁 · accent = hanji off-white #E8E0CE]
+A traditional Korean recurve bow (각궁) seen from the side, unstrung, its double
+curve clearly readable in one continuous sweeping stroke. One thin straight
+stroke for the string. The accent is a single short off-white mark at the grip.
+
+[방울 · 무녀 · accent = muted gold #C9A227]
+A shaman's hand-bell cluster (무당 방울): three small bells hanging from one ring
+above a short handle. Simplify ruthlessly — three small ovals, one arc, one
+vertical stroke. The accent is a single short gold mark on the handle wrap.
+```
+
+⚠️ **방울에 `Simplify ruthlessly`를 넣은 이유가 있다.** 실물 무당 방울은 잔가지가 많아 그대로 그리면 혼자 복잡하고 얇아진다. 세 개가 형제로 보이려면 방울만 단순화 강도를 높여야 한다.
+
+#### 7.4.3 상태는 이미지로 만들지 않는다
+
+3.1의 원칙대로다. 아이콘은 **직업당 1장뿐**이고 상태는 코드가 만든다.
+
+| 상태 | 수단 |
+|---|---|
+| 평시 | 원본 |
+| 쓰러짐 | 알파 40% + 채도 0 |
+| 말하는 중 · 강조 | 흰색 틴트 |
+| 사망 확정 | 알파 20% |
+
+**쓰러짐 상태를 별도 이미지로 만들지 않는다.** 3종 × 상태 4개 = 12장이 되고, 그중 어느 것도 다시 뽑을 수 없게 된다(톤이 어긋난다).
+
+#### 7.4.4 뽑는 순서
+
+**방울을 가장 먼저 뽑는다.** 셋 중 제일 복잡해서 여기서 정해진 단순화 강도가 나머지 둘의 기준이 된다. 검을 먼저 뽑으면 검 기준으로 굵기가 잡히고, 방울이 그 굵기를 못 맞춘다.
+
+`방울 → 활 → 검` 순으로, **같은 세션에서 연속으로** 뽑는다.
+
+---
+
+### 7.5 파티원 플레이트 — 새로 뽑는 것은 두 장뿐이다
+
+180 × 52 화면 · 3급 · 세로 3개
+
+**한 줄을 통째로 한 장에 그리면 안 된다.** 자원 바가 그림에 박히면 체력이 줄어도
+움직이지 않는다. 파티 한 줄은 **여러 스프라이트의 조립**이다(7.0.6).
+
+```
+PartyRow
+ ├ Panel        Panel_Back.png      · 색 #1A1A1A 알파 0.85   <- 7.0.7 재사용
+ ├ Lattice      Party_Lattice.png                            <- 신규 1장
+ ├ NameLine     Party_NameLine.png                           <- 신규 1장
+ ├ Label        TextMeshProUGUI
+ └ Bars         (3줄, 각각 Track/Fill/Border 3층)             <- 7.3 재사용
+```
+
+| 파일 | 어디서 | 비고 |
+|---|---|---|
+| `Panel_Back.png` | **7.0.7 재사용** | |
+| `Party_Lattice.png` | **신규** | 문살 아이콘 소켓 |
+| `Party_NameLine.png` | **신규** | 이름 줄 밑선 |
+| `Bar_Track / Fill / Border` | **7.3 재사용** | RectTransform만 작게 |
+
+**자원 바를 새로 뽑지 않는다.** 좌하단 것과 같은 스프라이트를 작게 쓴다 —
+같은 붓에서 나온 것이 보장되고, 색을 바꿀 때 한 곳만 고치면 된다.
+
+---
+
+#### 7.5.1 문살 소켓 — 1장
+
+```
+ONLY A SMALL SQUARE FRAME for a game UI icon slot, drawn as a Korean 문살
+window lattice: a few straight wooden slats crossing at right angles near the
+four corners, leaving the middle open. Black sumi ink, dry brush, slightly
+uneven — hand-drawn, not ruled.
+
+THE INTERIOR IS COMPLETELY HOLLOW AND TRANSPARENT — an icon shows through it.
+The frame itself is thin; it must not crowd the icon.
+
+Isolated on transparent background (or flat pure magenta if alpha is unsupported).
+No fill, no panel behind it, no bevel, no glow, no text.
+```
+
+#### 7.5.2 이름 줄 밑선 — 1장
+
+**이건 게이지가 아니라 장식이라 잘리지 않는다.** 그래서 오른쪽이 붓끝처럼 빠져도 된다.
+
+```
+A SINGLE THIN HORIZONTAL BRUSH STROKE, hanji off-white (#E8E0CE), very long and
+fine, isolated on transparent background (or flat pure magenta).
+
+It marks the underline of a name field. Brush anatomy in full: a small pooled
+blob at the LEFT end, dry-brush white streaks through the middle, TAPERING TO A
+FINE POINT at the RIGHT end and lifting off the paper.
+
+Nothing else — no box, no frame, no second line, no icon, no fill, no text.
+```
+
+⚠️ **밑선은 뾰족하게 끝나도 되고, 자원 바는 안 된다.** 밑선은 `fillAmount`가 걸리지 않아
+항상 통째로 보이기 때문이다. **이 차이가 7.3과 갈리는 지점이다.**
+
+#### 7.5.3 방금 나온 것이 왜 어긋났나
+
+| 나온 것 | 문제 |
+|---|---|
+| 문살 + 획 4개가 **한 장** | 자원 바가 그림에 박혀 **줄어들지 않는다** |
+| 자원 획이 오른쪽으로 **뾰족** | 채움에 쓰면 99%에서 꼬리가 사라진다(7.3.2) |
+| 네 획의 굵기가 **거의 같음** | 서열이 안 읽힌다. 굵기는 임포트에서 만든다 |
+
+**문살 사각형만 잘 나왔다.** 그것만 잘라 쓰고 나머지는 위 두 프롬프트로 다시 뽑는다.
+
+---
+
+### 7.6 보스 바 — 전용 스프라이트로 뽑는다
+
+720 × 34 화면 · 1급
+
+**보스 바는 공용 바를 재사용하지 않는다.** 7.0.1이 정한 계층 때문이다 — 1급이 3급과 같은 획을
+쓰면 폭만 넓은 파티 게이지가 되고, v1에서 실패했던 "전부 같은 무게" 상태로 돌아간다.
+
+**보스는 이 게임에서 유일하게 사건이다.** 획 자체가 달라야 한다.
+
+```
+BossBar
+ ├ Panel            Panel_Back.png        · #1A1A1A 0.85          <- 7.0.7 재사용
+ ├ HpTrack          Boss_Track.png        · #6A6A6A               <- 신규
+ ├ HpFill           Boss_Fill.png         · #3FE0C8 (여우불)       <- 신규
+ │                  Image Type = Filled · Horizontal · Origin Left
+ ├ HpBorder         Boss_Border.png       · #E8E0CE               <- 신규
+ ├ GroggyTrack      Boss_Track.png        (더 얇게)                <- 같은 장 재사용
+ ├ GroggyFill       Boss_Fill.png         · #E8E0CE (한지)         <- 같은 장 재사용
+ ├ GroggyBorder     Boss_Border.png                                <- 같은 장 재사용
+ └ Ends             Boss_Ends.png                                  <- 신규
+```
+
+**신규 4장.** 두 채널(체력·그로기)은 같은 보스 스프라이트를 **높이와 색만 달리해** 쓴다 —
+같은 바의 두 줄이므로 여기서까지 나누면 오히려 관계가 안 읽힌다.
+
+배경 판만 공용을 쓴다. 판은 뒤에 깔리는 어두운 면일 뿐이라 성격이 없다.
+
+---
+
+#### 7.6.1 공통 — 보스 획은 무엇이 다른가
+
+세 장(`Boss_Track` · `Boss_Fill` · `Boss_Border`) 프롬프트 앞에 함께 붙인다.
+
+```
+BOSS TIER — this stroke must feel heavier and wetter than an ordinary UI gauge.
+The brush was fully loaded and pressed hard: the ink is dense, the edges show
+where it flooded and bled outward into the paper (선염), and the pooled start is
+noticeably larger. It reads as one decisive slash, not a drawn line.
+Still FLAT — no bevel, no glow, no gradient, no highlight.
+```
+
+**"눌러 그은 한 획"이 보스와 파티를 가르는 지점이다.** 파티 획은 가늘고 조용하고,
+보스 획은 붓을 눌러 먹이 번진다. 굵기가 아니라 **필압**이 다르다.
+
+---
+
+#### 7.6.2 보스 트랙 — 신규
+
+```
+A single wide horizontal EMPTY GAUGE TRACK for a boss health bar (ratio 21:1),
+flat Korean ink-painting style, isolated on transparent background.
+
+PAINTED IN WHITE AND LIGHT GREY ONLY — the engine tints it.
+
+SILHOUETTE — it must match Boss_Fill exactly:
+a large pooled blob at the LEFT end, then a CONSISTENT, UNBROKEN HEIGHT all the
+way to the RIGHT EDGE, CUT OFF FLAT there. It does NOT taper.
+Dry-brush breaks are HOLES IN THE ALPHA CHANNEL, not white paint.
+
+No frame, no outline, no ends decoration, no color, no text.
+```
+
+#### 7.6.3 보스 채움 — 신규
+
+```
+A single wide horizontal GAUGE FILL stroke for a boss health bar (ratio 21:1),
+flat Korean ink-painting style, isolated on transparent background.
+
+PAINTED IN WHITE ONLY — the engine tints it teal for health and off-white for
+the groggy gauge.
+
+A large pooled blob at the LEFT end where the loaded brush landed hard.
+From there a CONSISTENT, UNBROKEN HEIGHT to the RIGHT EDGE, CUT OFF FLAT.
+It does NOT taper, does NOT thin out, does NOT end in a point.
+The dry-brush streaks (비백) must be HOLES IN THE ALPHA CHANNEL — actual
+transparency — NOT white paint, or the tint will flood them.
+Ink bleeding (선염) along one long edge, denser than an ordinary gauge.
+
+No frame, no outline, no background, no color.
+```
+
+#### 7.6.4 보스 테두리 — 신규
+
+```
+ONLY THE OUTLINE of a wide boss gauge (ratio 21:1), flat Korean ink-painting
+style, isolated on transparent background.
+
+THE INTERIOR IS COMPLETELY HOLLOW AND TRANSPARENT — a window. The colored fill
+shows through from underneath. Nothing is painted inside.
+
+Draw only a hairline along the TOP EDGE, a heavy ink cap at the LEFT end, and a
+heavy ink cap at the RIGHT end marking the maximum. The caps are thicker and more
+deliberate than on a player gauge. The bottom edge stays open.
+
+PAINTED IN WHITE ONLY. No fill, no shading, no bevel, no glow, no text.
+```
+
+---
+
+#### 7.6.5 양끝 장식 — 신규 1장 (그대로 간다)
+
+```
+TWO SMALL INK FLOURISHES for the two ends of a wide game HUD bar, drawn as one
+image: a mirrored pair, one at the far left and one at the far right, with
+NOTHING BETWEEN THEM — the middle of the image is completely empty and transparent.
+
+Each flourish is a SINGLE CURVED BRUSH STROKE suggesting a fox tail, painted in
+white and light grey only (the engine will tint it). It curls inward toward the
+bar and stays compact — it must not extend far above or below the bar's height.
+
+Brush anatomy: pooled where it starts, dry-streaked, tapering to a fine point.
+Isolated on transparent background. No fox head, no creature, no face, no veil,
+no glow, no color, no frame, no text.
+```
+
+⚠️ **`NOTHING BETWEEN THEM`** — 양끝을 한 장에 담되 가운데는 비운다. 바 길이가 바뀌어도
+장식만 양끝에 붙는다.
+
+---
+
+#### 7.6.6 흰색으로 뽑고 엔진에서 틴트하는 원칙
+
+7.0.7과 같다. **모양은 이미지, 색은 엔진.**
+
+색을 이미지에 넣으면 체력 청록과 그로기 한지 흰빛을 위해 같은 획을 두 번 뽑아야 하고,
+10월에 색을 조정할 때 다시 뽑아야 한다. 흰색 한 장이면 `Image.color` 값 하나다.
+
+**비백은 반드시 알파 구멍이어야 한다.** 흰 획에 흰 줄을 그려 넣으면 틴트가 그 줄까지
+물들여 질감이 통째로 사라진다. 이 규칙은 플레이어 바(7.3.2)와 동일하다.
+
+---
+
+### 7.7 전체 감 잡기용 시트
+
+**에셋이 아니다.** 배치와 톤 확인용이고, 여기서 잘라 쓰지 않는다.
+
+```
+A single 16:9 game UI layout sheet for a Korean ink-painting style dark fantasy
+co-op action game, on a flat dark grey background.
+
+CRITICAL — THE UI IS SMALL AND SPARSE. All elements together cover less than
+15% of the frame. The center of the screen is completely empty. Nothing is large.
+
+Layout:
+- TOP RIGHT: a tiny wide timer panel, gold hairline on top and left edges only.
+- TOP LEFT: a small circle drawn as one ink brush ring, gold, hollow center.
+- TOP CENTER: a boss bar made of TWO SEPARATE STACKED CHANNELS with a visible gap
+  between them — a taller teal one above, a clearly thinner off-white one below.
+  One tiny curved ink flourish at each end, staying inside its bounds.
+- LEFT, STACKED: three party rows. Each row has a 문살 lattice icon square, a name
+  panel beside it, and BENEATH the name THREE very thin resource strokes of
+  descending thickness — red, then off-white, then gold.
+- BOTTOM LEFT: the same THREE stacked resource bars, larger — thickest red on top,
+  thinner off-white, thinnest gold at the bottom.
+
+Everything is FLAT GRAPHIC DESIGN made of single brush strokes on translucent
+near-black panels. Obangsaek palette: ink black ground, hanji off-white surfaces,
+one accent color per element (gold, red, or teal — never mixed).
+
+KOREAN SIGNALS — small, but they carry the identity:
+- Every stroke shows real 수묵 anatomy: a pooled blob where it starts, dry-brush
+  white streaks (비백) through its middle, a tapered lift-off at its end.
+- The minimap ring carries FIVE obangsaek dots at the directions.
+- The party icon sockets are 문살 window lattices, not plain squares.
+- Visible hanji paper fiber, ink bleeding into the paper along one side of strokes.
+
+NO bevels, NO 3D metal, NO glow, NO tassels, NO creatures, NO filigree,
+NO rivets, NO chains. No text, no letters, no numbers, no fills.
+Restrained, quiet, confident — like a Korean ink painting, not an ornate MMO.
+```
+
+**`covers less than 15% of the frame` · `the center is completely empty`** 를 넣은 것이 크기 문제의 직접 처방이다.
+
+---
+
+### 7.8 뽑는 순서
+
+1. **7.7 시트 먼저.** 톤과 배치가 마음에 들 때까지 시트만 반복한다. 여기서 확정된 문장을 7.1~7.6의 STYLE BASE에 반영한다
+2. 확정된 톤으로 **7.1 → 7.3 → 7.5 → 7.6** (프레임 4장). 프레임끼리 두께와 재질이 맞는지 먼저 본다
+3. **7.4 아이콘 3종을 한 세션에 연달아**
+4. **7.2 미니맵**은 마지막. 가운데를 비우는 것이 제일 잘 실패해서, 다른 것이 다 나온 뒤 톤을 맞춰 뽑는 편이 재시도가 싸다
+
+각 장은 정사각 1024×1024로 생성하고 3.2의 제작 크기로 크롭·리사이즈한다(3.3).
+
+### 7.9 남는 문제
+
+| 항목 | 지금 | 정해야 하는 것 |
+|---|---|---|
+| 미니맵 확대(Tab) | 프레임 재사용 + 스케일로 잡아 뒀다 | 확대본이 화면을 얼마나 덮는지. 전체 화면인지 절반인지는 눈으로 정한다 |
+| 그로기 게이지 색 | 미정 | 청록은 보스 프레임에 이미 쓴다. 게이지 채움까지 청록이면 체력과 안 갈린다 |
+| 신력 표시 | 좌하단 3번째 바로 잡혀 있다 | 신력 자체의 존폐가 검토 중이라([2026-09-07 논의]) 확정 전까지 프레임만 만들고 배치는 미룬다 |

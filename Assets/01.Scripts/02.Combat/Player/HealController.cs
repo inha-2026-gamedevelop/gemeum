@@ -35,6 +35,9 @@ namespace Geumeum.Combat
         private double _actionLockEndServerTime = 0d;
         private double _cooldownEndServerTime   = 0d;
 
+        // 회복 대상 이름을 화면 로그에 적기 위한 버퍼. 매 시전마다 새로 만들면 GC가 쌓인다
+        private readonly System.Collections.Generic.List<string> _healedNames = new System.Collections.Generic.List<string>(Constants.Player.PARTY_SIZE);
+
         /****************************************
         *              Unity Event
         ****************************************/
@@ -204,10 +207,12 @@ namespace Geumeum.Combat
                 if (target.TryRestoreHealth(combat.HealAmount))
                 {
                     ++healedCount;
+                    _healedNames.Add(GDebug.Who(target.netId));
                 }
             }
 
-            GDebug.Server($"치유 적용, {healedCount}명 회복");
+            GDebug.Server($"{GDebug.Who(netId)} 치유 -> {healedCount}명 [{string.Join(", ", _healedNames)}]");
+            _healedNames.Clear();
             TargetHealResult(healedCount);
         }
 

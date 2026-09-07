@@ -665,8 +665,17 @@ BOSS_PATTERN_CONTRACT.md 8.2·4.1절 참조.
 │                              판정에 관여하지 않는다. 서버 페이즈 신호에 연결하는 것은 미착수
 ├ Camera/                  [현재] → 카메라와 락온 사양
 │  ├ CameraRig.cs          MB  추적 · 충돌 · 셰이크 · 줌. LateUpdate.
-│  │                           Target이 바뀔 수 있어야 한다 — 관전 카메라가 같은 물건이다
+│  │                           Target이 바뀔 수 있어야 한다 — 관전 카메라가 같은 물건이다.
+│  │                           커서 잠금은 Update가 소유한다 — ESC로 CameraFrame.InputEnabled를
+│  │                           뒤집는다. LateUpdate는 대상이 없으면 먼저 빠져나가 로비에서 안 먹힌다
 │  └ CutsceneDirector.cs   MB  페이즈 전환 8초. Timeline이 카메라를 잡고 끝나면 리그에 돌려준다
+├ Dev/                     [현재] 개발 전용 도구 (namespace Geumeum.Art 유지)
+│  ├ CameraTuneOverlay.cs  MB  게임을 끄지 않고 카메라 값을 만지는 F11 패널. 조정 항목은
+│  │                           CameraConfigSO.Tunables가 소유한다 — 설명 문구가 필드에서
+│  │                           멀어지면 값을 고칠 때 같이 안 고쳐져 거짓말이 된다.
+│  │                           씬 배치 없이 RuntimeInitializeOnLoadMethod로 스스로 생긴다
+│  └ CameraTuneFile.cs     static 조정값 camera-tune.json 저장 · 불러오기. 빌드에서 만진 값을
+│                              에디터가 읽어 SO 정본에 반영하는 통로 → 그믐/카메라 메뉴
 └ Shaders/, VFX/           셰이더 · 파티클 에셋
 ```
 

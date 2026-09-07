@@ -1,5 +1,6 @@
 // System
 using System;
+using System.Collections.Generic;
 
 // Unity
 using UnityEngine;
@@ -63,6 +64,9 @@ namespace Geumeum.Data
         [SerializeField] private float _followSmoothTime = 0.08f;
 
         [Header("회전")]
+        [Tooltip("런을 시작할 때의 내려다보는 각도(도). 씬에 놓인 카메라 각도를 쓰면 씬을 만지는 사람에 따라 게임 시작 각도가 따라 바뀐다")]
+        [SerializeField] private float _defaultPitch = 22f;
+
         [Tooltip("좌우 감도 기본값(도/픽셀). 옵션 UI가 생기면 사람마다 덮어쓴다")]
         [SerializeField] private float _defaultSensitivityX = 0.15f;
 
@@ -146,6 +150,7 @@ namespace Geumeum.Data
         public float SideOffset       => _sideOffset;
         public float FollowSmoothTime => _followSmoothTime;
 
+        public float DefaultPitch        => _defaultPitch;
         public float DefaultSensitivityX => _defaultSensitivityX;
         public float DefaultSensitivityY => _defaultSensitivityY;
         public bool  DefaultInvertY      => _defaultInvertY;
@@ -185,5 +190,131 @@ namespace Geumeum.Data
                 default:                   return _shakeHitLight;
             }
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+
+        /****************************************
+        *              Dev Tuning
+        ****************************************/
+
+        /// <summary>
+        /// 조정 툴이 다루는 값 하나. 라벨을 여기에 두는 이유는 설명 문구가 필드에서 멀어지면
+        /// 값을 고칠 때 문구가 같이 안 고쳐져 금방 거짓말이 되기 때문이다
+        /// </summary>
+        public readonly struct Tunable
+        {
+            public string Group  { get; }
+            public string Id     { get; }   // JSON 키. 라벨을 고쳐도 저장한 값이 살아남는다
+            public string Before { get; }   // 값 앞에 오는 말
+            public string After  { get; }   // 값 뒤에 오는 말
+            public float  Min    { get; }
+            public float  Max    { get; }
+
+            public Func<CameraConfigSO, float>   Get { get; }
+            public Action<CameraConfigSO, float> Set { get; }
+
+            public Tunable(string group, string id, string before, string after, float min, float max,
+                Func<CameraConfigSO, float> get, Action<CameraConfigSO, float> set)
+            {
+                Group  = group;
+                Id     = id;
+                Before = before;
+                After  = after;
+                Min    = min;
+                Max    = max;
+                Get    = get;
+                Set    = set;
+            }
+        }
+
+        private static Tunable[] _tunables = null;
+
+        /// <summary> 조정 가능한 값 목록. 툴은 필드 이름을 몰라도 된다 </summary>
+        public static IReadOnlyList<Tunable> Tunables
+        {
+            get
+            {
+                if (_tunables == null)
+                {
+                    _tunables = BuildTunables();
+                }
+
+                return _tunables;
+            }
+        }
+
+        private static Tunable[] BuildTunables()
+        {
+            return new[]
+            {
+                new Tunable("추적", "pivot-height", "카메라가 도는 중심을 발밑에서", "m 올린다 (눈높이)", 0.5f, 2.5f,
+                    c => c._pivotHeight, (c, v) => c._pivotHeight = v),
+                new Tunable("추적", "distance", "그 중심에서", "m 떨어져 따라간다", 1.5f, 12.0f,
+                    c => c._distance, (c, v) => c._distance = v),
+                new Tunable("추적", "side-offset", "화면 중앙을 비우려고 옆으로", "m 민다", -2.0f, 2.0f,
+                    c => c._sideOffset, (c, v) => c._sideOffset = v),
+                new Tunable("추적", "follow-smooth", "대상이 움직이면", "초에 걸쳐 부드럽게 쫓아간다", 0.0f, 0.5f,
+                    c => c._followSmoothTime, (c, v) => c._followSmoothTime = v),
+                new Tunable("회전", "default-pitch", "런을 시작할 때 카메라는", "도 내려다본다", -30f, 60f,
+                    c => c._defaultPitch, (c, v) => c._defaultPitch = v),
+                new Tunable("회전", "sens-x", "마우스를 좌우로 1픽셀 움직이면", "도 돈다", 0.01f, 0.6f,
+                    c => c._defaultSensitivityX, (c, v) => c._defaultSensitivityX = v),
+                new Tunable("회전", "sens-y", "상하로 1픽셀 움직이면", "도 돈다", 0.01f, 0.6f,
+                    c => c._defaultSensitivityY, (c, v) => c._defaultSensitivityY = v),
+                new Tunable("회전", "pitch-min", "위로는", "도까지만 올려다본다", -89.0f, 0.0f,
+                    c => c._pitchMin, (c, v) => c._pitchMin = v),
+                new Tunable("회전", "pitch-max", "아래로는", "도까지만 내려다본다", 0.0f, 89.0f,
+                    c => c._pitchMax, (c, v) => c._pitchMax = v),
+                new Tunable("락온", "lock-enemy", "잡귀를 잠그면", "m 거리에서 본다", 2.0f, 15.0f,
+                    c => c._lockOnDistanceEnemy, (c, v) => c._lockOnDistanceEnemy = v),
+                new Tunable("락온", "lock-boss-body", "보스 몸통을 잠그면", "m 거리에서 본다", 3.0f, 25.0f,
+                    c => c._lockOnDistanceBossBody, (c, v) => c._lockOnDistanceBossBody = v),
+                new Tunable("락온", "lock-boss-part", "보스 꼬리를 잠그면", "m 거리에서 본다", 3.0f, 25.0f,
+                    c => c._lockOnDistanceBossPart, (c, v) => c._lockOnDistanceBossPart = v),
+                new Tunable("락온", "lock-turn", "락온 대상을 향해 초당", "도씩 돌아간다", 90.0f, 1440.0f,
+                    c => c._lockOnTurnDegreesPerSecond, (c, v) => c._lockOnTurnDegreesPerSecond = v),
+                new Tunable("충돌", "probe-radius", "벽을 감지하는 구의 반지름은", "m다", 0.05f, 1.0f,
+                    c => c._probeRadius, (c, v) => c._probeRadius = v),
+                new Tunable("충돌", "min-distance", "벽에 밀려도", "m보다 가까워지지 않는다", 0.2f, 3.0f,
+                    c => c._minDistance, (c, v) => c._minDistance = v),
+                new Tunable("충돌", "pull-in", "벽에 걸리면", "초에 걸쳐 당겨진다", 0.0f, 0.4f,
+                    c => c._pullInSmoothTime, (c, v) => c._pullInSmoothTime = v),
+                new Tunable("충돌", "push-out", "벽에서 풀리면 초당", "m씩 밀려난다", 0.5f, 20.0f,
+                    c => c._pushOutSpeed, (c, v) => c._pushOutSpeed = v),
+                new Tunable("렌즈", "fov", "화각은", "도로 고정한다", 30.0f, 100.0f,
+                    c => c._fieldOfView, (c, v) => c._fieldOfView = v),
+                new Tunable("셰이크", "shake-scale", "모든 흔들림에", "배를 곱한다 (0이면 완전히 끈다)", 0.0f, 1.0f,
+                    c => c._shakeScale, (c, v) => c._shakeScale = v),
+                new Tunable("셰이크", "shake-max", "여러 흔들림이 겹쳐도", "m를 넘지 않는다", 0.0f, 1.0f,
+                    c => c._shakeMaxAmplitude, (c, v) => c._shakeMaxAmplitude = v),
+
+                new Tunable("셰이크", "hit-light-amp", "가벼운 피격이 나면", "m 흔들리고", 0f, 0.6f,
+                    c => c._shakeHitLight.Amplitude, (c, v) => c._shakeHitLight.Amplitude = v),
+                new Tunable("셰이크", "hit-light-dur", "그 흔들림은", "초에 걸쳐 잦아든다", 0.02f, 1f,
+                    c => c._shakeHitLight.Duration, (c, v) => c._shakeHitLight.Duration = v),
+                new Tunable("셰이크", "hit-heavy-amp", "강한 피격이 나면", "m 흔들리고", 0f, 0.6f,
+                    c => c._shakeHitHeavy.Amplitude, (c, v) => c._shakeHitHeavy.Amplitude = v),
+                new Tunable("셰이크", "hit-heavy-dur", "그 흔들림은", "초에 걸쳐 잦아든다", 0.02f, 1f,
+                    c => c._shakeHitHeavy.Duration, (c, v) => c._shakeHitHeavy.Duration = v),
+                new Tunable("셰이크", "parry-amp", "패링 성공이 나면", "m 흔들리고", 0f, 0.6f,
+                    c => c._shakeParrySuccess.Amplitude, (c, v) => c._shakeParrySuccess.Amplitude = v),
+                new Tunable("셰이크", "parry-dur", "그 흔들림은", "초에 걸쳐 잦아든다", 0.02f, 1f,
+                    c => c._shakeParrySuccess.Duration, (c, v) => c._shakeParrySuccess.Duration = v),
+                new Tunable("셰이크", "critical-amp", "치명타이 나면", "m 흔들리고", 0f, 0.6f,
+                    c => c._shakeCritical.Amplitude, (c, v) => c._shakeCritical.Amplitude = v),
+                new Tunable("셰이크", "critical-dur", "그 흔들림은", "초에 걸쳐 잦아든다", 0.02f, 1f,
+                    c => c._shakeCritical.Duration, (c, v) => c._shakeCritical.Duration = v),
+                new Tunable("셰이크", "groggy-amp", "보스 그로기 진입이 나면", "m 흔들리고", 0f, 0.6f,
+                    c => c._shakeGroggyEnter.Amplitude, (c, v) => c._shakeGroggyEnter.Amplitude = v),
+                new Tunable("셰이크", "groggy-dur", "그 흔들림은", "초에 걸쳐 잦아든다", 0.02f, 1f,
+                    c => c._shakeGroggyEnter.Duration, (c, v) => c._shakeGroggyEnter.Duration = v),
+                new Tunable("셰이크", "part-break-amp", "보스 부위 파괴이 나면", "m 흔들리고", 0f, 0.6f,
+                    c => c._shakePartBreak.Amplitude, (c, v) => c._shakePartBreak.Amplitude = v),
+                new Tunable("셰이크", "part-break-dur", "그 흔들림은", "초에 걸쳐 잦아든다", 0.02f, 1f,
+                    c => c._shakePartBreak.Duration, (c, v) => c._shakePartBreak.Duration = v),
+            };
+        }
+
+#endif
     }
 }
