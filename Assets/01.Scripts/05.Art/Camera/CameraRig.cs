@@ -137,6 +137,18 @@ namespace Geumeum.Art
             ReleaseCursor();
         }
 
+        // 커서는 LateUpdate가 아니라 여기서 다룬다. LateUpdate는 카메라 대상이 없으면 먼저 빠져나가는데,
+        // 로비처럼 아직 플레이어가 없는 상태에서도 ESC로 커서를 꺼낼 수 있어야 한다
+        private void Update()
+        {
+            if (Input.GetKeyDown(Constants.Player.KEY_TOGGLE_CURSOR))
+            {
+                CameraFrame.InputEnabled = !CameraFrame.InputEnabled;
+            }
+
+            UpdateCursorState();
+        }
+
         private void LateUpdate()
         {
             if (!GameDB.IsInitialized)
@@ -155,7 +167,6 @@ namespace Geumeum.Art
                 return;
             }
 
-            UpdateCursorState();
             UpdateLook(config);
 
             // 전투가 읽는 화면 기준 yaw

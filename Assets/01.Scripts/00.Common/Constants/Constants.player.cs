@@ -20,6 +20,7 @@ namespace Geumeum.Common
             public const KeyCode KEY_ROLL      = KeyCode.C;
             public const KeyCode KEY_INTERACT  = KeyCode.E;
             public const KeyCode KEY_FREE_LOOK = KeyCode.LeftAlt; // -nocursorlock 개발 모드에서 누르는 동안만 카메라가 돈다
+            public const KeyCode KEY_TOGGLE_CURSOR = KeyCode.Escape;  // 누를 때마다 마우스 커서와 카메라 회전을 번갈아 켠다
 
             public const int MOUSE_BUTTON_ATTACK = 0;
             public const int MOUSE_BUTTON_PARRY  = 1;
