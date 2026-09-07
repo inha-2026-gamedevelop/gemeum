@@ -11,6 +11,8 @@
 
 ---
 
+> 2026-09-07 발췌 코드 정적 대조: 아래 `[현재]`는 코드 존재/호출 경로를 뜻한다. 씬·프리팹·meta·외부 패키지가 없는 발췌본으로 컴파일/배선/3인 동작을 검증한 것은 아니다.
+
 ## 1. 한눈에 보는 구조
 
 ```
@@ -19,7 +21,7 @@
 결계 단계 · 스폰 밀도 · 드랍 가중치 · 객주 개방 · 조명 시각이 전부 이 값에서 파생된다.
 
   RunManager (경과 시간, 런 상태 머신)          ← Geumeum.Network
-      ├→ BarrierController   결계 반경 · 범위 밖 피해   ← Geumeum.AI
+      ├→ BarrierController   결계 반경 · 범위 밖 피해   ← Geumeum.Systems
       ├→ SpawnManager        구간별 밀집도 · 리스폰      ← Geumeum.AI
       ├→ DropDirector        필드 레벨 → 등급 가중치     ← Geumeum.Systems
       ├→ ShopKeeper          2차 결계 구간에만 개방      ← Geumeum.Systems
@@ -33,9 +35,9 @@
 |---|---|---|---|---|
 | 네트워크 · 전투 (팀장) | @AidenKim923 | `Geumeum.Network` `Geumeum.Combat` | `01.Network/` `02.Combat/` | `Dev_Combat.unity` |
 | 몬스터 · 보스 | @oname36-creator | `Geumeum.AI` | `03.AI/` | `Dev_AI.unity` |
-| 게임플레이 시스템 | @kjw1237 | `Geumeum.Systems` | `04.Systems/` | `Dev_System.unity` **(미생성 → 3.1)** |
+| 게임플레이 시스템 | @kjw1237 | `Geumeum.Systems` | `04.Systems/` | `Dev_System/` **(씬 셋 → 3.1)** |
 | 테크니컬 아트 | @AidenKim923 (겸임) | `Geumeum.Art` | `05.Art/` | `Dev_Art.unity` **(미생성 → 3.1)** |
-| UI (전담) | @kjw1237 (게임플레이 시스템 겸임) | `Geumeum.UI` | `06.UI/` | `Dev_System.unity` **(미생성 → 3.1)** |
+| UI (전담) | @kjw1237 (게임플레이 시스템 겸임) | `Geumeum.UI` | `06.UI/` | `Dev_System/` **(씬 셋 → 3.1)** |
 | (공용) | `Geumeum.Data` `Geumeum.Common` | `00.Common/` | — |
 
 ---
@@ -309,7 +311,7 @@ Main.unity
 │  ├ IRunTimeSource.cs     C#  [현재] 두 시계와 정지 사유를 읽는 창구. RunManager가 구현한다
 │  ├ IRunStateCarrier.cs   C#  [현재] 참가자 값을 담고 되붓는 계약. 이탈·재접속·씬 전환이 같은 것을 쓴다
 │  ├ IRunSceneBinding.cs   C#  [현재] 씬이 바뀔 때 참조와 구독을 다시 거는 계약
-│  ├ ICombatLoadoutProvider.cs C# [현재] 장비·특성 → 유효 전투 수치. Systems가 구현하고 Combat이 읽는다
+│  ├ ICombatLoadoutProvider.cs C# [현재] 장비·특성 → 유효 전투 수치 계약. Systems의 실제 provider 구현은 계획이다
 │  ├ IRunResultProvider.cs C#  [현재] 점수 계산. Systems가 순수 함수로 구현한다
 │  └ (그 밖에 IDamageable · IBarrierState · IRecoveryTarget · ICombatFeedback 등)
 ├ Types/                   namespace Geumeum.Common — 파트 공용 열거형·값 타입
@@ -465,7 +467,7 @@ Main.unity
 │  ├ IPlayerAction.cs      C#  [현재] 행동 하나가 파이프라인에 제공하는 세 조각.
 │  │                           구현체는 NetworkBehaviour 자신이다(요청마다 객체를 만들지 않는다)
 │  ├ ActionRejection.cs    enum [현재] 거부 사유 7종. 조용한 return과 "입력이 씹혔다"를 가른다
-│  ├ LocalCombatState.cs   static [현재] UI가 전투를 읽는 유일한 창구.
+│  ├ LocalCombatState.cs   static [현재] 로컬 전투 상태를 읽는 창구. HUDController의 자원 바는 현재 PlayerStatus.Local을 직접 구독한다.
 │  │                           이산 전이는 이벤트, 연속값은 프로퍼티. 자기 캐릭터 확보 ·
 │  │                           늦은 구독 재생 · 재접속 시 구독 이관을 여기서 한 번에 푼다
 │  ├ PlayerPresentation.cs NB  [현재] 방향 · 속도를 명시적으로 보관하는 표현 상태.
@@ -478,7 +480,8 @@ Main.unity
 │  ├ PlayerStatus.cs       NB  [현재] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable · IRecoveryTarget
 │  ├ PlayerWeapon.cs       NB  [현재] 현재 무기 SyncVar(초기 1회 배분). 훅이 무기 모델과
 │  │                           애니메이터를 함께 갱신한다. IRunStateCarrier(순서 11) —
-│  │                           씬 전환 뒤 무기를 되붓는다. [계획] 서버 전투용 장비 snapshot 추가
+│  │                           씬 전환 뒤 무기를 되붓는다. [계획] 장비/특성 provider의 실제 구현과 소비 연결
+│  │                           (CombatStatsSnapshot · WeaponCombatSnapshot · ICombatLoadoutProvider 계약은 이미 있음)
 │  ├ PlayerWeaponVisual.cs MB  [현재] 활성 캐릭터 모델의 오른손 뼈에 무기 모델을 붙이는 표현 전용.
 │  │                           부착 보정값은 아직 전부 0이라 무기가 몸통에 파묻힌다
 │  ├ PlayerCharacter.cs    NB  [현재] CharacterKind SyncVar 훅으로 캐릭터 모델을 켜는 표현 전용.
@@ -492,7 +495,8 @@ Main.unity
 │  ├ PlayerAttack.cs       NB  [현재] 공격의 유일한 클라이언트 Command 진입점. 근접 부채꼴과
 │  │                           화살 발사를 AttackReach로 갈라 서버가 판정하고, 수락 시점에
 │  │                           RpcAttackStarted로 공격 시작을 모든 화면에 전파한다.
-│  │                           [계획] 연사 · 관통 · 치유 · 버프 변형은 서버가 특성 상태에서 산출
+│  │                           [현재] 방울 범위 공격·신력 획득·표식 부여와 HealController의 범위 치유
+│  │                           [계획] 장비/특성으로 산출하는 연사 · 관통 · 치유 강화 · 버프 변형
 │  ├ InteractionController.cs NB [계획] 상호작용 Command와 서버 검증
 │  └ LockOnController.cs  NB  [현재] 락온 대상 선택(로컬)과 CmdSetLockOn 서버 검증.
 │                             대상은 (netId + 부위 번호) SyncVar 둘로 확정하고,
@@ -504,7 +508,7 @@ Main.unity
 │  ├ TargetQuery.cs / ProjectileSpawnRequest.cs
 │  └ SwordAbility.cs / BowAbility.cs / BellAbility.cs / SwordSwingJudge.cs
 ├ Parry/
-│  ├ ParryController.cs    NB  [현재] 추정 서버 시각 Command. [계획] request/window 검증.
+│  ├ ParryController.cs    NB  [현재] 추정 서버 시각 Command, request/window 검증·소비·수신 마감 처리.
 │  │                           window ID는 공격자별 단조 증가 uint, 대상당 활성 창 1개
 │  │                           (새 창이 이전 미소비 창을 무효화)
 │  ├ ParryJudge.cs         C#  [현재] 시간 창 참·거짓만 계산하는 순수 판정
@@ -514,9 +518,10 @@ Main.unity
 │                              빗나가면 소비하지 않는다(2026-09-03 확정)
 ├ Arrow/
 │  ├ ArrowProjectile.cs    NB  [현재] 서버 물리 틱마다 SphereCast로 훑는 궤적 · 명중 · 관통.
-│  │                           netId로 대상 중복을 막는다. [계획] 장애물 판정 · 유도
+│  │                           netId로 대상 중복을 막는다. [현재] 장애물 판정 · 락온 유도
+│  │                           (TryFindWorldBlock · UpdateGuidance; 활성 WorldMask는 ArrowConfigSO.asset에서 확인)
 │  ├ ArrowLauncher.cs      NB  [계획] 별도 스폰 실행기. 지금은 PlayerAttack이 직접 띄운다
-│  └ ArrowGuidance         [계획] **2026-09-05 부활** — 락온이 되살아나면서 유도도 함께 돌아왔다.
+│  └ ArrowGuidance         [현재] 독립 클래스는 없고 ArrowProjectile.UpdateGuidance에 구현되어 있다.
 │                              별도 클래스가 아니라 ArrowProjectile의 서버 틱 안에서 처리한다.
 │                              유도가 락온의 공통 기능이라 연사 · 관통 특성의 축이 되지 않는다
 │                              → 카메라와 락온 12장 · 화살 조준 보정 설계 5.4
@@ -540,27 +545,25 @@ Main.unity
 > yaw는 `05.Art → 00.Common → 02.Combat`, 락온은 `02.Combat → 00.Common → 05.Art`로 흐른다.
 > 어느 쪽도 상대 어셈블리를 참조하지 않으므로 8.1 의존 방향은 그대로다
 
-2026-09-05 기준으로 `Player/` 17개, `Parry/` 6개, `Arrow/` 1개, `Dev/` 2개가 구현되어 있다.
-아직 없는 것은 `InteractionController`, `Weapon/`, `Camera/`, 그리고 `Arrow/`의 나머지 둘이다.
+2026-09-07 제공 코드에는 PlayerAttack·HealController·LockOnController·ParryController·ArrowProjectile가 있다.
+파일 수는 구현 완료율이 아니며, 현재 목록은 실제 폴더를 검색한다.
+아직 없는 것은 `InteractionController`, 별도 `Weapon/` 실행 클래스와 `ArrowLauncher`다.
+카메라 클래스는 `05.Art/Camera/`에 있고, 화살 유도는 ArrowProjectile 내부에 있다.
 나머지는 구현 계약이다. **판정 수식은 순수 C# 클래스에 두고, NetworkBehaviour는 입력·서버 실행·
 동기화 경계를 담당한다.** 활 공격도 `PlayerAttack`의 공통 Command를 거치며, `ArrowLauncher`가
 별도의 클라이언트 요청 경로를 만들지 않는다.
 
-**공격 능력 구조값은 `WeaponAbilityConfigSO`(6장)가 갖는다 — 피해량 자체는 갖지 않는다.**
-`EquipmentSO`가 롤한 무기 공격력을 그대로 쓰고, `WeaponAbilityConfigSO`는 사거리·범위·각도·
-쿨다운·자원 비용·치유/버프 환산 비율만 가진다. **아래 자원 비용·수치는 전부 프로토타입
-임시값이다 — 게임 디자인 문서 자체가 "모든 수치는 시작점"이라고 전제하므로 플레이테스트로
-조정한다:**
+**현재 공격 값은 `CombatConfigSO`·`ArrowConfigSO`를 읽는다.** `WeaponAbilityConfigSO`와
+장비/특성 provider의 실제 구현은 계획이다. 스키마가 있는 것과 실행에 연결된 것은 구분한다.
+현재 `HealController`는 범위 치유이며, 종전 단일 대상 치유·버프 임시값 표는 현재값의 근거로 쓰지 않는다.
 
-| 항목 | 임시값 |
+| 항목 | 현재 근거 |
 |---|---|
-| 차사 기본 공격 자원 | 스태미나 15 |
-| 신궁 기본 공격 자원 | 스태미나 12 |
-| 무녀 치유 (단일 대상) | 신력 20, 회복량 30, 사거리 8m, 쿨다운 2.5초 |
-| 무녀 버프 (파티 단일 종류) | 신력 20, 공격력 +15% · 지속 8초, 쿨다운 2.5초 |
-| 입력 발신 주기 | 30Hz (`PLAYER_INPUT_SEND_INTERVAL`, `PLAYER_SYNC_INTERVAL`과 별개 상수) |
-| 입력 공백 만료 | 250ms 초과 시 0 입력 |
-| 소유자 재조정 임계값 | 위치 오차 0.1m |
+| 검·활·방울 자원/범위 | CombatConfigSO 및 PlayerAttack의 소비 경로 |
+| 치유 자원·범위·회복량·쿨다운 | CombatConfigSO 및 HealController. 신규 필드의 YAML 저장 여부와 실제 로드값은 별도 확인 |
+| 화살 속도·판정 반경·유도 | ArrowConfigSO 및 ArrowProjectile |
+| 버프·장비/특성 변형 | 계획. 상세 계약은 PLAYER_ATTACK_DESIGN을 참조 |
+| 입력 발신·만료·재조정 | PlayerController / PlayerPrediction의 현재 상수를 참조. 밸런스 SO와 성격이 다름 |
 
 무기 교체는 `ReviveInvulnerable` 중에도 허용한다 — 공격·구르기 중이 아니면 막을 이유가 없고,
 그 외 상태에서는 애초에 교체 요청 자체가 게이트에서 거부되므로 진행 중 능력을 취소하는
@@ -746,7 +749,8 @@ RunManager : NetworkBehaviour
 > *(2026-09-06 정정: 09-04 시간표(10/19/25)가 `Shrink1`·`Shrink2`에만 남아 있어, `Shrink2` 종료 25:00과 `Shrink3` 시작 29:30 사이에 **4분 30초 구멍**이 생겨 있었다. 위 불변식을 표 스스로 위반한 상태였다. 두 시계 분리(필드 30분 + 보스 독립 14분) 확정에 맞춰 10 / 20 / 29:30으로 통일한다.)*
 
 `57cb59d`에서 실제로 구현된 전환은 타임라인 경계·시간 초과·런 중 이탈이다.
-보스 사망, 전멸, 종료 사유, 점수 정산과 결계·스폰 구독자 side effect는 아직 구현 계약이다.
+2026-09-07 제공 코드에는 전멸·종료 사유·결계/스폰 구독자 처리가 있다. 보스 사망→Victory 연결과
+실제 정산 provider·결과 집계는 남아 있다. ScoreRuleSO.CalculateFinalScore 계산식은 이미 있다.
 
 #### 슬롯의 키는 connectionId가 아니라 PlatformId다 [현재]
 
@@ -785,15 +789,16 @@ phase와 직교하고, `RunPhase`에 값을 더하면 전진 전용 가드와 �
 SyncVar가 마지막 값만 보내 클라이언트가 `Result`를 아예 수신하지 못하기 때문이다.
 
 복귀 시 서버가 하는 일은 셋이다. 입장 잠금 해제, 로비 슬롯의 준비·무기·외형 플래그 초기화,
-플레이어의 `PlayerWeapon`·`PlayerAppearance` 역할 확정과 `PlayerStatus` 시작값 복원.
+플레이어의 `PlayerWeapon`·`PlayerCharacter` 역할 확정과 `PlayerStatus` 시작값 복원.
 플레이어 컴포넌트까지 되돌리지 않으면 다음 런의 역할 배분이 "이미 확정됨"으로 거부된다.
 
 전환 자체는 `RunManager` 안에서 전진 전용 가드(`CommitPhase`)와 실제 커밋(`SetPhase`)을
 나눠 처리한다. 역방향은 `SetPhase`만 허용하므로 런 시계가 지나간 경계를 되돌릴 수는 없다.
 outcome은 여전히 `TryFinishRun`이 한 번만 커밋한다.
 
-`SpawnManager`의 생존 잡귀 정리는 아직 없다 [계획]. 한 서버 세션에서 두 번째 런을 열면
-이전 런의 잡귀가 남는다.
+`SpawnManager`의 생존 잡귀 정리는 [현재] 구현되어 있다. RunResetEvent를 구독하고
+ServerDespawnAll로 자신이 스폰한 개체를 지운 뒤 ServerResetState를 호출한다. 두 판 연속의
+런타임 검증은 별도다. 보스 등 다른 스포너의 개체 정리를 뜻하지 않는다.
 
 `FieldLevel 3`은 일반 잡귀 드랍에 사용하지 않고 보스 처치 후 팀 보상에 한 번만 사용한다. `Result`로 전환하면 모든 입력·드랍·구매 요청을 거부한다.
 
@@ -893,18 +898,21 @@ Assets/02.Prefabs/
 Player.prefab
 ├ NetworkIdentity / NetworkTransformReliable(syncRotation 꺼짐)
 ├ PlayerController / ParryController / ParryGauge
-├ PlayerStatus / PlayerWeapon / PlayerAppearance
+├ PlayerStatus / PlayerWeapon / PlayerCharacter
 ├ PlayerPrediction / PlayerPresentation / PlayerAnimationController / PlayerRollController
 ├ CapsuleCollider / Rigidbody
 └ VisualPivot                   표현용 Yaw만 적용, 물리 · 네트워크 루트는 회전하지 않는다
    ├ Chasa_Art · Singung_Art · Munyeo_Art   모델별 축 보정을 로컬 회전으로 유지
    └ Chisa(비활성)                          교체 전 외부 에셋, 바인딩하지 않는다
 
+[코드 존재 — 프리팹 배선은 별도 확인]
+├ PlayerAttack / HealController / LockOnController
+
 [계획 — 단계별 추가]
-├ PlayerAttack / InteractionController
+├ InteractionController
 ├ ArrowLauncher(서버 전용)
 ├ InventoryController / TalentController
-└ VisualPivot 자식: CameraRig 앵커
+└ CameraRig 앵커는 CAMERA_AND_LOCKON의 독립 카메라 리그 계약을 따른다 (VisualPivot 회전에 종속시키지 않음)
 ```
 
 `ArrowLauncher`는 클라이언트 Command를 받지 않고 `BowAbility`의 서버 스폰 요청만 수행한다.
@@ -934,7 +942,7 @@ Combat ✕ AI ✕ Systems 상호 직접 참조 금지 — Common의 인터페이
 |---|---|---|
 | `IDamageable` | PlayerStatus, EnemyStatus, BossStatus | 공격 판정 · 결계 피해 · 투사체 |
 | `IRecoveryTarget` | PlayerStatus | 무녀 치유 · 회복 물약 |
-| `IBarrierState` | BarrierController *(구현됨 · 2026-09-06 — 중심은 아직 원점 고정, `RunManager`의 시작점·보스점 SyncVar가 선행되어야 실제로 이동한다)* | 무녀 치유 · 결계 밖 잡귀 이동 · BarrierVisual · UI |
+| `IBarrierState` | BarrierController *(구현됨 — RollTargetCenter와 BarrierTransitionState로 중심·반경을 계산. 보스 입구·객주를 포함하는 제약은 별도 미구현)* | 무녀 치유 · 결계 밖 잡귀 이동 · BarrierVisual · UI |
 | `IParryable` | 창귀 돌진, 보스 패링 가능 패턴 | ParryController |
 | `IInteractable` | ShopKeeper, DroppedItem | 플레이어 상호작용 입력 |
 | `ICombatFeedback` | CombatFeedbackImpl | 전투 타이밍 → 로컬 연출 |
@@ -1035,5 +1043,41 @@ Player.prefab의 이동·패링 초기 컴포넌트까지다. 3인 M2와 `Player
 | 항목 | 현재 구조의 가정 | 결정 시 바뀌는 곳 |
 |---|---|---|
 | 리더보드 저장 방식 | 로컬 JSON | LeaderboardService 구현체만 교체 |
-| 보스 페이즈 수 | 클래스 수 미정 | `Phase1State` 등 페이즈 클래스 추가만 — BossController 불변 |
+| 보스 페이즈 수 | 2페이즈 데이터와 Phase1State/Phase2State 있음 | 남은 부위·최종 구간·전환 잠금 계약 구현; 새 페이즈 추가 계획 아님 |
 | 데디케이티드 전환 | 리슨 서버 | ★순수 C# 판정 클래스는 그대로, NB 레이어만 이식 |
+
+---
+
+## 13. 변경 이력 — 2026-08-29 아키텍처 동기화
+
+> **이 장은 통합 기록이다.** 2026-09-07에 `architecture-sync-2026-08-29.md`를 폐기하면서, 그 문서에만 있던 **경계 선택의 이유**를 이 장으로 옮겼다. 당시의 구현 현황 표는 이미 낡았으므로 옮기지 않았다 — 현재 상태는 4·5장이 정본이다.
+
+2026-08-29(기준 커밋 `57cb59d`)에 문서가 설계 초안 상태에 머물러 실제 코드보다 뒤처진 부분을 현재 구현 기준으로 갱신했다. 그때 확정한 경계와 그 이유는 다음과 같다.
+
+### 13.1 런 시계와 공용 시뮬레이션 틱
+
+`RunManager`의 서버 틱은 **경과 시간과 phase만 소유한다.** 이를 플레이어·AI·투사체 전체의 공용 고정 틱으로 문서화하지 않기로 했다.
+
+공용 권위 시뮬레이션 스케줄러를 런 시계 루프의 확장으로 둘지 별도 스케줄러로 둘지는 당시 미정으로 남겼다. **시스템 실행 순서와 입력·피해 catch-up 정책을 정하지 않은 채 런 시계에 얹으면 되돌리기 어렵다**는 판단이었다. (현재는 `AuthorityTickScheduler`가 이 자리를 맡는다.)
+
+### 13.2 서버 부트 게이트는 preflight가 아니라 post-listen이다
+
+Mirror의 `StartHost`/`StartServer` 호출을 가로챌 수 없어, 서버가 열린 직후에 검사하고 실패하면 닫는 구조다. **"서버를 열기 전에 차단한다"는 기존 문구는 실제 동작이 아니었으므로 수정했다.**
+
+이 구분은 지금도 유효하다 — 부트 검사 실패는 "열리지 않음"이 아니라 "열렸다가 닫힘"으로 관측된다.
+
+### 13.3 플레이어 공격 진입점은 하나다
+
+클라이언트 공격 Command는 `PlayerAttack` 하나로 고정한다. 활 공격도 무기 선택을 거쳐 같은 Command로 들어오고, **별도의 활 Command를 만들지 않는다.** 진입점이 갈라지면 서버 검증·게이트·거부 사유를 두 벌 유지해야 한다.
+
+### 13.4 사망·전멸·런 종료의 소유권
+
+`PlayerStatus`가 플레이어 생명 상태의 원본이고, `ReviveController`가 관전·부활 타이머와 전멸 조건을 감지한다. 전멸 시 `RunManager`에 종료를 **요청**하며, **`RunManager`만 `RunPhase.Result`를 커밋한다.** 종료 결과를 커밋하는 곳이 하나여야 사람마다 다른 결과가 나오지 않는다.
+
+### 13.5 `Starting`은 phase가 아니라 트랜잭션이다
+
+`Starting`은 `RunPhase` enum 값이 아니라 **연결 수명의 개념적 트랜잭션**이다. 입장 잠금 → 로비 슬롯 무기 배분 → 역할 적용 → 런 시작이 하나의 단위로 성공하거나 실패해야 하며, 중간 상태를 phase로 노출하면 클라이언트가 그 상태를 렌더링하려 든다.
+
+### 13.6 데이터 명칭과 HP 단일 원본
+
+문서의 오래된 `*Data` 명칭을 실제 클래스·에셋명인 `*SO`로 통일했다. **최대 HP의 단일 원본은 `LevelCurveSO`이며 `CombatConfigSO`에는 HP를 두지 않는다.** 두 SO가 같은 값을 가지면 어느 쪽이 적용됐는지 런타임에 구분할 수 없다.
