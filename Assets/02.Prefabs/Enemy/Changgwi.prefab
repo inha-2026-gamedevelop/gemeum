@@ -26,7 +26,7 @@ Transform:
   m_GameObject: {fileID: 1285283026926444396}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.52, z: 0}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -69,7 +69,8 @@ GameObject:
   - component: {fileID: 8855129136800086429}
   - component: {fileID: 7890579234471204408}
   - component: {fileID: 2882479702371067886}
-  - component: {fileID: 2937007031455488628}
+  - component: {fileID: 7279559897349203474}
+  - component: {fileID: 1892121397821985332}
   m_Layer: 10
   m_Name: Changgwi
   m_TagString: Untagged
@@ -180,7 +181,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.AI.EnemyAnimationController
   _animator: {fileID: 0}
---- !u!114 &2937007031455488628
+--- !u!114 &7279559897349203474
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4402295884286804196}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02e7616887f858442a2dd9edac19385f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Common.AimAssistPoint
+  _localOffset: {x: 0, y: 1.1, z: 0}
+--- !u!114 &1892121397821985332
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

@@ -4,7 +4,7 @@ using Geumeum.Systems;
 
 public class BarrierJudgeTests
 {
-    /// <summary> 결계 밖 판정 기준선 — 반경 10, 중심 원점일 때 15m 지점은 밖이다 </summary>
+    /// <summary> 결계 밖 판정 기준선. 반경 10, 중심 원점일 때 15m 지점은 밖이다 </summary>
     [Test]
     public void IsOutsideDetectsPointBeyondRadius()
     {

@@ -586,14 +586,26 @@ Main.unity
 │  │                           결계 축소 시 범위 밖 클러스터 비활성화
 │  └ SpawnCluster.cs       MB  씬에 배치되는 거점 마커 (3~5마리). 위치 고정 · 구성 랜덤
 └ Boss/
-   ├ BossController.cs     NB  [현재] 현재 페이즈에 위임만 한다. 페이즈 전환 조건 관리
-   ├ BossStatus.cs         NB  [현재] 보스 HP SyncVar. IDamageable
-   ├ BossPhaseStateBase.cs C#  [현재] 페이즈 추상 클래스 (enum+switch 금지 — 기술 구현 4.2)
-   ├ Phase1State.cs / Phase2State.cs C# [현재] 페이즈별 상태 전환 뼈대만 구현됨.
-   │                           패턴 선택 · 발동 로직은 아직 [계획] (4단계, BOSS_DESIGN.md 15장)
-   └ BossPatternTelegraph.cs NB [계획] 공격 예고 장판. 서버가 (패턴 · 시각 · 위치) 이벤트만 보내고
-                              렌더링은 클라 — 기술 구현 3.2 "보이지만 판정에 걸리는 것"
+   ├ BossController.cs        NB [현재] 페이즈 전환(EnterHealthRatio) · 대상 스캔(RefreshTarget) ·
+   │                              공격 instance ID 발급 · 그로기 게이지 상태머신(Active/Groggy/Immune)
+   │                              관리, 판정 자체는 현재 페이즈 상태에 위임. RpcBeginTelegraph/
+   │                              RpcCancelTelegraph는 [계획] 빈 구현(서버 판정에는 영향 없음)
+   ├ BossStatus.cs            NB [현재] 보스 HP SyncVar. IDamageable
+   ├ BossPhaseStateBase.cs    C#  [현재] 페이즈 추상 클래스 (enum+switch 금지 — 기술 구현 4.2)
+   ├ Phase1State.cs           C#  [현재] 1페이즈 MVP: 오프닝 고정 시퀀스(1→2→4) 이후 거리 3단
+   │                              필터 + 균등 무작위 추첨. 템플릿 넷(MeleeArc·TargetedDash·
+   │                              MarkedCircle·ConeBurst) 전부 단일 판정으로 구현됨
+   ├ Phase2State.cs           C#  [현재] 2페이즈 MVP: 패턴 6~9(패턴 10 백귀야행은 꼬리 부위
+   │                              파괴 시스템 선행 필요 — [계획], BOSS_PATTERN_CONTRACT.md 4.1)
+   ├ BossPatternRunner.cs     C#  [현재] MeleeArc 부채꼴 판정(NonAlloc), netId 중복 제거
+   ├ BossAttackExecution.cs   C#  [현재] 보스 공격 1회의 IParryable 구현체. 공격마다 새 인스턴스로
+   │                              늦은 패링 통지를 차단(창귀와 동일 패턴)
+   └ BossSpawner.cs           NB [현재] Boss_Proxy.prefab 스폰
 ```
+
+`BossTelegraphCue.cs`(서버→클라 공격 예고 값 타입, struct)는 공용 스키마라 `00.Common/Types/`에 있다 → 4.1절.
+꼬리 3덩이 부위 파괴·25% 하드 게이트·백귀야행(패턴 10)은 전부 [계획]이며 아직 파일이 없다 —
+BOSS_PATTERN_CONTRACT.md 8.2·4.1절 참조.
 
 ### 4.4 04.Systems — 장비 · 경제 · 성장 · 점수 · 결계 (소유: 게임플레이 시스템 파트 @kjw1237)
 

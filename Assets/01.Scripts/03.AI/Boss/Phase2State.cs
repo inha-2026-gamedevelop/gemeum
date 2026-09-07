@@ -12,9 +12,11 @@ namespace Geumeum.AI
 {
     /// <summary>
     /// 2페이즈, 시험하는 판. Phase1State와 같은 네 템플릿을 재사용하되 사거리, 속도가 커지고
-    /// 패턴 6(MeleeArc)만 패링 가능하다. 패턴 8(MarkedCircle)의 "순차 처형", 패턴 9(ConeBurst)의
-    /// "3단 반복 펄스", 패턴 10(백귀야행, 조건부 발동)은 전부 단일 판정 MVP로 축소했다 -
-    /// 순차, 반복, 꼬리 상태 조건은 이 슬라이스 범위 밖이다. Phase1State와 구조가 거의 같지만
+    /// 패턴 6(MeleeArc)만 패링 가능하다. 패턴 9(ConeBurst)는 "3단 반복 펄스"까지 구현했다(2026-09-07)
+    /// - Windup을 세 번 반복해 매번 새 텔레그래프 큐를 보낸다. 다만 신궁 시전 중단(원거리 캔슬)
+    /// 이벤트는 아직 없어 펄스를 끊는 훅은 비어 있다. 패턴 8(MarkedCircle)의 "순차 처형"(3인 전원
+    /// 표식 후 순서대로 폭발), 패턴 10(백귀야행, 조건부 발동)은 여전히 단일 판정 MVP/미구현이다 -
+    /// 다중 대상, 꼬리 상태 조건은 이 슬라이스 범위 밖이다. Phase1State와 구조가 거의 같지만
     /// 값이 전부 달라 별도 클래스로 뒀다(공유 리팩터링은 사용자 판단으로 미룸, 2026-09-06)
     /// </summary>
     public sealed class Phase2State : BossPhaseStateBase
@@ -55,18 +57,25 @@ namespace Geumeum.AI
 
         // TODO: BossPatternSO.PatternEntry에 템플릿별 필드가 생기면 SO로 옮긴다. 지금은 스키마가
         // 00.Common 공용 파일이라 팀장 확인 없이 필드를 추가하지 않고, 우리 파트 안에 임시 상수로 둔다
-        private const float MELEE_RANGE                 = 4.5f;  // m, 2페이즈 MeleeArc 사거리
+        // 2026-09-07 - 실측 키(2.109m)가 설계 가정(1.85m) 대비 x1.14라 사거리·반경류만 그 비율로 스케일했다.
+        // 속도·각도·Telegraph 시간은 BOSS_DESIGN.md 11장 원칙(Windup 고정, 사거리만 확대)대로 그대로 둔다
+        private const float MELEE_RANGE                 = 5.13f; // m, 2페이즈 MeleeArc 사거리 (4.5 x1.14)
         private const float MELEE_ANGLE_DEGREES         = 180f;  // 도, 부채꼴 전체 각도
         private const float MELEE_PARRY_WINDOW_DURATION = 0.32f; // 초, 패링 판정 창 길이
 
-        private const float DASH_SPEED      = 12f;  // m/s, 2페이즈 돌진 속도
-        private const float DASH_DISTANCE   = 14f;  // m, 2페이즈 돌진 거리
-        private const float DASH_HIT_RADIUS = 1.2f; // m, 돌진 도착 지점 명중 판정 반경
+        private const float DASH_SPEED      = 12f;    // m/s, 2페이즈 돌진 속도
+        private const float DASH_DISTANCE   = 15.96f; // m, 2페이즈 돌진 거리 (14 x1.14)
+        private const float DASH_HIT_RADIUS = 1.37f;  // m, 돌진 도착 지점 명중 판정 반경 (1.2 x1.14)
 
-        private const float MARKED_CIRCLE_RADIUS = 5.5f; // m, 2페이즈 낙인 반경
+        private const float MARKED_CIRCLE_RADIUS = 6.27f; // m, 2페이즈 낙인 반경 (5.5 x1.14)
 
-        private const float CONE_RANGE         = 9f;  // m, 충격파 사거리
-        private const float CONE_ANGLE_DEGREES = 60f; // 도, 충격파 부채꼴 전체 각도
+        private const float CONE_RANGE         = 10.26f; // m, 충격파 사거리 (9 x1.14)
+        private const float CONE_ANGLE_DEGREES = 60f;     // 도, 충격파 부채꼴 전체 각도
+
+        // 9번(연쇄 부채꼴 3단) 전용 - 계약 3장 "ConeBurst 반복 펄스, 시전 중단 창이 세 번".
+        // 신궁의 시전 중단(원거리 캔슬)은 아직 별도 이벤트가 없어(BossController 상단 TODO 참고)
+        // 이 슬라이스에서는 펄스 반복 구조만 만들고 캔슬 훅은 비워 둔다
+        private const int CONE_BURST_PULSE_COUNT = 3; // 연속 판정 횟수
 
         /****************************************
         *                Fields
@@ -93,6 +102,8 @@ namespace Geumeum.AI
         private BossAttackExecution        _activeExecution; // 늦게 도착한 이전 공격의 OnParried를 걸러내는 참조
         private IParryWindowTarget         _openParryTarget;
         private ParryWindowKey             _openParryKey;
+
+        private int _conePulseIndex = 0; // ConeBurst 전용, 0-based. 다른 패턴에서는 안 쓴다
 
         /****************************************
         *              Constructor
@@ -191,6 +202,19 @@ namespace Geumeum.AI
             return PatternKind.MeleeArc;
         }
 
+        // 화면 로그용 이름. 기획 문서(BOSS_PATTERN_CONTRACT) 표기를 그대로 쓴다
+        private static string PatternName(int patternId)
+        {
+            switch (patternId)
+            {
+                case MELEE_ARC_PATTERN_ID:     return "거대 꼬리치기";
+                case TARGETED_DASH_PATTERN_ID: return "마수 돌진";
+                case MARKED_CIRCLE_PATTERN_ID: return "표식 순환 처형";
+                case CONE_BURST_PATTERN_ID:    return "연쇄 부채꼴 3단";
+                default:                       return $"패턴 {patternId}";
+            }
+        }
+
         private void BeginAttack(BossPatternSO.PatternEntry pattern, PatternKind kind)
         {
             _activeTarget           = Target;
@@ -201,6 +225,7 @@ namespace Geumeum.AI
             _activeAttackInstanceId = _controller.ServerNextAttackInstanceId();
             _stateTimer             = 0f;
             _state                  = AttackState.Windup;
+            _conePulseIndex         = 0;
 
             Vector3 direction = _activeTarget.position - Self.position;
             direction.y = 0f;
@@ -219,18 +244,26 @@ namespace Geumeum.AI
             }
 
             TryOpenParryWindow(pattern);
+            SendTelegraphCue();
 
+            // BossTelegraphView가 아직 없어 예고가 화면에 안 보인다. 확인용 임시 로그 - 뷰 붙으면 지운다
+            GDebug.Server($"[보스] {PatternName(pattern.PatternId)} 예고 시작");
+        }
+
+        /// <summary> 현재 상태(_lockedForward, _markedCenter 등) 기준으로 예고 큐를 전파한다. 9번 펄스마다 다시 부른다 </summary>
+        private void SendTelegraphCue()
+        {
             uint targetNetId = _activeTarget.TryGetComponent(out NetworkIdentity targetIdentity) ? targetIdentity.netId : 0u;
-            Vector3 cueOrigin = (kind == PatternKind.MarkedCircle) ? _markedCenter : Self.position;
+            Vector3 cueOrigin = (_activeKind == PatternKind.MarkedCircle) ? _markedCenter : Self.position;
 
             BossTelegraphCue cue = new BossTelegraphCue
             {
                 AttackInstanceId = _activeAttackInstanceId,
-                PatternId        = pattern.PatternId,
+                PatternId        = _activePattern.PatternId,
                 TargetNetId      = targetNetId,
                 Origin           = cueOrigin,
-                Direction        = direction,
-                ImpactServerTime = NetworkTime.time + pattern.TelegraphDuration,
+                Direction        = _lockedForward,
+                ImpactServerTime = NetworkTime.time + _activePattern.TelegraphDuration,
             };
 
             _controller.ServerBeginTelegraph(cue);
@@ -257,6 +290,23 @@ namespace Geumeum.AI
                 ResolveImpact();
             }
 
+            // 9번(연쇄 부채꼴 3단) - 판정 하나가 끝나도 회복으로 넘어가지 않고, 정해진 횟수만큼
+            // Windup을 다시 돈다. ConeBurst는 패링 불가라 _activeParried가 true일 일이 없지만,
+            // 혹시 몰라 취소된 펄스는 카운트만 올리고 다음 펄스로 넘긴다(무한 반복 방지)
+            if (_activeKind == PatternKind.ConeBurst)
+            {
+                ++_conePulseIndex;
+                if (_conePulseIndex < CONE_BURST_PULSE_COUNT)
+                {
+                    _activeAttackInstanceId = _controller.ServerNextAttackInstanceId();
+                    _activeParried          = false;
+                    _stateTimer             = 0f;
+                    SendTelegraphCue();
+                    GDebug.Server($"[보스] {PatternName(_activePattern.PatternId)} 펄스 {_conePulseIndex + 1}/{CONE_BURST_PULSE_COUNT}");
+                    return; // Windup 유지, Recovery로 넘어가지 않는다
+                }
+            }
+
             _stateTimer        = 0f;
             _cooldownRemaining = _activePattern.Cooldown;
             _state             = AttackState.Recovery;
@@ -264,6 +314,9 @@ namespace Geumeum.AI
 
         private void ResolveImpact()
         {
+            // BossTelegraphView가 아직 없어 타격이 화면에 안 보인다. 확인용 임시 로그 - 뷰 붙으면 지운다
+            GDebug.Server($"[보스] {PatternName(_activePattern.PatternId)} 타격 판정");
+
             uint attackerNetId = (_selfIdentity != null) ? _selfIdentity.netId : 0u;
 
             if (_activeKind == PatternKind.TargetedDash)
