@@ -64,6 +64,9 @@ namespace Geumeum.Data
         [SerializeField] private float _followSmoothTime = 0.08f;
 
         [Header("회전")]
+        [Tooltip("런을 시작할 때의 내려다보는 각도(도). 씬에 놓인 카메라 각도를 쓰면 씬을 만지는 사람에 따라 게임 시작 각도가 따라 바뀐다")]
+        [SerializeField] private float _defaultPitch = 22f;
+
         [Tooltip("좌우 감도 기본값(도/픽셀). 옵션 UI가 생기면 사람마다 덮어쓴다")]
         [SerializeField] private float _defaultSensitivityX = 0.15f;
 
@@ -147,6 +150,7 @@ namespace Geumeum.Data
         public float SideOffset       => _sideOffset;
         public float FollowSmoothTime => _followSmoothTime;
 
+        public float DefaultPitch        => _defaultPitch;
         public float DefaultSensitivityX => _defaultSensitivityX;
         public float DefaultSensitivityY => _defaultSensitivityY;
         public bool  DefaultInvertY      => _defaultInvertY;
@@ -251,6 +255,8 @@ namespace Geumeum.Data
                     c => c._sideOffset, (c, v) => c._sideOffset = v),
                 new Tunable("추적", "follow-smooth", "대상이 움직이면", "초에 걸쳐 부드럽게 쫓아간다", 0.0f, 0.5f,
                     c => c._followSmoothTime, (c, v) => c._followSmoothTime = v),
+                new Tunable("회전", "default-pitch", "런을 시작할 때 카메라는", "도 내려다본다", -30f, 60f,
+                    c => c._defaultPitch, (c, v) => c._defaultPitch = v),
                 new Tunable("회전", "sens-x", "마우스를 좌우로 1픽셀 움직이면", "도 돈다", 0.01f, 0.6f,
                     c => c._defaultSensitivityX, (c, v) => c._defaultSensitivityX = v),
                 new Tunable("회전", "sens-y", "상하로 1픽셀 움직이면", "도 돈다", 0.01f, 0.6f,
