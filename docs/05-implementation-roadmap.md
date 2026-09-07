@@ -8,7 +8,7 @@
 
 | 날짜 | 변경점 |
 |---|---|
-| **2026-09-08** | 인벤토리 2칸으로 U08 축소 · U14에 개인 지표와 평가 추가 · U34 타격감을 5항목으로 고정 · **U41 컷씬·시네머신 신설** · U29·U40을 티저 필수로 승격 · 에셋 도입 조건 신설(9장) |
+| **2026-09-08** | **U36 누락 YAML 23개 해소(완료)** · 인벤토리 2칸으로 U08 축소 · U14에 개인 지표와 평가 추가 · U34 타격감을 5항목으로 고정 · **U41 컷씬·시네머신 신설** · U29·U40을 티저 필수로 승격 · 에셋 도입 조건 신설(9장) |
 | 2026-09-07 | 초판 — U01~U40 |
 
 ---
@@ -65,17 +65,25 @@
 - 위험: 호스트만 다른 SO를 읽어 부트 실패, 빌드별 누락 필드 초기값이 다름
 - 공수: 1인·일. 담당 @AidenKim923
 
-**누락 YAML 필드 목록** (C# 초기값만 있고 에셋에 없음):
+**누락 YAML 필드 — 2026-09-08 해소 완료.** 23개 필드를 Inspector 실효값 그대로 에셋에 명시했다.
 
-| SO | 필드 | 코드 초기값 |
+Unity에서 확인한 사실: **필드가 YAML에 없어도 0이 되지 않고 C# 초기화자 값이 그대로 쓰인다.** 즉 동작은 처음부터 옳았고, 문제는 값이 파일에 안 보여서 **담당자가 조정할 수 없고 리뷰도 안 된다**는 것이었다.
+
+| SO | 명시한 필드 | 값 |
 |---|---|---|
 | `CameraConfigSO` | `_defaultPitch` | 22 |
-| `ArrowConfigSO` | `_guidanceAbortAngle` | 35° (현재 코드 상수) |
-| `CombatConfigSO` | `_bell*` · `_spiritGain*` | .2/.35/6/3.5m/360°/6공격, 신력 5·상한 15 |
-| `CombatConfigSO` | `_markDuration` · `_markSlotCount` | 8초 / 2 |
-| `CombatConfigSO` | `_heal*` | 25/.4/.4/6m/40/4s |
-| `CombatConfigSO` | `_rescue*` · `_reviveBarrierInsetRatio` | 3m/3s/.1/.9 |
-| `BossPatternSO` | `_wonhonHealth` · `_finalGauntletWindowSeconds` | 200 / 8초 |
+| `CombatConfigSO` | `_bellStartupDuration` · `_bellRecoveryDuration` · `_bellStaminaCost` · `_bellRange` · `_bellAngle` · `_bellBasePower` | 0.2 / 0.35 / 6 / 3.5 / 360 / 6 |
+| `CombatConfigSO` | `_spiritGainPerHit` · `_spiritGainMaxPerSwing` | 5 / 15 |
+| `CombatConfigSO` | `_markDuration` · `_markSlotCount` | 8 / 2 |
+| `CombatConfigSO` | `_healSpiritCost` · `_healCastDuration` · `_healRecoveryDuration` · `_healRadius` · `_healAmount` · `_healCooldownDuration` | 25 / 0.4 / 0.4 / 6 / 40 / 4 |
+| `CombatConfigSO` | `_rescueRadius` · `_rescueDuration` · `_rescueCurrencyLossRatio` · `_reviveBarrierInsetRatio` | 3 / 3 / 0.1 / 0.9 |
+| `BossPatternSO` | `_wonhonHealth` · `_finalGauntletWindowSeconds` | 200 / 8 |
+
+`ArrowConfigSO`는 누락이 없었다. `_guidanceAbortAngle`(35°)은 `SerializeField`가 아니라 **코드 상수**이며, SO 이관은 별도 판단 대상이다.
+
+> ⚠️ **에셋을 Unity에서 통째로 재저장하지 말 것.** `BossPatternSO`를 재저장하면 `PatternIds`가 16진 블롭으로, 한글 `DisplayName`이 유니코드 이스케이프로 바뀐다. **값은 같지만 사람이 읽을 수 없게 된다.** 밸런스 값은 담당자가 파일에서 직접 보고 고치므로 이 손실이 크다. 필드 추가는 텍스트로 직접 넣고 Unity에서 로드 결과만 확인한다.
+
+**남은 것:** 부트 검증(`GeumeumBootValidator`) 확대는 아직이다. 현재 결계·시작 레벨·스폰만 검사한다.
 
 ### U37 릴리스 개발도구 의존 · 씬검사 프로필
 
