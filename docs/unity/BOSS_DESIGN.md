@@ -41,7 +41,7 @@
 
 이번에 만드는 것은 서버 권위 보스 1마리, HP 기반 2페이즈, 서버 패턴 선택·명중 판정, 모든 클라이언트에 동일한 예고 표현, 페이즈별 패링 가능 패턴 1개 이상, 보스 사망에 따른 `Result` 진입이다.
 
-MVP 패턴은 아래 8개다. **보스 정체는 2026-09-03에 구미호로 개정됐다**(위 상자 참조) — 아래 표의 "장병기" 같은 병사 기반 작업명은 10장의 구미호 기준 이름으로 대체한다. `docs/boss-pattern-design-2026-08-31.md`의 거대 괴수 초안은 채택하지 않는다.
+MVP 패턴은 아래 8개다. **보스 정체는 2026-09-03에 구미호로 개정됐다**(위 상자 참조) — 아래 표의 "장병기" 같은 병사 기반 작업명은 10장의 구미호 기준 이름으로 대체한다. 패턴 초안의 거대 괴수안은 채택하지 않는다 ([보스 패턴 계약 21.4](BOSS_PATTERN_CONTRACT.md)).
 
 | 페이즈 | 패턴 | 실행 템플릿 | 패링 | 세 직업의 참여 창 |
 |---|---|---|---|---|
@@ -161,13 +161,13 @@ MVP 패턴은 아래 8개다. **보스 정체는 2026-09-03에 구미호로 개�
 | 필드 | 타입 | 기본값 후보 |
 |---|---|---:|
 | `PhaseIndex` | `int` | 1, 2 |
-| `EnterHealthRatio` | `float` | 1.0, **0.6** |
+| `EnterHealthRatio` | `float` | 1.0, **0.5** |
 | `PatternIds` | `int[]` | 페이즈당 4개 |
 | `DecisionDelayMin` / `DecisionDelayMax` | `float` | 0.35 / 0.75초 |
 | `MaxGapWithoutParryable` | `float` | 25초 |
 | `TransitionLockDuration` | `float` | 2초 |
 
-phase 검사는 index 1→2의 연속성, `EnterHealthRatio`의 1.0→0.6 단조 감소, 유효 PatternId만 참조하는지, 각 phase에 `ParryableRepeatIndex >= 0`인 항목이 최소 1개인지 확인한다. `BossPatternSO` 루트의 `_maxHealth`는 **55,000으로 확정한다**(2026-09-04). 3,000은 3인 DPS 측정 전의 플레이스홀더였고 폐기한다. 같은 에셋에 `HitColliderBufferSize` 같은 기술 한계는 넣지 않고 코드의 안전 상한으로 둔다. 반대로 플레이 체감에 영향을 주는 시간·거리·피해는 모두 SO에 둔다.
+phase 검사는 index 1→2의 연속성, `EnterHealthRatio`의 1.0→0.5 단조 감소, 유효 PatternId만 참조하는지, 각 phase에 `ParryableRepeatIndex >= 0`인 항목이 최소 1개인지 확인한다. `BossPatternSO` 루트의 `_maxHealth`는 **55,000으로 확정한다**(2026-09-04). 3,000은 3인 DPS 측정 전의 플레이스홀더였고 폐기한다. 같은 에셋에 `HitColliderBufferSize` 같은 기술 한계는 넣지 않고 코드의 안전 상한으로 둔다. 반대로 플레이 체감에 영향을 주는 시간·거리·피해는 모두 SO에 둔다.
 
 ### 4.4 `BossTelegraphCue`
 
@@ -218,7 +218,7 @@ Unity는 ScriptableObject를 GameObject 인스턴스와 분리된 공유 데이�
 
 1. **수직 슬라이스(16~20시간):** `BossSpawner`, `BossStatus`, `BossController`, `BossTelegraphCue`, 1페이즈 `MeleeArc` 1개, HP/사망, 서버 스폰. 큐브·캡슐과 단색 부채꼴 예고로 3인이 피해·회피·보스 처치를 확인한다. Mirror spawnable-prefab 등록과 phase bootstrap도 이 단계에 끝낸다.
 2. **패링 연결(8~12시간):** `BossParryAttack`과 `IParryWindowTarget` 접점, 검 사용자 수신 규칙, 그로기, 취소 경로. 이 단계부터 페이즈 1의 차사 루프가 동작한다.
-3. **두 번째 페이즈(10~14시간):** **HP 60% 전환**(`EnterHealthRatio = 0.6`), `TargetedDash`/`MarkedCircle`/`ConeBurst`, 페이즈 2 패링 1개, 최근 지목자 제외.
+3. **두 번째 페이즈(10~14시간):** **HP 50% 전환**(`EnterHealthRatio = 0.5`), `TargetedDash`/`MarkedCircle`/`ConeBurst`, 페이즈 2 패링 1개, 최근 지목자 제외.
 4. **콘텐츠 채움(12~18시간):** 같은 네 템플릿으로 데이터 항목을 8개까지 채우고 애니메이션·VFX를 연결한다.
 5. **통합(10~14시간):** 이 문서에서 보강한 `EnemyDiedEvent.ForBoss`와 00의 `RunManager.TryFinishRun(RunOutcome.Victory)`을 보상/점수까지 연결하고 3인 지연·이탈·보스 사망-시간초과 경합을 검증한다.
 

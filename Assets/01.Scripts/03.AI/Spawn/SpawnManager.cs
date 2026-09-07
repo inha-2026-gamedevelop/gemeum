@@ -199,9 +199,9 @@ namespace Geumeum.AI
             _totalAliveCount = Mathf.Max(0, _totalAliveCount - 1);
         }
 
-        // TODO(오나): BarrierController가 생기면 이 메서드는 그 SyncVar(현재 반경)를 읽는 쪽으로 바꾼다.
-        // 지금은 BarrierController가 없어 BarrierPhaseSO의 "단계별 목표 반경"을 대신 읽는다 —
-        // 30초 축소 연출 도중의 실제 반경이 아니라 그 단계의 최종 반경으로 즉시 판정하는 근사치다
+        // TODO(오나): BarrierController는 이미 있고 중심도 매 단계 이동한다. 이 메서드는 아직 고정 마커와
+        // BarrierPhaseSO의 "단계별 목표 반경"을 읽는 근사치다 — IBarrierState(Locator)로 실제 중심·반경을
+        // 읽도록 바꾸는 작업은 docs/05-implementation-roadmap.md U24
         private void RefreshClusterRange(RunPhase phase)
         {
             if (_barrierCenter == null)

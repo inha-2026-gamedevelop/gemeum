@@ -354,7 +354,7 @@ private void LateUpdate()
 | `─` `《》` 장식, 괄호 | `-` `"` | `[ 무기 보정 ]`, `"객주의 가락"` |
 | 한자 (`白` `靑` `金`) | 한글 | `일반, 흰색` |
 
-**XML 문서 주석의 `<b>` 강조 태그도 쓰지 않는다.** ASCII이긴 하지만 하는 일은 장식과 같고, 강조가 늘어날수록 정작 중요한 줄이 묻힌다. 중요하면 문장을 앞으로 옮기거나 줄을 나눈다. `<see cref="..."/>`, `<c>...</c>`처럼 **IDE가 실제로 해석하는 태그는 그대로 쓴다.**
+**XML 문서 주석의 `<b>` 강조 태그도 쓰지 않는다.** ASCII이긴 하지만 하는 일은 장식과 같고, 강조가 늘어날수록 정작 중요한 줄이 묻힌다. 중요하면 문장을 앞으로 옮기거나 줄을 나눈다. `<see cref="..."/>`, `<c>...</c>` 등도 아래 2026-09-06 XML 규칙에 따라 쓰지 않는다. XML 문서 태그는 `<summary>`만 남긴다.
 
 ```csharp
 // 나쁨
@@ -530,7 +530,7 @@ public override void OnStartServer() { _enemyData = GameDB.Enemy; }
 
 **GameDB 규칙**
 - SO 필드는 `[SerializeField] private` + 읽기 전용 프로퍼티. 필드에 단위/용도 주석
-- **GameDB를 초기화하는 것은 `GameDBBootstrap` 하나뿐이다.** 이 컴포넌트가 `Awake`에서 `Resources/GameDB.asset`을 로드해 `GameDB.Initialize()`를 호출한다
+- **GameDB를 초기화하는 것은 `GameDBBootstrap` 하나뿐이다.** `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]`에서 `Resources/GameDB.asset`을 로드해 `GameDB.Initialize()`를 호출한다. `Awake`도 같은 멱등 초기화 경로를 호출한다. Mirror가 서버 시작 전 매니저를 비활성화할 수 있으므로 `Awake`만을 부트 순서의 근거로 삼지 않는다
 - **소비 컴포넌트는 `Awake`와 필드 초기화식에서 GameDB를 읽지 않는다.** `Start` · `OnStartServer` · `OnStartClient` 이후에 읽는다 — 같은 씬에 있는 컴포넌트들의 `Awake` 실행 순서는 보장되지 않으므로, `Awake`에서 읽으면 `GameDBBootstrap`보다 먼저 도는 컴포넌트가 초기화 전 DB를 잡는다 ([프로젝트 구조 설계서 6장](04-architecture.md))
 - 루트 DB나 필수 참조가 없으면 조용히 기본값으로 진행하지 말고 초기화 오류로 중단한다
 - 컴포넌트에 밸런스 값을 SerializeField 미러로 두지 않는다 — DB 원본이 단일 소스

@@ -98,7 +98,7 @@ namespace Geumeum.Data
         [SerializeField] private float _lockOnSwitchCooldown = 1f;  // 자동 재전환 금지(초), 바위 뒤를 들락날락할 때 대상이 계속 바뀌는 것을 막는다
         [SerializeField] private float _lockOnTurnDegreesPerSecond = 1080f; // 락온 중 모델 회전 속도(도/초), 비락온은 720
 
-        // TODO(민성): 부활 수치를 어느 SO가 소유할지 팀에서 확정할 것
+        // 부활 수치는 이 SO가 소유한다 (2026-09-07 확정). 재화 차감 비율은 CurrencyManager가 생기면 여기 값을 읽는다
         [Header("부활")]
         [SerializeField] private float _spectateDuration         = 30f;  // 사망 후 관전(초)
         [SerializeField] private float _reviveHealthRatio        = 0.5f; // 최대 HP 대비 회복 비율

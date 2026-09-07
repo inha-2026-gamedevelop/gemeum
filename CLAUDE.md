@@ -185,6 +185,7 @@
 | 밸런스 수치 · 콘텐츠 | [게임 디자인](docs/02-game-design.md) |
 | 아키텍처 · 파트별 스펙 | [기술 설계](docs/03-technical-design.md) |
 | 폴더 · 씬 · 클래스 배치 | [프로젝트 구조 설계서](docs/04-architecture.md) |
+| 미구현 항목 구현 방법 (U01~U40) | [구현 로드맵](docs/05-implementation-roadmap.md) · 일정은 [주간 계획 10장](docs/weekly-plan-2026-09-04.md) |
 | 협업 · 브랜치 · 씬 규칙 | [협업 규칙](CONTRIBUTING.md) |
 | C# 코딩 컨벤션 | [코딩 컨벤션](docs/coding-convention.md) |
 | 디자인 패턴 지도 · 선택 규칙 | [디자인 패턴](docs/unity/DESIGN_PATTERNS.md) |
