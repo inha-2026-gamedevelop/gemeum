@@ -14,7 +14,7 @@ using Geumeum.Network;
 
 namespace Geumeum.Systems
 {
-    /// <summary> 결계 상태 머신. 1단계 — phase 전환 감지, 반경 트윈 값 커밋, 결계 밖 1초 피해 </summary>
+    /// <summary> 결계 상태 머신. 1단계 - phase 전환 감지, 반경 트윈 값 커밋, 결계 밖 1초 피해 </summary>
     public class BarrierController : NetworkBehaviour, IBarrierState
     {
         /****************************************
@@ -59,7 +59,7 @@ namespace Geumeum.Systems
             }
         }
 
-        // 중심은 매 단계 RollTargetCenter가 이전 원 안에서 무작위로 고른 지점이다 — 고정 경로가 아니다
+        // 중심은 매 단계 RollTargetCenter가 이전 원 안에서 무작위로 고른 지점이다, 고정 경로가 아니다
         public Vector3 Center => BarrierJudge.GetCenter(_transitionState, NetworkTime.time);
 
         public float Radius => BarrierJudge.GetRadius(_transitionState, NetworkTime.time);
@@ -193,12 +193,12 @@ namespace Geumeum.Systems
             _currentPhase = phase;
         }
 
-        // 팀장 확정(2026-09-06 구두) — 결계는 고정된 보스 지점으로 수렴하지 않고, 매 단계 이전 원 안의
+        // 팀장 확정(2026-09-06 구두). 결계는 고정된 보스 지점으로 수렴하지 않고, 매 단계 이전 원 안의
         // 아직 좁혀지지 않은 영역에서 무작위로 다음 중심을 고른다. 새 원이 이전 원을 벗어나지 않도록
-        // 반경 차이(previousRadius - targetRadius) 안에서만 오프셋을 굴린다 — 그러면 새 원이 항상
-        // 이전 원에 완전히 포함된다. 01-system-design.md 2.1.1(고정 시작점→보스점 수렴)과는 다른 방식이니
-        // 문서 갱신이 필요하다.
-        // 순수 계산 함수라 [Server]를 달지 않는다 — 호출부인 ServerCommitPhase가 이미 서버 전용이다
+        // 반경 차이(previousRadius - targetRadius) 안에서만 오프셋을 굴린다, 그러면 새 원이 항상
+        // 이전 원에 완전히 포함된다. 예전에는 시작점에서 고정된 보스 지점으로 곧장 수렴하는 방식이었으나
+        // 지금은 그런 고정 경로가 없다.
+        // 순수 계산 함수라 [Server]를 달지 않는다, 호출부인 ServerCommitPhase가 이미 서버 전용이다
         private static Vector3 RollTargetCenter(Vector3 previousCenter, float previousRadius, float targetRadius)
         {
             float maxOffset = Mathf.Max(previousRadius - targetRadius, 0f);
@@ -293,8 +293,8 @@ namespace Geumeum.Systems
 
         // RunManager의 타임라인을 안 건드리고 phase를 바로 다음 단계로 넘긴다.
         // BarrierPhaseSO의 StartSeconds/EndSeconds를 테스트용으로 고치면 RunPhaseTimeline.Validate가
-        // 실패해 서버가 부트 검증에서 튕긴다 — 그 함정을 피하려고 만든 테스트 전용 경로다
-        // BarrierTestHarness가 자동 전환 코루틴에서 직접 호출한다 — public이지만 UNITY_EDITOR 밖에서는 존재 자체가 없다
+        // 실패해 서버가 부트 검증에서 튕긴다, 그 함정을 피하려고 만든 테스트 전용 경로다
+        // BarrierTestHarness가 자동 전환 코루틴에서 직접 호출한다. public이지만 UNITY_EDITOR 밖에서는 존재 자체가 없다
         [ContextMenu("Debug: Force Next Phase (Test)")]
         public void DebugForceNextPhase()
         {
@@ -334,7 +334,7 @@ namespace Geumeum.Systems
         private Mesh      _runtimePillarMesh;
         private Material  _runtimePillarMaterial;
 
-        // NetworkTime.time은 런타임에만 유효하다 — 에디트 모드에서 호출하면 예외가 난다
+        // NetworkTime.time은 런타임에만 유효하다, 에디트 모드에서 호출하면 예외가 난다
         private void OnDrawGizmos()
         {
             if (!Application.isPlaying)
@@ -428,12 +428,12 @@ namespace Geumeum.Systems
             float   radius = Mathf.Max(Radius, MIN_PILLAR_RADIUS);
             float   groundY = ResolveGroundY(center);
 
-            // 기본 Cylinder 프리미티브는 지름 1m, 높이 2m다 — 반경·원하는 높이에 맞춰 스케일한다
+            // 기본 Cylinder 프리미티브는 지름 1m, 높이 2m다. 반경, 원하는 높이에 맞춰 스케일한다
             _pillarTransform.position   = new Vector3(center.x, groundY + (_pillarHeight * 0.5f), center.z);
             _pillarTransform.localScale = new Vector3(radius * 2f, _pillarHeight * 0.5f, radius * 2f);
         }
 
-        // Center.y는 XZ 판정 전용이라 항상 0이다 — 실제 지형 높이는 여기서 레이캐스트로 찾는다.
+        // Center.y는 XZ 판정 전용이라 항상 0이다. 실제 지형 높이는 여기서 레이캐스트로 찾는다.
         // 못 찾으면(콜라이더 없음 등) center.y를 그대로 써서 최소한 예전 동작으로 돌아간다
         private float ResolveGroundY(Vector3 center)
         {

@@ -5,9 +5,9 @@ using UnityEngine;
 namespace Geumeum.Systems
 {
     /// <summary>
-    /// 네트워크·RunManager 없이 BarrierJudge 보간·판정만 눈으로 확인하는 독립 테스트 도구.
+    /// 네트워크, RunManager 없이 BarrierJudge 보간, 판정만 눈으로 확인하는 독립 테스트 도구.
     /// Play만 누르면 인스펙터 값대로 반경이 줄어드는 걸 Scene 뷰에서 바로 볼 수 있다.
-    /// BarrierController와 무관하고, 실제 결계 판정에는 전혀 관여하지 않는다 — 확인 끝나면 씬에서 빼도 된다
+    /// BarrierController와 무관하고, 실제 결계 판정에는 전혀 관여하지 않는다. 확인 끝나면 씬에서 빼도 된다
     /// </summary>
     public class BarrierJudgeGizmoPreview : MonoBehaviour
     {
@@ -175,7 +175,7 @@ namespace Geumeum.Systems
             Vector3 center = CurrentCenter();
             float   radius = Mathf.Max(CurrentRadius(), MIN_VISUAL_RADIUS);
 
-            // 기본 Cylinder 프리미티브는 지름 1m, 높이 2m다 — 반경·원하는 높이에 맞춰 스케일한다
+            // 기본 Cylinder 프리미티브는 지름 1m, 높이 2m다. 반경, 원하는 높이에 맞춰 스케일한다
             _pillarTransform.position   = center + new Vector3(0f, _pillarHeight * 0.5f, 0f);
             _pillarTransform.localScale = new Vector3(radius * 2f, _pillarHeight * 0.5f, radius * 2f);
         }
