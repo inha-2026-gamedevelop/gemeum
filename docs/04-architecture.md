@@ -913,7 +913,7 @@ Combat ✕ AI ✕ Systems 상호 직접 참조 금지 — Common의 인터페이
 |---|---|---|
 | `IDamageable` | PlayerStatus, EnemyStatus, BossStatus | 공격 판정 · 결계 피해 · 투사체 |
 | `IRecoveryTarget` | PlayerStatus | 무녀 치유 · 회복 물약 |
-| `IBarrierState` | BarrierController *(미구현 — 그 전까지 `BarrierStateLocator`의 Null 구현)* | 무녀 치유 · 결계 밖 잡귀 이동 · BarrierVisual · UI |
+| `IBarrierState` | BarrierController *(구현됨 · 2026-09-06 — 중심은 아직 원점 고정, `RunManager`의 시작점·보스점 SyncVar가 선행되어야 실제로 이동한다)* | 무녀 치유 · 결계 밖 잡귀 이동 · BarrierVisual · UI |
 | `IParryable` | 창귀 돌진, 보스 패링 가능 패턴 | ParryController |
 | `IInteractable` | ShopKeeper, DroppedItem | 플레이어 상호작용 입력 |
 | `ICombatFeedback` | CombatFeedbackImpl | 전투 타이밍 → 로컬 연출 |
