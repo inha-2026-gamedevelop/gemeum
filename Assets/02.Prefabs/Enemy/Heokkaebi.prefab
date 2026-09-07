@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 2201346412915413786}
   - component: {fileID: 7896247302198147527}
   - component: {fileID: 3088159365008929110}
+  - component: {fileID: 7351512805329699819}
   m_Layer: 10
   m_Name: Heokkaebi
   m_TagString: Untagged
@@ -110,6 +111,40 @@ MonoBehaviour:
   _status: {fileID: 2201346412915413786}
   _agent: {fileID: 7896247302198147527}
   _projectilePrefab: {fileID: 0}
+--- !u!114 &7351512805329699819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6828250604125262584}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ff3ba0becae47b8b9381191598957c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror.Components::Mirror.NetworkTransformReliable
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  target: {fileID: 2983993002150581361}
+  syncPosition: 1
+  syncRotation: 1
+  syncScale: 0
+  onlySyncOnChange: 1
+  compressRotation: 1
+  interpolatePosition: 1
+  interpolateRotation: 1
+  interpolateScale: 1
+  coordinateSpace: 0
+  timelineOffset: 1
+  showGizmos: 0
+  showOverlay: 0
+  overlayColor: {r: 0, g: 0, b: 0, a: 0.5}
+  onlySyncOnChangeCorrectionMultiplier: 2
+  useFixedUpdate: 0
+  rotationSensitivity: 0.01
+  positionPrecision: 0.01
+  scalePrecision: 0.01
 --- !u!1 &7831718885380993159
 GameObject:
   m_ObjectHideFlags: 0
