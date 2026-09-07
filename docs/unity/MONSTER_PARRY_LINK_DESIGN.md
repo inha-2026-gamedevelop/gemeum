@@ -304,7 +304,7 @@ public struct AttackTelegraphCue
 |---|---|---:|---|
 | `Kind` | `EnemyKind` | `Changgwi` | entry 식별 |
 | `AttackPower` | `float` | `14` | 기존 게임 디자인 값 |
-| `AggroRange` | `float` | `14 m` | 추적 시작 |
+| `AggroRange` | `float` | ~~`14 m`~~ → **`9 m`** | 추적 시작. **2026-09-07 에셋 실측 정정** — `EnemySO.asset`은 허깨비 8 · 창귀 9 · 액귀 10이고 후보값 14는 반영된 적이 없다. 코드·에셋이 기준이다 |
 | `AttackRange` | `float` | `6 m` | 돌진 실행 커밋 거리 |
 | `WindupDuration` | `float` | ~~`0.65 s`~~ → **`1.5 s`** | 텔레그래프 시작부터 돌진 시작까지. **2026-09-04 에셋 실측 정정** — `EnemySO.asset`의 창귀 값은 1.5이고 후보값 0.65는 반영된 적이 없다. 코드·에셋이 기준이다 |
 | `AttackCooldown` | `float` | `1.2 s` | impact 또는 취소 뒤 재행동 대기 |
