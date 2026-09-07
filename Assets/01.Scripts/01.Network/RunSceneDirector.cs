@@ -326,8 +326,18 @@ namespace Geumeum.Network
             foreach (KeyValuePair<int, NetworkConnectionToClient> pair in NetworkServer.connections)
             {
                 NetworkConnectionToClient connection = pair.Value;
-                if ((connection == null) || (connection.identity == null))
+                if (connection == null)
                 {
+                    continue;
+                }
+
+                // 몸이 없으면 부을 곳이 없다. 여기서 조용히 넘어가면 담아 둔 무기와 캐릭터가
+                // 영영 적용되지 않은 채 런이 재개되어, 도착한 사람만 직업 없는 몸이 된다
+                if (connection.identity == null)
+                {
+                    _state = RunTransitionState.Failed;
+                    Debug.LogError(
+                        $"[RunSceneDirector] 도착했는데 플레이어 오브젝트가 없다, 연결 {connection.connectionId}");
                     continue;
                 }
 
@@ -410,6 +420,14 @@ namespace Geumeum.Network
                 }
 
                 ++expected;
+
+                // 준비 신호만으로는 이르다. Mirror는 Ready와 AddPlayer를 따로 보내므로
+                // isReady가 켜졌는데 플레이어 오브젝트는 아직 없는 구간이 있다.
+                // 그 사이에 되붓기가 돌면 담아 둔 무기와 캐릭터를 부을 몸이 없어 조용히 건너뛴다
+                if (connection.identity == null)
+                {
+                    continue;
+                }
 
                 if ((connection.isReady) || (_arrivedConnections.Contains(connection.connectionId)))
                 {

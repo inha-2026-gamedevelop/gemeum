@@ -13,7 +13,7 @@ namespace Geumeum.Combat
     /// 이 플레이어가 쥔 무기 = 직업. 서버가 확정하고 클라이언트는 읽기만 한다.
     /// 클라이언트가 보낸 무기 ID는 신뢰하지 않으며 판정은 항상 이 서버 상태를 본다
     /// </summary>
-    public class PlayerWeapon : NetworkBehaviour
+    public class PlayerWeapon : NetworkBehaviour, IRunStateCarrier
     {
         /****************************************
         *                Fields
@@ -67,6 +67,54 @@ namespace Geumeum.Combat
         private void OnHasWeaponChanged(bool oldHasWeapon, bool newHasWeapon)
         {
             RefreshWeaponVisual();
+        }
+
+        /****************************************
+        *           Interface Members
+        ****************************************/
+
+        // 캐릭터(10) 바로 뒤다. 무기 모델은 캐릭터 모델의 오른손 뼈에 붙으므로
+        // 캐릭터가 먼저 켜져 있어야 붙을 자리가 있다
+        public int CarrierOrder => 11;
+
+        /// <summary> 확정된 무기를 담는다. 배분 전이면 담지 않는다 - 기본값이 직업으로 읽히면 안 된다 </summary>
+        public void Capture(RunParticipantSnapshot snapshot)
+        {
+            if (!_hasWeapon)
+            {
+                return;
+            }
+
+            snapshot.Weapon = _weapon;
+        }
+
+        public bool Validate(RunParticipantSnapshot snapshot, out string failure)
+        {
+            if (!System.Enum.IsDefined(typeof(WeaponKind), snapshot.Weapon))
+            {
+                failure = $"알 수 없는 무기다: {snapshot.Weapon}";
+                return false;
+            }
+
+            failure = null;
+            return true;
+        }
+
+        /// <summary>
+        /// 담아 둔 무기를 되붓는다.
+        ///
+        /// <see cref="ServerSetInitialWeapon"/>을 쓰지 않는 이유는 그쪽이 "런 시작 배분"의 창구라
+        /// 이미 확정된 대상을 거부하기 때문이다. 되붓기는 배분이 아니라 같은 값의 복원이다.
+        /// 무기가 곧 직업이므로 이 값이 빠지면 도착한 사람은 직업 없는 몸이 된다
+        /// </summary>
+        public bool Restore(RunParticipantSnapshot snapshot)
+        {
+            _weapon    = snapshot.Weapon;
+            _hasWeapon = true;
+
+            // 호스트에서는 SyncVar 훅이 울지 않는다. 같은 값으로 되부으면 클라이언트에서도 안 운다
+            RefreshWeaponVisual();
+            return true;
         }
 
         /****************************************

@@ -17,7 +17,7 @@ namespace Geumeum.Combat
     /// 로비에서 고른 캐릭터의 모델을 켠다. 서버가 확정하고 클라이언트는 읽기만 하며,
     /// 판정에는 관여하지 않는 표현 전용 컴포넌트다
     /// </summary>
-    public class PlayerCharacter : NetworkBehaviour
+    public class PlayerCharacter : NetworkBehaviour, IRunStateCarrier
     {
         /****************************************
         *                Types
@@ -85,6 +85,55 @@ namespace Geumeum.Combat
         private void OnHasCharacterChanged(bool oldHasCharacter, bool newHasCharacter)
         {
             RefreshCharacter();
+        }
+
+        /****************************************
+        *           Interface Members
+        ****************************************/
+
+        // 역할이 가장 먼저다. 씬을 옮기면 플레이어 오브젝트가 새로 생겨 캐릭터 확정이 풀리는데,
+        // 그 상태로 자원을 먼저 되부으면 모델도 무기도 없는 몸에 HP만 들어간다
+        public int CarrierOrder => 10;
+
+        /// <summary> 확정된 캐릭터를 담는다. 확정 전이면 담지 않는다 - 기본값을 역할로 읽히게 하면 안 된다 </summary>
+        public void Capture(RunParticipantSnapshot snapshot)
+        {
+            if (!_hasCharacter)
+            {
+                return;
+            }
+
+            snapshot.Character = _character;
+        }
+
+        public bool Validate(RunParticipantSnapshot snapshot, out string failure)
+        {
+            if (!Enum.IsDefined(typeof(CharacterKind), snapshot.Character))
+            {
+                failure = $"알 수 없는 캐릭터다: {snapshot.Character}";
+                return false;
+            }
+
+            failure = null;
+            return true;
+        }
+
+        /// <summary>
+        /// 담아 둔 캐릭터를 되붓는다.
+        ///
+        /// <see cref="ServerSetCharacter"/>를 쓰지 않는 이유는 그쪽이 "런 시작 배분"의 창구이고
+        /// 이미 확정된 대상을 거부하기 때문이다. 되붓기는 배분이 아니라 같은 값의 복원이라
+        /// 이미 확정돼 있어도 실패로 볼 이유가 없다
+        /// </summary>
+        public bool Restore(RunParticipantSnapshot snapshot)
+        {
+            _character    = snapshot.Character;
+            _hasCharacter = true;
+
+            // 서버(호스트)의 모델은 SyncVar 훅이 아니라 여기서 직접 맞춘다.
+            // 같은 값으로 되부으면 훅이 울지 않아 모델이 꺼진 채로 남는다
+            RefreshCharacter();
+            return true;
         }
 
         /****************************************

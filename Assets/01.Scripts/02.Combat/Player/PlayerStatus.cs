@@ -279,7 +279,7 @@ namespace Geumeum.Combat
         *           Interface Members
         ****************************************/
 
-        // 최대 HP보다 먼저 정해질 것이 없어 가장 앞이다
+        // 역할(캐릭터 10 · 무기 11) 다음이다. 자원은 역할이 정해진 몸에 부어야 한다
         public int CarrierOrder => 20;
 
         /// <summary> 지금 자원과 생명 상태를 담는다. 최대 HP는 담지 않는다 - 레벨에서 다시 계산한다 </summary>
