@@ -106,8 +106,12 @@ for ($i = 0; $i -lt $Count; $i++)
     # -nocursorlock 이 없으면 창 하나가 마우스를 독점해 나머지 둘이 카메라를 못 돌린다.
     # 이 플래그를 만든 이유가 정확히 한 PC 3창 테스트라, 여기서 안 넘기면 만든 의미가 없다.
     # 켜지면 커서 잠금 없이 Alt를 누르는 동안에만 카메라가 돈다(유니티 씬뷰와 같다)
+    # -minplayers 를 안 넘기면 씬에 박힌 _devMinPlayers 가 이긴다. 그 값이 1이면
+    # 호스트가 혼자 런을 시작하고 입장을 잠가버려, 뒤따라 뜬 창들이 전부
+    # AdmissionLocked 로 거부된다. 창 수와 시작 인원을 여기서 같이 맞춘다
     $launchArgs = @(
         '-platformid', "$platformId",
+        '-minplayers', "$Count",
         '-nocursorlock',
         '-screen-fullscreen', '0',
         '-screen-width',  "$winW",

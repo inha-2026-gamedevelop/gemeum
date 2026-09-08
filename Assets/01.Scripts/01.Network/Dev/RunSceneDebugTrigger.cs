@@ -15,6 +15,20 @@ namespace Geumeum.Network
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 
         /****************************************
+        *                Preload
+        ****************************************/
+
+        /// <summary>
+        /// 씬에 배치하지 않아도 실행 시작에 스스로 붙는다.
+        /// 씬이나 프리팹에 심으면 시작 씬이 바뀔 때 통째로 사라진다
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void Preload()
+        {
+            DevToolHost.Attach<RunSceneDebugTrigger>();
+        }
+
+        /****************************************
         *                Fields
         ****************************************/
 

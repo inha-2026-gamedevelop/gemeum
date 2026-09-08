@@ -22,6 +22,21 @@ namespace Geumeum.Combat
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 
         /****************************************
+        *                Preload
+        ****************************************/
+
+        /// <summary>
+        /// 씬에 배치하지 않아도 실행 시작에 스스로 뜬다.
+        /// EnsureCreated가 기존 인스턴스와 씬 배치본을 먼저 확인하므로 중복이 생기지 않는다 -
+        /// 중복이면 PersistentSingleton이 GameObject를 통째로 파괴한다
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void Preload()
+        {
+            EnsureCreated(OBJECT_NAME);
+        }
+
+        /****************************************
         *              Constants
         ****************************************/
 
@@ -36,8 +51,9 @@ namespace Geumeum.Combat
             "F3  런 포기",
             "F4  전체 부활        (호스트만)",
             "F5  보스 아레나로 전환 (호스트만)",
-            "F6/F7/F8  보스 1페이즈 / 2페이즈 / 토글",
-            "F9  프레임 기록 저장",
+            "F6/F7  보스 1페이즈 / 2페이즈",
+            "F8/F9  디버그 로그 토글 / 비우기",
+            "Ins 프레임 기록 저장",
             "F10 프레임 오버레이",
             "F11 카메라 조정",
             "F12 이 창",

@@ -437,10 +437,17 @@ namespace Geumeum.Network
             _arrivedConnections.Add(sender.connectionId);
         }
 
-        /// <summary> 클라이언트가 자기 씬 로드를 끝냈을 때 부른다 </summary>
+        /// <summary>
+        /// 클라이언트가 자기 씬 로드를 끝냈을 때 부른다.
+        ///
+        /// SceneManager.sceneLoaded는 Mirror가 NetworkClient.Ready()를 부르기 전에 발생한다.
+        /// 그 시점에 Command를 보내면 조용히 버려지고 서버는 이 클라가 안 온 것으로 본다 -
+        /// 전환이 WaitingForParticipant에서 멈춘다. ready가 된 뒤 다시 불리는 경로가 있으므로
+        /// 여기서는 보내지 않고 넘긴다 (GeumeumNetworkManager.OnClientSceneChanged)
+        /// </summary>
         public void ClientReportArrived()
         {
-            if (!NetworkClient.active)
+            if ((!NetworkClient.active) || (!NetworkClient.ready))
             {
                 return;
             }

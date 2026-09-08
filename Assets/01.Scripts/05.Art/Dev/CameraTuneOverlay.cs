@@ -19,6 +19,21 @@ namespace Geumeum.Art
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 
         /****************************************
+        *                Preload
+        ****************************************/
+
+        /// <summary>
+        /// 씬에 배치하지 않아도 실행 시작에 스스로 뜬다.
+        /// EnsureCreated가 기존 인스턴스와 씬 배치본을 먼저 확인하므로 중복이 생기지 않는다 -
+        /// 중복이면 PersistentSingleton이 GameObject를 통째로 파괴한다
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void Preload()
+        {
+            EnsureCreated(OBJECT_NAME);
+        }
+
+        /****************************************
         *              Constants
         ****************************************/
 

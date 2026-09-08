@@ -28,7 +28,9 @@ namespace Geumeum.Network
         private const int OVERLAY_HEIGHT = 105;
 
         [Header("단축키")]
-        [SerializeField] private KeyCode _writeKeyCode   = KeyCode.F9;
+        // F9는 GDebugOverlay의 로그 비우기와, F1은 호스트 시작과 겹친다.
+        // F1~F12가 전부 차 있어 F키 밖으로 뺐다
+        [SerializeField] private KeyCode _writeKeyCode   = KeyCode.Insert;
         [SerializeField] private KeyCode _overlayKeyCode = KeyCode.F10;
 
         [Header("측정 조건")]
@@ -230,7 +232,7 @@ namespace Geumeum.Network
             _overlayText = ResolveRole() + ", " + ResolvePhase()
                 + nl + currentMs.ToString("F1") + " ms  (" + (1000f / Mathf.Max(currentMs, 0.001f)).ToString("F0") + " FPS)"
                 + nl + state + ", " + cap
-                + nl + Screen.width + "x" + Screen.height + "   F9 저장, F10 표시";
+                + nl + Screen.width + "x" + Screen.height + "   " + _writeKeyCode + " 저장, " + _overlayKeyCode + " 표시";
         }
 
         /// <summary> 지금까지 누적한 통계를 CSV로 남긴다 </summary>
