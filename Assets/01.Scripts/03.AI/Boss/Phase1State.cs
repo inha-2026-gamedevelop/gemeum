@@ -11,14 +11,15 @@ using Geumeum.Data;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 1페이즈, 가르치는 판. 네 템플릿이 전부 돈다 - 패턴 1(여우불 봉 3연격, MeleeArc, 단일 타격
-    /// MVP), 패턴 3(순간 접근 3연계, TargetedDash, 단일 돌진 MVP), 패턴 4(여우불 낙인,
+    /// 1페이즈, 가르치는 판. 네 템플릿이 전부 돈다 - 패턴 1(여우불 봉 3연격, MeleeArc, 진짜
+    /// 3연타 - 1·2타는 패링 불가, 마지막 3타만 패링 가능, BOSS_PATTERN_CONTRACT.md 3장),
+    /// 패턴 3(순간 접근 3연계, TargetedDash, 단일 돌진 MVP), 패턴 4(여우불 낙인,
     /// MarkedCircle), 패턴 5(여우 구슬 충격파, ConeBurst). 거리 대역별로 근접/중거리/원거리
     /// 후보 하나씩과, 거리 무관인 MarkedCircle이 항상 낀다 - 후보 중 무작위로 하나를 고른다
     /// (가중치 추첨은 아직 없다, 균등 추첨이다).
     /// 전투 시작 직후엔 오프닝 고정 시퀀스(1 -> 2 -> 4)가 먼저 돈다, 쿨다운을 무시하고 순서대로
     /// 발동한다 - 패턴 2(반월 베기)는 패턴 1과 같은 MeleeArc 판정(사거리, 각도 동일)이고
-    /// 윈드업만 짧고 패링이 안 된다, 독립 쿨다운이 없어 후보 추첨 대상이 아니다
+    /// 윈드업만 짧고 패링이 안 되고 단일 타격이다, 독립 쿨다운이 없어 후보 추첨 대상이 아니다
     /// </summary>
     public sealed class Phase1State : BossPhaseStateBase
     {
@@ -56,6 +57,9 @@ namespace Geumeum.AI
 
         private const int MAX_CANDIDATE_COUNT = 4; // 지금 있는 템플릿 수만큼, 늘어나면 같이 늘린다
 
+        // 패턴 1(여우불 봉 3연격) 전용. 1·2타는 패링 불가, 3타(마지막)만 패링 가능하다
+        private const int MELEE_ARC_HIT_COUNT = 3;
+
         // TODO: BossPatternSO.PatternEntry에 템플릿별 필드(Range, AngleDegrees, DashSpeed 등)가
         // 생기면 SO로 옮긴다. 지금은 스키마가 00.Common 공용 파일이라 팀장 확인 없이 필드를
         // 추가하지 않고, 우리 파트 안에 임시 상수로 둔다
@@ -90,6 +94,7 @@ namespace Geumeum.AI
         private float       _stateTimer         = 0f;
         private float       _cooldownRemaining  = 0f;
         private int         _openingIndex       = 0; // OPENING_SEQUENCE.Length에 도달하면 오프닝이 끝난 것
+        private int         _meleeArcHitIndex   = 0; // 패턴 1 전용, 0-based. MELEE_ARC_HIT_COUNT - 1이 마지막(패링 가능) 타
 
         private Transform                  _activeTarget;
         private IDamageable                _activeTargetStatus;
@@ -268,7 +273,7 @@ namespace Geumeum.AI
             _activeKind             = kind;
             _activeParried          = false;
             _activeExecution        = null;
-            _activeAttackInstanceId = _controller.ServerNextAttackInstanceId();
+            _meleeArcHitIndex       = 0;
             _stateTimer             = 0f;
             _state                  = AttackState.Windup;
 
@@ -276,7 +281,7 @@ namespace Geumeum.AI
             direction.y = 0f;
             direction   = (direction.sqrMagnitude > 0.0001f) ? direction.normalized : Self.forward;
 
-            _lockedForward = direction; // 방향 완전 잠금 - 예고 중 대상이 움직여도 안 따라간다
+            _lockedForward = direction; // 방향 완전 잠금 - 예고 중 대상이 움직여도 안 따라간다(3연격도 첫 타 기준으로 고정)
 
             if (kind == PatternKind.TargetedDash)
             {
@@ -288,26 +293,38 @@ namespace Geumeum.AI
                 _markedCenter = _activeTarget.position;
             }
 
-            TryOpenParryWindow(pattern);
+            BeginTelegraphAndParryWindow();
+        }
+
+        // 타격 1회분의 예고 방송 + 패링 창 시도. 패턴 1(3연격)은 타마다 새 AttackInstanceId로
+        // 이걸 다시 부른다 - 펄스마다 새 id를 쓰는 기존 관례(연쇄 부채꼴류)와 동일하다
+        private void BeginTelegraphAndParryWindow()
+        {
+            _activeAttackInstanceId = _controller.ServerNextAttackInstanceId();
+
+            TryOpenParryWindow(_activePattern);
 
             uint targetNetId = _activeTarget.TryGetComponent(out NetworkIdentity targetIdentity) ? targetIdentity.netId : 0u;
-            Vector3 cueOrigin = (kind == PatternKind.MarkedCircle) ? _markedCenter : Self.position;
+            Vector3 cueOrigin = (_activeKind == PatternKind.MarkedCircle) ? _markedCenter : Self.position;
 
             BossTelegraphCue cue = new BossTelegraphCue
             {
                 AttackInstanceId = _activeAttackInstanceId,
-                PatternId        = pattern.PatternId,
+                PatternId        = _activePattern.PatternId,
                 TargetNetId      = targetNetId,
                 Origin           = cueOrigin,
-                Direction        = direction,
-                ImpactServerTime = NetworkTime.time + pattern.TelegraphDuration,
+                Direction        = _lockedForward,
+                ImpactServerTime = NetworkTime.time + _activePattern.TelegraphDuration,
             };
 
             _controller.ServerBeginTelegraph(cue);
 
             // BossTelegraphView가 아직 없어 예고가 화면에 안 보인다. 확인용 임시 로그 - 뷰 붙으면 지운다
-            GDebug.Server($"[보스] {PatternName(pattern.PatternId)} 예고 시작");
+            string hitLabel = IsMeleeArcCombo ? $" ({_meleeArcHitIndex + 1}/{MELEE_ARC_HIT_COUNT}타)" : "";
+            GDebug.Server($"[보스] {PatternName(_activePattern.PatternId)} 예고 시작{hitLabel}");
         }
+
+        private bool IsMeleeArcCombo => _activePattern.PatternId == MELEE_ARC_PATTERN_ID;
 
         private void TickWindup(float deltaTime)
         {
@@ -337,6 +354,16 @@ namespace Geumeum.AI
             }
 
             _controller.ServerCancelTelegraph(_activeAttackInstanceId);
+
+            if (IsMeleeArcCombo && (_meleeArcHitIndex < MELEE_ARC_HIT_COUNT - 1))
+            {
+                // 3연격 중간 타 - 아직 패턴이 안 끝났다, 다음 타로 바로 이어간다(패링당하면 여기 안 옴, CancelActiveAttack이 이미 Recovery로 보냈다)
+                ++_meleeArcHitIndex;
+                _stateTimer = 0f;
+                BeginTelegraphAndParryWindow();
+                return;
+            }
+
             _activeExecution = null;
 
             // 회복으로 넘어가는 이 지점이 패턴 종료다. 반복 패턴은 마지막 판정에서 한 번만 온다
@@ -396,12 +423,16 @@ namespace Geumeum.AI
             }
 
             // MeleeArc. 방향은 예고 시작 시점에 잠근 값을 쓴다(방향 완전 잠금)
+            // 패턴 1(3연격)은 SO의 Damage가 3타 합산값이라 타당 균등 분배한다 - 타별 배분은
+            // 아직 밸런스 확정 전이라 임시값이다(팀 확인 필요, 패턴 2는 단일 타라 영향 없음)
+            float damage = IsMeleeArcCombo ? (_activePattern.Damage / MELEE_ARC_HIT_COUNT) : _activePattern.Damage;
+
             BossPatternRunner.ExecuteMeleeArc(
                 Self.position,
                 _lockedForward,
                 MELEE_RANGE,
                 MELEE_ANGLE_DEGREES,
-                _activePattern.Damage,
+                damage,
                 attackerNetId,
                 _playerLayerMask);
         }
@@ -434,6 +465,13 @@ namespace Geumeum.AI
         private void TryOpenParryWindow(BossPatternSO.PatternEntry pattern)
         {
             if ((!pattern.IsParryable) || (_activeTarget == null) || (_selfIdentity == null))
+            {
+                return;
+            }
+
+            // 3연격은 마지막 타만 패링 가능하다(BOSS_PATTERN_CONTRACT.md 3장) - 1·2타는
+            // SO.IsParryable이 true여도 여기서 걸러진다
+            if (IsMeleeArcCombo && (_meleeArcHitIndex < MELEE_ARC_HIT_COUNT - 1))
             {
                 return;
             }
