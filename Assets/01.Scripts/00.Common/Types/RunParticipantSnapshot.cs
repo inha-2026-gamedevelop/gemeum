@@ -52,7 +52,7 @@ namespace Geumeum.Common
         /// <summary> 지금 들고 있는 무기의 확정 값 </summary>
         public WeaponCombatSnapshot EquippedWeapon { get; set; }
 
-        public EquipmentInventorySnapshot Inventory { get; set; }
+        public InventorySnapshot Inventory { get; set; }
 
         // TODO(민성): 특성 배분은 Systems 데이터 모델 확정 후 추가
 
