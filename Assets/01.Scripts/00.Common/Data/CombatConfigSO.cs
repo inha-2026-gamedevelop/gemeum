@@ -111,6 +111,12 @@ namespace Geumeum.Data
         [SerializeField] private float _rescueCurrencyLossRatio = 0.1f; // 구조 부활의 노잣돈 차감(자동의 절반)
         [SerializeField] private float _reviveBarrierInsetRatio = 0.9f; // 결계 밖에서 죽으면 반경의 이 비율 지점으로 당긴다
 
+        [Header("상호작용 (게임 디자인 6.5)")]
+        // 줍기 · 양도 · 객주가 같은 거리를 쓴다. 기획서 6.2가 양도를 3m로 정한 것에 맞췄다
+        [SerializeField] private float _interactRange = 3f; // 상호작용 최대 거리(m)
+        // 피해를 주거나 받은 뒤 이만큼 지나야 상호작용이 열린다. 협동 부활은 이 조건에서 제외한다
+        [SerializeField] private float _interactOutOfCombatSeconds = 5f;
+
         /****************************************
         *              Properties
         ****************************************/
@@ -192,5 +198,8 @@ namespace Geumeum.Data
         public float RescueDuration          => _rescueDuration;
         public float RescueCurrencyLossRatio => _rescueCurrencyLossRatio;
         public float ReviveBarrierInsetRatio => _reviveBarrierInsetRatio;
+
+        public float InteractRange              => _interactRange;
+        public float InteractOutOfCombatSeconds => _interactOutOfCombatSeconds;
     }
 }

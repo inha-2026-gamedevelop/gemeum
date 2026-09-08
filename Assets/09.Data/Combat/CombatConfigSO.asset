@@ -76,3 +76,5 @@ MonoBehaviour:
   _rescueDuration: 3
   _rescueCurrencyLossRatio: 0.1
   _reviveBarrierInsetRatio: 0.9
+  _interactRange: 3
+  _interactOutOfCombatSeconds: 5
