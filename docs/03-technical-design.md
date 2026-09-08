@@ -355,7 +355,7 @@ enum + switch 방식은 패턴 추가 시 수정 범위가 넓어진다.
 #### 담당 범위
 
 - 장비 드랍과 스탯 랜덤 롤
-- 인벤토리 (슬롯형 3~4칸)
+- 인벤토리 (4x3 12칸 통합 — 장비 · 물약 · 권을 함께 담는다. 2026-09-08 D12)
 - 특성 트리 데이터와 UI
 - 노잣돈 경제와 객주 상점
 - 전투 스탯 파이프라인
@@ -550,7 +550,7 @@ Gaia 기본 지형(사실적 자연) + 여러 출처의 건축 에셋 + 저승 �
 | [몬스터 공격 → 패링 창 연결](unity/MONSTER_PARRY_LINK_DESIGN.md) | 창귀 돌진이 패링 창을 여는 수직 슬라이스, 최소 텔레그래프 | 몬스터 · 보스 |
 | [PlayerAttack 공통 계약](unity/PLAYER_ATTACK_DESIGN.md) | 검 · 활 · 방울 공통 공격 계약, 서버 권위 화살 | 네트워크 · 전투 |
 | [보스 설계](unity/BOSS_DESIGN.md) | 보스 1마리 2페이즈, 실행 템플릿 4개 · 데이터 항목 8개 | 몬스터 · 보스 |
-| [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) | 결계 축소 · 피해, 4칸 인벤토리, 드랍 · 노잣돈 · 객주 | 게임플레이 시스템 |
+| [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) | 결계 축소 · 피해, 드랍 · 노잣돈 · 객주. **인벤토리 절은 4칸 기준이라 폐기 대상** — 12칸은 [잔여 서버 기능 기획서 D12](06-server-systems-implementation-design.md) | 게임플레이 시스템 |
 | [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md) | 리타게팅, Override Controller, 서버 cue, 에셋 소싱 | 테크니컬 아트 |
 
 각 문서는 목표 · 권위 경계 · 구조 · 데이터 · 흐름 · 구현 순서 · 검증 · 대안 · 비용의 9절 형식이며, 서버/클라이언트 경계와 M0~M3 검증 기준을 포함한다.

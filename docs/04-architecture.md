@@ -659,8 +659,13 @@ BOSS_PATTERN_CONTRACT.md 8.2·4.1절 참조.
 │  │                           보스 사망 시 FieldLevel 3 팀 보상 1회 생성
 │  └ DroppedItem.cs        NB  필드에 떨어진 장비. IInteractable, 습득은 [Command] → 서버 확정
 ├ Inventory/
-│  └ InventoryController.cs NB 슬롯 3~4칸. 장착 · 보관 · 파티원 양도 전부 호스트 권위로
-│                              소유권 이전 (동시 습득 경합은 서버 도착 순서로 해소)
+│  ├ InventoryController.cs NB 4x3 12칸 통합 인벤토리(D12). 장비 · 물약 · 권을 함께 담는다.
+│  │                           SyncList로 바뀐 칸만 전송(SyncMode.Owner), 장착 · 보관 ·
+│  │                           파티원 양도 전부 호스트 권위로 소유권 이전
+│  │                           (동시 습득 경합은 서버 도착 순서로 해소)
+│  ├ InventoryRules.cs     C#  ★Mirror 비의존 순수 규칙. 검증 후 바꿀 칸 하나만 계산해
+│  │                           InventoryWrite로 돌려준다. EditMode 20건
+│  └ Editor/InventoryRulesTests.cs
 ├ Economy/
 │  ├ CurrencyManager.cs    NB  팀 공용 노잣돈 단일 SyncVar. 구매 · 부활 차감 요청을
 │  │                           서버 큐로 순차 처리 — 잔액 음수 방지
@@ -1036,7 +1041,7 @@ _combatFeedback.PlayCritical(multiplier);
 | 프로토 2주 | PlayerController/Status 동기화 · EnemyController + 허깨비 Brain |
 | 프로토 3주 | ParryController + ParryJudge · DropDirector 최소형 · BarrierController 1단계 · RunManager |
 | 집중 1주 | 잡귀 3종 Brain · Barrier 전 단계 · SpawnManager |
-| 집중 2주 | EquipmentGenerator 완성 · InventoryController · DroppedItem |
+| 집중 2주 | EquipmentGenerator 완성 · InventoryController(12칸) · DroppedItem |
 | 집중 3주 | TalentController · ShopKeeper · CurrencyManager |
 | 집중 4주 | BossController + Phase 클래스들 |
 | 집중 5주 | 05.Art 전체 (CombatFeedbackImpl · DayCycle · BarrierVisual) · 사운드 |
