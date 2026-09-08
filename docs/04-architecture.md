@@ -384,9 +384,13 @@ Main.unity
 │  └ SoundVolume.cs        static [현재] 마스터 · BGM · 효과음 볼륨. 0~1 ↔ dB 로그 변환,
 │                                 PlayerPrefs 저장, 시작 시 자동 적용. 믹서 노출 파라미터로만
 │                                 바꿔 SFX_Remote의 상대 오프셋이 유지된다. UI는 Set만 부른다
-├ Dev/                     namespace Geumeum.Common.Environment — 개발 전용 도구
-│  └ WeatherTimeDebugScript.cs MB [현재] 시간대 배속(Tab) · 즉시 이동(1~4). 전체 #if 가드됨.
-│                              Main · Dev_Barrier에 배치. 날씨 스케줄(Environment/)과는 별개다
+├ Dev/                     개발 전용 도구
+│  ├ WeatherTimeDebugScript.cs MB [현재] 시간대 배속(Tab) · 즉시 이동(1~4). 전체 #if 가드됨.
+│  │                          Main · Dev_Barrier에 배치. 날씨 스케줄(Environment/)과는 별개다
+│  └ DevToolHost.cs        C# [현재] 개발 도구가 씬 배치 없이 스스로 뜨게 하는 공용 호스트.
+│                              각 도구가 자기 파일에서 RuntimeInitializeOnLoadMethod로 붙는다 -
+│                              씬·프리팹에 심으면 시작 씬이 바뀔 때 통째로 사라진다(2026-09-08).
+│                              릴리스에서는 #if로 컴파일에서 빠진다
 └ Interfaces/              namespace Geumeum.Common — 파트 간 경계 → 8장
    ├ IDamageable.cs        피해를 받을 수 있는 대상 (플레이어 · 잡귀 · 보스)
    ├ IRecoveryTarget.cs    [현재] 회복을 받을 수 있는 대상. 무녀 치유(전투)와 회복 물약(시스템)이

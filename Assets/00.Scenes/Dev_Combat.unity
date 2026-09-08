@@ -1170,7 +1170,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c36a80a188f35034eb23359f45c8ee7a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.FrameRecorder
-  _writeKeyCode: 290
+  _writeKeyCode: 277
   _overlayKeyCode: 291
   _targetFrameRate: 0
 --- !u!4 &970351608
