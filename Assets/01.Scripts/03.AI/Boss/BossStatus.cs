@@ -87,6 +87,9 @@ namespace Geumeum.AI
                 return;
             }
 
+            // 보스를 때린 플레이어의 전투 시각을 갱신한다. 보스전 중에는 줍기가 열리지 않는다
+            CombatClock.ServerNotifyDamage(netId, damage.AttackerNetId, NetworkTime.time);
+
             _health = Mathf.Max(0f, _health - (damage.Amount * _bodyDamageMultiplier));
 
             if (_health <= Constants.Combat.HEALTH_EPSILON)
