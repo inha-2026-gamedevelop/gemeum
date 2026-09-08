@@ -65,6 +65,8 @@ GameObject:
   - component: {fileID: 8361123090039276166}
   - component: {fileID: 8504639635797799578}
   - component: {fileID: 938108207750820450}
+  - component: {fileID: 4333782379585910833}
+  - component: {fileID: 8619647877685703178}
   m_Layer: 9
   m_Name: Player
   m_TagString: Untagged
@@ -506,6 +508,38 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+--- !u!114 &4333782379585910833
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04e5d9bf66299884dbc7ebe9675d936d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.InventoryController
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+--- !u!114 &8619647877685703178
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc8685c14771a054c8837d231133dd7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.InteractionController
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _interactKey: 103
+  _scanInterval: 0.15
 --- !u!1001 &1331680180131862316
 PrefabInstance:
   m_ObjectHideFlags: 0

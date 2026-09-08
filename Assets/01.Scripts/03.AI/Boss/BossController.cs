@@ -355,6 +355,18 @@ namespace Geumeum.AI
         private void HandleDied(uint killerNetId)
         {
             StopServerExecution(terminate: true);
+
+            // AI는 사실만 발행하고 런 종료는 Network가 판단한다. 여기서 결과 씬을 열지 않는다.
+            // BossStatus가 _isDead로 재진입을 막으므로 이 발행은 런당 한 번이다.
+            // HasInstance->Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다, Instance를 한 번만 받는다
+            GameEventBus bus = GameEventBus.Instance;
+            if (bus == null)
+            {
+                Debug.LogError("[BossController] GameEventBus가 없어 보스 사망을 알리지 못했다, 런이 끝나지 않는다", this);
+                return;
+            }
+
+            bus.Publish(new EnemyDiedEvent(netId, EnemyKind.Boss, transform.position, killerNetId, true));
         }
 
         private void HandleRunPhaseChanged(RunPhaseChangedEvent evt)

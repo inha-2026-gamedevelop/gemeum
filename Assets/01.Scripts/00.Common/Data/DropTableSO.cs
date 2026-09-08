@@ -36,6 +36,19 @@ namespace Geumeum.Data
 
         [SerializeField] private FieldLevelEntry[] _entries = new FieldLevelEntry[Constants.Combat.FIELD_LEVEL_COUNT];
 
+        // 런 전체 목표 처치 60~65마리에 15%면 9~10개가 나온다. 3인이 나눠 가지면 1인당 3개꼴이고,
+        // 12칸에 물약과 권이 자리를 차지해도 여유가 남는다 (2026-09-08 확정)
+        [Header("드랍")]
+        [Tooltip("잡귀 하나가 죽었을 때 장비가 떨어질 확률. 0이면 떨어지지 않고 1이면 항상 떨어진다")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _dropChance = 0.15f;
+
+        /****************************************
+        *              Properties
+        ****************************************/
+
+        public float DropChance => _dropChance;
+
         /****************************************
         *                Methods
         ****************************************/

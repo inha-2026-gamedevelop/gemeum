@@ -44,6 +44,9 @@ namespace Geumeum.Network
         private double           _bossStartServerTime    = 0.0;    // 서버 전용
         private bool             _hasBossClockStarted    = false;  // 서버 전용
 
+        private bool      _hasEnemyDiedSubscription = false;  // 서버 전용
+        private Coroutine _enemyDiedWaitRoutine     = null;   // 서버 전용
+
         // 종료 후보
         private RunOutcome _candidateOutcome = RunOutcome.None; // 서버 전용
         private ulong      _candidateTickId  = 0UL;             // 서버 전용
@@ -197,6 +200,8 @@ namespace Geumeum.Network
 
             _timeline = GameDB.IsInitialized ? RunTimelineBuilder.Build(GameDB.Barrier) : RunTimelineBuilder.Build(null);
 
+            ServerSubscribeEnemyDied();
+
             if (AuthorityTickScheduler.ServerInstance != null)
             {
                 AuthorityTickScheduler.ServerInstance.RegisterControl(ServerResolveOutcome);
@@ -206,6 +211,48 @@ namespace Geumeum.Network
             // 씬 오브젝트 간 OnStartServer 순서는 Mirror가 보장하지 않는다. 여기서 포기하면
             // 런 종료 판정이 한 판 내내 돌지 않는다 - 뜰 때까지 기다렸다가 등록한다
             _schedulerWaitRoutine = StartCoroutine(CoWaitForScheduler());
+        }
+
+        /// <summary>
+        /// 보스 사망은 AI가 사실로만 발행하고 런 종료 판단은 여기서 한다.
+        /// 버스가 아직 없으면 뜰 때까지 기다린다 - 포기하면 보스를 죽여도 런이 끝나지 않는다
+        /// </summary>
+        [Server]
+        private void ServerSubscribeEnemyDied()
+        {
+            if (GameEventBus.HasInstance)
+            {
+                GameEventBus.Instance.Subscribe<EnemyDiedEvent>(HandleEnemyDied);
+                _hasEnemyDiedSubscription = true;
+                return;
+            }
+
+            _enemyDiedWaitRoutine = StartCoroutine(CoWaitForEventBus());
+        }
+
+        private IEnumerator CoWaitForEventBus()
+        {
+            while (!GameEventBus.HasInstance)
+            {
+                yield return null;
+            }
+
+            GameEventBus.Instance.Subscribe<EnemyDiedEvent>(HandleEnemyDied);
+            _hasEnemyDiedSubscription = true;
+            _enemyDiedWaitRoutine     = null;
+        }
+
+        [Server]
+        private void HandleEnemyDied(EnemyDiedEvent evt)
+        {
+            if (!evt.IsBoss)
+            {
+                return;
+            }
+
+            // 승리는 RunOutcomeArbiter에서 우선순위가 가장 높다. 같은 틱에 시간 초과나
+            // 전멸이 함께 와도 TryFinishRun 안의 중재가 하나만 남긴다
+            TryFinishRun(RunOutcome.Victory);
         }
 
         private IEnumerator CoWaitForScheduler()
@@ -231,6 +278,19 @@ namespace Geumeum.Network
             {
                 AuthorityTickScheduler.ServerInstance.UnregisterControl(ServerResolveOutcome);
             }
+
+            if (_enemyDiedWaitRoutine != null)
+            {
+                StopCoroutine(_enemyDiedWaitRoutine);
+                _enemyDiedWaitRoutine = null;
+            }
+
+            if (_hasEnemyDiedSubscription && GameEventBus.HasInstance)
+            {
+                GameEventBus.Instance.Unsubscribe<EnemyDiedEvent>(HandleEnemyDied);
+            }
+
+            _hasEnemyDiedSubscription = false;
 
             StopTick();
             StopReturnToLobby();
@@ -402,7 +462,11 @@ namespace Geumeum.Network
             }
         }
 
-        /// <summary> 보스 구간을 열고 보스 시계를 시작한다 </summary>
+        /// <summary>
+        /// 보스 구간을 연다. 시계는 여기서 켜지 않는다 - 준비와 개시를 나눈다.
+        /// 아레나 씬 전환과 바인딩이 끝나 RunSceneDirector가 Idle로 돌아온 뒤에
+        /// ServerTickBossClock이 시계를 시작한다. 로딩 중에 제한 시간이 깎이면 안 된다
+        /// </summary>
         [Server]
         public bool ServerBeginBossPhase()
         {
@@ -412,7 +476,6 @@ namespace Geumeum.Network
             }
 
             CommitPhase(RunPhase.Boss);
-            ServerStartBossClock();
             return true;
         }
 
@@ -692,6 +755,13 @@ namespace Geumeum.Network
         {
             if (!_hasBossClockStarted)
             {
+                // 아레나로 옮기고 참조를 다시 거는 동안에는 제한 시간이 흐르지 않는다.
+                // 전환이 없는 경로(개발 진입 등)에서는 Idle이라 바로 시작한다
+                if (RunSceneDirector.IsServerTransitioning)
+                {
+                    return false;
+                }
+
                 ServerStartBossClock();
             }
 
@@ -704,7 +774,7 @@ namespace Geumeum.Network
 
             _bossElapsedSeconds = bossElapsedSeconds;
 
-            // TODO(민성): 보스 사망으로도 Result에 들어가야 한다, 보스 파트 연결 시 추가
+            // 보스 사망은 HandleEnemyDied가 Victory로 받는다. 여기서는 시간 초과만 본다
             if (!isTimeUp)
             {
                 return false;

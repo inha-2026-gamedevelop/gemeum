@@ -33,3 +33,4 @@ MonoBehaviour:
     WeightTalisman: 25
     WeightSpiritual: 45
     WeightDivine: 25
+  _dropChance: 0.15

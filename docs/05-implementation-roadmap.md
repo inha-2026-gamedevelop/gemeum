@@ -131,7 +131,7 @@ Unity에서 확인한 사실: **필드가 YAML에 없어도 0이 되지 않고 C
 
 ### U03 보스 사망 → Victory 확정
 
-- 현재 코드: `BossStatus`는 Died 발행, `BossController.HandleDied`는 tick 해제만. `RunManager`에 연결 없음
+- **2026-09-08 구현 완료(미검증).** `BossController.HandleDied`가 `EnemyDiedEvent(IsBoss: true)`를 발행하고 `RunManager`가 구독해 `TryFinishRun(RunOutcome.Victory)`를 부른다. 새 이벤트 타입을 만들지 않고 `IsBoss` 플래그가 이미 있던 기존 이벤트를 썼다. `EnemyKind.Boss = 3`을 enum 맨 뒤에 추가했다. **L2·L3 미실시 — 실제로 보스를 죽여 Result에 도달하는 것은 관찰하지 않았다**
 - 권위: 서버. 승리와 시간초과·전멸이 경합하는 **단일 결과**
 - 권장 접근: AI가 Common의 보스 사망 사실을 1회 발행하고 `RunManager`가 기존 `TryFinishRun`/`RunOutcomeArbiter`에 연결. 종료 우선순위는 `RunManager` 한 곳에 명시(결정됨: 서버 단일 결과)
 - 대안: `RunManager`가 등록된 보스 생명 상태를 서버 tick에서 조회 — 보스 등록·씬 수명 의존이 늘어난다

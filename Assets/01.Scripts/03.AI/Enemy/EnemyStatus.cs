@@ -142,6 +142,9 @@ namespace Geumeum.AI
                 return;
             }
 
+            // 때린 플레이어의 전투 시각도 여기서 갱신된다. 공격 판정 지점마다 걸면 하나를 빠뜨린다
+            CombatClock.ServerNotifyDamage(netId, damage.AttackerNetId, NetworkTime.time);
+
             _health = Mathf.Max(0f, _health - damage.Amount);
 
             if (_health <= Constants.Combat.HEALTH_EPSILON)

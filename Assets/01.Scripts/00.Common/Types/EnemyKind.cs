@@ -6,5 +6,8 @@ namespace Geumeum.Common
         Heokkaebi = 0, // 허깨비, 기본 근접
         Changgwi  = 1, // 창귀, 돌진 후 패링 가능
         Aekgwi    = 2, // 액귀, 원거리 저주 투사체
+
+        // 보스. 스폰 테이블에는 올리지 않으며 EnemyDiedEvent에서 잡귀와 구분하는 데 쓴다
+        Boss      = 3,
     }
 }

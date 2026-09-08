@@ -400,6 +400,9 @@ namespace Geumeum.Combat
                 return;
             }
 
+            // 무적과 0 피해를 거른 뒤에 기록한다. 실제로 피해가 오간 것만 전투로 친다
+            CombatClock.ServerNotifyDamage(netId, damage.AttackerNetId, NetworkTime.time);
+
             _health = Mathf.Max(0f, _health - damage.Amount);
 
             if (_health <= Constants.Combat.HEALTH_EPSILON)
