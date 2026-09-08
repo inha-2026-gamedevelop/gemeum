@@ -12,6 +12,7 @@ using Mirror;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
+using Geumeum.Network;
 
 namespace Geumeum.AI
 {
@@ -71,6 +72,26 @@ namespace Geumeum.AI
 
             // 같은 세션에서 다음 판을 열면 이전 필드의 생존 개체와 점유가 그대로 남는다
             GameEventBus.Instance.Subscribe<RunResetEvent>(HandleRunReset);
+
+            ServerApplyCurrentPhase();
+        }
+
+        /// <summary>
+        /// 지금 phase를 한 번 적용한다. 구독만으로는 부족하다 -
+        /// phase 전환 이벤트는 씬 이동보다 먼저 발행되므로, 그 전환 때문에 로드된 이 씬의
+        /// SpawnManager는 자기를 존재하게 만든 이벤트를 영영 받지 못한다
+        /// </summary>
+        [Server]
+        private void ServerApplyCurrentPhase()
+        {
+            RunManager run = RunManager.ServerInstance;
+            if (run == null)
+            {
+                Debug.LogWarning("[SpawnManager] RunManager가 없어 현재 phase로 스폰을 시작하지 못했다", this);
+                return;
+            }
+
+            HandlePhaseChanged(new RunPhaseChangedEvent(run.Phase, run.Phase));
         }
 
         /// <summary> 이전 런의 클러스터 점유·생존 카운트·respawn 코루틴을 모두 비운다 </summary>

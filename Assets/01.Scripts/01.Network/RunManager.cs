@@ -39,6 +39,7 @@ namespace Geumeum.Network
         private float            _previousElapsedSeconds = 0f;    // 서버 전용
         private Coroutine        _tickRoutine            = null;
         private Coroutine        _returnRoutine          = null;   // 서버 전용
+        private Coroutine        _schedulerWaitRoutine   = null;   // 서버 전용
         private double           _pauseStartServerTime   = 0.0;    // 서버 전용
         private double           _bossStartServerTime    = 0.0;    // 서버 전용
         private bool             _hasBossClockStarted    = false;  // 서버 전용
@@ -196,18 +197,36 @@ namespace Geumeum.Network
 
             _timeline = GameDB.IsInitialized ? RunTimelineBuilder.Build(GameDB.Barrier) : RunTimelineBuilder.Build(null);
 
-            if (AuthorityTickScheduler.ServerInstance == null)
-            {
-                Debug.LogError("[RunManager] 권위 틱 스케줄러가 없어 종료 확정을 매 틱 돌릴 수 없다", this);
-            }
-            else
+            if (AuthorityTickScheduler.ServerInstance != null)
             {
                 AuthorityTickScheduler.ServerInstance.RegisterControl(ServerResolveOutcome);
+                return;
             }
+
+            // 씬 오브젝트 간 OnStartServer 순서는 Mirror가 보장하지 않는다. 여기서 포기하면
+            // 런 종료 판정이 한 판 내내 돌지 않는다 - 뜰 때까지 기다렸다가 등록한다
+            _schedulerWaitRoutine = StartCoroutine(CoWaitForScheduler());
+        }
+
+        private IEnumerator CoWaitForScheduler()
+        {
+            while (AuthorityTickScheduler.ServerInstance == null)
+            {
+                yield return null;
+            }
+
+            AuthorityTickScheduler.ServerInstance.RegisterControl(ServerResolveOutcome);
+            _schedulerWaitRoutine = null;
         }
 
         public override void OnStopServer()
         {
+            if (_schedulerWaitRoutine != null)
+            {
+                StopCoroutine(_schedulerWaitRoutine);
+                _schedulerWaitRoutine = null;
+            }
+
             if (AuthorityTickScheduler.ServerInstance != null)
             {
                 AuthorityTickScheduler.ServerInstance.UnregisterControl(ServerResolveOutcome);

@@ -128,6 +128,25 @@ namespace Geumeum.Network
             ClientConnected?.Invoke();
         }
 
+        /// <summary>
+        /// Mirror가 씬 전환을 끝내고 NetworkClient.Ready()까지 부른 뒤에 불린다.
+        /// 도착 보고는 반드시 여기서 한다 - SceneManager.sceneLoaded 시점은 아직 ready가 아니라
+        /// Command가 버려지고 서버가 이 클라를 계속 기다린다
+        /// </summary>
+        public override void OnClientSceneChanged()
+        {
+            base.OnClientSceneChanged();
+
+            RunSceneDirector director = RunSceneDirector.LocalInstance;
+            if (director == null)
+            {
+                Debug.LogWarning("[GeumeumNetworkManager] RunSceneDirector가 없어 씬 도착을 보고하지 못했다");
+                return;
+            }
+
+            director.ClientReportArrived();
+        }
+
         public override void OnClientDisconnect()
         {
             base.OnClientDisconnect();
