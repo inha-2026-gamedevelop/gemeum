@@ -99,7 +99,7 @@ namespace Geumeum.Data
         };
 
         [Tooltip("무녀 표식 공명 창(초). 카운터 패턴이 끝나는 시각 기준으로 이 안에 걸린 표식만 게이지를 깎는다. 표식 지속(8초)과는 별개다")]
-        [SerializeField] private float _resonanceMarkWindow = 3f;
+        [SerializeField] private float _brandWindow = 3f;
 
         [Header("그로기 진행")]
         [Tooltip("그로기 총 지속(초). 무저항 + 기상 예고")]
@@ -173,7 +173,7 @@ namespace Geumeum.Data
         public float BrandCooldown          => _brandCooldown;
 
         /// <summary> 무녀 표식 공명이 인정되는 부여 시각 창(초) </summary>
-        public float ResonanceMarkWindow => _resonanceMarkWindow;
+        public float BrandWindow => _brandWindow;
 
         public float GroggyBodyDamageMultiplier => _groggyBodyDamageMultiplier;
         public float GroggyTailDamageMultiplier => _groggyTailDamageMultiplier;

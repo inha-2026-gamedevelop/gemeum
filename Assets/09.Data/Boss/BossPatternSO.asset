@@ -121,7 +121,7 @@ MonoBehaviour:
     CounterPatternIds:
     - 4
     - 8
-  _resonanceMarkWindow: 3
+  _brandWindow: 3
   _groggyDuration: 10
   _groggyWakeWarningDuration: 2
   _groggyImmunityDuration: 8

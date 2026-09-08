@@ -353,7 +353,7 @@ namespace Geumeum.AI
         public void ResonanceRejectsMarkAppliedBeforeWindow()
         {
             // 표식은 아직 살아 있지만(지속 8초) 공명 창(3초) 밖에 걸렸다
-            MarkBossBody(NetworkTime.time - _data.ResonanceMarkWindow - 1d);
+            MarkBossBody(NetworkTime.time - _data.BrandWindow - 1d);
 
             Invoke(_controller, "ServerNotifyPatternEnded", 4, ATTACK_ID);
 

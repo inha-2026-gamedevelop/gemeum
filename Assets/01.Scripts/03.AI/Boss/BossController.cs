@@ -473,7 +473,7 @@ namespace Geumeum.AI
                 return;
             }
 
-            if (!MarkRegistry.IsMarkedWithin(CreateBodyTargetRef(), NetworkTime.time, _bossData.ResonanceMarkWindow))
+            if (!MarkRegistry.IsMarkedWithin(CreateBodyTargetRef(), NetworkTime.time, _bossData.BrandWindow))
             {
                 return;
             }
