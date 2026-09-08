@@ -197,12 +197,14 @@ namespace Geumeum.EditorTools
         }
 
         // Assets의 부모가 프로젝트 루트다, 빌드 결과는 Assets 밖에 둔다
-        private static string ProjectRoot()
+        /// <summary> 저장소 루트. tools 폴더와 Builds 폴더의 기준이라 다른 메뉴도 쓴다 </summary>
+        internal static string ProjectRoot()
         {
             return Directory.GetParent(Application.dataPath).FullName;
         }
 
-        private static void OpenFolder(string path)
+        /// <summary> 탐색기로 폴더를 연다. 없으면 만든다 </summary>
+        internal static void OpenFolder(string path)
         {
             if (!Directory.Exists(path))
             {

@@ -89,10 +89,10 @@ namespace Geumeum.AI
         private AttackState _state              = AttackState.Idle;
         private float       _stateTimer         = 0f;
         private float       _cooldownRemaining  = 0f;
-        private uint        _nextParryWindowId  = 0;
         private int         _openingIndex       = 0; // OPENING_SEQUENCE.Length에 도달하면 오프닝이 끝난 것
 
         private Transform                  _activeTarget;
+        private IDamageable                _activeTargetStatus;
         private BossPatternSO.PatternEntry _activePattern;
         private PatternKind                _activeKind;
         private Vector3                    _lockedForward;  // 예고 시작 시점에 고정한 방향(방향 완전 잠금)
@@ -121,6 +121,11 @@ namespace Geumeum.AI
 
         public override void Tick(float deltaTime)
         {
+            if (IsExited)
+            {
+                return;
+            }
+
             if (_cooldownRemaining > 0f)
             {
                 _cooldownRemaining -= deltaTime;
@@ -138,6 +143,27 @@ namespace Geumeum.AI
                     TickRecovery(deltaTime);
                     break;
             }
+        }
+
+        public override void CancelActiveAttack()
+        {
+            if (_activeAttackInstanceId == 0u)
+            {
+                return;
+            }
+
+            uint attackInstanceId = _activeAttackInstanceId;
+            _activeAttackInstanceId  = 0u;
+            _activeExecution        = null;
+            _activeParried          = true;
+            _activeTarget           = null;
+            _activeTargetStatus     = null;
+            _stateTimer             = 0f;
+            _cooldownRemaining      = _activePattern.Cooldown;
+            _state                  = AttackState.Recovery;
+
+            CloseParryWindowIfOpen();
+            _controller.ServerCancelTelegraph(attackInstanceId);
         }
 
         private void TickIdle()
@@ -237,6 +263,7 @@ namespace Geumeum.AI
         private void BeginAttack(BossPatternSO.PatternEntry pattern, PatternKind kind)
         {
             _activeTarget           = Target;
+            _activeTarget.TryGetComponent(out _activeTargetStatus);
             _activePattern          = pattern;
             _activeKind             = kind;
             _activeParried          = false;
@@ -284,6 +311,12 @@ namespace Geumeum.AI
 
         private void TickWindup(float deltaTime)
         {
+            if ((_activeTarget == null) || ((_activeTargetStatus != null) && (_activeTargetStatus.IsDead)))
+            {
+                CancelActiveAttack();
+                return;
+            }
+
             if (_activeKind == PatternKind.TargetedDash)
             {
                 // 앞뒤 절반 추적 대신 시작 시점에 전부 확정하는 완전 잠금으로 단순화했다(MVP)
@@ -302,6 +335,12 @@ namespace Geumeum.AI
             {
                 ResolveImpact();
             }
+
+            _controller.ServerCancelTelegraph(_activeAttackInstanceId);
+            _activeExecution = null;
+
+            // 회복으로 넘어가는 이 지점이 패턴 종료다. 반복 패턴은 마지막 판정에서 한 번만 온다
+            _controller.ServerNotifyPatternEnded(_activePattern.PatternId, _activeAttackInstanceId);
 
             _stateTimer        = 0f;
             _cooldownRemaining = _activePattern.Cooldown;
@@ -372,20 +411,23 @@ namespace Geumeum.AI
             _stateTimer += deltaTime;
             if (_stateTimer >= _activePattern.ActiveDuration)
             {
+                _activeAttackInstanceId = 0u;
+                _activeTarget          = null;
+                _activeTargetStatus    = null;
                 _state = AttackState.Idle;
             }
         }
 
-        /// <summary> 패링 성공 시 BossAttackExecution이 호출한다. 참조가 다르면 이미 지난 공격의 늦은 통지다 </summary>
+        // 현재 실행만 패링 결과를 받는다. 이전 공격의 늦은 통지는 버린다.
         private void HandleAttackParried(BossAttackExecution execution, uint parriedByNetId)
         {
-            if ((!ReferenceEquals(execution, _activeExecution)) || (_state != AttackState.Windup))
+            if ((IsExited) || (execution == null) || (!ReferenceEquals(execution, _activeExecution))
+                || (_state != AttackState.Windup))
             {
                 return;
             }
 
-            _activeParried = true;
-            _controller.RpcCancelTelegraph(_activeAttackInstanceId);
+            CancelActiveAttack();
             _controller.ServerReduceGroggyGauge(CharacterKind.Chasa); // 검 사용자만 패링에 성공할 수 있다
         }
 
@@ -396,14 +438,12 @@ namespace Geumeum.AI
                 return;
             }
 
-            IParryWindowTarget parryTarget = _activeTarget.GetComponent<IParryWindowTarget>();
-            if (parryTarget == null)
+            if (!_activeTarget.TryGetComponent(out IParryWindowTarget parryTarget))
             {
                 return;
             }
 
-            ++_nextParryWindowId;
-            ParryWindowKey key = new ParryWindowKey(_selfIdentity.netId, _nextParryWindowId);
+            ParryWindowKey key = new ParryWindowKey(_selfIdentity.netId, _activeAttackInstanceId);
 
             double now        = NetworkTime.time;
             double impactTime = now + pattern.TelegraphDuration;
@@ -425,9 +465,17 @@ namespace Geumeum.AI
                 return;
             }
 
-            _openParryTarget.CloseParryWindow(_openParryKey);
+            IParryWindowTarget target = _openParryTarget;
+            ParryWindowKey key = _openParryKey;
             _openParryTarget = null;
             _openParryKey    = default;
+
+            if ((target is UnityEngine.Object unityTarget) && (unityTarget == null))
+            {
+                return;
+            }
+
+            target.CloseParryWindow(key);
         }
     }
 }

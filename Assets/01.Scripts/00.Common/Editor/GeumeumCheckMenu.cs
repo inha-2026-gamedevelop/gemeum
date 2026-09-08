@@ -27,7 +27,13 @@ namespace Geumeum.EditorTools
         *                Fields
         ****************************************/
 
-        private const string MENU_SCENE = GeumeumBuildMenu.MENU_ROOT + "씬/";
+        private const string MENU_SCENE         = GeumeumBuildMenu.MENU_ROOT + "씬/";
+        private const string MENU_SCENE_RELEASE = MENU_SCENE + "런타임/";
+        private const string MENU_SCENE_DEV     = MENU_SCENE + "개발/";
+
+        // 런타임 씬은 Assets/00.Scenes/Release/ 아래에, 시스템 개발 씬은 Dev_System/ 아래에 있다
+        private const string RELEASE_SUBDIR    = "Release/";
+        private const string DEV_SYSTEM_SUBDIR = "Dev_System/";
         private const string MENU_CHECK = GeumeumBuildMenu.MENU_ROOT + "검사/";
         private const string MENU_DATA  = GeumeumBuildMenu.MENU_ROOT + "데이터/";
 
@@ -40,6 +46,23 @@ namespace Geumeum.EditorTools
 
         private const int ORDER_SCENE_MAIN   = 40;
         private const int ORDER_SCENE_COMBAT = 41;
+
+        // 런 순서 그대로 둔다. 알파벳순으로 두면 어디로 이어지는지 안 보인다
+        private const int ORDER_SCENE_BOOT           = 0;
+        private const int ORDER_SCENE_TITLE          = 1;
+        private const int ORDER_SCENE_LOBBY          = 2;
+        private const int ORDER_SCENE_FIELD          = 3;
+        private const int ORDER_SCENE_BOSS_ENTRANCE  = 4;
+        private const int ORDER_SCENE_BOSS_ARENA     = 5;
+        private const int ORDER_SCENE_RESULT         = 6;
+
+        private const int ORDER_SCENE_DEV_AI        = 0;
+        private const int ORDER_SCENE_DEV_CHARACTER = 1;
+        private const int ORDER_SCENE_DEV_BARRIER   = 20;
+        private const int ORDER_SCENE_DEV_LOBBY     = 21;
+        private const int ORDER_SCENE_DEV_TITLE     = 22;
+        private const int ORDER_SCENE_DEV_HUD       = 23;
+        private const int ORDER_SCENE_DEV_WEATHER   = 40;
         private const int ORDER_CHECK_DATA   = 60;
         private const int ORDER_CHECK_SCENE  = 61;
         private const int ORDER_CHECK_POOL   = 62;
@@ -63,6 +86,49 @@ namespace Geumeum.EditorTools
             OpenScene(Constants.Scene.DEV_COMBAT);
         }
 
+        [MenuItem(MENU_SCENE_RELEASE + "Boot 열기", false, ORDER_SCENE_BOOT)]
+        private static void OpenBoot() { OpenScene(RELEASE_SUBDIR + Constants.Scene.BOOT); }
+
+        [MenuItem(MENU_SCENE_RELEASE + "Title 열기", false, ORDER_SCENE_TITLE)]
+        private static void OpenTitle() { OpenScene(RELEASE_SUBDIR + Constants.Scene.TITLE); }
+
+        [MenuItem(MENU_SCENE_RELEASE + "Lobby 열기", false, ORDER_SCENE_LOBBY)]
+        private static void OpenLobby() { OpenScene(RELEASE_SUBDIR + Constants.Scene.LOBBY); }
+
+        [MenuItem(MENU_SCENE_RELEASE + "Field 열기", false, ORDER_SCENE_FIELD)]
+        private static void OpenField() { OpenScene(RELEASE_SUBDIR + Constants.Scene.FIELD); }
+
+        [MenuItem(MENU_SCENE_RELEASE + "BossEntrance 열기", false, ORDER_SCENE_BOSS_ENTRANCE)]
+        private static void OpenBossEntrance() { OpenScene(RELEASE_SUBDIR + Constants.Scene.BOSS_ENTRANCE); }
+
+        [MenuItem(MENU_SCENE_RELEASE + "Boss_Arena 열기", false, ORDER_SCENE_BOSS_ARENA)]
+        private static void OpenBossArena() { OpenScene(RELEASE_SUBDIR + Constants.Scene.BOSS_ARENA); }
+
+        [MenuItem(MENU_SCENE_RELEASE + "Result 열기", false, ORDER_SCENE_RESULT)]
+        private static void OpenResult() { OpenScene(RELEASE_SUBDIR + Constants.Scene.RESULT); }
+
+        [MenuItem(MENU_SCENE_DEV + "Dev_AI 열기", false, ORDER_SCENE_DEV_AI)]
+        private static void OpenDevAI() { OpenScene(Constants.Scene.DEV_AI); }
+
+        [MenuItem(MENU_SCENE_DEV + "Dev_Character 열기", false, ORDER_SCENE_DEV_CHARACTER)]
+        private static void OpenDevCharacter() { OpenScene("Dev_Character"); }
+
+        [MenuItem(MENU_SCENE_DEV + "Dev_Barrier 열기", false, ORDER_SCENE_DEV_BARRIER)]
+        private static void OpenDevBarrier() { OpenScene(DEV_SYSTEM_SUBDIR + "Dev_Barrier"); }
+
+        [MenuItem(MENU_SCENE_DEV + "Dev_Lobby 열기", false, ORDER_SCENE_DEV_LOBBY)]
+        private static void OpenDevLobby() { OpenScene(DEV_SYSTEM_SUBDIR + "Dev_Lobby"); }
+
+        [MenuItem(MENU_SCENE_DEV + "Dev_Title 열기", false, ORDER_SCENE_DEV_TITLE)]
+        private static void OpenDevTitle() { OpenScene(DEV_SYSTEM_SUBDIR + "Dev_Title"); }
+
+        [MenuItem(MENU_SCENE_DEV + "Dev_HUD 열기", false, ORDER_SCENE_DEV_HUD)]
+        private static void OpenDevHud() { OpenScene(DEV_SYSTEM_SUBDIR + "Dev_HUD"); }
+
+        [MenuItem(MENU_SCENE_DEV + "Dev_WeatherMakerIsolation 열기", false, ORDER_SCENE_DEV_WEATHER)]
+        private static void OpenDevWeather() { OpenScene("Dev_WeatherMakerIsolation"); }
+
+        /// <summary> sceneName은 Assets/00.Scenes/ 아래의 상대 경로다. 하위 폴더를 포함할 수 있다 </summary>
         private static void OpenScene(string sceneName)
         {
             // 저장하지 않고 씬을 바꾸면 편집 내용이 사라진다

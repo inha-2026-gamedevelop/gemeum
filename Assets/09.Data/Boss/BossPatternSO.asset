@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: BossPatternSO
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.BossPatternSO
   _maxHealth: 55000
+  _transitionLockDuration: 2
   _phases:
   - PhaseIndex: 1
     EnterHealthRatio: 1
@@ -107,10 +108,20 @@ MonoBehaviour:
   _gaugeReductions:
   - Character: 0
     Amount: 10
+    CounterPatternIds:
+    - 1
+    - 6
   - Character: 1
     Amount: 8
+    CounterPatternIds:
+    - 5
+    - 9
   - Character: 2
     Amount: 13
+    CounterPatternIds:
+    - 4
+    - 8
+  _resonanceMarkWindow: 3
   _groggyDuration: 10
   _groggyWakeWarningDuration: 2
   _groggyImmunityDuration: 8
