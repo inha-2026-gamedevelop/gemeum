@@ -19,6 +19,7 @@ GameObject:
   - component: {fileID: 3436236327625539061}
   - component: {fileID: 7681915836170082641}
   - component: {fileID: 4594306377395398701}
+  - component: {fileID: 4540833761493205098}
   m_Layer: 0
   m_Name: SessionManagers
   m_TagString: Untagged
@@ -187,3 +188,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e395947c95a3f14cb94254bc8c416a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.SessionPersistence
+--- !u!114 &4540833761493205098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4003202172849946245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16e1a10c4092db0499c88eb8373cde03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.DropDirector
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _droppedItemPrefab: {fileID: 3485582826016561510, guid: 2ad7f780d628f4142bd6512decf2f319, type: 3}
+  _spawnHeightOffset: 0.5
