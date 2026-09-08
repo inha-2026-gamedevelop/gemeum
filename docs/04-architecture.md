@@ -400,7 +400,9 @@ Main.unity
                               직접 참조하지 않도록 하는 경계다
    ├ IPlayerRunLifecycle.cs   런 경계에서 플레이어를 옮기고 상태를 되돌리는 계약
    ├ IPoolable.cs             풀에서 재사용될 때 파티클 · Trail · 코루틴을 되돌리는 계약
-   └ IParryWindowTarget.cs    패링 창을 여닫을 수 있는 대상의 계약
+   ├ IParryWindowTarget.cs    패링 창을 여닫을 수 있는 대상의 계약
+   └ IBossTelegraphSource.cs  [현재] 보스 예고의 현재 값과 변경 통지 창구. 표현이 AI 구현을
+                              참조하지 않고 예고를 읽게 하는 경계 → 4.3
 ```
 
 `Interfaces/`에는 인터페이스만 둔다. 파트가 공유하는 열거형은 `Types/`로 보낸다 — 폴더명과 내용이 어긋나면 다음 사람이 찾지 못한다.
@@ -604,10 +606,16 @@ Main.unity
 └ Boss/
    ├ BossController.cs        NB [현재] 페이즈 전환(EnterHealthRatio) · 대상 스캔(RefreshTarget) ·
    │                              공격 instance ID 발급 · 그로기 게이지 상태머신(Active/Groggy/Immune)
-   │                              관리, 판정 자체는 현재 페이즈 상태에 위임. RpcBeginTelegraph/
-   │                              RpcCancelTelegraph는 [계획] 빈 구현(서버 판정에는 영향 없음)
-   ├ BossStatus.cs            NB [현재] 보스 HP SyncVar. IDamageable
-   ├ BossPhaseStateBase.cs    C#  [현재] 페이즈 추상 클래스 (enum+switch 금지 — 기술 구현 4.2)
+   │                              관리, 판정 자체는 현재 페이즈 상태에 위임.
+   │                              [현재] 예고는 BossTelegraphCue SyncVar 하나로 전달하고
+   │                              IBossTelegraphSource로 공개한다(빈 RPC 두 개를 대체).
+   │                              [현재] 전환 잠금(TransitionLockDuration) · 그로기 본체 피해 배율 ·
+   │                              정지(비활성화, 재개 가능)와 종료(사망 · 런 이탈 · 스폰 해제) 분리.
+   │                              [계획] 예고 view · 다중 cue · syncInterval 확정
+   ├ BossStatus.cs            NB [현재] 보스 HP SyncVar + 현재 본체 피해 배율. IDamageable
+   ├ BossPhaseStateBase.cs    C#  [현재] 페이즈 추상 클래스 (enum+switch 금지 — 기술 구현 4.2).
+   │                              CancelActiveAttack()로 진행 중 판정 · 패링 창 · 예고를 정리하고,
+   │                              Exit()는 멱등이라 종료된 페이즈는 다시 공격하지 않는다
    ├ Phase1State.cs           C#  [현재] 1페이즈 MVP: 오프닝 고정 시퀀스(1→2→4) 이후 거리 3단
    │                              필터 + 균등 무작위 추첨. 템플릿 넷(MeleeArc·TargetedDash·
    │                              MarkedCircle·ConeBurst) 전부 단일 판정으로 구현됨
@@ -616,10 +624,14 @@ Main.unity
    ├ BossPatternRunner.cs     C#  [현재] MeleeArc 부채꼴 판정(NonAlloc), netId 중복 제거
    ├ BossAttackExecution.cs   C#  [현재] 보스 공격 1회의 IParryable 구현체. 공격마다 새 인스턴스로
    │                              늦은 패링 통지를 차단(창귀와 동일 패턴)
-   └ BossSpawner.cs           NB [현재] Boss_Proxy.prefab 스폰
+   ├ BossSpawner.cs           NB [현재] Boss_Proxy.prefab 스폰
+   └ Editor/
+      └ BossExecutionTests.cs C# [현재] EditMode. 취소 · 종료 · 정지/재개 · 그로기 배율 ·
+                                 예고 만료의 서버 계약을 고정한다
 ```
 
 `BossTelegraphCue.cs`(서버→클라 공격 예고 값 타입, struct)는 공용 스키마라 `00.Common/Types/`에 있다 → 4.1절.
+`Boss/`의 서버 실행부(전환 · 취소 · 예고 · 그로기 판정)는 폴더 소유와 별개로 **서버 담당 @AidenKim923이 구현한다.**
 꼬리 3덩이 부위 파괴·25% 하드 게이트·백귀야행(패턴 10)은 전부 [계획]이며 아직 파일이 없다 —
 BOSS_PATTERN_CONTRACT.md 8.2·4.1절 참조.
 

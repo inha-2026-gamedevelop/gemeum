@@ -17,6 +17,12 @@ namespace Geumeum.Common
         /// <summary> 보스별 단조 증가 공격 ID, 0은 "값 없음" 예약이라 쓰지 않는다 </summary>
         public uint AttackInstanceId;
 
+        /// <summary> 서버에서 아직 취소되지 않은 예고인지 여부 </summary>
+        public bool IsActive;
+
+        /// <summary> NetworkTime.time 기준 예고 시작 시각 </summary>
+        public double StartServerTime;
+
         /// <summary> 로컬 GameDB.Boss 조회 키 </summary>
         public int PatternId;
 
@@ -29,5 +35,14 @@ namespace Geumeum.Common
 
         /// <summary> NetworkTime.time 기준 절대 impact 시각 </summary>
         public double ImpactServerTime;
+
+        /// <summary> 취소됐거나 늦게 도착한 예고는 재생하지 않는다 </summary>
+        public bool IsPendingAt(double serverTime)
+        {
+            return ((IsActive) && (AttackInstanceId != 0u)
+                && (!double.IsNaN(serverTime)) && (!double.IsInfinity(serverTime))
+                && (!double.IsInfinity(StartServerTime)) && (!double.IsInfinity(ImpactServerTime))
+                && (StartServerTime <= serverTime) && (serverTime < ImpactServerTime));
+        }
     }
 }

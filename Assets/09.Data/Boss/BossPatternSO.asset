@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: BossPatternSO
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.BossPatternSO
   _maxHealth: 55000
+  _transitionLockDuration: 2
   _phases:
   - PhaseIndex: 1
     EnterHealthRatio: 1

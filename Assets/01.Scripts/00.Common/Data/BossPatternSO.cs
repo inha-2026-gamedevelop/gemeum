@@ -58,6 +58,9 @@ namespace Geumeum.Data
         [Header("페이즈")]
         [SerializeField] private PhaseEntry[] _phases;
 
+        [Tooltip("페이즈 전환 뒤 보스 공격 잠금 시간(초)")]
+        [SerializeField] private float _transitionLockDuration = 2f;
+
         [Header("패턴")]
         [SerializeField] private PatternEntry[] _patterns;
 
@@ -128,6 +131,7 @@ namespace Geumeum.Data
         ****************************************/
 
         public float MaxHealth  => _maxHealth;
+        public float TransitionLockDuration => _transitionLockDuration;
 
         /// <summary> 보스전 하드 제한(초) </summary>
         public float BossTimeLimitSeconds => _bossTimeLimitSeconds;

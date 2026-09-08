@@ -14,7 +14,7 @@ using Geumeum.Data;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 보스 HP를 관리한다. IDamageable 구현 (docs/unity/BOSS_DESIGN.md 5.1절)
+    /// 보스 본체 HP와 현재 피해 배율을 관리한다.
     /// </summary>
     public class BossStatus : NetworkBehaviour, IDamageable
     {
@@ -24,8 +24,9 @@ namespace Geumeum.AI
 
         [SyncVar] private float _health;
 
-        private float _maxHealth = 0f;
-        private bool  _isDead    = false;
+        private float _maxHealth            = 0f;
+        private bool  _isDead               = false;
+        private float _bodyDamageMultiplier = 1f;
 
         /****************************************
         *              Properties
@@ -52,9 +53,23 @@ namespace Geumeum.AI
         [Server]
         public void Initialize()
         {
-            _maxHealth = GameDB.Boss.MaxHealth;
-            _health    = _maxHealth;
-            _isDead    = false;
+            _maxHealth            = GameDB.Boss.MaxHealth;
+            _health               = _maxHealth;
+            _isDead               = false;
+            _bodyDamageMultiplier = 1f;
+        }
+
+        /// <summary> 서버가 확정한 현재 그로기 본체 피해 배율을 적용한다 </summary>
+        [Server]
+        internal void ServerSetBodyDamageMultiplier(float multiplier)
+        {
+            if ((float.IsNaN(multiplier)) || (float.IsInfinity(multiplier)) || (multiplier <= 0f))
+            {
+                Debug.LogError("[BossStatus] 본체 피해 배율이 유효하지 않다", this);
+                return;
+            }
+
+            _bodyDamageMultiplier = multiplier;
         }
 
         /// <summary> 피해를 적용한다, 서버에서만 호출한다 </summary>
@@ -66,12 +81,13 @@ namespace Geumeum.AI
                 return;
             }
 
-            if (damage.Amount <= Constants.Combat.DAMAGE_EPSILON)
+            if ((float.IsNaN(damage.Amount)) || (float.IsInfinity(damage.Amount))
+                || (damage.Amount <= Constants.Combat.DAMAGE_EPSILON))
             {
                 return;
             }
 
-            _health = Mathf.Max(0f, _health - damage.Amount);
+            _health = Mathf.Max(0f, _health - (damage.Amount * _bodyDamageMultiplier));
 
             if (_health <= Constants.Combat.HEALTH_EPSILON)
             {

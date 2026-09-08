@@ -264,7 +264,7 @@ Unity에서 확인한 사실: **필드가 YAML에 없어도 0이 되지 않고 C
 
 ### U17 보스 패턴 종료 · 페이즈/그로기 취소 계약
 
-- 현재 코드: `BossController`는 이전 State 교체만. `EnterGroggy`는 Tick을 멈춤. Phase1/2에 패링창 해제 helper는 있으나 **전환에서 호출 안 함**
+- 현재 코드(2026-09-08): `CancelActiveAttack`/`Exit`를 두 페이즈에 연결. 전환·그로기·사망·Result·런 초기화·서버 종료에서 실행/패링 창/예고를 정리한다. 대상 소실과 중복 패링도 차단하며, 패링 키는 보스 전체 공격 ID를 사용한다. 전환 잠금은 SO의 `TransitionLockDuration`을 읽는다. **구현됨, L2·L3 대기.**
 - 권위: 서버. 오래된 패링창·공격 타이머는 게임 결과를 바꾼다
 - 권장 접근: `BossPhaseStateBase`에 취소/종료 창구를 두고 전환·그로기·사망에서 **모든 활성 execution/window/cue를 공격 ID로 정리**(결정됨). 재개는 새 공격 상태부터
 - 대안: 각 PhaseState가 자기 취소를 책임짐 — 공통 전환·사망 경로에서 누락되기 쉽다
@@ -274,7 +274,7 @@ Unity에서 확인한 사실: **필드가 YAML에 없어도 0이 되지 않고 C
 
 ### U18 보스 · 창귀 텔레그래프 Begin/Cancel 표현
 
-- 현재 코드: `BossController`의 `RpcCancelTelegraph` 빈 본문. `BossTelegraphCue` 있음. 창귀 패링 연결은 있으나 확장 cue/전용 view 없음
+- 현재 코드(2026-09-08): 보스는 현재 `BossTelegraphCue`를 SyncVar로 전달하고 `IBossTelegraphSource`로 조회/변경을 공개한다. 공격 ID별 취소는 멱등이며 `IsPendingAt`으로 만료를 검사한다. **단일 예고 상태의 서버 기반만 구현됨.** 보스/창귀 전용 view, 반복별·대상별 다중 cue, 일시정지 시각 보정은 남아 있다.
 - 권위: 도형/대상/발동 시각 서버 / 데칼·사운드·UI는 각 클라 재생
 - 권장 접근: 기존 `BossTelegraphCue`와 공격 ID를 확장하되 **취소 멱등 · 늦은 수신 만료** 처리. 4템플릿 view가 서버 절대시각으로 진행률만 계산. 창귀는 최소 cue부터
 - 대안: `BossArenaPhaseView`가 공격 cue까지 읽음 — 아레나 연출과 개별 공격 표시의 수명이 섞인다
