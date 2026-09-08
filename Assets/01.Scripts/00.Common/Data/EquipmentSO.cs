@@ -74,6 +74,12 @@ namespace Geumeum.Data
         /// <summary> 등급별 롤 범위를 찾는다, 없으면 false </summary>
         public bool TryGetGrade(ItemGrade grade, out GradeEntry entry)
         {
+            if (_grades == null)
+            {
+                entry = default;
+                return false;
+            }
+
             for (int i = 0; i < _grades.Length; ++i)
             {
                 if (_grades[i].Grade == grade)
@@ -90,6 +96,12 @@ namespace Geumeum.Data
         /// <summary> 무기 전용 옵션 풀을 찾는다, 없으면 false </summary>
         public bool TryGetWeaponOptions(WeaponKind weaponKind, out OptionEntry[] options)
         {
+            if (_weaponOptions == null)
+            {
+                options = null;
+                return false;
+            }
+
             for (int i = 0; i < _weaponOptions.Length; ++i)
             {
                 if (_weaponOptions[i].WeaponKind == weaponKind)
