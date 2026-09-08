@@ -11,7 +11,7 @@ namespace Geumeum.Common
         ****************************************/
 
         /// <summary> 그릇의 형식 번호. 필드 구성이 바뀌면 올리고, 다른 번호의 값은 복구하지 않는다 </summary>
-        public const int CURRENT_SCHEMA_VERSION = 1;
+        public const int CURRENT_SCHEMA_VERSION = 2;
 
         /****************************************
         *              Properties
@@ -52,7 +52,9 @@ namespace Geumeum.Common
         /// <summary> 지금 들고 있는 무기의 확정 값 </summary>
         public WeaponCombatSnapshot EquippedWeapon { get; set; }
 
-        // TODO(민성): 인벤토리 4칸과 특성 배분은 Systems 데이터 모델 확정 후 추가
+        public EquipmentInventorySnapshot Inventory { get; set; }
+
+        // TODO(민성): 특성 배분은 Systems 데이터 모델 확정 후 추가
 
         // 위치
         public Vector3 Position { get; set; }

@@ -43,6 +43,12 @@ namespace Geumeum.Data
         /// <summary> 필드 레벨의 등급 가중치를 찾는다, 없으면 false </summary>
         public bool TryGetEntry(int fieldLevel, out FieldLevelEntry entry)
         {
+            if (_entries == null)
+            {
+                entry = default;
+                return false;
+            }
+
             for (int i = 0; i < _entries.Length; ++i)
             {
                 if (_entries[i].FieldLevel == fieldLevel)

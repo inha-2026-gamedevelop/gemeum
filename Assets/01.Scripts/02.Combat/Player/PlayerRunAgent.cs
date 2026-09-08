@@ -28,6 +28,7 @@ namespace Geumeum.Combat
 
         // 상태를 담고 붓는 컴포넌트들
         private readonly List<IRunStateCarrier> _carriers = new List<IRunStateCarrier>();
+        private readonly List<IRunResettable> _resettable = new List<IRunResettable>();
 
         /****************************************
         *              Properties
@@ -55,6 +56,7 @@ namespace Geumeum.Combat
         {
             _carriers.Clear();
             GetComponents(_carriers);
+            GetComponents(_resettable);
             _carriers.Sort((left, right) => left.CarrierOrder.CompareTo(right.CarrierOrder));
         }
 
@@ -116,6 +118,10 @@ namespace Geumeum.Combat
             }
 
             _status.ServerResetForNewRun();
+            for (int i = 0; i < _resettable.Count; ++i)
+            {
+                _resettable[i].ResetForNewRun();
+            }
         }
 
         /// <summary> 자기 컴포넌트들의 값을 그릇에 담는다 </summary>
