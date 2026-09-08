@@ -6,6 +6,9 @@ using System.Reflection;
 // Unity
 using UnityEngine;
 
+// Unity 테스트
+using UnityEngine.TestTools;
+
 // 서드파티
 using Mirror;
 using NUnit.Framework;
@@ -214,6 +217,8 @@ namespace Geumeum.AI
             BossPhaseStateBase phase = CreateWindup(2);
             if (method == "HandleDied")
             {
+                // 이 테스트에는 GameEventBus가 없다. 사망 사실 발행 실패는 여기서 검증할 대상이 아니다
+                ExpectMissingEventBusError();
                 Invoke(_controller, method, 1u);
             }
             else
@@ -297,6 +302,7 @@ namespace Geumeum.AI
             CreateWindup(2);
             using (var server = new ServerRuntimeScope(_boss))
             {
+                ExpectMissingEventBusError();
                 Invoke(_controller, "HandleDied", 1u);
                 Invoke(_controller, "OnDisable");
                 Invoke(_controller, "OnEnable");
@@ -487,6 +493,15 @@ namespace Geumeum.AI
                 ++CloseCount;
                 ClosedKey = key;
             }
+        }
+        /// <summary>
+        /// HandleDied는 보스 사망 사실을 GameEventBus로 발행한다. EditMode에는 버스가 없어
+        /// 오류 로그가 남고, NUnit은 처리하지 않은 오류 로그를 실패로 본다.
+        /// 사망 사실이 실제로 발행되는지는 RunManager 쪽 검증의 몫이다
+        /// </summary>
+        private static void ExpectMissingEventBusError()
+        {
+            LogAssert.Expect(LogType.Error, "[BossController] GameEventBus가 없어 보스 사망을 알리지 못했다, 런이 끝나지 않는다");
         }
     }
 }
