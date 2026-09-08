@@ -30,9 +30,19 @@
 
 | 무엇 | 스크립트 |
 |---|---|
-| **한 PC 3창** (M2) | `powershell -ExecutionPolicy Bypass -File tools\run-3clients.ps1` · 종료는 `-Kill` |
-| **다른 PC 3대** (M3) | `tools\run-host.bat` → `tools\run-client.bat <호스트IP> <포트> <platformid>` |
-| Steam 경로 | `tools\run-steam-host.bat` · `run-steam-client.bat` · `run-steam-lobby.bat` |
+| **한 PC 3창** (M2) | Unity 메뉴 `그믐 - 런 테스트 - 이 PC에서 3인 실행 (M2)`. 종료는 같은 메뉴의 `실행한 빌드 전부 종료` |
+| **다른 PC 3대** (M3) | `그믐 - 런 테스트 - KCP 호스트 실행` → 다른 PC에서 `KCP 클라이언트 실행` |
+| Steam 경로 | `그믐 - 런 테스트 - Steam 호스트 실행` · `Steam 클라이언트 실행` · `Steam 로비 실행` |
+
+**메뉴는 `tools/`의 스크립트를 그대로 부른다.** Unity를 띄우지 않는 PC에서는 직접 실행해도 된다 — 두 경로는 같은 것을 실행한다.
+
+| 메뉴 | 직접 실행 |
+|---|---|
+| 이 PC에서 3인 실행 | `powershell -ExecutionPolicy Bypass -File tools\run-3clients.ps1` (종료는 `-Kill`) |
+| KCP 호스트 · 클라이언트 | `tools\run-host.bat` · `tools\run-client.bat <호스트IP> <포트> <platformid>` |
+| Steam | `tools\run-steam-host.bat` · `run-steam-client.bat` · `run-steam-lobby.bat` |
+
+메뉴로 실행하면 **개발 빌드가 없을 때 먼저 알려주고 빌드할지 묻는다.** 릴리스 빌드로 돌려 실행 인자가 조용히 무시되는 사고를 여기서 막는다.
 
 **시작 전에 확인할 것 넷.** 하나라도 어긋나면 3인 검증이 성립하지 않는다.
 
