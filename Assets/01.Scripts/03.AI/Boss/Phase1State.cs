@@ -73,6 +73,11 @@ namespace Geumeum.AI
         private const float DASH_DISTANCE   = 9.12f; // m, 1페이즈 돌진 거리 (8 x1.14)
         private const float DASH_HIT_RADIUS = 1.37f; // m, 돌진 도착 지점 명중 판정 반경 (1.2 x1.14)
 
+        // 패턴 3(순간 접근 3연계) 지목자 선정 전용. BossController.RefreshTarget과 같은 반경 -
+        // 전역 어그로 대상(Target)과 별개로, 직전 지목자를 뺀 후보 중에서 다시 뽑는다
+        // (BOSS_PATTERN_CONTRACT.md 어그로 규칙)
+        private const float DASH_TARGET_SCAN_RADIUS = 30f;
+
         private const float MARKED_CIRCLE_RADIUS = 3.99f; // m, 1페이즈 낙인 반경 (3.5 x1.14)
 
         private const float CONE_RANGE         = 10.26f; // m, 충격파 사거리 (9 x1.14)
@@ -89,6 +94,9 @@ namespace Geumeum.AI
         private readonly NetworkIdentity _selfIdentity;
         private readonly int             _playerLayerMask;
         private readonly int[]           _candidatePatternIds = new int[MAX_CANDIDATE_COUNT]; // 매 선택마다 재사용, 할당 없음
+        private readonly Collider[]      _dashTargetScanBuffer = new Collider[Constants.Network.MAX_PLAYERS + 1]; // 재사용, 할당 없음
+
+        private Transform _lastDashTarget; // 패턴 3 전용, 직전 지목자. 다음 지목에서 후보 제외 대상
 
         private AttackState _state              = AttackState.Idle;
         private float       _stateTimer         = 0f;
@@ -265,17 +273,59 @@ namespace Geumeum.AI
             }
         }
 
+        // 직전 지목자를 뺀 생존 플레이어 중 가장 가까운 대상을 고른다. 후보가 없으면(생존자가
+        // 직전 지목자 하나뿐) null을 돌려주고 호출부가 Target(전역 어그로 대상)으로 대체한다 -
+        // "후보가 0이 되면 직전 지목자 제외를 먼저 푼다"는 어그로 규칙의 필터 우선순위
+        private Transform SelectDashTarget()
+        {
+            int count = Physics.OverlapSphereNonAlloc(Self.position, DASH_TARGET_SCAN_RADIUS, _dashTargetScanBuffer, _playerLayerMask);
+
+            Transform nearestExcludingLast = null;
+            float     nearestDistance      = float.MaxValue;
+
+            for (int i = 0; i < count; ++i)
+            {
+                if ((!_dashTargetScanBuffer[i].TryGetComponent(out IDamageable damageable)) || (damageable.IsDead))
+                {
+                    continue;
+                }
+
+                Transform candidate = _dashTargetScanBuffer[i].transform;
+                if (ReferenceEquals(candidate, _lastDashTarget))
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(Self.position, candidate.position);
+                if (distance < nearestDistance)
+                {
+                    nearestDistance       = distance;
+                    nearestExcludingLast  = candidate;
+                }
+            }
+
+            return nearestExcludingLast;
+        }
+
         private void BeginAttack(BossPatternSO.PatternEntry pattern, PatternKind kind)
         {
-            _activeTarget           = Target;
+            // TargetedDash(패턴 3)는 전역 어그로 대상(Target)이 아니라 직전 지목자를 뺀
+            // 후보 중에서 다시 뽑는다 - 안 그러면 같은 사람만 계속 지목당해 3인 역할 분리가 안 된다
+            _activeTarget = (kind == PatternKind.TargetedDash) ? (SelectDashTarget() ?? Target) : Target;
+
+            if (kind == PatternKind.TargetedDash)
+            {
+                _lastDashTarget = _activeTarget;
+            }
+
             _activeTarget.TryGetComponent(out _activeTargetStatus);
-            _activePattern          = pattern;
-            _activeKind             = kind;
-            _activeParried          = false;
-            _activeExecution        = null;
-            _meleeArcHitIndex       = 0;
-            _stateTimer             = 0f;
-            _state                  = AttackState.Windup;
+            _activePattern    = pattern;
+            _activeKind       = kind;
+            _activeParried    = false;
+            _activeExecution  = null;
+            _meleeArcHitIndex = 0;
+            _stateTimer       = 0f;
+            _state            = AttackState.Windup;
 
             Vector3 direction = _activeTarget.position - Self.position;
             direction.y = 0f;
