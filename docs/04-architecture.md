@@ -611,7 +611,9 @@ Main.unity
    │                              IBossTelegraphSource로 공개한다(빈 RPC 두 개를 대체).
    │                              [현재] 전환 잠금(TransitionLockDuration) · 그로기 본체 피해 배율 ·
    │                              정지(비활성화, 재개 가능)와 종료(사망 · 런 이탈 · 스폰 해제) 분리.
-   │                              [계획] 예고 view · 다중 cue · syncInterval 확정
+   │                              [현재] 무녀 표식 공명 카운터(패턴 종료 시 1회).
+   │                              [계획] 신궁 시전 취소 카운터 · 예고 view · 다중 cue ·
+   │                              syncInterval 확정
    ├ BossStatus.cs            NB [현재] 보스 HP SyncVar + 현재 본체 피해 배율. IDamageable
    ├ BossPhaseStateBase.cs    C#  [현재] 페이즈 추상 클래스 (enum+switch 금지 — 기술 구현 4.2).
    │                              CancelActiveAttack()로 진행 중 판정 · 패링 창 · 예고를 정리하고,

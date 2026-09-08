@@ -169,6 +169,40 @@ namespace Geumeum.Common
             return false;
         }
 
+        /// <summary>
+        /// 기준 시각으로부터 window 초 안에 이 대상에 걸린 표식이 있는가.
+        /// 누가 걸었는지는 보지 않는다 - 무녀가 둘이어도 카운터는 한 번이다
+        /// </summary>
+        public static bool IsMarkedWithin(TargetRef target, double serverTime, double window)
+        {
+            if ((!target.IsValid) || (window <= 0d)
+                || (double.IsNaN(serverTime)) || (double.IsInfinity(serverTime)))
+            {
+                return false;
+            }
+
+            foreach (KeyValuePair<ulong, MarkSlot[]> pair in _slotsByOwner)
+            {
+                MarkSlot[] slots = pair.Value;
+
+                for (int i = 0; i < slots.Length; ++i)
+                {
+                    if ((!slots[i].IsActiveAt(serverTime)) || (!slots[i].Target.Equals(target)))
+                    {
+                        continue;
+                    }
+
+                    double elapsed = serverTime - slots[i].AppliedServerTime;
+                    if ((elapsed >= 0d) && (elapsed <= window))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         /// <summary> 이 소유자가 지금 유지 중인 표식 수 </summary>
         public static int CountActive(ParticipantId owner, double serverTime)
         {

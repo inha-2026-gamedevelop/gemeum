@@ -306,7 +306,7 @@ Unity에서 확인한 사실: **필드가 YAML에 없어도 0이 되지 않고 C
 
 ### U20 그로기 3직업 진입로 · 피해 배율 · 기상 예고
 
-- 현재 코드: `BossController`는 차사만 연결. 무녀 표식 읽기·신궁 시전 중단 없음. `GroggyBody/TailDamageMultiplier`·`WakeWarning`은 데이터만
+- 현재 코드(2026-09-08): 차사 패링과 **무녀 표식 공명**이 연결됐다. 카운터 패턴은 SO의 `CounterPatternIds`(차사 1·6 · 신궁 5·9 · 무녀 4·8)로 데이터화했고, 공명은 패턴이 회복으로 넘어가는 시점에 `ResonanceMarkWindow`(3초) 안에 걸린 표식이 있을 때만 **공격당 1회** 성립한다. `GroggyBodyDamageMultiplier`는 적용·복원까지 구현됨. **남은 것: 신궁 시전 취소(U16 선행), 꼬리 배율(U19 선행), 기상 예고 표현**
 - 권위: 카운터·피해 배율·면역 서버 / 기상 예고는 서버 시각을 읽는 로컬 표현
 - 권장 접근: `ServerReduceGroggyGauge`를 서버 결과에서만 호출. 정밀 시전 취소/패턴 종료 표식 조건을 **once-per-attack**으로 연결, `BossStatus`/부위에서 현재 groggy 배율 적용
 - 대안: 각 직업 카운터가 전용 서버 메서드 호출 — 공통 게이지 수명 검증이 중복

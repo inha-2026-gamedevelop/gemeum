@@ -20,12 +20,15 @@ namespace Geumeum.Data
         *                Types
         ****************************************/
 
-        /// <summary> 직업 하나가 카운터 한 번에 깎는 그로기 게이지 양 </summary>
+        /// <summary> 직업 하나가 카운터 한 번에 깎는 그로기 게이지 양과, 카운터가 되는 패턴 </summary>
         [Serializable]
         public struct GaugeReductionEntry
         {
             public CharacterKind Character;
             public float         Amount;
+
+            /// <summary> 이 직업의 카운터가 성립하는 패턴 id. 비어 있으면 어떤 패턴에서도 카운터가 없다 </summary>
+            public int[] CounterPatternIds;
         }
 
         [Serializable]
@@ -78,13 +81,25 @@ namespace Geumeum.Data
         [Tooltip("게이지 최대치. 셋이 함께 깎아 0에서 그로기가 열린다")]
         [SerializeField] private float _groggyGaugeMax = 100f;
 
-        [Tooltip("직업별 카운터 1회당 감소량. 임시값 - 14분에 그로기 5.5회가 나오게 잡았다")]
+        [Tooltip("직업별 카운터 1회당 감소량과 카운터 패턴. 임시값 - 14분에 그로기 5.5회가 나오게 잡았다")]
         [SerializeField] private GaugeReductionEntry[] _gaugeReductions =
         {
-            new GaugeReductionEntry { Character = CharacterKind.Chasa,   Amount = 10f },
-            new GaugeReductionEntry { Character = CharacterKind.Singung, Amount = 8f  },
-            new GaugeReductionEntry { Character = CharacterKind.Munyeo,  Amount = 13f },
+            new GaugeReductionEntry
+            {
+                Character = CharacterKind.Chasa,   Amount = 10f, CounterPatternIds = new[] { 1, 6 },
+            },
+            new GaugeReductionEntry
+            {
+                Character = CharacterKind.Singung, Amount = 8f,  CounterPatternIds = new[] { 5, 9 },
+            },
+            new GaugeReductionEntry
+            {
+                Character = CharacterKind.Munyeo,  Amount = 13f, CounterPatternIds = new[] { 4, 8 },
+            },
         };
+
+        [Tooltip("무녀 표식 공명 창(초). 카운터 패턴이 끝나는 시각 기준으로 이 안에 걸린 표식만 게이지를 깎는다. 표식 지속(8초)과는 별개다")]
+        [SerializeField] private float _resonanceMarkWindow = 3f;
 
         [Header("그로기 진행")]
         [Tooltip("그로기 총 지속(초). 무저항 + 기상 예고")]
@@ -157,6 +172,9 @@ namespace Geumeum.Data
         public float GroggyImmunityDuration => _groggyImmunityDuration;
         public float BrandCooldown          => _brandCooldown;
 
+        /// <summary> 무녀 표식 공명이 인정되는 부여 시각 창(초) </summary>
+        public float ResonanceMarkWindow => _resonanceMarkWindow;
+
         public float GroggyBodyDamageMultiplier => _groggyBodyDamageMultiplier;
         public float GroggyTailDamageMultiplier => _groggyTailDamageMultiplier;
 
@@ -216,6 +234,41 @@ namespace Geumeum.Data
             }
 
             amount = 0f;
+            return false;
+        }
+
+        /// <summary> 이 패턴이 이 직업의 카운터 패턴인가 </summary>
+        public bool IsCounterPattern(CharacterKind character, int patternId)
+        {
+            if (_gaugeReductions == null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < _gaugeReductions.Length; ++i)
+            {
+                if (_gaugeReductions[i].Character != character)
+                {
+                    continue;
+                }
+
+                int[] patternIds = _gaugeReductions[i].CounterPatternIds;
+                if (patternIds == null)
+                {
+                    return false;
+                }
+
+                for (int j = 0; j < patternIds.Length; ++j)
+                {
+                    if (patternIds[j] == patternId)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
             return false;
         }
 

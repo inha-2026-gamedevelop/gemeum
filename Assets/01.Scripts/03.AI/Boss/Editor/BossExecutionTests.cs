@@ -25,8 +25,11 @@ namespace Geumeum.AI
         ****************************************/
 
         private const BindingFlags PRIVATE_INSTANCE = BindingFlags.NonPublic | BindingFlags.Instance;
-        private const uint ATTACK_ID    = 7u;
-        private const float TEST_HEALTH = 100f;
+        private const uint  ATTACK_ID       = 7u;
+        private const float TEST_HEALTH     = 100f;
+        private const float MARK_DURATION   = 8f;
+        private const int   MARK_SLOT_COUNT = 3;
+        private const uint  BOSS_NET_ID     = 1u;
 
         private GameObject     _boss;
         private GameObject     _target;
@@ -49,6 +52,10 @@ namespace Geumeum.AI
             _controller = _boss.AddComponent<BossController>();
             _status = _boss.GetComponent<BossStatus>();
             Invoke(_boss.GetComponent<NetworkIdentity>(), "InitializeNetworkBehaviours");
+
+            // 스폰된 보스를 흉내낸다. netId가 0이면 표식 대상(TargetRef)이 성립하지 않는다
+            typeof(NetworkIdentity).GetProperty(nameof(NetworkIdentity.netId))
+                .SetValue(_boss.GetComponent<NetworkIdentity>(), BOSS_NET_ID);
             _data = ScriptableObject.CreateInstance<BossPatternSO>();
             Set(_controller, "_status", _status);
             Set(_controller, "_bossData", _data);
@@ -63,6 +70,7 @@ namespace Geumeum.AI
             UnityEngine.Object.DestroyImmediate(_boss);
             UnityEngine.Object.DestroyImmediate(_target);
             UnityEngine.Object.DestroyImmediate(_data);
+            MarkRegistry.ClearAll(); // 표식은 정적 상태라 테스트 사이에 새면 다음 검사가 오염된다
             typeof(NetworkServer).GetProperty(nameof(NetworkServer.active)).SetValue(null, false);
         }
 
@@ -319,9 +327,55 @@ namespace Geumeum.AI
             }
         }
 
+        [Test]
+        public void ResonanceCountsOnceOnCounterPatternOnly()
+        {
+            const int MUNYEO_PATTERN = 4;
+            const int OTHER_PATTERN  = 1;
+
+            MarkBossBody(NetworkTime.time);
+
+            // 카운터 패턴이 아니면 표식이 살아 있어도 깎이지 않는다
+            Invoke(_controller, "ServerNotifyPatternEnded", OTHER_PATTERN, ATTACK_ID);
+            Assert.AreEqual(100f, Get(_controller, "_groggyGauge"));
+
+            Assert.IsTrue(_data.TryGetGaugeReduction(CharacterKind.Munyeo, out float reduction));
+
+            Invoke(_controller, "ServerNotifyPatternEnded", MUNYEO_PATTERN, ATTACK_ID);
+            Assert.AreEqual(100f - reduction, Get(_controller, "_groggyGauge"));
+
+            // 같은 공격의 재통지는 무녀가 둘이어도 두 번 깎지 않는다
+            Invoke(_controller, "ServerNotifyPatternEnded", MUNYEO_PATTERN, ATTACK_ID);
+            Assert.AreEqual(100f - reduction, Get(_controller, "_groggyGauge"));
+        }
+
+        [Test]
+        public void ResonanceRejectsMarkAppliedBeforeWindow()
+        {
+            // 표식은 아직 살아 있지만(지속 8초) 공명 창(3초) 밖에 걸렸다
+            MarkBossBody(NetworkTime.time - _data.ResonanceMarkWindow - 1d);
+
+            Invoke(_controller, "ServerNotifyPatternEnded", 4, ATTACK_ID);
+
+            Assert.AreEqual(100f, Get(_controller, "_groggyGauge"),
+                "미리 찍어 둔 표식은 게이지를 깎지 못한다");
+        }
+
         /****************************************
         *                Helpers
         ****************************************/
+
+        /// <summary> 보스 본체에 표식을 건다. 부여 시각을 직접 정해 공명 창 경계를 검사한다 </summary>
+        private void MarkBossBody(double appliedServerTime)
+        {
+            TargetRef target = (TargetRef) Invoke(_controller, "CreateBodyTargetRef");
+
+            bool applied = MarkRegistry.TryApply(
+                new ParticipantId(1UL), target, appliedServerTime,
+                MARK_DURATION, MARK_SLOT_COUNT, out MarkRejection rejection);
+
+            Assert.IsTrue(applied, $"표식 부여가 거부됐다: {rejection}");
+        }
 
         /// <summary> isServer와 서버 틱 스케줄러를 세운 채로 수명 경로를 실행하고, 끝나면 되돌린다 </summary>
         private sealed class ServerRuntimeScope : IDisposable
@@ -412,9 +466,9 @@ namespace Geumeum.AI
             Field(target, name).SetValue(target, value);
         }
 
-        private static void Invoke(object target, string name, params object[] arguments)
+        private static object Invoke(object target, string name, params object[] arguments)
         {
-            target.GetType().GetMethod(name, PRIVATE_INSTANCE).Invoke(target, arguments);
+            return target.GetType().GetMethod(name, PRIVATE_INSTANCE).Invoke(target, arguments);
         }
 
         private sealed class WindowStub : IParryWindowTarget

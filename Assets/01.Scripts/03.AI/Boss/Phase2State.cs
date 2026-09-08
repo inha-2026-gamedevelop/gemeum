@@ -343,6 +343,9 @@ namespace Geumeum.AI
                 }
             }
 
+            // 회복으로 넘어가는 이 지점이 패턴 종료다. 반복 패턴은 마지막 판정에서 한 번만 온다
+            _controller.ServerNotifyPatternEnded(_activePattern.PatternId, _activeAttackInstanceId);
+
             _stateTimer        = 0f;
             _cooldownRemaining = _activePattern.Cooldown;
             _state             = AttackState.Recovery;

@@ -60,6 +60,7 @@ namespace Geumeum.AI
         private float               _transitionLockRemaining = 0f;
         private bool                _serverStopped           = false;
         private bool                _serverTerminated        = false;
+        private uint                _lastResonanceAttackId   = 0u;
 
         private GroggyPhase _groggyPhase      = GroggyPhase.Active;
         private float       _groggyGauge      = 0f;
@@ -115,6 +116,7 @@ namespace Geumeum.AI
             _bossData                = GameDB.Boss;
             _serverStopped           = false;
             _serverTerminated        = false;
+            _lastResonanceAttackId   = 0u;
             _transitionLockRemaining = 0f;
             _targetScanTimer         = 0f;
             _telegraphCue            = default;
@@ -447,6 +449,54 @@ namespace Geumeum.AI
             BossTelegraphCue cue = _telegraphCue;
             cue.IsActive = false;
             _telegraphCue = cue;
+        }
+
+        /// <summary>
+        /// 패턴 하나가 끝났다고 알린다. 무녀 표식 공명은 여기서만 판정한다 -
+        /// 카운터 패턴이 끝나는 시각 기준으로 공명 창 안에 걸린 표식이 있으면 게이지를 깎는다.
+        /// 공격 하나당 한 번만 인정한다, 무녀가 둘이어도 두 번 깎이지 않는다.
+        ///
+        /// 취소된 공격은 여기까지 오지 않는다. 패턴이 끝나야 카운터라는 계약이라
+        /// 패링이나 대상 소실로 끊긴 공격에는 공명이 성립하지 않는다
+        /// </summary>
+        [Server]
+        internal void ServerNotifyPatternEnded(int patternId, uint attackInstanceId)
+        {
+            if ((_serverStopped) || (attackInstanceId == 0u)
+                || (attackInstanceId == _lastResonanceAttackId))
+            {
+                return;
+            }
+
+            if (!_bossData.IsCounterPattern(CharacterKind.Munyeo, patternId))
+            {
+                return;
+            }
+
+            if (!MarkRegistry.IsMarkedWithin(CreateBodyTargetRef(), NetworkTime.time, _bossData.ResonanceMarkWindow))
+            {
+                return;
+            }
+
+            _lastResonanceAttackId = attackInstanceId;
+            ServerReduceGroggyGauge(CharacterKind.Munyeo);
+        }
+
+        /// <summary>
+        /// 표식이 가리키는 본체 참조를 만든다. 런과 씬 세대를 함께 담아
+        /// 이전 런에서 남은 표식이 지금 보스에 맞아 떨어지지 않게 한다
+        /// </summary>
+        [Server]
+        private TargetRef CreateBodyTargetRef()
+        {
+            RunManager       run      = RunManager.ServerInstance;
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+
+            return TargetRef.Create(
+                (run == null) ? default : run.RunId,
+                (director == null) ? default : director.Revision,
+                netId,
+                TargetRef.BODY_PART_ID);
         }
 
         /// <summary>
