@@ -14,6 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.SpawnConfigSO
   _clusterSizeMin: 3
   _clusterSizeMax: 5
+  _postShrinkSpawnGraceSeconds: 60
+  _herdingConcurrentCapMultiplier: 1.5
+  _enableShrink3Herding: 0
+  _herdingPathRequestsPerTick: 3
+  _herdingMaxPathFailures: 5
+  _herdingPathRetrySeconds: 0.5
+  _herdingRequestSpreadSeconds: 0.08
+  _herdingDestinationInset: 2
+  _herdingNavMeshSampleRadius: 4
   _phases:
   - Phase: 1
     ConcurrentMin: 18

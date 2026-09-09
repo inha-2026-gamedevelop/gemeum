@@ -18,8 +18,23 @@ MonoBehaviour:
   _remainingCurrencyScore: 1
   _remainingHealthScore: 1
   _deathPenalty: 1000
-  _deathlessBonusByDeathCount:
-  - 5000
-  - 2000
-  - 500
-  - 0
+  _deathlessBonusByDeathCount: 88130000d0070000f401000000000000
+  _scoreRuleVersion: 2
+  _evaluationGrades:
+  - Grade: 1
+    MinimumScore: 0
+    Message: "\uC774\uBC88 \uAE30\uB85D\uC5D0\uB294 \uBCF4\uC644\uD560 \uC810\uC774
+      \uB9CE\uAD6C\uB098."
+  - Grade: 2
+    MinimumScore: 8000
+    Message: "\uC544\uC9C1 \uC544\uC26C\uC6C0\uC774 \uB0A8\uB294 \uAE30\uB85D\uC774\uB85C\uAD6C\uB098."
+  - Grade: 3
+    MinimumScore: 12000
+    Message: "\uACF5\uACFC\uAC00 \uACE0\uB974\uAC8C \uB4DC\uB7EC\uB09C \uAE30\uB85D\uC774\uAD6C\uB098."
+  - Grade: 4
+    MinimumScore: 16000
+    Message: "\uC808\uC81C\uC640 \uAE30\uB7C9\uC774 \uB3CB\uBCF4\uC774\uB294 \uAE30\uB85D\uC774\uAD6C\uB098."
+  - Grade: 5
+    MinimumScore: 20000
+    Message: "\uD55C \uCE58\uC758 \uB0AD\uBE44\uB3C4 \uC5C6\uB294 \uBAA8\uBC94\uC801\uC778
+      \uAE30\uB85D\uC774\uAD6C\uB098."

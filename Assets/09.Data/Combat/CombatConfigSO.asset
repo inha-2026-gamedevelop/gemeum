@@ -16,6 +16,8 @@ MonoBehaviour:
   _staminaRegenPerSecond: 35
   _staminaRegenDelay: 0.45
   _spiritMax: 80
+  _minimumResourceCost: 1
+  _maximumAttackSpeedMultiplier: 1.5
   _walkSpeed: 2.5
   _runSpeed: 5.5
   _rollStaminaCost: 25
@@ -45,6 +47,10 @@ MonoBehaviour:
   _rangedBasePower: 8
   _rangedMuzzleHeight: 1.2
   _rangedMuzzleForward: 0.6
+  _precisionShotHoldDuration: 0.6
+  _precisionShotMoveSpeedMultiplier: 0.4
+  _precisionShotStaminaCost: 15
+  _burstShotInterval: 0.12
   _bellStartupDuration: 0.2
   _bellRecoveryDuration: 0.35
   _bellStaminaCost: 6
@@ -61,6 +67,7 @@ MonoBehaviour:
   _healRadius: 6
   _healAmount: 40
   _healCooldownDuration: 4
+  _supportBuffDuration: 6
   _lockOnAcquireRange: 25
   _lockOnHoldRange: 30
   _lockOnAcquireAngle: 35
@@ -78,3 +85,4 @@ MonoBehaviour:
   _reviveBarrierInsetRatio: 0.9
   _interactRange: 3
   _interactOutOfCombatSeconds: 5
+  _equipmentTransferOfferDuration: 30
