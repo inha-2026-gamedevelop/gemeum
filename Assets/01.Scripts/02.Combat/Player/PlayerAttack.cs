@@ -60,6 +60,8 @@ namespace Geumeum.Combat
         private PlayerAnimationController _animation;
         private PlayerPresentation        _presentation;
         private LockOnController          _lockOn;
+        private PrecisionShotController   _precisionShot;
+        private ICombatLoadoutProvider    _loadoutProvider;
 
         private RequestIdTracker _requestIds = new RequestIdTracker();
 
@@ -74,12 +76,29 @@ namespace Geumeum.Combat
         private double _comboExpireServerTime = 0d;
 
         private AttackProfile _pendingProfile;
+        private CombatStatsSnapshot _pendingLoadout;
+        private CombatStatsSnapshot _committedLoadout;
+        private bool                _pendingCritical;
+        private bool                _committedCritical;
+        private bool                _pendingConsumeGauge;
+        private bool                _committedConsumeGauge;
+        private float               _pendingCriticalMultiplier = 1f;
+        private float               _committedCriticalMultiplier = 1f;
+
+        private ArrowFireSnapshot _burstSnapshot;
+        private int               _remainingBurstShots;
+        private double            _nextBurstShotServerTime;
+        private bool              _hasRunResumedSubscription;
 
         private uint _nextRequestId = 1u;
+        private uint _nextServerActionId = 1u;
+        private uint _activePresentationActionId;
 
         // 매번 새로 만들면 공격마다 GC 할당이 생긴다
         private readonly Collider[]        _hitBuffer  = new Collider[Constants.Combat.HIT_QUERY_BUFFER_SIZE];
         private readonly List<IDamageable> _hitTargets = new List<IDamageable>(Constants.Combat.HIT_QUERY_BUFFER_SIZE);
+        private readonly RaycastHit[]       _aimHitBuffer = new RaycastHit[Constants.Combat.HIT_QUERY_BUFFER_SIZE];
+        private readonly Collider[]         _muzzleOverlapBuffer = new Collider[Constants.Combat.HIT_QUERY_BUFFER_SIZE];
 
         /****************************************
         *              Public API
@@ -88,7 +107,15 @@ namespace Geumeum.Combat
         /// <summary> 공격 동작 중인가. 구르기와 패링이 이 값을 보고 겹침을 막는다 </summary>
         public bool IsActionInProgress(double serverTime)
         {
-            return (_isSwinging) || (serverTime < _recoveryServerTime);
+            return IsBaseActionInProgress(serverTime)
+                || ((_precisionShot != null) && (_precisionShot.IsActionInProgress));
+        }
+
+        /// <summary> 정밀 사격을 제외한 기본 공격과 후딜이 진행 중인가 </summary>
+        public bool IsBaseActionInProgress(double serverTime)
+        {
+            return (_isSwinging) || (_remainingBurstShots > 0) ||
+                (serverTime < _recoveryServerTime);
         }
 
         /****************************************
@@ -106,11 +133,39 @@ namespace Geumeum.Combat
             _animation    = GetComponent<PlayerAnimationController>();
             _presentation = GetComponent<PlayerPresentation>();
             _lockOn       = GetComponent<LockOnController>();
+            _precisionShot = GetComponent<PrecisionShotController>();
+            _loadoutProvider = GetComponent<ICombatLoadoutProvider>();
+
+            if (_weapon != null)
+            {
+                _weapon.WeaponChanged += HandleWeaponChanged;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            UnsubscribeRunResumed();
+
+            if (_weapon != null)
+            {
+                _weapon.WeaponChanged -= HandleWeaponChanged;
+            }
+        }
+
+        public override void OnStartServer()
+        {
+            EnsureRunResumedSubscription();
+        }
+
+        public override void OnStopServer()
+        {
+            UnsubscribeRunResumed();
         }
 
         private void Update()
         {
-            if ((!isLocalPlayer) || (!Input.GetKeyDown(_attackKey)))
+            if ((!isLocalPlayer) || (!LocalGameplayInputGate.AllowsGameplayInput) ||
+                (!Input.GetKeyDown(_attackKey)))
             {
                 return;
             }
@@ -126,6 +181,8 @@ namespace Geumeum.Combat
         [Command]
         private void CmdRequestAttack(uint requestId)
         {
+            EnsureRunResumedSubscription();
+
             ActionRejection rejection = PlayerActionPipeline.TryExecute(
                 ref _requestIds, requestId, this, NetworkTime.time);
 
@@ -145,9 +202,18 @@ namespace Geumeum.Combat
         public bool TryBuildContext(double serverTime, out PlayerActionContext context)
         {
             context = default;
+            _pendingCritical = false;
+            _pendingConsumeGauge = false;
+            _pendingCriticalMultiplier = 1f;
 
             if ((!GameDB.IsInitialized) || (_status == null) || (_weapon == null))
             {
+                return false;
+            }
+
+            if (_loadoutProvider == null)
+            {
+                Debug.LogError("[PlayerAttack] ICombatLoadoutProvider가 없어 공격을 수락할 수 없다", this);
                 return false;
             }
 
@@ -156,11 +222,42 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            _pendingProfile = ResolveProfile(_weapon.Weapon, GameDB.Combat);
+            ParticipantId participant = ResolveParticipantId();
+            if ((!participant.IsValid) || (!_loadoutProvider.TryBuildLoadout(participant, out _pendingLoadout))
+                || (!_pendingLoadout.IsValid) || (!IsFinite(_pendingLoadout.MeleeAttackPower))
+                || (!IsFinite(_pendingLoadout.RangedAttackPower))
+                || (!IsFinite(_pendingLoadout.MaxHealth)))
+            {
+                Debug.LogError("[PlayerAttack] 유효한 전투 수치를 만들지 못해 공격을 수락할 수 없다", this);
+                return false;
+            }
+
+            _pendingProfile = ResolveProfile(_weapon.Weapon, GameDB.Combat,
+                _pendingLoadout);
 
             if (!_pendingProfile.HasAttack)
             {
                 return false;
+            }
+
+            bool hasValidPower = (_pendingProfile.Reach == AttackReach.Ranged)
+                ? ((_pendingLoadout.RangedAttackPower > 0f) && IsFinite(_pendingLoadout.RangedAttackPower))
+                : ((_pendingLoadout.MeleeAttackPower > 0f) && IsFinite(_pendingLoadout.MeleeAttackPower));
+            if (!hasValidPower)
+            {
+                Debug.LogError("[PlayerAttack] 공격 방식에 맞는 전투 수치가 없어 공격을 수락할 수 없다", this);
+                return false;
+            }
+
+            _pendingConsumeGauge = (_pendingProfile.Reach == AttackReach.Melee)
+                && IsCriticalReady(GameDB.Combat);
+            _pendingCritical = _pendingConsumeGauge ||
+                (Random.value < _pendingLoadout.CriticalChance);
+            if (_pendingCritical)
+            {
+                _pendingCriticalMultiplier = Random.Range(
+                    _pendingLoadout.CriticalMultiplierMin,
+                    _pendingLoadout.CriticalMultiplierMax);
             }
 
             context = BuildContext(serverTime, _pendingProfile);
@@ -177,6 +274,11 @@ namespace Geumeum.Combat
             double        now     = context.ServerTime;
             AttackProfile profile = _pendingProfile;
 
+            // 장비나 특성이 바뀌어도 이미 수락한 공격은 이 snapshot으로 끝낸다.
+            _committedLoadout = _pendingLoadout;
+            _committedCritical = _pendingCritical;
+            _committedConsumeGauge = _pendingConsumeGauge;
+            _committedCriticalMultiplier = _pendingCriticalMultiplier;
             _isSwinging         = true;
             _swingReach         = profile.Reach;
             _hitServerTime      = now + profile.StartupDuration;
@@ -187,7 +289,20 @@ namespace Geumeum.Combat
                 : 0;
             _comboExpireServerTime = _recoveryServerTime + GameDB.Combat.MeleeComboWindowDuration;
 
-            RpcAttackStarted(_comboStage);
+            _activePresentationActionId = TakeNextServerActionId();
+            double gameplayStart = RunTimeLocator.Current.GameplayElapsedSeconds;
+            PlayerActionCue cue = new PlayerActionCue
+            {
+                ExecutionId = _activePresentationActionId,
+                Kind = PlayerActionCueKind.Attack,
+                Weapon = _weapon.Weapon,
+                ComboStage = (byte) Mathf.Clamp(_comboStage, 0, byte.MaxValue),
+                StartGameplayTime = gameplayStart,
+                ImpactGameplayTime = gameplayStart + profile.StartupDuration,
+                EndGameplayTime = gameplayStart + profile.StartupDuration +
+                    profile.RecoveryDuration,
+            };
+            RpcAttackStarted(cue);
         }
 
         /****************************************
@@ -196,12 +311,26 @@ namespace Geumeum.Combat
 
         /// <summary> 공격이 수락됐음을 모든 화면에 알린다 </summary>
         [ClientRpc]
-        private void RpcAttackStarted(int comboStage)
+        private void RpcAttackStarted(PlayerActionCue cue)
         {
             if (_animation != null)
             {
-                _animation.PlayAttack(comboStage);
+                _animation.PlayActionCue(in cue);
             }
+        }
+
+        [ClientRpc]
+        private void RpcActionCancelled(uint executionId)
+        {
+            _animation?.CancelActionCue(PlayerActionCueKind.Attack, executionId);
+        }
+
+        [ClientRpc]
+        private void RpcMarkApplied(uint executionId, Vector3 worldPosition,
+            double appliedGameplayTime)
+        {
+            _animation?.PlayMarkCue(executionId, worldPosition,
+                appliedGameplayTime);
         }
 
         /// <summary> 요청이 거부된 사유를 요청자에게만 돌려준다 </summary>
@@ -214,18 +343,31 @@ namespace Geumeum.Combat
 
         /// <summary> 근접 판정 결과를 모든 화면에 알린다 </summary>
         [ClientRpc]
-        private void RpcMeleeResult(bool didHit, bool wasCritical)
+        private void RpcMeleeResult(uint executionId, bool didHit,
+            bool wasCritical, double impactGameplayTime)
         {
-            SoundKey key = (!didHit) ? SoundKey.MeleeWhiff
-                         : (wasCritical) ? SoundKey.MeleeCritical
-                         : SoundKey.MeleeHit;
-
-            SfxPlayer.Play(key, transform.position, isLocalPlayer, netId);
+            _animation?.PlayActionImpact(PlayerActionCueKind.Attack,
+                executionId, didHit, wasCritical, impactGameplayTime);
 
             // 남의 공격까지 찍으면 3인에서 화면이 덮인다. 자기 것만 본다
             if (!isLocalPlayer)
             {
                 return;
+            }
+
+            if (didHit)
+            {
+                float hitStop = 0f;
+                if (GameDB.IsInitialized && (GameDB.Presentation != null))
+                {
+                    hitStop = wasCritical
+                        ? GameDB.Presentation.CriticalHitStopSeconds
+                        : GameDB.Presentation.LightHitStopSeconds;
+                }
+
+                CombatFeedbackLocator.Current.PlayHit(
+                    wasCritical ? HitStrength.Critical : HitStrength.Light,
+                    hitStop);
             }
 
             if (!didHit)
@@ -247,12 +389,15 @@ namespace Geumeum.Combat
         [Server]
         public void ServerUpdateState(double now)
         {
+            EnsureRunResumedSubscription();
+            UpdateBurstShots(now);
+
             if (!_isSwinging)
             {
                 return;
             }
 
-            if ((_status.IsDead) || (IsRunStopped()))
+            if ((_status.IsDead) || _status.IsSwallowed || (IsRunStopped()))
             {
                 Cancel();
                 return;
@@ -267,7 +412,7 @@ namespace Geumeum.Combat
 
             if (_swingReach == AttackReach.Ranged)
             {
-                FireArrow(combat);
+                FireArrow(combat, now);
             }
             else
             {
@@ -276,6 +421,9 @@ namespace Geumeum.Combat
 
             _isSwinging = false;
             _swingReach = AttackReach.None;
+            _committedCritical = false;
+            _committedConsumeGauge = false;
+            _activePresentationActionId = 0u;
         }
 
         /****************************************
@@ -283,30 +431,31 @@ namespace Geumeum.Combat
         ****************************************/
 
         /// <summary> 무기가 판정 방식과 수치를 정한다. 캐릭터가 무기를 정하므로 곧 직업별 수치다 </summary>
-        private static AttackProfile ResolveProfile(WeaponKind weapon, CombatConfigSO combat)
+        private static AttackProfile ResolveProfile(WeaponKind weapon, CombatConfigSO combat,
+            in CombatStatsSnapshot loadout)
         {
             switch (weapon.ToReach())
             {
                 case AttackReach.Melee:
                     return new AttackProfile(
                         AttackReach.Melee,
-                        combat.MeleeStartupDuration,
-                        combat.MeleeRecoveryDuration,
-                        combat.MeleeStaminaCost);
+                        loadout.ResolveAttackDuration(combat.MeleeStartupDuration),
+                        loadout.ResolveAttackDuration(combat.MeleeRecoveryDuration),
+                        loadout.ResolveStaminaCost(combat.MeleeStaminaCost));
 
                 case AttackReach.Ranged:
                     return new AttackProfile(
                         AttackReach.Ranged,
-                        combat.RangedStartupDuration,
-                        combat.RangedRecoveryDuration,
-                        combat.RangedStaminaCost);
+                        loadout.ResolveAttackDuration(combat.RangedStartupDuration),
+                        loadout.ResolveAttackDuration(combat.RangedRecoveryDuration),
+                        loadout.ResolveStaminaCost(combat.RangedStaminaCost));
 
                 case AttackReach.Area:
                     return new AttackProfile(
                         AttackReach.Area,
-                        combat.BellStartupDuration,
-                        combat.BellRecoveryDuration,
-                        combat.BellStaminaCost);
+                        loadout.ResolveAttackDuration(combat.BellStartupDuration),
+                        loadout.ResolveAttackDuration(combat.BellRecoveryDuration),
+                        loadout.ResolveStaminaCost(combat.BellStaminaCost));
 
                 default:
                     return default;
@@ -316,7 +465,8 @@ namespace Geumeum.Combat
         private PlayerActionContext BuildContext(double now, AttackProfile profile)
         {
             bool isOtherActionInProgress = ((_roll != null) && (_roll.IsRolling))
-                || ((_parry != null) && (_parry.IsActionInProgress(now)));
+                || ((_parry != null) && (_parry.IsActionInProgress(now)))
+                || ((_precisionShot != null) && (_precisionShot.IsActionInProgress));
 
             RunPhase phase    = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
             bool     isPaused = ((RunManager.ServerInstance != null) && (RunManager.ServerInstance.IsPaused));
@@ -361,7 +511,13 @@ namespace Geumeum.Combat
             bool  isBell    = (reach == AttackReach.Area);
             float range     = (isBell) ? combat.BellRange     : combat.MeleeRange;
             float angle     = (isBell) ? combat.BellAngle     : combat.MeleeAngle;
-            float basePower = (isBell) ? combat.BellBasePower : combat.MeleeBasePower;
+            float basePower = _committedLoadout.MeleeAttackPower;
+
+            if ((!_committedLoadout.IsValid) || (!IsFinite(basePower)) || (basePower <= 0f))
+            {
+                Debug.LogError("[PlayerAttack] 수락된 전투 수치가 없어 근접 판정을 실행할 수 없다", this);
+                return;
+            }
 
             Vector3 origin  = transform.position;
             Vector3 forward = ResolveAimForward();
@@ -371,14 +527,19 @@ namespace Geumeum.Combat
             // 바로 등 뒤에 선 적의 내적이 문턱을 아슬아슬하게 밑돌 수 있다
             bool ignoresFacing = (angle >= Constants.Combat.FULL_CIRCLE_DEGREES);
 
-            // 치명의 일격은 패링 게이지로만 차오르는데 패링은 검 전용이라 방울은 대상이 아니다
-            bool  isCritical = (!isBell) && (IsCriticalReady(combat));
-            float multiplier = (isCritical) ? Random.Range(combat.CriticalMultiplierMin, combat.CriticalMultiplierMax) : 1f;
+            bool  isCritical = _committedCritical;
+            float multiplier = isCritical ? _committedCriticalMultiplier : 1f;
+            if ((!isBell) && (_comboStage == Constants.Combat.MELEE_COMBO_STAGE_COUNT))
+            {
+                multiplier *= _committedLoadout.ThirdComboDamageMultiplier;
+            }
+
             int   hitCount   = 0;
             float spiritGain = 0f;
 
-            // 표식 소유자는 한 번만 찾는다. 맞은 수만큼 신원을 다시 조회하지 않는다
-            ParticipantId markOwner = (isBell) ? ResolveParticipantId() : ParticipantId.None;
+            // 안정 신원과 표식 소유자는 한 번만 찾는다. 맞은 수만큼 다시 조회하지 않는다.
+            ParticipantId attacker = ResolveParticipantId();
+            ParticipantId markOwner = isBell ? attacker : ParticipantId.None;
 
             _hitTargets.Clear();
 
@@ -426,6 +587,7 @@ namespace Geumeum.Combat
                 damageable.TakeDamage(new DamageInfo(
                     basePower * multiplier,
                     netId,
+                    attacker,
                     (isCritical) ? HitStrength.Critical : HitStrength.Light));
 
                 ++hitCount;
@@ -440,7 +602,7 @@ namespace Geumeum.Combat
                 }
             }
 
-            if ((isCritical) && (hitCount > 0))
+            if (_committedConsumeGauge && (hitCount > 0))
             {
                 _gauge.ServerTryConsume();
             }
@@ -451,7 +613,9 @@ namespace Geumeum.Combat
                 GDebug.Server($"방울 {hitCount}명 적중, 신력 +{spiritGain:F0}");
             }
 
-            RpcMeleeResult(hitCount > 0, (isCritical) && (hitCount > 0));
+            RpcMeleeResult(_activePresentationActionId, hitCount > 0,
+                (isCritical) && (hitCount > 0),
+                RunTimeLocator.Current.GameplayElapsedSeconds);
         }
 
         /// <summary> 이 플레이어의 영속 신원. 표식 소유권이 재접속에도 유지되도록 netId가 아니라 이 값을 쓴다 </summary>
@@ -472,20 +636,46 @@ namespace Geumeum.Combat
             return new ParticipantId(platformId.Value);
         }
 
-        /// <summary> 맞은 대상에 표식을 건다. 부위는 아직 보스에만 있어 지금은 본체만 가리킨다 </summary>
-        [Server]
-        private static void TryApplyMark(ParticipantId owner, IDamageable damageable, CombatConfigSO combat)
+        private void HandleWeaponChanged(WeaponKind newWeapon)
         {
-            if (!owner.IsValid)
+            if (!isServer)
             {
                 return;
             }
 
-            // GetComponent 없이 netId를 얻는다. 판정 대상은 전부 NetworkBehaviour다
-            NetworkBehaviour behaviour = damageable as NetworkBehaviour;
-            if (behaviour == null)
+            MarkRegistry.ClearOwner(ResolveParticipantId());
+        }
+
+        /// <summary> 맞은 대상의 고정 PartId에 표식을 건다. 계약이 없으면 기존 body 0이다. </summary>
+        [Server]
+        private bool TryApplyMark(ParticipantId owner, IDamageable damageable, CombatConfigSO combat)
+        {
+            if (!owner.IsValid)
             {
-                return;
+                return false;
+            }
+
+            Component component = damageable as Component;
+            if (component == null)
+            {
+                return false;
+            }
+
+            NetworkIdentity identity = component.GetComponentInParent<NetworkIdentity>();
+            if (identity == null)
+            {
+                return false;
+            }
+
+            byte partId = TargetRef.BODY_PART_ID;
+            if (damageable is ITargetPartIdSource part)
+            {
+                if (!part.IsTargetable)
+                {
+                    return false;
+                }
+
+                partId = part.TargetPartId;
             }
 
             RunManager       run      = RunManager.ServerInstance;
@@ -494,17 +684,20 @@ namespace Geumeum.Combat
             TargetRef target = TargetRef.Create(
                 (run == null) ? default : run.RunId,
                 (director == null) ? default : director.Revision,
-                behaviour.netId,
-                TargetRef.BODY_PART_ID);
+                identity.netId,
+                partId);
 
+            double gameplayTime = RunTimeLocator.Current.GameplayElapsedSeconds;
             bool applied = MarkRegistry.TryApply(
-                owner, target, NetworkTime.time, combat.MarkDuration, combat.MarkSlotCount,
+                owner, target, gameplayTime, combat.MarkDuration, combat.MarkSlotCount,
                 out MarkRejection rejection);
 
             if (applied)
             {
-                GDebug.Server($"표식 부여 netId={behaviour.netId}");
-                return;
+                GDebug.Server($"표식 부여 netId={identity.netId} partId={partId}");
+                RpcMarkApplied(_activePresentationActionId,
+                    component.transform.position, gameplayTime);
+                return true;
             }
 
             // 이미 걸린 대상에 또 치는 것은 정상이라 실패로 띄우지 않는다
@@ -512,6 +705,8 @@ namespace Geumeum.Combat
             {
                 GDebug.Warn($"표식 거부: {rejection}");
             }
+
+            return false;
         }
 
         /// <summary> 다음 근접 공격이 치명의 일격인가. 소비하지 않고 보기만 한다 </summary>
@@ -523,11 +718,18 @@ namespace Geumeum.Combat
 
         /// <summary> 화살을 띄운다. 판정은 화살이 서버 틱을 돌며 직접 한다 </summary>
         [Server]
-        private void FireArrow(CombatConfigSO combat)
+        private void FireArrow(CombatConfigSO combat, double now)
         {
             if (_arrowPrefab == null)
             {
                 Debug.LogError("[PlayerAttack] 화살 프리팹이 비어 있어 원거리 공격이 나가지 않는다", this);
+                return;
+            }
+
+            if ((!_committedLoadout.IsValid) || (!IsFinite(_committedLoadout.RangedAttackPower))
+                || (_committedLoadout.RangedAttackPower <= 0f))
+            {
+                Debug.LogError("[PlayerAttack] 수락된 원거리 전투 수치가 없어 화살을 발사할 수 없다", this);
                 return;
             }
 
@@ -549,12 +751,187 @@ namespace Geumeum.Combat
                 guidanceTargetPart  = _lockOn.TargetPartIndex;
             }
 
-            ArrowProjectile arrow = Instantiate(_arrowPrefab, origin, Quaternion.LookRotation(forward));
-            arrow.ServerInitialize(
-                forward, combat.RangedBasePower, netId, _targetMask.value, arrowConfig,
-                guidanceTargetNetId, guidanceTargetPart);
+            RunManager       run      = RunManager.ServerInstance;
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
 
-            NetworkServer.Spawn(arrow.gameObject);
+            uint actionId = _activePresentationActionId;
+            if (actionId == 0u)
+            {
+                Debug.LogError("[PlayerAttack] 서버 공격 action ID가 고갈됐다", this);
+                return;
+            }
+
+            float damage = _committedLoadout.RangedAttackPower *
+                (_committedCritical ? _committedCriticalMultiplier : 1f);
+
+            ArrowFireSnapshot snapshot = new ArrowFireSnapshot(
+                origin,
+                forward,
+                damage,
+                _committedCritical ? HitStrength.Critical : HitStrength.Light,
+                _committedLoadout.ArrowSpeed,
+                _committedLoadout.ArrowHitRadius,
+                _committedLoadout.GuidanceDuration,
+                _committedLoadout.PierceCount,
+                _committedLoadout.BurstShotCount,
+                _committedLoadout.BurstShotInterval,
+                0f,
+                0f,
+                netId,
+                ResolveParticipantId(),
+                actionId,
+                0,
+                false,
+                (run == null) ? 0u : run.RunId.Value,
+                (director == null) ? 0u : director.Revision.Value,
+                _targetMask.value,
+                guidanceTargetNetId,
+                guidanceTargetPart);
+
+            SpawnArrow(snapshot, arrowConfig);
+
+            _burstSnapshot = snapshot;
+            _remainingBurstShots = Mathf.Max(0, snapshot.BurstShotCount - 1);
+            _nextBurstShotServerTime = now + snapshot.BurstShotInterval;
+        }
+
+        /// <summary> 정밀 사격 해제 시점의 조준과 공격 수치를 검증해 한 번 쓸 snapshot을 만든다 </summary>
+        [Server]
+        public bool ServerTryBuildPrecisionShot(
+            in PrecisionAimRay aim,
+            uint actionId,
+            out ArrowFireSnapshot snapshot)
+        {
+            snapshot = default;
+
+            if ((!GameDB.IsInitialized) || (_arrowPrefab == null) || (_weapon == null)
+                || (!_weapon.HasWeapon) || (_weapon.Weapon != WeaponKind.Bow)
+                || (_loadoutProvider == null) || (actionId == 0u))
+            {
+                return false;
+            }
+
+            ArrowConfigSO arrowConfig = GameDB.Arrow;
+            CameraConfigSO cameraConfig = GameDB.Camera;
+            if ((arrowConfig == null) || (cameraConfig == null))
+            {
+                return false;
+            }
+
+            float aimRange = arrowConfig.ArrowSpeed * arrowConfig.ArrowLifetime;
+            float maxOriginDistance = ResolveMaxCameraOriginDistance(cameraConfig);
+            if ((!IsFinite(aimRange)) || (aimRange <= 0f)
+                || (!PrecisionShotRules.IsValidAimRay(aim, transform.position, maxOriginDistance)))
+            {
+                return false;
+            }
+
+            ParticipantId participant = ResolveParticipantId();
+            if ((!participant.IsValid)
+                || (!_loadoutProvider.TryBuildLoadout(participant, out CombatStatsSnapshot loadout))
+                || (!loadout.IsValid) || (!IsFinite(loadout.RangedAttackPower))
+                || (loadout.RangedAttackPower <= 0f))
+            {
+                return false;
+            }
+
+            aimRange = loadout.ArrowSpeed * arrowConfig.ArrowLifetime;
+
+            RunManager       run      = RunManager.ServerInstance;
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            if ((run == null) || (!run.RunId.IsValid) || (director == null))
+            {
+                return false;
+            }
+
+            Vector3 bodyForward = ResolveAimForward();
+            Vector3 muzzle = transform.position
+                + (Vector3.up * GameDB.Combat.RangedMuzzleHeight)
+                + (bodyForward * GameDB.Combat.RangedMuzzleForward);
+
+            if (IsMuzzleOverlappingWorld(muzzle, arrowConfig))
+            {
+                return false;
+            }
+
+            if (!TryResolveAimPoint(aim, aimRange, arrowConfig, out Vector3 aimPoint))
+            {
+                return false;
+            }
+
+            Vector3 toAimPoint = aimPoint - muzzle;
+            if ((!IsFinite(toAimPoint)) || (toAimPoint.sqrMagnitude <= Mathf.Epsilon))
+            {
+                return false;
+            }
+
+            Vector3 direction = toAimPoint.normalized;
+            uint guidanceTargetNetId = 0u;
+            byte guidanceTargetPart  = 0;
+
+            if (TryResolveLockedAim(arrowConfig, muzzle, direction, out Vector3 snapped))
+            {
+                direction               = snapped;
+                guidanceTargetNetId     = _lockOn.TargetNetId;
+                guidanceTargetPart      = _lockOn.TargetPartIndex;
+            }
+
+            float muzzleLineDistance = Mathf.Min(toAimPoint.magnitude, aimRange);
+            if (!TryValidateMuzzleLine(
+                    muzzle, direction, muzzleLineDistance, arrowConfig,
+                    out bool muzzleLineBlocked))
+            {
+                return false;
+            }
+
+            if (muzzleLineBlocked)
+            {
+                guidanceTargetNetId = 0u;
+                guidanceTargetPart  = 0;
+            }
+
+            bool isCritical = Random.value < loadout.CriticalChance;
+            float criticalMultiplier = isCritical
+                ? Random.Range(loadout.CriticalMultiplierMin, loadout.CriticalMultiplierMax)
+                : 1f;
+
+            snapshot = new ArrowFireSnapshot(
+                muzzle,
+                direction,
+                loadout.RangedAttackPower * criticalMultiplier,
+                isCritical ? HitStrength.Critical : HitStrength.Light,
+                loadout.ArrowSpeed,
+                loadout.ArrowHitRadius,
+                loadout.GuidanceDuration,
+                loadout.PierceCount,
+                1,
+                0f,
+                loadout.ResolveStaminaCost(GameDB.Combat.PrecisionShotStaminaCost),
+                loadout.ResolveAttackDuration(GameDB.Combat.RangedRecoveryDuration),
+                netId,
+                participant,
+                actionId,
+                0,
+                true,
+                run.RunId.Value,
+                director.Revision.Value,
+                _targetMask.value,
+                guidanceTargetNetId,
+                guidanceTargetPart);
+            return true;
+        }
+
+        /// <summary> 수락한 정밀 발사 snapshot을 그대로 화살에 넘긴다 </summary>
+        [Server]
+        public void ServerFirePrecisionShot(in ArrowFireSnapshot snapshot)
+        {
+            if ((!snapshot.IsPrecision) || (snapshot.ActionId == 0u)
+                || (snapshot.AttackerNetId != netId))
+            {
+                return;
+            }
+
+            SpawnArrow(snapshot, GameDB.Arrow);
         }
 
         /// <summary> 락온 대상 쪽으로 발사각을 당길 수 있는지 발사 순간에 다시 확인한다 </summary>
@@ -597,10 +974,187 @@ namespace Geumeum.Combat
         }
 
         [Server]
+        private void SpawnArrow(in ArrowFireSnapshot snapshot, ArrowConfigSO arrowConfig)
+        {
+            if ((_arrowPrefab == null) || (arrowConfig == null))
+            {
+                Debug.LogError("[PlayerAttack] 화살 프리팹이나 설정이 없어 원거리 공격이 나가지 않는다", this);
+                return;
+            }
+
+            SpawnAcceptedArrow(snapshot, arrowConfig);
+        }
+
+        [Server]
+        private void UpdateBurstShots(double now)
+        {
+            if (_remainingBurstShots <= 0)
+            {
+                return;
+            }
+
+            if ((_status == null) || _status.IsDead || _status.IsSwallowed || IsRunStopped())
+            {
+                _remainingBurstShots = 0;
+                _burstSnapshot = default;
+                return;
+            }
+
+            while ((_remainingBurstShots > 0) && (now >= _nextBurstShotServerTime))
+            {
+                int shotIndex = _burstSnapshot.BurstShotCount - _remainingBurstShots;
+                SpawnArrow(_burstSnapshot.WithShotIndex(shotIndex), GameDB.Arrow);
+                --_remainingBurstShots;
+                _nextBurstShotServerTime += _burstSnapshot.BurstShotInterval;
+            }
+
+            if (_remainingBurstShots == 0)
+            {
+                _burstSnapshot = default;
+            }
+        }
+
+        /// <summary> 검증이 끝난 화살 하나를 생성한다. 서버 경로 테스트는 이 경계에서 생성 횟수를 센다 </summary>
+        protected virtual void SpawnAcceptedArrow(
+            in ArrowFireSnapshot snapshot,
+            ArrowConfigSO arrowConfig)
+        {
+            ArrowProjectile arrow = Instantiate(
+                _arrowPrefab,
+                snapshot.Origin,
+                Quaternion.LookRotation(snapshot.Direction));
+            arrow.ServerInitialize(snapshot, arrowConfig);
+            NetworkServer.Spawn(arrow.gameObject);
+        }
+
+        private static float ResolveMaxCameraOriginDistance(CameraConfigSO camera)
+        {
+            float maxBoom = Mathf.Max(
+                Mathf.Max(camera.Distance, camera.LockOnDistanceEnemy),
+                Mathf.Max(camera.LockOnDistanceBossBody, camera.LockOnDistanceBossPart));
+
+            return maxBoom + Mathf.Abs(camera.SideOffset) + Mathf.Abs(camera.PivotHeight);
+        }
+
+        [Server]
+        private bool IsMuzzleOverlappingWorld(Vector3 muzzle, ArrowConfigSO arrow)
+        {
+            if (arrow.WorldMask == 0)
+            {
+                return false;
+            }
+
+            int count = Physics.OverlapSphereNonAlloc(
+                muzzle,
+                arrow.UnlockedHitRadius,
+                _muzzleOverlapBuffer,
+                arrow.WorldMask,
+                QueryTriggerInteraction.Ignore);
+
+            return count > 0;
+        }
+
+        [Server]
+        private bool TryResolveAimPoint(
+            in PrecisionAimRay aim,
+            float aimRange,
+            ArrowConfigSO arrow,
+            out Vector3 aimPoint)
+        {
+            aimPoint = aim.Origin + (aim.Direction * aimRange);
+            int queryMask = _targetMask.value | arrow.WorldMask;
+            if (queryMask == 0)
+            {
+                return true;
+            }
+
+            int count = Physics.RaycastNonAlloc(
+                aim.Origin,
+                aim.Direction,
+                _aimHitBuffer,
+                aimRange,
+                queryMask,
+                QueryTriggerInteraction.Ignore);
+
+            // 포화된 결과는 가장 가까운 충돌이 빠졌을 수 있어 발사를 확정하지 않는다
+            if (count >= _aimHitBuffer.Length)
+            {
+                return false;
+            }
+
+            float nearestDistance = aimRange;
+            for (int i = 0; i < count; ++i)
+            {
+                if (_aimHitBuffer[i].distance < nearestDistance)
+                {
+                    nearestDistance = _aimHitBuffer[i].distance;
+                }
+            }
+
+            aimPoint = aim.Origin + (aim.Direction * nearestDistance);
+            return true;
+        }
+
+        [Server]
+        private bool TryValidateMuzzleLine(
+            Vector3 muzzle,
+            Vector3 direction,
+            float distance,
+            ArrowConfigSO arrow,
+            out bool blocked)
+        {
+            blocked = false;
+            if ((arrow.WorldMask == 0) || (distance <= 0f))
+            {
+                return true;
+            }
+
+            int count = Physics.SphereCastNonAlloc(
+                muzzle,
+                arrow.UnlockedHitRadius,
+                direction,
+                _aimHitBuffer,
+                distance,
+                arrow.WorldMask,
+                QueryTriggerInteraction.Ignore);
+
+            if (count >= _aimHitBuffer.Length)
+            {
+                return false;
+            }
+
+            float nearestDistance = distance;
+            for (int i = 0; i < count; ++i)
+            {
+                if (_aimHitBuffer[i].distance < nearestDistance)
+                {
+                    nearestDistance = _aimHitBuffer[i].distance;
+                    blocked = true;
+                }
+            }
+
+            return true;
+        }
+
+        [Server]
         private void Cancel()
         {
+            if (_activePresentationActionId != 0u)
+            {
+                RpcActionCancelled(_activePresentationActionId);
+                _activePresentationActionId = 0u;
+            }
+
             _isSwinging         = false;
             _swingReach         = AttackReach.None;
+            _pendingCritical    = false;
+            _committedCritical  = false;
+            _pendingConsumeGauge = false;
+            _committedConsumeGauge = false;
+            _pendingCriticalMultiplier = 1f;
+            _committedCriticalMultiplier = 1f;
+            _remainingBurstShots = 0;
+            _burstSnapshot = default;
             _recoveryServerTime = 0d;
             _comboStage         = 0;
         }
@@ -609,6 +1163,77 @@ namespace Geumeum.Combat
         {
             RunManager run = RunManager.ServerInstance;
             return ((run == null) || (run.IsPaused));
+        }
+
+        [Server]
+        private void EnsureRunResumedSubscription()
+        {
+            if (_hasRunResumedSubscription || !GameEventBus.HasInstance)
+            {
+                return;
+            }
+
+            GameEventBus.Instance.Subscribe<RunResumedEvent>(OnRunResumed);
+            _hasRunResumedSubscription = true;
+        }
+
+        private void UnsubscribeRunResumed()
+        {
+            if (!_hasRunResumedSubscription || !GameEventBus.HasInstance)
+            {
+                _hasRunResumedSubscription = false;
+                return;
+            }
+
+            GameEventBus.Instance.Unsubscribe<RunResumedEvent>(OnRunResumed);
+            _hasRunResumedSubscription = false;
+        }
+
+        private void OnRunResumed(RunResumedEvent resumed)
+        {
+            double resumeServerTime = NetworkTime.time;
+            _hitServerTime = ShiftPausedDeadline(
+                _hitServerTime, resumeServerTime, resumed.PausedSeconds);
+            _recoveryServerTime = ShiftPausedDeadline(
+                _recoveryServerTime, resumeServerTime, resumed.PausedSeconds);
+            _comboExpireServerTime = ShiftPausedDeadline(
+                _comboExpireServerTime, resumeServerTime, resumed.PausedSeconds);
+            _nextBurstShotServerTime = ShiftPausedDeadline(
+                _nextBurstShotServerTime, resumeServerTime, resumed.PausedSeconds);
+        }
+
+        private static double ShiftPausedDeadline(double deadline,
+            double resumeServerTime, double pausedSeconds)
+        {
+            if (double.IsNaN(deadline) || double.IsInfinity(deadline) ||
+                double.IsNaN(resumeServerTime) || double.IsInfinity(resumeServerTime) ||
+                double.IsNaN(pausedSeconds) || double.IsInfinity(pausedSeconds) ||
+                (deadline <= 0.0) || (pausedSeconds <= 0.0))
+            {
+                return deadline;
+            }
+
+            double pauseStartServerTime = resumeServerTime - pausedSeconds;
+            return (deadline > pauseStartServerTime) ? deadline + pausedSeconds : deadline;
+        }
+
+        private uint TakeNextServerActionId()
+        {
+            uint actionId = _nextServerActionId;
+            _nextServerActionId = (_nextServerActionId == uint.MaxValue)
+                ? 1u
+                : _nextServerActionId + 1u;
+            return actionId;
+        }
+
+        private static bool IsFinite(float value)
+        {
+            return (!float.IsNaN(value)) && (!float.IsInfinity(value));
+        }
+
+        private static bool IsFinite(Vector3 value)
+        {
+            return IsFinite(value.x) && IsFinite(value.y) && IsFinite(value.z);
         }
     }
 }

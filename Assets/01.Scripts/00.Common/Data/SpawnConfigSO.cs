@@ -45,6 +45,17 @@ namespace Geumeum.Data
         [SerializeField] private int _clusterSizeMin = 3;
         [SerializeField] private int _clusterSizeMax = 5;
 
+        [Header("축소 몰이")]
+        [SerializeField] private float _postShrinkSpawnGraceSeconds       = 60f;
+        [SerializeField] private float _herdingConcurrentCapMultiplier    = 1.5f;
+        [SerializeField] private bool  _enableShrink3Herding              = false;
+        [SerializeField] private int   _herdingPathRequestsPerTick        = 3;
+        [SerializeField] private int   _herdingMaxPathFailures            = 5;
+        [SerializeField] private float _herdingPathRetrySeconds           = 0.5f;
+        [SerializeField] private float _herdingRequestSpreadSeconds       = 0.08f;
+        [SerializeField] private float _herdingDestinationInset           = 2f;
+        [SerializeField] private float _herdingNavMeshSampleRadius        = 4f;
+
         [Header("구간")]
         [SerializeField] private PhaseEntry[] _phases;
 
@@ -54,6 +65,15 @@ namespace Geumeum.Data
 
         public int ClusterSizeMin => _clusterSizeMin;
         public int ClusterSizeMax => _clusterSizeMax;
+        public float PostShrinkSpawnGraceSeconds    => _postShrinkSpawnGraceSeconds;
+        public float HerdingConcurrentCapMultiplier => _herdingConcurrentCapMultiplier;
+        public bool  EnableShrink3Herding           => _enableShrink3Herding;
+        public int   HerdingPathRequestsPerTick     => _herdingPathRequestsPerTick;
+        public int   HerdingMaxPathFailures         => _herdingMaxPathFailures;
+        public float HerdingPathRetrySeconds        => _herdingPathRetrySeconds;
+        public float HerdingRequestSpreadSeconds    => _herdingRequestSpreadSeconds;
+        public float HerdingDestinationInset        => _herdingDestinationInset;
+        public float HerdingNavMeshSampleRadius     => _herdingNavMeshSampleRadius;
 
         /****************************************
         *                Methods
@@ -65,6 +85,12 @@ namespace Geumeum.Data
         /// </summary>
         public bool TryGetPhase(RunPhase phase, out PhaseEntry entry)
         {
+            if (_phases == null)
+            {
+                entry = default;
+                return false;
+            }
+
             for (int i = 0; i < _phases.Length; ++i)
             {
                 if (_phases[i].Phase == phase)
@@ -76,6 +102,102 @@ namespace Geumeum.Data
 
             entry = default;
             return false;
+        }
+
+        /// <summary>생산 스폰과 축소 몰이의 상한, 유예, 경로 재시도 정의를 검증한다.</summary>
+        public bool ValidateDefinition(out string failure)
+        {
+            if ((_clusterSizeMin <= 0) || (_clusterSizeMax < _clusterSizeMin) ||
+                !IsFinitePositive(_postShrinkSpawnGraceSeconds) ||
+                !IsFiniteAtLeast(_herdingConcurrentCapMultiplier, 1f) ||
+                (_herdingPathRequestsPerTick <= 0) ||
+                (_herdingMaxPathFailures <= 0) ||
+                !IsFinitePositive(_herdingPathRetrySeconds) ||
+                !IsFiniteNonNegative(_herdingRequestSpreadSeconds) ||
+                !IsFiniteNonNegative(_herdingDestinationInset) ||
+                !IsFinitePositive(_herdingNavMeshSampleRadius))
+            {
+                failure = "스폰 또는 축소 몰이 한계 설정이 유효하지 않다";
+                return false;
+            }
+
+            RunPhase[] requiredPhases =
+            {
+                RunPhase.Farming,
+                RunPhase.Shrink1,
+                RunPhase.Shrink2,
+            };
+
+            for (int i = 0; i < requiredPhases.Length; ++i)
+            {
+                RunPhase phase = requiredPhases[i];
+                if (!TryGetUniquePhase(phase, out PhaseEntry entry))
+                {
+                    failure = $"스폰 필수 구간이 없거나 중복되었다: {phase}";
+                    return false;
+                }
+
+                long ratioTotal = (long) entry.RatioHeokkaebi +
+                    entry.RatioChanggwi + entry.RatioAekgwi;
+                if ((entry.ConcurrentMin <= 0) ||
+                    (entry.ConcurrentMax < entry.ConcurrentMin) ||
+                    !IsFiniteNonNegative(entry.RespawnInterval) ||
+                    (entry.RatioHeokkaebi < 0) || (entry.RatioChanggwi < 0) ||
+                    (entry.RatioAekgwi < 0) || (ratioTotal <= 0L) ||
+                    (entry.TargetKillMin < 0) ||
+                    (entry.TargetKillMax < entry.TargetKillMin))
+                {
+                    failure = $"스폰 구간 값이 유효하지 않다: {phase}";
+                    return false;
+                }
+            }
+
+            failure = null;
+            return true;
+        }
+
+        private bool TryGetUniquePhase(RunPhase phase, out PhaseEntry entry)
+        {
+            entry = default;
+            bool found = false;
+            if (_phases == null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < _phases.Length; ++i)
+            {
+                if (_phases[i].Phase != phase)
+                {
+                    continue;
+                }
+
+                if (found)
+                {
+                    return false;
+                }
+
+                found = true;
+                entry = _phases[i];
+            }
+
+            return found;
+        }
+
+        private static bool IsFinitePositive(float value)
+        {
+            return !float.IsNaN(value) && !float.IsInfinity(value) && (value > 0f);
+        }
+
+        private static bool IsFiniteNonNegative(float value)
+        {
+            return !float.IsNaN(value) && !float.IsInfinity(value) && (value >= 0f);
+        }
+
+        private static bool IsFiniteAtLeast(float value, float minimum)
+        {
+            return !float.IsNaN(value) && !float.IsInfinity(value) &&
+                (value >= minimum);
         }
     }
 }

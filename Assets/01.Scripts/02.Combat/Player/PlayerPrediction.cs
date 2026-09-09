@@ -14,12 +14,28 @@ namespace Geumeum.Combat
     public class PlayerPrediction : MonoBehaviour
     {
         /****************************************
+        *                Types
+        ****************************************/
+
+        private readonly struct PendingMove
+        {
+            public readonly PlayerMoveInput Input;
+            public readonly float           MoveSpeed;
+
+            public PendingMove(PlayerMoveInput input, float moveSpeed)
+            {
+                Input     = input;
+                MoveSpeed = moveSpeed;
+            }
+        }
+
+        /****************************************
         *                Fields
         ****************************************/
 
         private const float CORRECTION_EPSILON = 0.001f; // m
 
-        private readonly List<PlayerMoveInput> _pendingInputs = new List<PlayerMoveInput>();
+        private readonly List<PendingMove> _pendingInputs = new List<PendingMove>();
 
         private bool _isSuspended = false;
 
@@ -61,7 +77,7 @@ namespace Geumeum.Combat
         }
 
         /// <summary> 매 프레임 현재 입력만큼 로컬 위치를 전진시킨다 </summary>
-        public void Advance(Vector2 moveDirection, bool sprintHeld, float deltaTime, Func<bool, float> resolveSpeed)
+        public void Advance(Vector2 moveDirection, bool sprintHeld, float deltaTime, float moveSpeed)
         {
             if (_isSuspended)
             {
@@ -73,15 +89,13 @@ namespace Geumeum.Combat
             _timeSinceLastInput += deltaTime;
 
             float clampedDelta = Mathf.Clamp(deltaTime, 0f, Constants.Network.MAX_INPUT_DELTA_TIME);
-            float moveSpeed    = resolveSpeed(sprintHeld);
-
             transform.position = PlayerMotionModel.ComputeNextPosition(transform.position, moveDirection, moveSpeed, clampedDelta);
 
             ApplyCorrection(clampedDelta);
         }
 
         /// <summary> 서버로 보낸 입력을 서버 확인 전까지 재조정용으로 보관한다 </summary>
-        public void RecordInput(PlayerMoveInput input)
+        public void RecordInput(PlayerMoveInput input, float moveSpeed)
         {
             if (_isSuspended)
             {
@@ -100,7 +114,7 @@ namespace Geumeum.Combat
                 _pendingInputs.RemoveAt(0);
             }
 
-            _pendingInputs.Add(input);
+            _pendingInputs.Add(new PendingMove(input, moveSpeed));
         }
 
         /// <summary> 서버가 확정한 위치로 맞춘다 </summary>
@@ -143,12 +157,15 @@ namespace Geumeum.Combat
 
             for (int i = 0; i < _pendingInputs.Count; ++i)
             {
-                PlayerMoveInput pending   = _pendingInputs[i];
-                float           deltaTime = ComputeDeltaTime(pending.ClientEstimatedServerTime, previousTime);
-                previousTime = pending.ClientEstimatedServerTime;
+                PendingMove pending   = _pendingInputs[i];
+                float       deltaTime = ComputeDeltaTime(pending.Input.ClientEstimatedServerTime, previousTime);
+                previousTime = pending.Input.ClientEstimatedServerTime;
 
-                float moveSpeed = resolveSpeed(pending.SprintHeld);
-                replayedPosition = PlayerMotionModel.ComputeNextPosition(replayedPosition, pending.MoveDirection, moveSpeed, deltaTime);
+                replayedPosition = PlayerMotionModel.ComputeNextPosition(
+                    replayedPosition,
+                    pending.Input.MoveDirection,
+                    pending.MoveSpeed,
+                    deltaTime);
             }
 
             float residual = Mathf.Clamp(_timeSinceLastInput, 0f, Constants.Network.MAX_INPUT_DELTA_TIME);
@@ -186,7 +203,7 @@ namespace Geumeum.Combat
 
             for (int i = 0; i < _pendingInputs.Count; ++i)
             {
-                if (_pendingInputs[i].Sequence <= lastProcessedSequence)
+                if (_pendingInputs[i].Input.Sequence <= lastProcessedSequence)
                 {
                     keepFromIndex = i + 1;
                 }

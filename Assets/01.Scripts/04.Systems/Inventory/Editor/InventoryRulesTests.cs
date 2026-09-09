@@ -49,10 +49,12 @@ namespace Geumeum.Systems.Tests
             Apply(inventory, write);
         }
 
-        private static void StoreConsumable(InventorySnapshot inventory, ShopItemKind itemId, int amount, int limit)
+        private static void StoreConsumable(InventorySnapshot inventory, ShopItemKind itemId,
+            int amount, int carryLimit, int maxStack = STACK_LIMIT)
         {
             InventoryResult result =
-                InventoryRules.TryStoreConsumable(inventory, itemId, amount, limit, inventory.Revision, out var write);
+                InventoryRules.TryStoreConsumable(inventory, itemId, amount, carryLimit,
+                    maxStack, inventory.Revision, out var write);
             Assert.AreEqual(InventoryResult.Success, result);
             Apply(inventory, write);
         }
@@ -172,6 +174,33 @@ namespace Geumeum.Systems.Tests
             Assert.AreEqual(InventoryResult.KindMismatch, result);
         }
 
+        [Test]
+        public void ReplaceEquipmentRequiresSameIdentityAndWeaponKind()
+        {
+            var inventory = new InventorySnapshot();
+            StoreEquipment(inventory, 15u);
+            WeaponCombatSnapshot replacement = MakeItem(15u);
+            replacement.Grade = ItemGrade.Talisman;
+            replacement.AttackPower = 125f;
+
+            Assert.AreEqual(InventoryResult.Success,
+                InventoryRules.TryReplaceEquipment(inventory, 0, 15u, replacement,
+                    inventory.Revision, out InventoryWrite write));
+            Assert.AreEqual(15u, write.Value.Equipment.InstanceId);
+            Assert.AreEqual(ItemGrade.Talisman, write.Value.Equipment.Grade);
+
+            replacement.InstanceId = 16u;
+            Assert.AreEqual(InventoryResult.InvalidItem,
+                InventoryRules.TryReplaceEquipment(inventory, 0, 15u, replacement,
+                    inventory.Revision, out _));
+
+            replacement.InstanceId = 15u;
+            replacement.WeaponKind = WeaponKind.Bow;
+            Assert.AreEqual(InventoryResult.InvalidItem,
+                InventoryRules.TryReplaceEquipment(inventory, 0, 15u, replacement,
+                    inventory.Revision, out _));
+        }
+
         /****************************************
         *               Consumable
         ****************************************/
@@ -201,7 +230,7 @@ namespace Geumeum.Systems.Tests
             }
 
             InventoryResult result = InventoryRules.TryStoreConsumable(inventory, ShopItemKind.HealthPotion, 1,
-                STACK_LIMIT, inventory.Revision, out _);
+                STACK_LIMIT, STACK_LIMIT, inventory.Revision, out _);
 
             // 빈 칸이 11개 남아 있어도 소지 제한이 우선이다
             Assert.AreEqual(InventoryResult.StackFull, result);
@@ -221,17 +250,20 @@ namespace Geumeum.Systems.Tests
         }
 
         [Test]
-        public void UnlimitedCarryLimitKeepsStacking()
+        public void UnlimitedCarryLimitStillHonorsPerSlotMaxStack()
         {
             var inventory = new InventorySnapshot();
 
-            for (int i = 0; i < 50; ++i)
+            for (int i = 0; i < 5; ++i)
             {
-                StoreConsumable(inventory, ShopItemKind.SpiritPotion, 1, UNLIMITED);
+                StoreConsumable(inventory, ShopItemKind.RerollTicket, 1, UNLIMITED, 1);
             }
 
-            Assert.AreEqual(1, inventory.UsedCount);
-            Assert.AreEqual(50, inventory.GetSlot(0).Count);
+            Assert.AreEqual(5, inventory.UsedCount);
+            for (int i = 0; i < 5; ++i)
+            {
+                Assert.AreEqual(1, inventory.GetSlot(i).Count);
+            }
         }
 
         [Test]
@@ -276,11 +308,12 @@ namespace Geumeum.Systems.Tests
             var inventory = new InventorySnapshot();
 
             Assert.AreEqual(InventoryResult.InvalidItem, InventoryRules.TryStoreConsumable(inventory,
-                ShopItemKind.None, 1, STACK_LIMIT, inventory.Revision, out _));
+                ShopItemKind.None, 1, STACK_LIMIT, STACK_LIMIT, inventory.Revision, out _));
             Assert.AreEqual(InventoryResult.InvalidAmount, InventoryRules.TryStoreConsumable(inventory,
-                ShopItemKind.HealthPotion, 0, STACK_LIMIT, inventory.Revision, out _));
-            Assert.AreEqual(InventoryResult.InvalidAmount, InventoryRules.TryStoreConsumable(inventory,
-                ShopItemKind.HealthPotion, STACK_LIMIT + 1, STACK_LIMIT, inventory.Revision, out _));
+                ShopItemKind.HealthPotion, 0, STACK_LIMIT, STACK_LIMIT, inventory.Revision, out _));
+            Assert.AreEqual(InventoryResult.StackFull, InventoryRules.TryStoreConsumable(inventory,
+                ShopItemKind.HealthPotion, STACK_LIMIT + 1, STACK_LIMIT,
+                STACK_LIMIT, inventory.Revision, out _));
         }
 
         /****************************************
@@ -345,10 +378,10 @@ namespace Geumeum.Systems.Tests
         }
 
         [Test]
-        public void ResolveStackLimitTreatsNegativeAsUnlimited()
+        public void ResolveCarryLimitTreatsNegativeAsUnlimited()
         {
-            Assert.AreEqual(int.MaxValue, InventoryRules.ResolveStackLimit(UNLIMITED));
-            Assert.AreEqual(5, InventoryRules.ResolveStackLimit(5));
+            Assert.AreEqual(int.MaxValue, InventoryRules.ResolveCarryLimit(UNLIMITED));
+            Assert.AreEqual(5, InventoryRules.ResolveCarryLimit(5));
         }
     }
 }

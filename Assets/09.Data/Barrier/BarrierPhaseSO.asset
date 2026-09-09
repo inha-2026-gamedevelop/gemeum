@@ -13,9 +13,13 @@ MonoBehaviour:
   m_Name: BarrierPhaseSO
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.BarrierPhaseSO
   _fieldTimeLimitSeconds: 1800
+  _bossEntryCountdownSeconds: 30
   _maxRadius: 400
   _shrinkDuration: 30
   _warningLeadTime: 10
+  _targetCandidateAttempts: 24
+  _fallbackSegmentSamples: 24
+  _navMeshSampleRadius: 4
   _damageTickInterval: 1
   _weakenedHealingMultiplier: 0.7
   _phases:
@@ -27,6 +31,7 @@ MonoBehaviour:
     DamagePerSecond: 0
     AppliesWeakened: 0
     BlocksHealing: 0
+    RequiredLandmarks: 7
   - Phase: 2
     StartSeconds: 600
     EndSeconds: 1200
@@ -35,6 +40,7 @@ MonoBehaviour:
     DamagePerSecond: 1
     AppliesWeakened: 0
     BlocksHealing: 0
+    RequiredLandmarks: 7
   - Phase: 3
     StartSeconds: 1200
     EndSeconds: 1770
@@ -43,6 +49,7 @@ MonoBehaviour:
     DamagePerSecond: 2.5
     AppliesWeakened: 1
     BlocksHealing: 0
+    RequiredLandmarks: 7
   - Phase: 4
     StartSeconds: 1770
     EndSeconds: 1800
@@ -51,6 +58,7 @@ MonoBehaviour:
     DamagePerSecond: 5
     AppliesWeakened: 0
     BlocksHealing: 1
+    RequiredLandmarks: 7
   - Phase: 5
     StartSeconds: 1800
     EndSeconds: 2400
@@ -59,3 +67,4 @@ MonoBehaviour:
     DamagePerSecond: 0
     AppliesWeakened: 0
     BlocksHealing: 0
+    RequiredLandmarks: 0

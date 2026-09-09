@@ -4,6 +4,9 @@ using System;
 // Unity
 using UnityEngine;
 
+// 프로젝트 내부
+using Geumeum.Common;
+
 namespace Geumeum.Systems
 {
     /// <summary>
@@ -17,10 +20,11 @@ namespace Geumeum.Systems
         ****************************************/
 
         /// <summary> 이 위치가 결계 밖인지. 높이는 보지 않고 XZ 평면 거리로만 판정한다 </summary>
-        public static bool IsOutside(Vector3 worldPosition, in BarrierTransitionState state, double serverTime)
+        public static bool IsOutside(Vector3 worldPosition, in BarrierTransitionState state,
+            double gameplayTime)
         {
-            Vector3 center = GetCenter(state, serverTime);
-            float   radius = GetRadius(state, serverTime);
+            Vector3 center = GetCenter(state, gameplayTime);
+            float   radius = GetRadius(state, gameplayTime);
 
             float dx = worldPosition.x - center.x;
             float dz = worldPosition.z - center.z;
@@ -30,16 +34,16 @@ namespace Geumeum.Systems
         }
 
         /// <summary> 보간 중인 현재 중심. 전환 구간 동안 호출마다 값이 다르다 </summary>
-        public static Vector3 GetCenter(in BarrierTransitionState state, double serverTime)
+        public static Vector3 GetCenter(in BarrierTransitionState state, double gameplayTime)
         {
-            float k = GetInterpolant(state, serverTime);
+            float k = GetInterpolant(state, gameplayTime);
             return Vector3.Lerp(state.FromCenter, state.TargetCenter, k);
         }
 
         /// <summary> 보간 중인 현재 반경(m). 전환 구간 동안 호출마다 값이 다르다 </summary>
-        public static float GetRadius(in BarrierTransitionState state, double serverTime)
+        public static float GetRadius(in BarrierTransitionState state, double gameplayTime)
         {
-            float k = GetInterpolant(state, serverTime);
+            float k = GetInterpolant(state, gameplayTime);
             return Mathf.Lerp(state.FromRadius, state.TargetRadius, k);
         }
 
@@ -47,16 +51,16 @@ namespace Geumeum.Systems
         /// 전환 구간 진행률(0~1)을 SmoothStep으로 완만하게 가공한다.
         /// 중심, 반경이 반드시 같은 k를 쓰도록 이 메서드 하나로 모은다
         /// </summary>
-        private static float GetInterpolant(in BarrierTransitionState state, double serverTime)
+        private static float GetInterpolant(in BarrierTransitionState state, double gameplayTime)
         {
-            double span = state.EndServerTime - state.StartServerTime;
+            double span = state.EndGameplayTime - state.StartGameplayTime;
 
             if (span <= 0.0)
             {
                 return 1f;
             }
 
-            double t = (serverTime - state.StartServerTime) / span;
+            double t = (gameplayTime - state.StartGameplayTime) / span;
             t = Math.Clamp(t, 0.0, 1.0);
 
             float tf = (float)t;

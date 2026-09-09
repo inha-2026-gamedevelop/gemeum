@@ -23,6 +23,9 @@ namespace Geumeum.Common
         /// <summary> 가해자 netId, 결계와 환경 피해처럼 귀속 대상이 없으면 NO_ATTACKER </summary>
         public uint AttackerNetId { get; }
 
+        /// <summary> 이탈 뒤 명중해도 기여를 잃지 않는 가해 참가자 신원 </summary>
+        public ParticipantId AttackerParticipant { get; }
+
         /// <summary> 타격감 강도, 아트가 표현을 정한다 </summary>
         public HitStrength Strength { get; }
 
@@ -31,16 +34,23 @@ namespace Geumeum.Common
         ****************************************/
 
         public DamageInfo(float amount, uint attackerNetId, HitStrength strength)
+            : this(amount, attackerNetId, ParticipantId.None, strength)
         {
-            Amount        = amount;
-            AttackerNetId = attackerNetId;
-            Strength      = strength;
+        }
+
+        public DamageInfo(float amount, uint attackerNetId, ParticipantId attackerParticipant,
+            HitStrength strength)
+        {
+            Amount              = amount;
+            AttackerNetId       = attackerNetId;
+            AttackerParticipant = attackerParticipant;
+            Strength            = strength;
         }
 
         /// <summary> 결계, 환경처럼 가해자가 없는 피해 </summary>
         public static DamageInfo FromEnvironment(float amount)
         {
-            return new DamageInfo(amount, NO_ATTACKER, HitStrength.Light);
+            return new DamageInfo(amount, NO_ATTACKER, ParticipantId.None, HitStrength.Light);
         }
     }
 }

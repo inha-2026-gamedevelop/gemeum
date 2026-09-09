@@ -136,6 +136,8 @@ var info = new DamageInfo(amount, attackerNetId, HitStrength.Light);
 target.TakeDamage(in info);
 ```
 
+`CombatClock` and `MarkRegistry` use `RunTimeLocator.Current.GameplayElapsedSeconds`; paused wall-clock time does not consume the combat grace period. `NetworkTime.time` remains for network timing such as telegraph presentation and parry correction.
+
 | API | 설명 |
 |---|---|
 | `DamageTargetResolver.TryResolve(Collider, out IDamageable)` | 콜라이더에서 |
@@ -192,13 +194,14 @@ bool isBody = target.IsBody;    // PartId == 0
 using Geumeum.Common;
 
 // 누구든 걸었는가
-bool marked = MarkRegistry.IsMarked(target, NetworkTime.time);
+double gameplay = RunTimeLocator.Current.GameplayElapsedSeconds;
+bool marked = MarkRegistry.IsMarked(target, gameplay);
 
 // 특정 무녀가 걸었는가 (사람별로 카운터 권리가 따로다)
-bool mine = MarkRegistry.IsMarkedBy(owner, target, NetworkTime.time);
+bool mine = MarkRegistry.IsMarkedBy(owner, target, gameplay);
 
 // 부여 시각까지 봐야 할 때
-if (MarkRegistry.TryGetSlot(owner, index, NetworkTime.time, out MarkSlot slot))
+if (MarkRegistry.TryGetSlot(owner, index, gameplay, out MarkSlot slot))
 {
     double appliedAt = slot.AppliedServerTime;
 }
@@ -293,6 +296,41 @@ public interface ICombatLoadoutProvider
 
 `Revision`이 같으면 전투 쪽에서 다시 만들지 않는다. **매 명중마다 인벤토리를 다시 뒤지지 않게 하려는 값이다.**
 
+2026-09-09 현재 구현은 `InventoryController`다. `PlayerAttack`은 공격 수락 때 값을 복사하고 명중 때 그 복사본을 사용한다. 검·활·방울의 장착 공격력과 수락 당시 치명 준비 상태가 유지된다. `MaxHealth`는 현재 파티 성장 상태를 사용하며, 성장 관리자가 없는 개발 구성에서는 시작 레벨 곡선 값으로 대체한다. 장비 옵션·특성 적용은 아직 없다.
+
+서버의 `IGrowthParticipant.GrowthChanged`를 구독해 성장 변경 즉시 전투 revision을 갱신한다. 따라서 `TryBuildLoadout`을 다시 호출하기 전에 revision만 읽는 캐시도 성장 변경을 감지한다. 동일 성장 상태 재적용은 중복 증가시키지 않는다.
+
+### 장착과 해제
+
+- 소유 플레이어의 `InventoryController.RequestEquip(slot, instanceId, expectedRevision)` 또는 `RequestUnequip(expectedRevision)`를 사용한다. 내부 Command가 서버 소유권·런 상태·생존·비전투·revision을 검사한다.
+- 결과는 소유 클라이언트의 `EquipResult(requestId, result, revision)` 이벤트로 온다. 장착값은 `EquippedWeapon`, 보관 revision은 `Revision`, 전투 revision은 `LoadoutRevision`이다.
+- 장착 교체는 선택한 보관 칸과 현재 장비를 교환한다. ID 0 기본 무기는 보관하지 않는다. 해제는 실제 장비를 빈 칸에 넣고 같은 종류의 기본 무기를 만든다.
+- 서버 파트 간 호출은 `ServerTryEquip`/`ServerTryUnequip`을 사용한다. `IEquipmentWeaponTarget`은 검증을 끝낸 인벤토리가 Combat 무기에 적용하는 내부 계약이며, 소유권 검사를 대신하지 않는다.
+- 재접속 snapshot에는 인벤토리와 장착 무기가 함께 들어간다. 역할 무기 종류 불일치와 장착/보관 중복 ID는 복구 전에 거부한다.
+
+### 파티 성장
+
+- `GrowthManager`가 공용 누적 XP와 레벨을 소유한다. 조회는 `GrowthProviderLocator.HasProvider`를 확인한 뒤 `Current.TryGetState(participant, out state)`를 사용한다. 성장 상태는 SyncVar로 전달된다.
+- 잡귀 사망은 `EnemyDiedEvent.ForEnemy`에 스폰 당시 `FieldLevelAtSpawn`과 `RewardMultiplier`를 전달한다. XP와 재화는 이 배수를 정수 내림해 적용하며 현재 구간의 배수를 다시 읽지 않는다. 같은 적의 보상은 런마다 한 번만 지급한다. 보스는 `ForBoss`를 사용하고 `Kind`는 null이다.
+- `ServerTryAddExperience`는 여러 레벨을 한 번에 올릴 수 있다. `PlayerStatus`는 최대 HP 증가분만 생존자의 현재 HP에 더하며, 사망·관전 상태를 되살리지 않는다.
+- 재접속은 현재 파티 성장 상태를 우선하고, 오래된 스냅샷과의 최대 HP 차이를 한 번 반영한다. 성장 조회 실패 시 참가자 등록과 기존 상태를 바꾸지 않는다. `RunResetEvent`에서 다음 런 상태로 초기화하며 호스트에도 `GrowthChanged`를 통지한다.
+
+### 공용 재화와 부활 비용
+
+- `PartyWalletLocator.HasProvider`로 연결 여부를 확인하고 `Current`의 `Balance`/`BalanceChanged`를 읽는다. 생산 `SessionManagers.prefab`의 `CurrencyManager`가 서버 원본을 소유한다.
+- 서버 거래는 `TryPrepareSpend`로 계획을 만들고 `TryCommitSpend`로 확정한다. 계획의 런 ID·잔액·revision이 하나라도 달라지면 거부한다. 구매 상품 지급·위치·개방 조건은 아직 별도 상점 실행기 구현 대상이다.
+- 잡귀 재화는 스폰 당시 FieldLevel과 보상 배수를 적용해 정수 내림한다. 보스는 잡귀 재화를 지급하지 않는다. 같은 런의 같은 적은 한 번만 지급한다.
+- 장비 드랍도 `FieldLevelAtSpawn`을 사용하고 같은 사망의 드랍 여부를 한 번만 결정한다. 보스 factory는 3구간 보상으로 고정하며 잡귀 배수를 장비 등급에 곱하지 않는다.
+- 부활 차감은 `TryApplyReviveLoss(ParticipantId, deathGeneration, ratio, out loss)`로 확정한다. 같은 틱에는 구조 우선이며 구조 10%, 자동 20%를 확정 직전 잔액에서 내림한다. 잔액 0도 부활할 수 있다.
+- `ReviveDeathGeneration`을 포함하는 참가자 스냅샷은 스키마 3이다. 유료 부활에 지갑이 없으면 상태 변경 없이 거부하며, 개발용 `ServerReviveAll`은 무상 경로다.
+- 부활의 최종 중재는 플레이어별 상태 계산 뒤 서버 scheduler에서 실행한다. 씬 전환 중 플레이어 수가 일시적으로 0이 되어도 같은 scheduler의 중재 등록을 유지한다.
+- `AuthorityTickScheduler.ServerGeneration`은 서버 scheduler 실행 수명을 구분한다. 부활 중재는 인스턴스뿐 아니라 이 세대를 비교하므로 같은 매니저의 서버 재시작 뒤에도 다시 등록된다.
+- 서버 관전 잔여 시간은 정지 중 고정된다. 정지 중 복구했다면 재개 시 복구 이후 대기 시간만 보정한다. 비유한·음수 잔여 시간은 복구 전에 거부하고, 구조 확정 직전에는 구조자의 이동·거리·행동과 대상 사망 세대를 다시 검사한다.
+
+### 필수 네트워크 스폰 프리팹
+
+- `IRequiredSpawnPrefabProvider.CollectRequiredSpawnPrefabs(List<GameObject>)`는 부트 검사에 필요한 프리팹을 제공하는 Common 계약이다. `DropDirector`는 DroppedItem 프리팹을 제공한다.
+- Main 프로필의 `ServerBootGate`는 비활성 오브젝트의 공급자도 초기 검사에 포함하고, null 또는 `NetworkManager.spawnPrefabs` 미등록 참조가 있으면 서버 시작을 거부한다. 런타임 등록을 대신하지 않으므로 Boot 씬의 목록에도 프리팹이 있어야 한다. DevScene 프로필은 이 생산 배선 검사를 생략한다.
 ### 점수
 
 ```csharp
@@ -319,7 +357,8 @@ using Geumeum.Common;
 
 GameEventBus bus = GameEventBus.Instance;   // 씬 로컬 싱글턴
 
-bus.Publish(new EnemyDiedEvent { /* ... */ });
+bus.Publish(EnemyDiedEvent.ForEnemy(enemyNetId, kind, position, killerNetId,
+    fieldLevelAtSpawn, rewardMultiplier));
 bus.Subscribe<EnemyDiedEvent>(OnEnemyDied);
 bus.Unsubscribe<EnemyDiedEvent>(OnEnemyDied);
 ```
@@ -526,15 +565,37 @@ GDebug.Server("방울 3명 적중, 신력 +15");   // 서버가 확정한 사실
 
 ---
 
+## 17.5 거래와 정밀 사격 창구 (2026-09-09 구현, 통합 검증 중)
+
+아래 창구는 현재 코드에 추가됐다. 검증 통과 범위는 후속 실행 기록으로 확인하며, 구매·양도 UI와 물약 사용은 별도 구현 대상이다.
+
+| 창구 | 호출/구독 | 계약 |
+|---|---|---|
+| `ShopTransactionService` | `RequestPurchase(shopNetId, kind, walletRevision, inventoryRevision)` | 현재 객주 위치·개방 구간·생명·비전투·잔액·소지 제한을 서버가 다시 검사한다 |
+| 보관 장비 티켓 | `RequestRerollTicket` / `RequestUpgradeTicket` | 티켓 슬롯, 장비 슬롯, 장비 InstanceId, 예상 inventory revision을 보낸다. 구매한 티켓 한 장을 소비한다 |
+| 장착 장비 티켓 | `RequestRerollEquippedTicket` / `RequestUpgradeEquippedTicket` | 티켓 슬롯, 현재 장착 장비 InstanceId, 예상 inventory revision을 보낸다. 사용을 위해 장비를 임시 해제하지 않는다 |
+| `ShopTransactionService.TransactionCompleted` | `ShopTransactionResult` | RequestId, 작업 종류, 거부 사유, 서버 revision, 적용 장비를 받는다 |
+| `EquipmentTransferService` | `RequestOffer` / `RequestAccept` / `RequestReject` / `RequestCancel` | 단방향 장비 양도. 수락 시 양쪽 상태와 revision을 재검증한다 |
+| `EquipmentTransferService.TransferChanged` | `EquipmentTransferResult` | 제안 상태와 양쪽 revision을 읽는다. 만료 시각은 게임 시각이다 |
+| `IPrecisionInterruptTarget` | `TryInterruptPrecisionShot(in PrecisionInterruptContext)` | 서버 화살의 실제 충돌이 호출한다. HitServerTime은 `NetworkTime.time` 기준이며 게임 경과 시간과 혼용하지 않는다 |
+
+거래 요청 메서드의 반환값은 로컬 RequestId다. `0`은 전송하지 못했다는 뜻이고 양수도 성공 확정이 아니다. 결과 이벤트의 `Rejection`을 확인한다. 런·씬 revision과 소유 플레이어 netId 세대는 서비스가 헤더에 넣으며, 화면에서 서버 잔액이나 인벤토리 원본을 직접 바꾸지 않는다.
+
+양도 제안의 송신자는 상대 인벤토리 revision을 알 필요가 없다. 서버가 제안 시점의 수신자 revision을 캡처하며, 수락할 때 수신자가 자기 화면의 revision을 보낸다. 소유자 전용 인벤토리를 이 기능 때문에 전체 공개로 바꾸지 않는다.
+
+티켓 사용은 결제와 분리된다. 구매 때 공용 지갑을 차감하고, 사용 때는 보관한 티켓을 소비한다. `ShopSO.ItemEntry.MaxStack`은 슬롯당 한도이고 `CarryLimit`은 전체 소지 한도다. 현재 초기값은 물약 stack 3, 티켓 stack 1이며 기존 상품 가격은 유지한다. 양도 제안 시간은 `CombatConfigSO.EquipmentTransferOfferDuration`의 초기값 30초다. 이 두 초기값은 생산 밸런스 확정과 구분한다.
+
+정밀 입력은 Player의 `PrecisionShotController`가 소유한다. 활을 장착한 뒤 Mouse1 홀드·해제로 요청하며, 홀드 시간·이동 배율·스태미나는 `CombatConfigSO`에서 읽는다. 충돌 대상의 `PrecisionTargetRef`가 RunId·SceneRevision·NetId·PartId를 제공하며, 화살은 발사 당시 세대와 일치하는 대상만 전달한다. 보스는 현재 예고·대상·신궁 대응 패턴과 phase의 `IsAttackWindup(attackInstanceId)`를 검사하고 보스 공격 InstanceId당 한 번만 중단한다. UI가 이 인터페이스를 호출해 적을 직접 중단해서는 안 된다.
+
 ## 18. 아직 없는 것
 
 기대하고 짜면 안 되는 것들이다.
 
 - ~~**표식을 읽는 소비자**~~ — 해소됨(2026-09-08). 보스 무녀 공명이 첫 소비자다. 아래 "무녀 표식 공명" 참조
-- **`MarkRegistry.ClearAll()` 호출부** — 씬 전환과 런 초기화 시점에 아직 안 걸려 있다
-- **그로기 잔여** — 보스 게이지 감소·차사 패링·**무녀 공명**·진입 시 공격 취소·본체 피해 배율은 구현됨(2026-09-08). 신궁 정밀 사격·꼬리 배율·잡귀 연장은 아직 미구현
+- ~~**`MarkRegistry.ClearAll()` 호출부**~~ — 해소됨(2026-09-09). 런 초기화·결과·서버 종료·씬 전환에 연결됨
+- **그로기 잔여** — 보스 게이지 감소·차사 패링·**무녀 공명**·진입 시 공격 취소·본체 피해 배율은 구현됨(2026-09-08). 신궁 정밀 사격은 2026-09-09 코드 추가 후 통합 검증 중이며, 꼬리 배율·잡귀 연장은 아직 미구현
 - **보스 부위** — `TargetRef.PartId`는 준비됐지만 부위를 가진 프리팹이 없다
-- **장비/특성 수치** — `ICombatLoadoutProvider` 구현체가 없다
+- **장비 옵션/특성 수치** — 장착 공격력과 파티 성장의 최대 HP 공급은 구현됨(2026-09-09). 옵션·특성 반영은 남아 있다
 - **점수** — `IRunResultProvider` 구현체가 없어 지금은 0점이 나온다
 
 ---
@@ -544,6 +605,8 @@ GDebug.Server("방울 3명 적중, 신력 +15");   // 서버가 확정한 사실
 전부 @AidenKim923에게. 특히 **"이걸 서버에서 해야 하나 클라에서 해야 하나"**가 애매하면 짜기 전에 물어보는 게 싸다. 나중에 발견되면 3인 접속에서만 재현되는 결함이 된다.
 
 ## 보스 공격 수명과 예고 (2026-09-08)
+
+2026-09-09 광폭화: `BossController.IsEnrageWarning`/`IsEnraged`와 변경 이벤트를 표현에서 읽을 수 있다. 서버는 보스 시계 720/810초를 소비하며, 정지·씬 전환·페이즈 잠금 중에는 진행하지 않는다. 새 공격의 피해 배율은 수락 순간 고정한다. SO 전역 간격은 1페이즈 3초, 2페이즈 2.2초, 광폭화 1.4초이며 개별 패턴 쿨다운과 별개다. 꼬리 잔여 수에 따른 2.0/1.8초 분기는 꼬리 시스템 구현 후 연결한다.
 
 서버 기능은 전체 @AidenKim923 담당이다. 기존 파트별 소유 표를 서버 구현 승인 게이트로 사용하지 않는다.
 
@@ -561,7 +624,7 @@ GDebug.Server("방울 3명 적중, 신력 +15");   // 서버가 확정한 사실
 - 반복 패턴(9번 연쇄 부채꼴)은 마지막 판정에서 한 번만 통지한다. 펄스마다 깎이지 않는다.
 - **공격 하나당 한 번만 깎인다.** 무녀가 둘이어도 두 번 깎이지 않는다.
 - 카운터 패턴은 코드가 아니라 `BossPatternSO`의 `GaugeReductionEntry.CounterPatternIds`에 있다 — 차사 1·6, 신궁 5·9, 무녀 4·8. **바꿀 때 코드를 고치지 않는다.**
-- 표식 조회는 `MarkRegistry.IsMarkedWithin(target, serverTime, window)`다. 누가 걸었는지는 보지 않는다.
+- 표식 조회는 `MarkRegistry.IsMarkedWithin(target, serverTime, window)`다. `serverTime`에는 부여·조회 모두 `RunTimeLocator.Current.GameplayElapsedSeconds`를 넣는다. 누가 걸었는지는 보지 않는다.
 - 대상 참조에는 런 id와 씬 세대가 함께 들어간다. 이전 런에서 남은 표식은 구조적으로 맞지 않는다.
 - 신궁(5·9) 카운터는 **데이터만 있고 호출부가 없다.** 정밀 사격 시전 취소가 선행이다.
 

@@ -167,7 +167,17 @@ namespace Geumeum.EditorTools
             database.CollectMissingReferences(G_Problems);
 
             // 서버 부트 게이트와 같은 규칙을 쓴다 - 여기서 통과해도 부트에서 걸리면 검사 의미가 없다
-            GeumeumBootValidator.ValidateData(database.Barrier, database.LevelCurve, database.Spawn, G_Problems);
+            GeumeumBootValidator.ValidateData(
+                database.Barrier,
+                database.LevelCurve,
+                database.Spawn,
+                database.Boss,
+                GeumeumBootValidator.SceneProfile.Main,
+                G_Problems);
+
+            GeumeumBootValidator.ValidatePlayerServices(database.Combat, database.Shop, G_Problems);
+            GeumeumBootValidator.ValidateProgressionData(database.Combat, database.Talent,
+                database.Score, GeumeumBootValidator.SceneProfile.Main, G_Problems);
 
             Report("런 데이터 검사", null);
         }
@@ -178,9 +188,9 @@ namespace Geumeum.EditorTools
         {
             G_Problems.Clear();
 
-            // Main만 로비, 런 매니저, 프레임 기록기까지 요구한다, 그 외 씬은 Dev 프로필로 완화한다
-            bool isMain = (EditorSceneManager.GetActiveScene().name == Constants.Scene.MAIN);
-            var profile = isMain ? GeumeumBootValidator.SceneProfile.Main : GeumeumBootValidator.SceneProfile.DevScene;
+            // 출시 경로 씬은 전체 구성을 요구하고, 개발 씬은 Dev 프로필로 완화한다
+            GeumeumBootValidator.SceneProfile profile =
+                GeumeumBootValidator.ResolveSceneProfile(EditorSceneManager.GetActiveScene().name);
             GeumeumBootValidator.ValidateScene(profile, G_Problems);
 
             var manager = Object.FindAnyObjectByType<GeumeumNetworkManager>(FindObjectsInactive.Include);

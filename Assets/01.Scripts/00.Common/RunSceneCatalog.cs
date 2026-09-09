@@ -106,8 +106,8 @@ namespace Geumeum.Common
         /// 이 phase가 있어야 하는 씬. 씬을 바꾸지 않는 phase면 false다.
         ///
         /// 결계 축소 세 단계는 전부 Field에 머문다. 축소는 씬 교체가 아니라 같은 씬 안의 반경 변화다.
-        /// BossEntrance는 여기서 경유하지 않는다 - 전실은 Boss_Arena 씬 안에 이미 있고,
-        /// 별도 씬으로 뺄지는 전원 도착 대기 계약과 함께 정해야 한다
+        /// Boss phase 자체의 목적지는 Boss_Arena다. 정식 전실 경유는 phase가 아니라
+        /// BossEntranceState를 키로 쓰는 TryGetSceneForBossEntrance가 결정한다
         /// </summary>
         public static bool TryGetSceneForPhase(RunPhase phase, out RunSceneId sceneId)
         {
@@ -132,6 +132,29 @@ namespace Geumeum.Common
                     sceneId = RunSceneId.None;
                     return false;
             }
+        }
+
+        /// <summary>
+        /// 정식 보스 입구의 다음 씬. 전실은 RunPhase가 아니므로 입구 상태와 현재 씬을 함께 본다
+        /// </summary>
+        public static bool TryGetSceneForBossEntrance(BossEntranceState state, RunSceneId currentScene,
+            out RunSceneId sceneId)
+        {
+            if ((state == BossEntranceState.TransitionRequested) && (currentScene == RunSceneId.Field))
+            {
+                sceneId = RunSceneId.BossEntrance;
+                return true;
+            }
+
+            if (((state == BossEntranceState.TransitionRequested) || (state == BossEntranceState.Entering)) &&
+                (currentScene == RunSceneId.BossEntrance))
+            {
+                sceneId = RunSceneId.Boss;
+                return true;
+            }
+
+            sceneId = RunSceneId.None;
+            return false;
         }
     }
 }

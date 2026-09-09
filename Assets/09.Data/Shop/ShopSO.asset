@@ -19,18 +19,22 @@ MonoBehaviour:
     Price: 60
     EffectValue: 40
     CarryLimit: 3
+    MaxStack: 3
   - Kind: 2
     DisplayName: "\uC2E0\uB825 \uBB3C\uC57D"
     Price: 50
     EffectValue: 40
     CarryLimit: 3
+    MaxStack: 3
   - Kind: 3
     DisplayName: "\uC2A4\uD0EF \uC7AC\uC870\uC815\uAD8C"
     Price: 150
     EffectValue: 0
     CarryLimit: -1
+    MaxStack: 1
   - Kind: 4
     DisplayName: "\uB4F1\uAE09 \uC0C1\uC2B9\uAD8C"
     Price: 350
     EffectValue: 0
     CarryLimit: -1
+    MaxStack: 1

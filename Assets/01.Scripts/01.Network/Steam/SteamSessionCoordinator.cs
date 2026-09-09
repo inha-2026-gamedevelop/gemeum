@@ -18,9 +18,6 @@ namespace Geumeum.Network
 
         private const string ARG_CONNECT_LOBBY = "+connect_lobby";
 
-        [Tooltip("이 인원이 모이면 호스트를 열 수 있다. 실전은 3명이고 2대로 시험할 때만 낮춘다")]
-        [SerializeField] private int _devRequiredMembers = SteamLobbyService.MAX_MEMBERS;
-
         private SteamMirrorConnector _connector;
 
         /****************************************
@@ -33,7 +30,12 @@ namespace Geumeum.Network
         /// <summary> 현재 세션 단계 </summary>
         public SteamSessionState State { get; private set; } = SteamSessionState.Offline;
 
-        /// <summary> 호스트를 열 수 있는가. 소유자이고 인원이 찼을 때만 </summary>
+        /// <summary>
+        /// 호스트를 열 수 있는가. 소유자이고 정원이 다 찼을 때만.
+        ///
+        /// 인원을 낮출 수 있게 열어 두면 호스트 혼자 런이 시작되면서 입장이 잠겨
+        /// 나머지 둘이 거부된다. Steam 경로는 3인 검증 전용이라 정원으로 고정한다
+        /// </summary>
         public bool CanStartHost
         {
             get
@@ -41,7 +43,7 @@ namespace Geumeum.Network
                 SteamLobbyService lobby = SteamLobbyService.Instance;
                 return (State == SteamSessionState.Gathering)
                     && (lobby != null) && (lobby.IsOwner)
-                    && (lobby.Members.Count >= _devRequiredMembers);
+                    && (lobby.Members.Count >= SteamLobbyService.MAX_MEMBERS);
             }
         }
 

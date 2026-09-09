@@ -1,5 +1,6 @@
 // System
 using System;
+using System.Collections.Generic;
 
 // 프로젝트 내부
 using Geumeum.Common;
@@ -25,8 +26,36 @@ namespace Geumeum.Systems
         *                Fields
         ****************************************/
 
+        private readonly struct DeathKey : IEquatable<DeathKey>
+        {
+            public readonly uint RunIdValue;
+            public readonly uint EnemyNetId;
+
+            public DeathKey(RunId runId, uint enemyNetId)
+            {
+                RunIdValue = runId.Value;
+                EnemyNetId = enemyNetId;
+            }
+
+            public bool Equals(DeathKey other)
+            {
+                return ((RunIdValue == other.RunIdValue) && (EnemyNetId == other.EnemyNetId));
+            }
+
+            public override bool Equals(object obj)
+            {
+                return ((obj is DeathKey other) && Equals(other));
+            }
+
+            public override int GetHashCode()
+            {
+                return (RunIdValue.GetHashCode() ^ EnemyNetId.GetHashCode());
+            }
+        }
+
         private readonly float  _dropChance;
         private readonly Random _random;
+        private readonly HashSet<DeathKey> _processedDeaths = new HashSet<DeathKey>();
 
         /****************************************
         *                Methods
@@ -69,6 +98,17 @@ namespace Geumeum.Systems
             return (_random.NextDouble() < _dropChance);
         }
 
+        /// <summary> 같은 런의 같은 적 사망 이벤트를 한 번만 판정한다 </summary>
+        public bool TryClaimDeath(RunId runId, uint enemyNetId)
+        {
+            if ((!runId.IsValid) || (enemyNetId == 0u))
+            {
+                return false;
+            }
+
+            return _processedDeaths.Add(new DeathKey(runId, enemyNetId));
+        }
+
         /// <summary> 떨어질 장비의 무기 종류를 고른다. 세 종류가 같은 확률이다 </summary>
         public WeaponKind RollWeaponKind()
         {
@@ -76,9 +116,34 @@ namespace Geumeum.Systems
         }
 
         /// <summary> 등급 가중치를 고를 때 쓸 필드 레벨. 보스 보상만 3차 가중치를 쓴다 </summary>
-        public static int ResolveFieldLevel(bool isBoss, int currentFieldLevel)
+        public static int ResolveFieldLevel(bool isBoss, int fieldLevelAtSpawn)
         {
-            return (isBoss ? BOSS_REWARD_FIELD_LEVEL : currentFieldLevel);
+            return (isBoss ? BOSS_REWARD_FIELD_LEVEL : fieldLevelAtSpawn);
+        }
+
+        /// <summary> 이벤트 snapshot으로 장비 생성 구간을 확정한다 </summary>
+        public static bool TryResolveFieldLevel(bool isBoss, int fieldLevelAtSpawn, out int fieldLevel)
+        {
+            fieldLevel = BOSS_REWARD_FIELD_LEVEL;
+            if (isBoss)
+            {
+                if (fieldLevelAtSpawn != BOSS_REWARD_FIELD_LEVEL)
+                {
+                    fieldLevel = 0;
+                    return false;
+                }
+
+                return true;
+            }
+
+            if ((fieldLevelAtSpawn < 0) || (fieldLevelAtSpawn >= Constants.Combat.FIELD_LEVEL_COUNT))
+            {
+                fieldLevel = 0;
+                return false;
+            }
+
+            fieldLevel = fieldLevelAtSpawn;
+            return true;
         }
     }
 }

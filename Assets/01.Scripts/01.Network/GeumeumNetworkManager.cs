@@ -124,7 +124,15 @@ namespace Geumeum.Network
 
         public override void OnClientConnect()
         {
-            base.OnClientConnect();
+            // onlineScene을 비워 두고 ServerChangeScene을 쓰는 프로젝트라 Mirror의
+            // clientLoadedScene만으로는 초기 SceneMessage를 예측할 수 없다. 원격은
+            // 인증 응답에 기록된 scene sync를 기다려 OnClientSceneChanged에서 한 번만
+            // Ready/AddPlayer를 보낸다. Host는 scene load callback이 생략될 수 있어 즉시 처리한다.
+            if (NetworkServer.active || !GeumeumAuthenticator.ClientSceneSyncExpected)
+            {
+                base.OnClientConnect();
+            }
+
             ClientConnected?.Invoke();
         }
 

@@ -78,10 +78,40 @@ namespace Geumeum.Systems
             }
 
             int gradeIndex = RollGrade(_weights[fieldLevel]);
-            EquipmentSO.GradeEntry grade = _grades[gradeIndex];
+            WeaponCombatSnapshot result = RollSnapshot(_lastInstanceId + 1u,
+                weaponKind, _grades[gradeIndex]);
+
+            _lastInstanceId = result.InstanceId;
+            return result;
+        }
+
+        /// <summary> 같은 장비 ID와 등급으로 공격력과 옵션만 다시 굴린다 </summary>
+        public WeaponCombatSnapshot Reroll(in WeaponCombatSnapshot current)
+        {
+            ValidateServiceTarget(current);
+            return RollSnapshot(current.InstanceId, current.WeaponKind, _grades[(int) current.Grade]);
+        }
+
+        /// <summary> 같은 장비 ID로 한 단계 올린 등급의 공격력과 옵션을 굴린다 </summary>
+        public WeaponCombatSnapshot Upgrade(in WeaponCombatSnapshot current)
+        {
+            ValidateServiceTarget(current);
+
+            int nextGrade = (int) current.Grade + 1;
+            if (nextGrade >= _grades.Length)
+            {
+                throw new InvalidOperationException("최상위 등급 장비는 더 올릴 수 없습니다.");
+            }
+
+            return RollSnapshot(current.InstanceId, current.WeaponKind, _grades[nextGrade]);
+        }
+
+        private WeaponCombatSnapshot RollSnapshot(uint instanceId, WeaponKind weaponKind,
+            in EquipmentSO.GradeEntry grade)
+        {
             var result = new WeaponCombatSnapshot
             {
-                InstanceId  = _lastInstanceId + 1u,
+                InstanceId  = instanceId,
                 WeaponKind  = weaponKind,
                 Grade       = grade.Grade,
                 AttackPower = RollValue(grade.AttackMin, grade.AttackMax),
@@ -107,8 +137,15 @@ namespace Geumeum.Systems
                 }
             }
 
-            _lastInstanceId = result.InstanceId;
             return result;
+        }
+
+        private static void ValidateServiceTarget(in WeaponCombatSnapshot current)
+        {
+            if (!InventoryRules.IsValidItem(current))
+            {
+                throw new ArgumentException("서비스 대상 장비가 유효하지 않습니다.", nameof(current));
+            }
         }
 
         private int RollGrade(double[] weights)

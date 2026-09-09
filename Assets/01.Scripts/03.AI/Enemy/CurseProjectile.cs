@@ -170,7 +170,7 @@ namespace Geumeum.AI
             for (int i = 0; i < count; ++i)
             {
                 if ((!DamageTargetResolver.TryResolve(_hitBuffer[i].collider, out IDamageable damageable))
-                    || (damageable.IsDead))
+                    || EnemyTargetRules.IsUnavailable(damageable))
                 {
                     continue;
                 }

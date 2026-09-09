@@ -31,7 +31,8 @@ namespace Geumeum.AI
             float   angleDegrees,
             float   damage,
             uint    attackerNetId,
-            int     targetLayerMask)
+            int     targetLayerMask,
+            BossController damageRouter = null)
         {
             int hitCount  = Physics.OverlapSphereNonAlloc(origin, range, s_hitBuffer, targetLayerMask);
             int seenCount = 0;
@@ -67,7 +68,15 @@ namespace Geumeum.AI
                     ++seenCount;
                 }
 
-                damageable.TakeDamage(new DamageInfo(damage, attackerNetId, HitStrength.Heavy));
+                var damageInfo = new DamageInfo(damage, attackerNetId, HitStrength.Heavy);
+                if (damageRouter != null)
+                {
+                    damageRouter.ServerApplyPatternDamage(damageable, damageInfo);
+                }
+                else
+                {
+                    damageable.TakeDamage(damageInfo);
+                }
             }
         }
 

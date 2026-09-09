@@ -22,10 +22,20 @@ namespace Geumeum.Common
 
         public bool IsOccupied => Target.IsValid;
 
-        /// <summary> 만료 비교는 부여 시각 이상, 만료 시각 미만으로 통일한다 </summary>
-        public bool IsActiveAt(double serverTime)
+        /// <summary> 게임 시간은 부여 시각 이상, 만료 시각 미만일 때만 유효하다 </summary>
+        public bool IsActiveAt(double gameTime)
         {
-            return ((Target.IsValid) && (serverTime < ExpiresServerTime));
+            return (Target.IsValid) &&
+                   IsFinite(AppliedServerTime) &&
+                   IsFinite(ExpiresServerTime) &&
+                   IsFinite(gameTime) &&
+                   (gameTime >= AppliedServerTime) &&
+                   (gameTime < ExpiresServerTime);
+        }
+
+        private static bool IsFinite(double value)
+        {
+            return (!double.IsNaN(value)) && (!double.IsInfinity(value));
         }
     }
 
@@ -36,7 +46,10 @@ namespace Geumeum.Common
         InvalidOwner  = 1, // 신원이 없는 요청
         InvalidTarget = 2, // 대상 netId가 0
         InvalidSlots  = 3, // 슬롯 수가 1 미만
-        AlreadyMarked = 4, // 같은 소유자가 같은 대상에 이미 걸어 두었다
+        AlreadyMarked   = 4, // 같은 소유자가 같은 대상에 이미 걸어 두었다
+        InvalidTime     = 5, // 게임 시각이 유한하지 않다
+        InvalidDuration = 6, // 지속 시간이 0 이하이거나 만료 시각을 표현할 수 없다
+        HistoryFull     = 7, // 재부여 이력이 가득 차 새 대상을 기록할 수 없다
     }
 
     /// <summary> 서버가 소유하는 표식 상태의 유일한 원본. 본체와 부위 효과, 보스 카운터가 모두 여기를 조회한다 </summary>
@@ -47,13 +60,33 @@ namespace Geumeum.Common
         ****************************************/
 
         // 소유자(ParticipantId.Value)마다 슬롯 배열 하나. 파티가 세 명이라 순회 비용이 문제되지 않는다
-        private static readonly Dictionary<ulong, MarkSlot[]> _slotsByOwner = new Dictionary<ulong, MarkSlot[]>();
+        private const int MAX_REAPPLICATION_HISTORY = 32;
+
+        private readonly struct ReapplicationRecord
+        {
+            public readonly TargetRef Target;
+            public readonly double    BlockedUntilGameTime;
+
+            public ReapplicationRecord(TargetRef target, double blockedUntilGameTime)
+            {
+                Target              = target;
+                BlockedUntilGameTime = blockedUntilGameTime;
+            }
+        }
+
+        private static readonly Dictionary<ulong, MarkSlot[]> _slotsByOwner =
+            new Dictionary<ulong, MarkSlot[]>();
+
+        // 슬롯에서 밀려난 대상도 원래 지속 시간이 끝날 때까지 재부여할 수 없어야 한다.
+        // 만료된 기록은 TryApply 때 정리하고, 활성 기록에는 상한을 둬 정적 캐시가 자라지 않게 한다.
+        private static readonly Dictionary<ulong, List<ReapplicationRecord>> _reapplicationByOwner =
+            new Dictionary<ulong, List<ReapplicationRecord>>();
 
         /****************************************
         *                Methods
         ****************************************/
 
-        /// <summary> 표식을 건다. 슬롯이 가득 차 있으면 가장 오래된 것을 밀어낸다 </summary>
+        /// <summary> 표식을 건다. serverTime에는 정지 시간을 뺀 게임 시간을 넣는다 </summary>
         public static bool TryApply(
             ParticipantId     owner,
             TargetRef         target,
@@ -82,10 +115,44 @@ namespace Geumeum.Common
                 return false;
             }
 
+            if (!IsFinite(serverTime))
+            {
+                rejection = MarkRejection.InvalidTime;
+                return false;
+            }
+
+            double expiresServerTime = serverTime + duration;
+            if ((!IsFinite(duration)) || (duration <= 0d)
+                || (!IsFinite(expiresServerTime))
+                || (expiresServerTime <= serverTime))
+            {
+                rejection = MarkRejection.InvalidDuration;
+                return false;
+            }
+
+            List<ReapplicationRecord> history = ResolveHistory(owner.Value);
+            PruneHistory(history, serverTime);
+
+            for (int i = 0; i < history.Count; ++i)
+            {
+                if ((history[i].Target.Equals(target)) &&
+                    (serverTime < history[i].BlockedUntilGameTime))
+                {
+                    rejection = MarkRejection.AlreadyMarked;
+                    return false;
+                }
+            }
+
+            if (history.Count >= MAX_REAPPLICATION_HISTORY)
+            {
+                rejection = MarkRejection.HistoryFull;
+                return false;
+            }
+
             MarkSlot[] slots = ResolveSlots(owner.Value, slotCount);
 
-            // 재부여 거부. 매 타격마다 부여 시각을 갱신하면 "종료 전 3초에 걸었다"는 조건이 무너진다.
-            // 쿨다운을 표식 지속시간과 같게 두는 전제이며, 더 길게 두려면 만료 뒤의 기록이 따로 필요하다
+            // 슬롯 안의 같은 대상도 재부여하지 않는다. 재부여 이력 검사는 슬롯에서 밀려난 대상까지 포함한다.
+            // 매 타격마다 부여 시각을 갱신하면 "종료 전 3초에 걸었다"는 조건이 무너진다.
             for (int i = 0; i < slots.Length; ++i)
             {
                 if ((slots[i].IsActiveAt(serverTime)) && (slots[i].Target.Equals(target)))
@@ -117,7 +184,8 @@ namespace Geumeum.Common
                 chosen = oldest;
             }
 
-            slots[chosen] = new MarkSlot(target, serverTime, serverTime + duration);
+            slots[chosen] = new MarkSlot(target, serverTime, expiresServerTime);
+            history.Add(new ReapplicationRecord(target, expiresServerTime));
             return true;
         }
 
@@ -176,7 +244,7 @@ namespace Geumeum.Common
         public static bool IsMarkedWithin(TargetRef target, double serverTime, double window)
         {
             if ((!target.IsValid) || (window <= 0d)
-                || (double.IsNaN(serverTime)) || (double.IsInfinity(serverTime)))
+                || (!IsFinite(serverTime)) || (!IsFinite(window)))
             {
                 return false;
             }
@@ -201,6 +269,44 @@ namespace Geumeum.Common
             }
 
             return false;
+        }
+
+        /// <summary> 기준 창 안에 이 대상을 표식한 참가자를 결과 버퍼에 담는다 </summary>
+        public static int CollectOwnersMarkedWithin(TargetRef target, double serverTime, double window,
+            List<ParticipantId> destination)
+        {
+            if (destination == null)
+            {
+                return 0;
+            }
+
+            destination.Clear();
+            if ((!target.IsValid) || (window <= 0d) ||
+                (!IsFinite(serverTime)) || (!IsFinite(window)))
+            {
+                return 0;
+            }
+
+            foreach (KeyValuePair<ulong, MarkSlot[]> pair in _slotsByOwner)
+            {
+                MarkSlot[] slots = pair.Value;
+                for (int i = 0; i < slots.Length; ++i)
+                {
+                    MarkSlot slot = slots[i];
+                    if ((!slot.Target.Equals(target)) ||
+                        (!slot.IsActiveAt(serverTime)) ||
+                        ((serverTime - slot.AppliedServerTime) > window))
+                    {
+                        continue;
+                    }
+
+                    destination.Add(new ParticipantId(pair.Key));
+                    break;
+                }
+            }
+
+            destination.Sort((left, right) => left.Value.CompareTo(right.Value));
+            return destination.Count;
         }
 
         /// <summary> 이 소유자가 지금 유지 중인 표식 수 </summary>
@@ -246,20 +352,125 @@ namespace Geumeum.Common
         /// <summary> 이탈이나 역할 교체로 한 사람의 표식을 거둔다 </summary>
         public static void ClearOwner(ParticipantId owner)
         {
+            if (!owner.IsValid)
+            {
+                return;
+            }
+
             _slotsByOwner.Remove(owner.Value);
+            _reapplicationByOwner.Remove(owner.Value);
+        }
+
+        /// <summary> 대상이 사라졌을 때 그 대상의 슬롯과 재부여 이력을 거둔다 </summary>
+        public static void ClearTarget(TargetRef target)
+        {
+            if (!target.IsValid)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<ulong, MarkSlot[]> pair in _slotsByOwner)
+            {
+                MarkSlot[] slots = pair.Value;
+
+                for (int i = 0; i < slots.Length; ++i)
+                {
+                    if (slots[i].Target.Equals(target))
+                    {
+                        slots[i] = default;
+                    }
+                }
+            }
+
+            foreach (KeyValuePair<ulong, List<ReapplicationRecord>> pair in _reapplicationByOwner)
+            {
+                List<ReapplicationRecord> history = pair.Value;
+
+                for (int i = history.Count - 1; i >= 0; --i)
+                {
+                    if (history[i].Target.Equals(target))
+                    {
+                        history.RemoveAt(i);
+                    }
+                }
+            }
+        }
+
+        /// <summary> 대상 오브젝트가 파괴될 때 런과 씬 세대에 관계없이 해당 netId를 거둔다 </summary>
+        public static void ClearEntity(uint entityNetId)
+        {
+            if (entityNetId == 0u)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<ulong, MarkSlot[]> pair in _slotsByOwner)
+            {
+                MarkSlot[] slots = pair.Value;
+
+                for (int i = 0; i < slots.Length; ++i)
+                {
+                    if (slots[i].Target.EntityNetId == entityNetId)
+                    {
+                        slots[i] = default;
+                    }
+                }
+            }
+
+            foreach (KeyValuePair<ulong, List<ReapplicationRecord>> pair in _reapplicationByOwner)
+            {
+                List<ReapplicationRecord> history = pair.Value;
+
+                for (int i = history.Count - 1; i >= 0; --i)
+                {
+                    if (history[i].Target.EntityNetId == entityNetId)
+                    {
+                        history.RemoveAt(i);
+                    }
+                }
+            }
         }
 
         /// <summary> 씬 전환과 런 초기화에서 부른다. 대상 netId는 씬을 넘기면 의미가 없다 </summary>
         public static void ClearAll()
         {
             _slotsByOwner.Clear();
+            _reapplicationByOwner.Clear();
         }
 
         /// <summary> 도메인 리로드를 끈 환경에서 이전 플레이의 표식이 남지 않게 한다 </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void ResetStatic()
         {
-            _slotsByOwner.Clear();
+            ClearAll();
+        }
+
+        private static List<ReapplicationRecord> ResolveHistory(ulong ownerValue)
+        {
+            if (_reapplicationByOwner.TryGetValue(ownerValue, out List<ReapplicationRecord> history))
+            {
+                return history;
+            }
+
+            history = new List<ReapplicationRecord>(MAX_REAPPLICATION_HISTORY);
+            _reapplicationByOwner[ownerValue] = history;
+            return history;
+        }
+
+        private static void PruneHistory(List<ReapplicationRecord> history, double gameTime)
+        {
+            for (int i = history.Count - 1; i >= 0; --i)
+            {
+                if (history[i].BlockedUntilGameTime <= gameTime)
+                {
+                    history.RemoveAt(i);
+                }
+            }
+        }
+
+        private static bool IsFinite(double value)
+        {
+            return (!double.IsNaN(value)) && (!double.IsInfinity(value));
         }
 
         private static MarkSlot[] ResolveSlots(ulong ownerValue, int slotCount)

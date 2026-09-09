@@ -138,7 +138,7 @@ namespace Geumeum.Systems
             float distanceSquared = (identity.transform.position - transform.position).sqrMagnitude;
 
             var request = new InteractionRequest(distanceSquared, combat.InteractRange,
-                !damageable.IsDead, IsRunActive(), NetworkTime.time,
+                !damageable.IsDead, IsRunActive(), RunTimeLocator.Current.GameplayElapsedSeconds,
                 CombatClock.GetLastCombatTime(playerNetId), combat.InteractOutOfCombatSeconds);
 
             return InteractionRules.Evaluate(request);

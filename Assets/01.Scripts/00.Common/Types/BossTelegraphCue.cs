@@ -17,6 +17,12 @@ namespace Geumeum.Common
         /// <summary> 보스별 단조 증가 공격 ID, 0은 "값 없음" 예약이라 쓰지 않는다 </summary>
         public uint AttackInstanceId;
 
+        /// <summary> 같은 공격 안의 0-based 타격 순서. AttackInstanceId는 반복 내내 같다 </summary>
+        public byte RepeatIndex;
+
+        /// <summary> 같은 키를 다시 쓸 때 늦게 온 상태를 버리는 단조 증가 값 </summary>
+        public uint Revision;
+
         /// <summary> 서버에서 아직 취소되지 않은 예고인지 여부 </summary>
         public bool IsActive;
 
@@ -43,6 +49,13 @@ namespace Geumeum.Common
                 && (!double.IsNaN(serverTime)) && (!double.IsInfinity(serverTime))
                 && (!double.IsInfinity(StartServerTime)) && (!double.IsInfinity(ImpactServerTime))
                 && (StartServerTime <= serverTime) && (serverTime < ImpactServerTime));
+        }
+
+        public bool HasSameKey(in BossTelegraphCue other)
+        {
+            return (AttackInstanceId == other.AttackInstanceId) &&
+                   (RepeatIndex == other.RepeatIndex) &&
+                   (TargetNetId == other.TargetNetId);
         }
     }
 }

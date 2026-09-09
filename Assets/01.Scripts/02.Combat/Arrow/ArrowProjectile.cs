@@ -34,7 +34,13 @@ namespace Geumeum.Combat
         [SyncVar] private Vector3 _direction;
         [SyncVar] private float   _speed;
         private float   _damage;
+        private HitStrength _strength;
         private uint    _attackerNetId;
+        private ParticipantId _attacker;
+        private uint    _actionId;
+        private bool    _isPrecision;
+        private uint    _runIdValue;
+        private uint    _sceneRevisionValue;
         private float   _hitRadius;
         private int     _remainingPierce;
         private float   _remainingLifetime;
@@ -47,9 +53,18 @@ namespace Geumeum.Combat
         private byte  _guidanceTargetPart  = 0;
         private float _guidanceRemaining   = 0f;
         private float _guidanceDegreesPerSecond = 0f;
+        private NetworkIdentity _guidanceIdentity = null;
+        private IAimAssistTarget _guidanceAim = null;
+        private Component _guidanceAimComponent = null;
+        private Collider _guidanceCollider = null;
+        private IDamageable _guidanceDamageable = null;
+        private Component _guidanceDamageComponent = null;
+        private ITargetPartIdSource _guidancePartSource = null;
+        private Component _guidancePartComponent = null;
 
         // 화살마다 새로 만들면 연사할수록 GC 할당이 쌓인다
         private readonly RaycastHit[]      _hitBuffer      = new RaycastHit[HIT_BUFFER_SIZE];
+        private readonly RaycastHit[]      _worldHitBuffer = new RaycastHit[HIT_BUFFER_SIZE];
         private readonly List<IDamageable> _piercedTargets = new List<IDamageable>(PIERCE_BUFFER_SIZE);
 
         /****************************************
@@ -60,7 +75,9 @@ namespace Geumeum.Combat
         // 판정은 서버에서만 하므로 여기 계산은 보여주기 전용이고, 틀려도 게임 결과가 갈리지 않는다
         private void Update()
         {
-            if (isServer)
+            IRunTimeSource runTime = RunTimeLocator.Current;
+            if ((isServer) || (runTime.IsPaused)
+                || (runTime.PauseReasons != RunPauseReason.None))
             {
                 return;
             }
@@ -80,17 +97,21 @@ namespace Geumeum.Combat
 
         /// <summary> 스폰 직전에 서버가 한 번 호출해 비행 조건을 확정한다 </summary>
         [Server]
-        public void ServerInitialize(
-            Vector3 direction, float damage, uint attackerNetId, int targetMask, ArrowConfigSO arrow,
-            uint guidanceTargetNetId = NO_GUIDANCE_TARGET, byte guidanceTargetPart = 0)
+        public void ServerInitialize(in ArrowFireSnapshot snapshot, ArrowConfigSO arrow)
         {
-            _direction         = direction.normalized;
-            _damage            = damage;
-            _attackerNetId     = attackerNetId;
-            _targetMask        = targetMask;
-            _speed             = arrow.ArrowSpeed;
-            _hitRadius         = arrow.UnlockedHitRadius;
-            _remainingPierce   = Mathf.Max(1, arrow.BasePierceCount);
+            _direction         = snapshot.Direction.normalized;
+            _damage            = snapshot.Damage;
+            _strength          = snapshot.Strength;
+            _attackerNetId     = snapshot.AttackerNetId;
+            _attacker          = snapshot.Attacker;
+            _actionId          = snapshot.ActionId;
+            _isPrecision       = snapshot.IsPrecision;
+            _runIdValue        = snapshot.RunIdValue;
+            _sceneRevisionValue = snapshot.SceneRevisionValue;
+            _targetMask        = snapshot.TargetMask;
+            _speed             = snapshot.Speed;
+            _hitRadius         = snapshot.HitRadius;
+            _remainingPierce   = Mathf.Max(1, snapshot.PierceCount);
             _remainingLifetime = arrow.ArrowLifetime;
             _worldMask         = arrow.WorldMask;
             _initialized       = true;
@@ -101,12 +122,17 @@ namespace Geumeum.Combat
                 transform.rotation = Quaternion.LookRotation(_direction);
             }
 
-            bool canGuide = ((guidanceTargetNetId != NO_GUIDANCE_TARGET) && (_remainingPierce <= 1));
+            bool canGuide = ((snapshot.GuidanceTargetNetId != NO_GUIDANCE_TARGET) && (_remainingPierce <= 1));
 
-            _guidanceTargetNetId      = (canGuide) ? guidanceTargetNetId : NO_GUIDANCE_TARGET;
-            _guidanceTargetPart       = guidanceTargetPart;
-            _guidanceRemaining        = (canGuide) ? arrow.GuidanceDuration : 0f;
+            _guidanceTargetNetId      = (canGuide) ? snapshot.GuidanceTargetNetId : NO_GUIDANCE_TARGET;
+            _guidanceTargetPart       = snapshot.GuidanceTargetPart;
+            _guidanceRemaining        = (canGuide) ? snapshot.GuidanceDuration : 0f;
             _guidanceDegreesPerSecond = arrow.GuidanceDegreesPerSecond;
+
+            if (canGuide && (!CacheGuidanceTarget()))
+            {
+                StopGuidance();
+            }
 
             _piercedTargets.Clear();
         }
@@ -145,6 +171,12 @@ namespace Geumeum.Combat
         {
             if (!_initialized)
             {
+                return;
+            }
+
+            if (!IsCurrentRunContext())
+            {
+                NetworkServer.Destroy(gameObject);
                 return;
             }
 
@@ -230,32 +262,82 @@ namespace Geumeum.Combat
         {
             aimPoint = Vector3.zero;
 
-            if (!NetworkServer.spawned.TryGetValue(_guidanceTargetNetId, out NetworkIdentity identity))
+            if ((!NetworkServer.spawned.TryGetValue(_guidanceTargetNetId, out NetworkIdentity identity)) ||
+                (identity != _guidanceIdentity))
             {
                 return false;
             }
 
-            if ((DamageTargetResolver.TryResolve(identity.transform, out IDamageable damageable)) && (damageable.IsDead))
+            if ((_guidanceDamageable != null) &&
+                ((_guidanceDamageComponent == null) || _guidanceDamageable.IsDead))
             {
                 return false;
             }
 
-            IAimAssistTarget[] parts = identity.GetComponentsInChildren<IAimAssistTarget>(true);
-
-            if ((_guidanceTargetPart < parts.Length) && (parts[_guidanceTargetPart] != null))
+            if (_guidanceTargetPart != TargetRef.BODY_PART_ID)
             {
-                aimPoint = parts[_guidanceTargetPart].AimPoint;
+                if ((_guidancePartComponent == null) || (_guidancePartSource == null) ||
+                    (!_guidancePartSource.IsTargetable))
+                {
+                    return false;
+                }
+            }
+
+            if ((_guidanceAimComponent != null) && (_guidanceAim != null))
+            {
+                aimPoint = _guidanceAim.AimPoint;
                 return true;
             }
 
-            Collider collider = identity.GetComponentInChildren<Collider>();
-            if (collider == null)
+            if (_guidanceCollider == null)
             {
                 return false;
             }
 
-            aimPoint = collider.bounds.center;
+            aimPoint = _guidanceCollider.bounds.center;
             return true;
+        }
+
+        [Server]
+        private bool CacheGuidanceTarget()
+        {
+            if (!NetworkServer.spawned.TryGetValue(_guidanceTargetNetId, out _guidanceIdentity))
+            {
+                return false;
+            }
+
+            Transform root = _guidanceIdentity.transform;
+            if (DamageTargetResolver.TryResolve(root, out IDamageable damageable))
+            {
+                _guidanceDamageable = damageable;
+                _guidanceDamageComponent = damageable as Component;
+            }
+
+            if (_guidanceTargetPart != TargetRef.BODY_PART_ID)
+            {
+                if ((!AimAssistTargetResolver.TryResolve(root, _guidanceTargetPart,
+                    out _guidanceAim)) || (!(_guidanceAim is ITargetPartIdSource partSource)) ||
+                    (!partSource.IsTargetable))
+                {
+                    return false;
+                }
+
+                _guidancePartSource = partSource;
+                _guidancePartComponent = partSource as Component;
+                _guidanceDamageable = _guidanceAim as IDamageable ?? _guidanceDamageable;
+                _guidanceDamageComponent = _guidanceDamageable as Component;
+            }
+            else
+            {
+                AimAssistTargetResolver.TryResolve(root, TargetRef.BODY_PART_ID,
+                    out _guidanceAim);
+            }
+
+            _guidanceAimComponent = _guidanceAim as Component;
+            _guidanceCollider = (_guidanceAimComponent != null)
+                ? _guidanceAimComponent.GetComponentInChildren<Collider>()
+                : root.GetComponentInChildren<Collider>();
+            return (_guidanceAimComponent != null) || (_guidanceCollider != null);
         }
 
         [Server]
@@ -263,6 +345,14 @@ namespace Geumeum.Combat
         {
             _guidanceTargetNetId = NO_GUIDANCE_TARGET;
             _guidanceRemaining   = 0f;
+            _guidanceIdentity = null;
+            _guidanceAim = null;
+            _guidanceAimComponent = null;
+            _guidanceCollider = null;
+            _guidanceDamageable = null;
+            _guidanceDamageComponent = null;
+            _guidancePartSource = null;
+            _guidancePartComponent = null;
         }
 
         /****************************************
@@ -281,14 +371,34 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            if (!Physics.SphereCast(
-                    origin, _hitRadius, _direction, out RaycastHit wall, step, _worldMask, QueryTriggerInteraction.Ignore))
+            int count = Physics.SphereCastNonAlloc(
+                origin, _hitRadius, _direction, _worldHitBuffer, step,
+                _worldMask, QueryTriggerInteraction.Ignore);
+
+            if (count <= 0)
             {
                 return false;
             }
 
-            blockDistance = wall.distance;
-            blockPoint    = origin + (_direction * wall.distance);
+            // 버퍼 포화 때 가까운 벽이 누락됐을 수 있으므로 그 자리에서 막힌 것으로 처리한다
+            if (count >= _worldHitBuffer.Length)
+            {
+                blockDistance = 0f;
+                blockPoint    = origin;
+                return true;
+            }
+
+            float nearestDistance = step;
+            for (int i = 0; i < count; ++i)
+            {
+                if (_worldHitBuffer[i].distance < nearestDistance)
+                {
+                    nearestDistance = _worldHitBuffer[i].distance;
+                }
+            }
+
+            blockDistance = nearestDistance;
+            blockPoint    = origin + (_direction * nearestDistance);
             return true;
         }
 
@@ -302,6 +412,13 @@ namespace Geumeum.Combat
             if (count <= 0)
             {
                 return false;
+            }
+
+            // 포화된 결과에는 가장 가까운 대상이 있다는 보장이 없어 피해 없이 제거한다
+            if (count >= _hitBuffer.Length)
+            {
+                NetworkServer.Destroy(gameObject);
+                return true;
             }
 
             SortByDistance(count);
@@ -320,7 +437,16 @@ namespace Geumeum.Combat
                 }
 
                 _piercedTargets.Add(damageable);
-                damageable.TakeDamage(new DamageInfo(_damage, _attackerNetId, HitStrength.Light));
+                damageable.TakeDamage(new DamageInfo(
+                    _damage,
+                    _attackerNetId,
+                    _attacker,
+                    _strength));
+
+                if (_isPrecision)
+                {
+                    TryInterruptPrecisionTarget(_hitBuffer[i].collider);
+                }
 
                 --_remainingPierce;
                 if (_remainingPierce > 0)
@@ -334,6 +460,49 @@ namespace Geumeum.Combat
             }
 
             return false;
+        }
+
+        [Server]
+        private void TryInterruptPrecisionTarget(Collider hit)
+        {
+            if ((_actionId == 0u) || (!_attacker.IsValid) || (hit == null))
+            {
+                return;
+            }
+
+            IPrecisionInterruptTarget target = hit.GetComponentInParent<IPrecisionInterruptTarget>();
+            if (target == null)
+            {
+                return;
+            }
+
+            TargetRef targetRef = target.PrecisionTargetRef;
+            if ((!targetRef.IsValid)
+                || (targetRef.RunIdValue != _runIdValue)
+                || (targetRef.SceneRevisionValue != _sceneRevisionValue))
+            {
+                return;
+            }
+
+            target.TryInterruptPrecisionShot(new PrecisionInterruptContext(
+                _actionId,
+                _attacker,
+                _attackerNetId,
+                targetRef,
+                true,
+                NetworkTime.time));
+        }
+
+        private bool IsCurrentRunContext()
+        {
+            RunManager       run      = RunManager.ServerInstance;
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            return (run != null) && (director != null)
+                && PrecisionShotRules.IsCurrentRequestContext(
+                    _runIdValue,
+                    _sceneRevisionValue,
+                    run.RunId.Value,
+                    director.Revision.Value);
         }
 
         private void SortByDistance(int count)

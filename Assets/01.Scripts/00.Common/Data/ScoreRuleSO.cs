@@ -1,5 +1,11 @@
+// System
+using System;
+
 // Unity
 using UnityEngine;
+
+// 프로젝트 내부
+using Geumeum.Common;
 
 namespace Geumeum.Data
 {
@@ -7,6 +13,14 @@ namespace Geumeum.Data
     [CreateAssetMenu(fileName = "ScoreRuleSO", menuName = "Geumeum/ScoreRuleSO")]
     public class ScoreRuleSO : ScriptableObject
     {
+        [Serializable]
+        public struct EvaluationGradeEntry
+        {
+            public RunEvaluationGrade Grade;
+            public int                MinimumScore;
+            public string             Message;
+        }
+
         /****************************************
         *                Fields
         ****************************************/
@@ -34,6 +48,45 @@ namespace Geumeum.Data
         [Tooltip("사망 횟수별 보너스. 0회부터 순서대로")]
         [SerializeField] private int[] _deathlessBonusByDeathCount = { 5000, 2000, 500, 0 };
 
+        [Header("평가")]
+        [Tooltip("점수식 또는 평가 경계가 바뀔 때 올린다")]
+        [SerializeField] private int _scoreRuleVersion = 2;
+
+        [Tooltip("임시 평가 경계와 기본 문구. 순서와 무관하게 가장 높은 충족 경계를 사용한다")]
+        [SerializeField] private EvaluationGradeEntry[] _evaluationGrades =
+        {
+            new EvaluationGradeEntry
+            {
+                Grade        = RunEvaluationGrade.D,
+                MinimumScore = 0,
+                Message      = "이번 기록에는 보완할 점이 많구나.",
+            },
+            new EvaluationGradeEntry
+            {
+                Grade        = RunEvaluationGrade.C,
+                MinimumScore = 8000,
+                Message      = "아직 아쉬움이 남는 기록이로구나.",
+            },
+            new EvaluationGradeEntry
+            {
+                Grade        = RunEvaluationGrade.B,
+                MinimumScore = 12000,
+                Message      = "공과가 고르게 드러난 기록이구나.",
+            },
+            new EvaluationGradeEntry
+            {
+                Grade        = RunEvaluationGrade.A,
+                MinimumScore = 16000,
+                Message      = "절제와 기량이 돋보이는 기록이구나.",
+            },
+            new EvaluationGradeEntry
+            {
+                Grade        = RunEvaluationGrade.S,
+                MinimumScore = 20000,
+                Message      = "한 치의 낭비도 없는 모범적인 기록이구나.",
+            },
+        };
+
         /****************************************
         *              Properties
         ****************************************/
@@ -44,6 +97,8 @@ namespace Geumeum.Data
         public int RemainingCurrencyScore      => _remainingCurrencyScore;
         public int RemainingHealthScore        => _remainingHealthScore;
         public int DeathPenalty                => _deathPenalty;
+        public int ScoreRuleVersion             => _scoreRuleVersion;
+        public int EvaluationGradeCount         => (_evaluationGrades == null) ? 0 : _evaluationGrades.Length;
 
         /// <summary> 남은 시간 1초당 점수. 표시용이고 계산은 분당 값으로 한다 </summary>
         public float RemainingTimeScorePerSecond => (_remainingTimeScorePerMinute / 60f);
@@ -96,7 +151,111 @@ namespace Geumeum.Data
                 return 0;
             }
 
+            if (total >= int.MaxValue)
+            {
+                return int.MaxValue;
+            }
+
             return (int) System.Math.Floor(total);
+        }
+
+        /// <summary> 점수 경계 중 가장 높은 충족 항목을 고른다. 경계가 없으면 미평가다 </summary>
+        public RunEvaluationGrade CalculateEvaluationGrade(int score)
+        {
+            if ((_evaluationGrades == null) || (_evaluationGrades.Length == 0))
+            {
+                return RunEvaluationGrade.None;
+            }
+
+            int normalizedScore = Mathf.Max(0, score);
+            int bestMinimum = int.MinValue;
+            RunEvaluationGrade bestGrade = RunEvaluationGrade.None;
+
+            for (int i = 0; i < _evaluationGrades.Length; ++i)
+            {
+                EvaluationGradeEntry entry = _evaluationGrades[i];
+                if ((entry.Grade == RunEvaluationGrade.None) ||
+                    (entry.MinimumScore < 0) || (entry.MinimumScore > normalizedScore) ||
+                    (entry.MinimumScore <= bestMinimum))
+                {
+                    continue;
+                }
+
+                bestMinimum = entry.MinimumScore;
+                bestGrade   = entry.Grade;
+            }
+
+            return bestGrade;
+        }
+
+        /// <summary> 확정 등급의 SO 문구를 반환한다. 등급이 없으면 빈 문자열이다 </summary>
+        public string GetEvaluationMessage(RunEvaluationGrade grade)
+        {
+            if ((_evaluationGrades == null) || (grade == RunEvaluationGrade.None))
+            {
+                return string.Empty;
+            }
+
+            for (int i = 0; i < _evaluationGrades.Length; ++i)
+            {
+                if (_evaluationGrades[i].Grade == grade)
+                {
+                    return _evaluationGrades[i].Message ?? string.Empty;
+                }
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary> 생산 데이터가 점수 판과 중복 없는 평가 경계를 갖는지 검사한다 </summary>
+        public bool ValidateEvaluationGrades(out string failure)
+        {
+            if (_scoreRuleVersion <= 0)
+            {
+                failure = "점수 규칙 판이 1보다 작다";
+                return false;
+            }
+
+            if ((_evaluationGrades == null) || (_evaluationGrades.Length == 0))
+            {
+                failure = "평가 등급 경계가 비어 있다";
+                return false;
+            }
+
+            bool hasZeroBoundary = false;
+            for (int i = 0; i < _evaluationGrades.Length; ++i)
+            {
+                EvaluationGradeEntry current = _evaluationGrades[i];
+                if ((!Enum.IsDefined(typeof(RunEvaluationGrade), current.Grade)) ||
+                    (current.Grade == RunEvaluationGrade.None) || (current.MinimumScore < 0) ||
+                    string.IsNullOrWhiteSpace(current.Message))
+                {
+                    failure = $"평가 등급 {i}의 값이 유효하지 않다";
+                    return false;
+                }
+
+                hasZeroBoundary |= (current.MinimumScore == 0);
+
+                for (int j = 0; j < i; ++j)
+                {
+                    EvaluationGradeEntry previous = _evaluationGrades[j];
+                    if ((previous.Grade == current.Grade) ||
+                        (previous.MinimumScore == current.MinimumScore))
+                    {
+                        failure = $"평가 등급 {i}가 앞 항목과 등급 또는 경계를 중복한다";
+                        return false;
+                    }
+                }
+            }
+
+            if (!hasZeroBoundary)
+            {
+                failure = "0점 평가 등급 경계가 없다";
+                return false;
+            }
+
+            failure = null;
+            return true;
         }
     }
 }

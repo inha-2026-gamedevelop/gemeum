@@ -13,114 +13,268 @@ MonoBehaviour:
   m_Name: BossPatternSO
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.BossPatternSO
   _maxHealth: 55000
-  _transitionLockDuration: 2
   _phases:
   - PhaseIndex: 1
     EnterHealthRatio: 1
-    PatternIds:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
+    PatternIds: 0100000002000000030000000400000005000000
+    WakePatternId: 2
   - PhaseIndex: 2
     EnterHealthRatio: 0.5
-    PatternIds:
-    - 6
-    - 7
-    - 8
-    - 9
+    PatternIds: 06000000070000000800000009000000
+    WakePatternId: 2
+  _transitionLockDuration: 2
   _patterns:
   - PatternId: 1
-    DisplayName: 여우불 봉 3연격
+    DisplayName: "\uC5EC\uC6B0\uBD88 \uBD09 3\uC5F0\uACA9"
     TelegraphDuration: 1.2
     ActiveDuration: 1
     Cooldown: 20
-    Damage: 25
+    Damage: 8.333333
     IsParryable: 1
+    Template: 1
+    Targeting: 0
+    Range: 3.19
+    AngleDegrees: 100
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 0
+    ImpactOffsets:
+    - 1.2
+    - 1.7
+    - 2.2
+    RepeatTimingJitterMin: 0.1
+    RepeatTimingJitterMax: 0.25
+    ParryableRepeatIndex: 2
+    DerivedFromId: -1
+    IsConditional: 0
+    SelectionWeight: 1
   - PatternId: 2
-    DisplayName: 반월 베기
+    DisplayName: "\uBC18\uC6D4 \uBCA0\uAE30"
     TelegraphDuration: 0.8
     ActiveDuration: 1
     Cooldown: 15
     Damage: 13
     IsParryable: 0
+    Template: 1
+    Targeting: 0
+    Range: 3.19
+    AngleDegrees: 100
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 0
+    ImpactOffsets:
+    - 0.8
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: 1
+    IsConditional: 1
+    SelectionWeight: 1
   - PatternId: 3
-    DisplayName: 순간 접근 3연계
+    DisplayName: "\uC21C\uAC04 \uC811\uADFC 3\uC5F0\uACC4"
     TelegraphDuration: 1.5
     ActiveDuration: 1
     Cooldown: 28
     Damage: 13
     IsParryable: 0
+    Template: 2
+    Targeting: 0
+    Range: 3.19
+    AngleDegrees: 0
+    MoveSpeed: 10
+    MoveDistance: 9.12
+    ImpactRadius: 1.37
+    ImpactOffsets:
+    - 1.5
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 0
+    SelectionWeight: 1
   - PatternId: 4
-    DisplayName: 여우불 낙인
+    DisplayName: "\uC5EC\uC6B0\uBD88 \uB099\uC778"
     TelegraphDuration: 1.2
     ActiveDuration: 1
     Cooldown: 24
     Damage: 13
     IsParryable: 0
+    Template: 3
+    Targeting: 0
+    Range: 3.99
+    AngleDegrees: 360
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 3.99
+    ImpactOffsets:
+    - 1.2
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 0
+    SelectionWeight: 1
   - PatternId: 5
-    DisplayName: 여우 구슬 충격파
+    DisplayName: "\uC5EC\uC6B0 \uAD6C\uC2AC \uCDA9\uACA9\uD30C"
     TelegraphDuration: 2
     ActiveDuration: 1
     Cooldown: 32
     Damage: 13
     IsParryable: 0
+    Template: 4
+    Targeting: 0
+    Range: 10.26
+    AngleDegrees: 60
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 0
+    ImpactOffsets:
+    - 2
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 0
+    SelectionWeight: 1
   - PatternId: 6
-    DisplayName: 거대 꼬리치기
+    DisplayName: "\uAC70\uB300 \uAF2C\uB9AC\uCE58\uAE30"
     TelegraphDuration: 1.5
     ActiveDuration: 1.5
     Cooldown: 30
-    Damage: 35
+    Damage: 11.666667
     IsParryable: 1
+    Template: 1
+    Targeting: 0
+    Range: 5.13
+    AngleDegrees: 180
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 0
+    ImpactOffsets:
+    - 1.5
+    - 2.1
+    - 2.7
+    RepeatTimingJitterMin: -0.4
+    RepeatTimingJitterMax: 0.4
+    ParryableRepeatIndex: 2
+    DerivedFromId: -1
+    IsConditional: 0
+    SelectionWeight: 1
   - PatternId: 7
-    DisplayName: 마수 돌진
+    DisplayName: "\uB9C8\uC218 \uB3CC\uC9C4"
     TelegraphDuration: 1.2
     ActiveDuration: 1
     Cooldown: 26
     Damage: 22
     IsParryable: 0
+    Template: 2
+    Targeting: 0
+    Range: 5.13
+    AngleDegrees: 0
+    MoveSpeed: 12
+    MoveDistance: 15.96
+    ImpactRadius: 1.37
+    ImpactOffsets:
+    - 1.2
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 0
+    SelectionWeight: 1
   - PatternId: 8
-    DisplayName: 표식 순환 처형
+    DisplayName: "\uD45C\uC2DD \uC21C\uD658 \uCC98\uD615"
     TelegraphDuration: 2
     ActiveDuration: 1
     Cooldown: 35
     Damage: 22
     IsParryable: 0
+    Template: 3
+    Targeting: 1
+    Range: 6.27
+    AngleDegrees: 360
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 6.27
+    ImpactOffsets:
+    - 2
+    - 2.45
+    - 2.9
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 0
+    SelectionWeight: 1
   - PatternId: 9
-    DisplayName: 연쇄 부채꼴 3단
+    DisplayName: "\uC5F0\uC1C4 \uBD80\uCC44\uAF34 3\uB2E8"
     TelegraphDuration: 1.5
     ActiveDuration: 1
     Cooldown: 34
     Damage: 22
     IsParryable: 0
+    Template: 4
+    Targeting: 0
+    Range: 10.26
+    AngleDegrees: 60
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 0
+    ImpactOffsets:
+    - 1.5
+    - 2.1
+    - 2.7
+    RepeatTimingJitterMin: -0.4
+    RepeatTimingJitterMax: 0.4
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 0
+    SelectionWeight: 1
   - PatternId: 10
-    DisplayName: 백귀야행
+    DisplayName: "\uBC31\uADC0\uC57C\uD589"
     TelegraphDuration: 2
     ActiveDuration: 1.5
     Cooldown: 60
     Damage: 75
     IsParryable: 0
+    Template: 4
+    Targeting: 1
+    Range: 10.26
+    AngleDegrees: 60
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 0
+    ImpactOffsets:
+    - 2
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 1
+    SelectionWeight: 1
   _bossTimeLimitSeconds: 840
   _enrageStartSeconds: 810
   _enrageWarningSeconds: 720
+  _phase1AttackIntervalSeconds: 3
+  _phase2AttackIntervalSeconds: 2.2
+  _phase2AttackIntervalsByBrokenPart:
+  - 2.2
+  - 2
+  - 1.8
+  - 1.8
+  _enragedAttackIntervalSeconds: 1.4
+  _enrageDamageMultiplier: 3
   _groggyGaugeMax: 100
   _gaugeReductions:
   - Character: 0
     Amount: 10
-    CounterPatternIds:
-    - 1
-    - 6
+    CounterPatternIds: 0100000006000000
   - Character: 1
     Amount: 8
-    CounterPatternIds:
-    - 5
-    - 9
+    CounterPatternIds: 0500000009000000
   - Character: 2
     Amount: 13
-    CounterPatternIds:
-    - 4
-    - 8
+    CounterPatternIds: 0400000008000000
   _brandWindow: 3
   _groggyDuration: 10
   _groggyWakeWarningDuration: 2
@@ -132,5 +286,33 @@ MonoBehaviour:
   _tailSegmentHealth: 1350
   _healthGateRatio: 0.25
   _unbrokenTailAttackMultiplier: 1.2
+  _partPatternSeals:
+  - PartId: 1
+    PatternId: 6
+  - PartId: 2
+    PatternId: 8
+  - PartId: 3
+    PatternId: 9
+  _counterOpportunityTransfers:
+  - TriggerPartId: 1
+    Character: 0
+    FallbackPatternId: 7
+    RepeatIndex: 0
+  - TriggerPartId: 2
+    Character: 2
+    FallbackPatternId: 9
+    RepeatIndex: -1
   _wonhonHealth: 200
   _finalGauntletWindowSeconds: 8
+  _finalFailurePatternId: 10
+  _soulCounters:
+  - SoulId: 1
+    CounterCharacter: 0
+  - SoulId: 2
+    CounterCharacter: 1
+  - SoulId: 3
+    CounterCharacter: 2
+  _resonanceSpiritRefund: 15
+  _swallowDurationSeconds: 10
+  _swallowRescueChannelSeconds: 2
+  _swallowRestoreHealthRatio: 0.3

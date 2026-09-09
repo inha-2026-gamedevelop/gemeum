@@ -572,6 +572,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4557484968277269384}
   - component: {fileID: 2759496067919335138}
+  - component: {fileID: 4907681363156014406}
   m_Layer: 0
   m_Name: Singung_Art
   m_TagString: Untagged
@@ -618,6 +619,18 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &4907681363156014406
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5552380038636550382}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e72f67fa7a5b456cbeef6ddd20acf3bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.LegacyPlayerAnimationEventReceiver
 --- !u!1 &5717616999809668511
 GameObject:
   m_ObjectHideFlags: 0

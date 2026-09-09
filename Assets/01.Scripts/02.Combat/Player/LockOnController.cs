@@ -31,8 +31,8 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
-        [SyncVar(hook = nameof(OnTargetChanged))] private uint _serverTargetNetId = NO_TARGET;
-        [SyncVar]                                 private byte _serverTargetPart  = 0;
+        [SyncVar(hook = nameof(OnTargetChanged))]     private uint _serverTargetNetId = NO_TARGET;
+        [SyncVar(hook = nameof(OnTargetPartChanged))] private byte _serverTargetPart  = 0;
 
         private PlayerStatus _status;
         private PlayerPresentation _presentation;
@@ -42,6 +42,7 @@ namespace Geumeum.Combat
         private Collider         _targetCollider  = null;
         private bool             _isTargetBoss    = false;
         private bool             _isTargetPart    = false;
+        private ITargetPartIdSource _serverTargetPartSource = null;
 
         // 소유 클라이언트 전용
         private readonly Collider[] _candidateBuffer = new Collider[CANDIDATE_BUFFER_SIZE];
@@ -92,6 +93,7 @@ namespace Geumeum.Combat
 
         /// <summary> 대상의 부위 번호 </summary>
         public byte TargetPartIndex => _serverTargetPart;
+        public byte TargetPartId => _serverTargetPart;
 
         /****************************************
         *              Unity Event
@@ -149,7 +151,7 @@ namespace Geumeum.Combat
                 return;
             }
 
-            Candidate next = FindBestCandidate(null);
+            Candidate next = FindBestCandidate(false);
             if (next.IsValid)
             {
                 RequestLockOn(next);
@@ -183,6 +185,12 @@ namespace Geumeum.Combat
             GDebug.Log($"{GDebug.Who(netId)} -> {GDebug.Who(newNetId)} 락온");
         }
 
+        private void OnTargetPartChanged(byte oldPartId, byte newPartId)
+        {
+            ClearResolvedTarget();
+            ResolveTargetIfNeeded();
+        }
+
         /****************************************
         *              Server API
         ****************************************/
@@ -208,7 +216,13 @@ namespace Geumeum.Combat
                 return;
             }
 
-            if ((_status != null) && (_status.IsDead))
+            if (!IsServerPartTargetable())
+            {
+                ServerClearTarget();
+                return;
+            }
+
+            if ((_status != null) && (_status.IsDead || _status.IsSwallowed))
             {
                 ServerClearTarget();
             }
@@ -233,6 +247,11 @@ namespace Geumeum.Combat
                 return false;
             }
 
+            if (!IsServerPartTargetable())
+            {
+                return false;
+            }
+
             return ((root.position - transform.position).sqrMagnitude <= (maxRange * maxRange));
         }
 
@@ -250,7 +269,7 @@ namespace Geumeum.Combat
                 return;
             }
 
-            if ((_status != null) && (_status.IsDead))
+            if ((_status != null) && (_status.IsDead || _status.IsSwallowed))
             {
                 GDebug.Log(GLogKind.Server, $"락온 거부: 요청자 {GDebug.Who(netId)} 사망 상태");
                 return;
@@ -268,6 +287,20 @@ namespace Geumeum.Combat
                 return;
             }
 
+            ITargetPartIdSource partSource = null;
+            if (partIndex != TargetRef.BODY_PART_ID)
+            {
+                if ((!AimAssistTargetResolver.TryResolve(root, partIndex, out IAimAssistTarget partAim)) ||
+                    (!(partAim is ITargetPartIdSource resolvedPart)) || (!resolvedPart.IsTargetable))
+                {
+                    GDebug.Log(GLogKind.Server,
+                        $"락온 거부: {GDebug.Who(targetNetId)} fixed PartId {partIndex} 미존재");
+                    return;
+                }
+
+                partSource = resolvedPart;
+            }
+
             float range = (GameDB.IsInitialized) ? GameDB.Combat.LockOnAcquireRange : 0f;
             float sqrDistance = (root.position - transform.position).sqrMagnitude;
             if (sqrDistance > (range * range))
@@ -280,6 +313,7 @@ namespace Geumeum.Combat
 
             _serverTargetNetId = targetNetId;
             _serverTargetPart  = partIndex;
+            _serverTargetPartSource = partSource;
             GDebug.Log(GLogKind.Server, $"락온 확정: {GDebug.Who(netId)} -> {GDebug.Who(targetNetId)} 부위{partIndex}");
         }
 
@@ -297,7 +331,7 @@ namespace Geumeum.Combat
                     return;
                 }
 
-                RequestLockOn(FindBestCandidate(null));
+                RequestLockOn(FindBestCandidate(false));
                 return;
             }
 
@@ -309,7 +343,7 @@ namespace Geumeum.Combat
             float wheel = Input.GetAxisRaw(Constants.Player.AXIS_MOUSE_WHEEL);
             if (Mathf.Abs(wheel) > WHEEL_THRESHOLD)
             {
-                Candidate next = FindBestCandidate(_targetTransform);
+                Candidate next = FindBestCandidate(true);
                 if (next.IsValid)
                 {
                     RequestLockOn(next);
@@ -402,7 +436,7 @@ namespace Geumeum.Combat
 
                 if ((_blockedElapsed >= combat.LockOnBlockedGrace) && (_switchCooldown <= 0f))
                 {
-                    Candidate next = FindBestCandidate(_targetTransform);
+                    Candidate next = FindBestCandidate(true);
                     RequestLockOn(next.IsValid ? next : (Candidate?)null);
                 }
 
@@ -424,7 +458,7 @@ namespace Geumeum.Combat
         }
 
         /// <summary> 화면 중심 각도가 작은 순, 같으면 가까운 순으로 대상을 고른다 </summary>
-        private Candidate FindBestCandidate(Transform exclude)
+        private Candidate FindBestCandidate(bool excludeCurrent)
         {
             Candidate best = default;
 
@@ -461,7 +495,7 @@ namespace Geumeum.Combat
                 }
 
                 Transform root = candidate.transform.root;
-                if ((root == exclude) || (root == transform))
+                if (root == transform)
                 {
                     continue;
                 }
@@ -480,6 +514,11 @@ namespace Geumeum.Combat
                 }
 
                 Vector3 aimPoint = ResolveAimPoint(candidate, out byte partIndex);
+                if (excludeCurrent && (identity.netId == _serverTargetNetId) &&
+                    (partIndex == _serverTargetPart))
+                {
+                    continue;
+                }
 
                 if (!TryGetScreenAngle(aimPoint, out float angle))
                 {
@@ -571,28 +610,25 @@ namespace Geumeum.Combat
             GDebug.Fail($"락온 실패: 후보 {overlapCount}개, NetworkIdentity없음 {noIdentity} · 사망 {dead}");
         }
 
-        /// <summary> 콜라이더에서 조준점과 부위 번호를 함께 구한다 </summary>
+        /// <summary> 콜라이더에서 조준점과 고정 PartId를 함께 구한다 </summary>
         private static Vector3 ResolveAimPoint(Collider hit, out byte partIndex)
         {
-            partIndex = 0;
+            partIndex = TargetRef.BODY_PART_ID;
 
-            NetworkIdentity identity = hit.GetComponentInParent<NetworkIdentity>();
-            IAimAssistTarget aim     = hit.GetComponentInParent<IAimAssistTarget>();
-
-            if ((identity != null) && (aim != null))
+            ITargetPartIdSource directPart = hit.GetComponent<ITargetPartIdSource>();
+            if ((directPart != null) && directPart.IsTargetable)
             {
-                IAimAssistTarget[] parts = identity.GetComponentsInChildren<IAimAssistTarget>(true);
-
-                for (int i = 0; i < parts.Length; ++i)
+                partIndex = directPart.TargetPartId;
+                if (directPart is IAimAssistTarget directAim)
                 {
-                    if (!ReferenceEquals(parts[i], aim))
-                    {
-                        continue;
-                    }
-
-                    partIndex = (byte)Mathf.Min(i, byte.MaxValue);
-                    break;
+                    return directAim.AimPoint;
                 }
+            }
+
+            IAimAssistTarget aim = hit.GetComponentInParent<IAimAssistTarget>();
+            if ((aim is ITargetPartIdSource inheritedPart) && inheritedPart.IsTargetable)
+            {
+                partIndex = inheritedPart.TargetPartId;
             }
 
             return (aim != null) ? aim.AimPoint : hit.bounds.center;
@@ -635,16 +671,18 @@ namespace Geumeum.Combat
                 return;
             }
 
-            IAimAssistTarget[] parts = identity.GetComponentsInChildren<IAimAssistTarget>(true);
-
-            _targetAim = (_serverTargetPart < parts.Length) ? parts[_serverTargetPart] : null;
+            if (!AimAssistTargetResolver.TryResolve(identity.transform, _serverTargetPart,
+                out _targetAim) && (_serverTargetPart != TargetRef.BODY_PART_ID))
+            {
+                return;
+            }
 
             Component aimComponent = _targetAim as Component;
 
             _targetTransform = (aimComponent != null) ? aimComponent.transform : identity.transform;
             _targetCollider  = _targetTransform.GetComponentInChildren<Collider>();
             _isTargetBoss    = (identity.gameObject.layer == LayerMask.NameToLayer(Constants.Layer.BOSS));
-            _isTargetPart    = (_targetTransform != identity.transform);
+            _isTargetPart    = (_serverTargetPart != TargetRef.BODY_PART_ID);
 
             LockOnChanged?.Invoke(true);
         }
@@ -671,6 +709,19 @@ namespace Geumeum.Combat
         {
             _serverTargetNetId = NO_TARGET;
             _serverTargetPart  = 0;
+            _serverTargetPartSource = null;
+        }
+
+        [Server]
+        private bool IsServerPartTargetable()
+        {
+            if (_serverTargetPart == TargetRef.BODY_PART_ID)
+            {
+                return true;
+            }
+
+            Component component = _serverTargetPartSource as Component;
+            return (component != null) && _serverTargetPartSource.IsTargetable;
         }
 
         private static bool TryFindServerTarget(uint netId, out Transform root)
@@ -736,7 +787,12 @@ namespace Geumeum.Combat
 
         private bool CanControl()
         {
-            if ((_status != null) && (_status.IsDead))
+            if (!LocalGameplayInputGate.AllowsGameplayInput)
+            {
+                return false;
+            }
+
+            if ((_status != null) && (_status.IsDead || _status.IsSwallowed))
             {
                 return false;
             }

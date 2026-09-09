@@ -182,7 +182,7 @@
 
 1. **실제 조준 방향이 없다.** `CmdRequestAttack`은 `requestId`만 받고, 화살은 `transform.forward`로 발사된다.
 2. **플레이어 루트는 방향 표현의 원본이 아니다.** 현재 이동 구조는 루트를 돌리지 않고 `PlayerPresentation`의 방향으로 `VisualPivot`만 회전한다. 따라서 `transform.forward`를 카메라/이동 조준으로 간주하면 안 된다.
-3. ~~**카메라 구현이 없다.**~~ ✅ **2026-09-05 해소** — `05.Art/Camera/CameraRig.cs` 신설(추적·회전·지형 충돌). 전투는 `00.Common/CameraFrame.cs`의 yaw 값만 읽는다. *(2026-09-04 정정: 초판은 `LockOnSystem.cs`도 함께 "없다"고 적었는데, **그 뒤 락온이 부활해 `LockOnController.cs [계획]`로 살아났다** — 04-architecture 참고)*
+3. ~~**카메라 구현이 없다.**~~ ✅ **2026-09-05 해소** — `05.Art/Camera/CameraRig.cs` 신설(추적·회전·지형 충돌). 전투는 `00.Common/CameraFrame.cs`의 yaw 값만 읽는다. *(2026-09-04 정정: 초판은 `LockOnSystem.cs`도 함께 "없다"고 적었는데, **그 뒤 락온이 부활해 `LockOnController.cs [예정]`로 살아났다** — 04-architecture 참고)*
 4. ~~**화살이 월드 장애물을 검사하지 않는다.**~~ ✅ **2026-09-05 해소 — 다만 원인이 예상과 달랐다.** 코드(`ArrowProjectile.TryFindWorldBlock`)는 이미 완성돼 있었고 **`ArrowConfigSO._worldMask`가 0이라 조기 반환**하고 있었다. 마스크를 채워 해결(`Default + Ground + PW_Object_Small/Medium/Large` = 229633). 🔑 **레이어 실측 주의** — 지형은 `Ground`가 아니라 `Default`에 있고, 바위 393개는 전부 `PW_Object_*`에 있다 → [카메라와 락온 7.1](CAMERA_AND_LOCKON.md)
 5. **락온 수치가 사용되지 않는다.** `AimAssistAngle`, `GuidanceDegreesPerSecond`, `GuidanceDuration`은 데이터에만 있고 런타임에서 읽지 않는다.
    다만 `EquipmentOptionKind`에 `ArrowSpeed = 300`, `GuidanceDuration = 301`, `PierceCount = 302`가 이미 정의되어 있다. **이 세 값은 나중에 장비 옵션으로 증가하는 값이므로, SO 값을 그대로 상수처럼 쓰지 말고 화살 스폰 시점의 snapshot으로 넘겨야 한다**(6.2절 8번과 같은 이유).
@@ -411,12 +411,12 @@ public struct AbilityRequest
 
 | 파일 | 역할 | Mirror 인식 |
 |---|---|---|
-| **`05.Art/Camera/CameraRig.cs`** [현재] | 오버숄더 카메라, 중앙 ray와 aim direction 제공 | 없음, 로컬 전용 |
-| **`00.Common/CameraFrame.cs`** [현재] | 카메라가 미는 yaw 값. 전투가 `05.Art`를 참조하지 않게 한다 | 없음 |
+| **`05.Art/Camera/CameraRig.cs`** [구현완료] | 오버숄더 카메라, 중앙 ray와 aim direction 제공 | 없음, 로컬 전용 |
+| **`00.Common/CameraFrame.cs`** [구현완료] | 카메라가 미는 yaw 값. 전투가 `05.Art`를 참조하지 않게 한다 | 없음 |
 | `00.Common/Interfaces/IAimAssistTarget.cs` **[현재 — 2026-09-05 신설]** | Combat이 AI 구체 클래스를 몰라도 aim point 조회. **부위마다 하나씩 붙인다** — 보스 꼬리 3덩이가 각각 별개 락온 대상이다 | 없음 |
 | `02.Combat/Weapon/AbilityRequest.cs` | request ID·조준 방향 | 직렬화 값 타입 |
 | `02.Combat/Player/PlayerAttack.cs` | 입력 request, 서버 게이트, release 스폰 요청 | `NetworkBehaviour` |
-| `02.Combat/Arrow/ArrowProjectile.cs` | 서버 sweep·**장애물 판정**·피해·소멸. **[계획] 유도** — 별도 클래스가 아니라 이 서버 틱 안에서 처리한다(5.5) | `NetworkBehaviour` |
+| `02.Combat/Arrow/ArrowProjectile.cs` | 서버 sweep·**장애물 판정**·피해·소멸. **[예정] 유도** — 별도 클래스가 아니라 이 서버 틱 안에서 처리한다(5.5) | `NetworkBehaviour` |
 | `00.Common/Data/ArrowConfigSO.cs` | 모든 조준 보정 밸런스 수치 | 없음 |
 
 `PlayerAttack` 안에 조준 수식을 넣지 않는다. 카메라는 로컬, 판정 수식은 순수 C#, 네트워크 입구와 서버 상태 commit만 `NetworkBehaviour`로 남긴다.

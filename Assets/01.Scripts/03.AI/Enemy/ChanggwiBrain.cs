@@ -58,6 +58,8 @@ namespace Geumeum.AI
         private Vector3                  _patrolDestination;
         private int                      _attackVariant      = 0;
         private uint                     _nextParryWindowId  = 0;
+        private uint                     _nextAttackExecutionId   = 0u;
+        private uint                     _activeAttackExecutionId = 0u;
         private ChanggwiAttackExecution  _activeExecution; // 지금 열려 있는 창을 낸 실행, 없으면 null
         private IParryWindowTarget       _openParryTarget; // 위 실행이 연 창의 대상, 없으면 null
         private ParryWindowKey           _openParryKey;
@@ -80,6 +82,15 @@ namespace Geumeum.AI
         public override bool IsAttackCommitted => (_state == BrainState.Telegraph) || (_state == BrainState.Charge) || (_state == BrainState.Attack);
 
         public override EnemyVisualState VisualState => ToVisualState(_state);
+
+        public override bool AllowsHerdingMovement =>
+            (_state == BrainState.PatrolIdle) || (_state == BrainState.PatrolWalk) ||
+            (_state == BrainState.Recovery);
+
+        public override uint ActiveAttackExecutionId =>
+            ((_state == BrainState.Charge) || (_state == BrainState.Telegraph))
+                ? _activeAttackExecutionId
+                : 0u;
 
         /// <summary> 이번 공격에 쓸 모션 인덱스(0=Attack, 1=JumpAttack), 애니메이션 표현 전용 </summary>
         public override int AttackVariant => _attackVariant;
@@ -176,8 +187,9 @@ namespace Geumeum.AI
             // 또 닫아도 안전하다 — 넉백 문턱 도달처럼 패링을 거치지 않고 들어온 경로에서 열린 창을 정리한다
             CloseParryWindowIfOpen();
 
-            _state      = BrainState.Knockback;
-            _stateTimer = 0f;
+            _activeAttackExecutionId = 0u;
+            _state                    = BrainState.Knockback;
+            _stateTimer               = 0f;
         }
 
         /// <summary> 인지 범위 밖에서 공격당했을 때 EnemyController가 호출한다, 탐색 모드일 때만 즉시 돌진으로 전환한다 </summary>
@@ -189,6 +201,23 @@ namespace Geumeum.AI
             }
 
             EnterCharge();
+        }
+
+        public override bool TryInterruptPrecision(uint expectedExecutionId)
+        {
+            bool hasInterruptWindow = (_state == BrainState.Charge) ||
+                (_state == BrainState.Telegraph);
+            if (!hasInterruptWindow || (expectedExecutionId == 0u) ||
+                (expectedExecutionId != _activeAttackExecutionId))
+            {
+                return false;
+            }
+
+            CloseParryWindowIfOpen();
+            _activeAttackExecutionId = 0u;
+            _state                    = BrainState.Stagger;
+            _stateTimer               = 0f;
+            return true;
         }
 
         private void TickPatrolIdle(float deltaTime)
@@ -255,6 +284,8 @@ namespace Geumeum.AI
 
             Vector3 chargeDirection = (direction.sqrMagnitude > 0.0001f) ? direction.normalized : Self.forward;
 
+            _nextAttackExecutionId = NextExecutionId(_nextAttackExecutionId);
+            _activeAttackExecutionId = _nextAttackExecutionId;
             _chargeDestination = Self.position + (chargeDirection * Status.ChargeDistance);
             _chargeMaxDuration = (Status.ChargeSpeed > 0f) ? (Status.ChargeDistance / Status.ChargeSpeed) * 1.5f : 1f;
             _state             = BrainState.Charge;
@@ -280,8 +311,9 @@ namespace Geumeum.AI
             if (reachedDestination || (_stateTimer >= _chargeMaxDuration))
             {
                 // 돌진이 빗나갔다, Recovery에서 거리를 다시 재고 재돌진 여부를 정한다
-                _state      = BrainState.Recovery;
-                _stateTimer = 0f;
+                _activeAttackExecutionId = 0u;
+                _state                    = BrainState.Recovery;
+                _stateTimer               = 0f;
             }
         }
 
@@ -305,8 +337,9 @@ namespace Geumeum.AI
         private void TickAttack()
         {
             // 실제 공격 판정 실행은 EnemyController가 State == Attack을 보고 이번 틱에 수행한다
-            _state      = BrainState.Recovery;
-            _stateTimer = 0f;
+            _activeAttackExecutionId = 0u;
+            _state                    = BrainState.Recovery;
+            _stateTimer               = 0f;
         }
 
         private void TickRecovery(float deltaTime)
@@ -418,6 +451,12 @@ namespace Geumeum.AI
                 case BrainState.Knockback:  return EnemyVisualState.Knockback;
                 default:                    return EnemyVisualState.Idle;
             }
+        }
+
+        private static uint NextExecutionId(uint current)
+        {
+            uint next = current + 1u;
+            return (next == 0u) ? 1u : next;
         }
     }
 }

@@ -26,7 +26,7 @@
 
 | 값 · 판정 | 서버 | 클라이언트 | 근거 |
 |---|---|---|---|
-| 공격 허용, 자원 소비, 대상, impact 시각, 피해 | `[계획] PlayerAttack`/AI의 `[Server]` 로직만 결정 | 변경 불가 | 애니메이션 프레임·Event가 판정을 만들지 않는다. |
+| 공격 허용, 자원 소비, 대상, impact 시각, 피해 | `[예정] PlayerAttack`/AI의 `[Server]` 로직만 결정 | 변경 불가 | 애니메이션 프레임·Event가 판정을 만들지 않는다. |
 | 공격 action cue | `PlayerAttack`/`EnemyController`/`BossController` `NetworkBehaviour`가 승인 후 `ClientRpc`로 cue 전송 | AI/보스는 전원 재생; 플레이어는 관찰자 재생, 소유자는 예측과 `TargetAttackResult` dedupe | 표현용 `MonoBehaviour`는 RPC를 소유하지 않는다. [Mirror Remote Actions](https://mirror-networking.gitbook.io/docs/manual/guides/communications/remote-actions) |
 | 구르기 | 기존 서버 `_isRolling` SyncVar와 판정 유지 | hook에서 `PlayRoll` | 기존 흐름 재사용. 공격 파이프라인 때문에 구르기를 다시 쓰지 않는다. |
 | 피격·경직 cue | 서버 피해/패링 결과 뒤 RPC | 로컬 fixed-time transition·VFX | 결과가 확정된 뒤 표현한다. |
@@ -104,7 +104,7 @@ Any State → Downed → Death
 | `Assets/01.Scripts/00.Common/Types/AnimationActionCue.cs` / `Geumeum.Common` | `struct` | actor, request, sequence, action, 시작 시각, 판정 duration의 고정 크기 RPC 값 | 파트 간 구체 클래스 참조 방지 |
 | `Assets/01.Scripts/00.Common/Events/DamageAppliedEvent.cs` / `Geumeum.Common` | `readonly struct` | `ActorNetId:uint`, `Strength:HitStrength`, `WasFatal:bool`, `Sequence:uint`, `StartServerTime:double` | invincible/0 damage에서 피격 모션 방지 |
 | `Assets/01.Scripts/00.Common/Events/StaggerAppliedEvent.cs` / `Geumeum.Common` | `readonly struct` | `ActorNetId:uint`, `Sequence:uint`, `StartServerTime:double`, `Duration:float` | 피해 없는 패링 경직도 표현 |
-| `Assets/01.Scripts/02.Combat/Player/PlayerAttack.cs` / `Geumeum.Combat` | `[계획] NetworkBehaviour` | `CmdRequestAttack`, `TargetAttackResult`, `RpcAttackStarted`와 sibling `PlayerStatus`의 피격 RPC 소유자 | 02 공격 설계 선행 의존 |
+| `Assets/01.Scripts/02.Combat/Player/PlayerAttack.cs` / `Geumeum.Combat` | `[예정] NetworkBehaviour` | `CmdRequestAttack`, `TargetAttackResult`, `RpcAttackStarted`와 sibling `PlayerStatus`의 피격 RPC 소유자 | 02 공격 설계 선행 의존 |
 | `Assets/01.Scripts/02.Combat/Player/PlayerStatus.cs` / `Geumeum.Combat` | 기존 확장 | life-state SyncVar hook, 실제 HP 감소 뒤 `DamageAppliedEvent` | 현재 `void TakeDamage` 내부 commit 지점 |
 | `Assets/01.Scripts/02.Combat/Player/PlayerWeapon.cs` / `Geumeum.Combat` | 기존 확장 | snapshot SyncVar hook과 로컬 무기 변경 이벤트 | 04의 `WeaponCombatSnapshot` |
 | `Assets/01.Scripts/02.Combat/Player/PlayerAnimationController.cs` / `Geumeum.Combat` | 기존 `MonoBehaviour` 확장 | Controller 교체, cue dedupe/우선순위, 공격/피격/경직/생명 모션 | `PlayerPresentation`, `PlayerAppearance`, `PlayerWeapon` |
@@ -208,7 +208,7 @@ Unity는 root motion을 애니메이션이 GameObject를 이동시키는 방식�
 
 ### 5.1 플레이어 공격
 
-1. 02 공격 설계의 `[계획] PlayerAttack` 수직 슬라이스가 먼저 완료되어 있어야 한다. 로컬 소유자가 공격 입력을 누르면 `PlayerAttack`이 0을 건너뛰는 request ID를 발급하고 `PlayerAnimationController.ClientPredictAction`을 호출한다.
+1. 02 공격 설계의 `[예정] PlayerAttack` 수직 슬라이스가 먼저 완료되어 있어야 한다. 로컬 소유자가 공격 입력을 누르면 `PlayerAttack`이 0을 건너뛰는 request ID를 발급하고 `PlayerAnimationController.ClientPredictAction`을 호출한다.
 2. 같은 프레임 02의 `CmdRequestAttack(AbilityRequest request)`를 보낸다. 클라이언트는 weapon kind·damage·duration을 보내지 않는다.
 3. 서버가 phase, 생명, 현재 `PlayerWeapon`, 행동 중 여부, 쿨다운, 자원, 후보 거리/시야를 검증한다.
 4. 거부하면 02의 `PlayerAttack.TargetAttackResult(AbilityResult)`로 소유자에게 구체 code를 보내 예측 모션을 `CrossFadeInFixedTime`으로 취소한다.

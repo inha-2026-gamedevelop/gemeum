@@ -17,20 +17,260 @@ MonoBehaviour:
   _columns:
   - WeaponKind: 0
     ColumnIndex: 0
-    DisplayName: "\uD328\uB9C1 \uD310\uC815 \uCC3D \uD655\uB300"
+    DisplayName: "\uD328\uB9C1\uC758 \uAE38"
   - WeaponKind: 0
     ColumnIndex: 1
-    DisplayName: "\uD328\uB9C1 \uBC18\uACA9 \uD53C\uD574 \uC99D\uD3ED"
+    DisplayName: "\uAC80\uC758 \uAE38"
   - WeaponKind: 1
     ColumnIndex: 0
-    DisplayName: "\uC5F0\uC0AC"
+    DisplayName: "\uC5F0\uC0AC\uC758 \uAE38"
   - WeaponKind: 1
     ColumnIndex: 1
-    DisplayName: "\uAD00\uD1B5"
+    DisplayName: "\uAD00\uD1B5\uC758 \uAE38"
   - WeaponKind: 2
     ColumnIndex: 0
-    DisplayName: "\uCE58\uC720 \uD2B9\uD654"
+    DisplayName: "\uCE58\uC720\uC758 \uAE38"
   - WeaponKind: 2
     ColumnIndex: 1
-    DisplayName: "\uBC84\uD504 \xB7 \uACF5\uACA9 \uC9C0\uC6D0"
-  _nodes: []
+    DisplayName: "\uC9C0\uC6D0\uC758 \uAE38"
+  _nodes:
+  - NodeId: 1001
+    WeaponKind: 0
+    ColumnIndex: 0
+    RowIndex: 0
+    DisplayName: "\uB113\uC740 \uD2C8 I"
+    EffectKind: 201
+    PointCost: 1
+    Value: 0.02
+  - NodeId: 1002
+    WeaponKind: 0
+    ColumnIndex: 0
+    RowIndex: 1
+    DisplayName: "\uAE30\uC138 I"
+    EffectKind: 200
+    PointCost: 1
+    Value: 5
+  - NodeId: 1003
+    WeaponKind: 0
+    ColumnIndex: 0
+    RowIndex: 2
+    DisplayName: "\uB113\uC740 \uD2C8 II"
+    EffectKind: 201
+    PointCost: 1
+    Value: 0.03
+  - NodeId: 1004
+    WeaponKind: 0
+    ColumnIndex: 0
+    RowIndex: 3
+    DisplayName: "\uAE30\uC138 II"
+    EffectKind: 200
+    PointCost: 1
+    Value: 10
+  - NodeId: 1005
+    WeaponKind: 0
+    ColumnIndex: 0
+    RowIndex: 4
+    DisplayName: "\uD544\uC0B4\uC758 \uACB0"
+    EffectKind: 202
+    PointCost: 1
+    Value: 2.4
+  - NodeId: 1011
+    WeaponKind: 0
+    ColumnIndex: 1
+    RowIndex: 0
+    DisplayName: "\uC0BC\uC5F0\uACA9 I"
+    EffectKind: 203
+    PointCost: 1
+    Value: 15
+  - NodeId: 1012
+    WeaponKind: 0
+    ColumnIndex: 1
+    RowIndex: 1
+    DisplayName: "\uCF8C\uAC80 I"
+    EffectKind: 101
+    PointCost: 1
+    Value: 5
+  - NodeId: 1013
+    WeaponKind: 0
+    ColumnIndex: 1
+    RowIndex: 2
+    DisplayName: "\uC808\uC81C"
+    EffectKind: 102
+    PointCost: 1
+    Value: -5
+  - NodeId: 1014
+    WeaponKind: 0
+    ColumnIndex: 1
+    RowIndex: 3
+    DisplayName: "\uC0BC\uC5F0\uACA9 II"
+    EffectKind: 203
+    PointCost: 1
+    Value: 20
+  - NodeId: 1015
+    WeaponKind: 0
+    ColumnIndex: 1
+    RowIndex: 4
+    DisplayName: "\uCF8C\uAC80 II"
+    EffectKind: 101
+    PointCost: 1
+    Value: 7
+  - NodeId: 2001
+    WeaponKind: 1
+    ColumnIndex: 0
+    RowIndex: 0
+    DisplayName: "\uC18D\uC0AC I"
+    EffectKind: 101
+    PointCost: 1
+    Value: 5
+  - NodeId: 2002
+    WeaponKind: 1
+    ColumnIndex: 0
+    RowIndex: 1
+    DisplayName: "\uB113\uC740 \uD654\uC0B4\uCD09"
+    EffectKind: 304
+    PointCost: 1
+    Value: 15
+  - NodeId: 2003
+    WeaponKind: 1
+    ColumnIndex: 0
+    RowIndex: 2
+    DisplayName: "\uC5F0\uBC1C I"
+    EffectKind: 303
+    PointCost: 1
+    Value: 1
+  - NodeId: 2004
+    WeaponKind: 1
+    ColumnIndex: 0
+    RowIndex: 3
+    DisplayName: "\uC18D\uC0AC II"
+    EffectKind: 101
+    PointCost: 1
+    Value: 8
+  - NodeId: 2005
+    WeaponKind: 1
+    ColumnIndex: 0
+    RowIndex: 4
+    DisplayName: "\uC5F0\uBC1C II"
+    EffectKind: 303
+    PointCost: 1
+    Value: 1
+  - NodeId: 2011
+    WeaponKind: 1
+    ColumnIndex: 1
+    RowIndex: 0
+    DisplayName: "\uAC15\uAD81 I"
+    EffectKind: 305
+    PointCost: 1
+    Value: 5
+  - NodeId: 2012
+    WeaponKind: 1
+    ColumnIndex: 1
+    RowIndex: 1
+    DisplayName: "\uAC15\uC804"
+    EffectKind: 300
+    PointCost: 1
+    Value: 10
+  - NodeId: 2013
+    WeaponKind: 1
+    ColumnIndex: 1
+    RowIndex: 2
+    DisplayName: "\uAD00\uD1B5 I"
+    EffectKind: 302
+    PointCost: 1
+    Value: 1
+  - NodeId: 2014
+    WeaponKind: 1
+    ColumnIndex: 1
+    RowIndex: 3
+    DisplayName: "\uAC15\uAD81 II"
+    EffectKind: 305
+    PointCost: 1
+    Value: 10
+  - NodeId: 2015
+    WeaponKind: 1
+    ColumnIndex: 1
+    RowIndex: 4
+    DisplayName: "\uAD00\uD1B5 II"
+    EffectKind: 302
+    PointCost: 1
+    Value: 1
+  - NodeId: 3001
+    WeaponKind: 2
+    ColumnIndex: 0
+    RowIndex: 0
+    DisplayName: "\uC628\uC804\uD55C \uC190\uAE38 I"
+    EffectKind: 400
+    PointCost: 1
+    Value: 8
+  - NodeId: 3002
+    WeaponKind: 2
+    ColumnIndex: 0
+    RowIndex: 1
+    DisplayName: "\uC2E0\uB825 \uC808\uC57D I"
+    EffectKind: 402
+    PointCost: 1
+    Value: -5
+  - NodeId: 3003
+    WeaponKind: 2
+    ColumnIndex: 0
+    RowIndex: 2
+    DisplayName: "\uD37C\uC9C0\uB294 \uC6B8\uB9BC"
+    EffectKind: 403
+    PointCost: 1
+    Value: 10
+  - NodeId: 3004
+    WeaponKind: 2
+    ColumnIndex: 0
+    RowIndex: 3
+    DisplayName: "\uC628\uC804\uD55C \uC190\uAE38 II"
+    EffectKind: 400
+    PointCost: 1
+    Value: 12
+  - NodeId: 3005
+    WeaponKind: 2
+    ColumnIndex: 0
+    RowIndex: 4
+    DisplayName: "\uC2E0\uB825 \uC808\uC57D II"
+    EffectKind: 402
+    PointCost: 1
+    Value: -8
+  - NodeId: 3011
+    WeaponKind: 2
+    ColumnIndex: 1
+    RowIndex: 0
+    DisplayName: "\uCD95\uC6D0\uC758 \uC2DC\uC791"
+    EffectKind: 405
+    PointCost: 1
+    Value: 5
+  - NodeId: 3012
+    WeaponKind: 2
+    ColumnIndex: 1
+    RowIndex: 1
+    DisplayName: "\uAE34 \uCD95\uC6D0 I"
+    EffectKind: 401
+    PointCost: 1
+    Value: 20
+  - NodeId: 3013
+    WeaponKind: 2
+    ColumnIndex: 1
+    RowIndex: 2
+    DisplayName: "\uC804\uD22C\uC758 \uC6B8\uB9BC"
+    EffectKind: 404
+    PointCost: 1
+    Value: 10
+  - NodeId: 3014
+    WeaponKind: 2
+    ColumnIndex: 1
+    RowIndex: 3
+    DisplayName: "\uCD95\uC6D0\uC758 \uC644\uC131"
+    EffectKind: 405
+    PointCost: 1
+    Value: 5
+  - NodeId: 3015
+    WeaponKind: 2
+    ColumnIndex: 1
+    RowIndex: 4
+    DisplayName: "\uAE34 \uCD95\uC6D0 II"
+    EffectKind: 401
+    PointCost: 1
+    Value: 30

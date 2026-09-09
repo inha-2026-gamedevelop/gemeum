@@ -61,7 +61,8 @@ namespace Geumeum.Combat
 
         private void Update()
         {
-            if ((!isOwned) || (!Input.GetKeyDown(Constants.Player.KEY_ROLL)))
+            if ((!isOwned) || (!LocalGameplayInputGate.AllowsGameplayInput) ||
+                (!Input.GetKeyDown(Constants.Player.KEY_ROLL)))
             {
                 return;
             }

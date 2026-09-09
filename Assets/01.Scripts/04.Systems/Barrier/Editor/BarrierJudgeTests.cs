@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using Geumeum.Common;
 using Geumeum.Systems;
 
 public class BarrierJudgeTests
@@ -14,8 +15,8 @@ public class BarrierJudgeTests
             TargetCenter    = Vector3.zero,
             FromRadius      = 10f,
             TargetRadius    = 10f,
-            StartServerTime = 0.0,
-            EndServerTime   = 1.0,
+            StartGameplayTime = 0.0,
+            EndGameplayTime   = 1.0,
         };
 
         bool outside = BarrierJudge.IsOutside(new Vector3(0f, 0f, 15f), state, 5.0);

@@ -20,6 +20,10 @@ namespace Geumeum.Data
         [Header("신력")]
         [SerializeField] private float _spiritMax = 80f; // 자연 회복 없음, 물약으로만 회복
 
+        [Header("유효 전투 수치 제한")]
+        [SerializeField] private float _minimumResourceCost = 1f;
+        [SerializeField] private float _maximumAttackSpeedMultiplier = 1.5f;
+
         [Header("이동")]
         [SerializeField] private float _walkSpeed = 2.5f; // m/s
         [SerializeField] private float _runSpeed  = 5.5f; // m/s
@@ -67,6 +71,14 @@ namespace Geumeum.Data
         [SerializeField] private float _rangedMuzzleHeight     = 1.2f;  // 발사 지점 높이(m), 발밑에서 나가지 않게 한다
         [SerializeField] private float _rangedMuzzleForward    = 0.6f;  // 발사 지점 전방 오프셋(m), 자기 몸에 걸리지 않게 한다
 
+        [Header("정밀 사격")]
+        [SerializeField] private float _precisionShotHoldDuration = 0.6f;
+        [SerializeField] private float _precisionShotMoveSpeedMultiplier = 0.4f;
+        [SerializeField] private float _precisionShotStaminaCost = 15f;
+
+        [Header("신궁 연사")]
+        [SerializeField] private float _burstShotInterval = 0.12f;
+
         [Header("방울 공격")]
         [SerializeField] private float _bellStartupDuration   = 0.20f; // 선딜(초)
         [SerializeField] private float _bellRecoveryDuration  = 0.35f; // 후딜(초)
@@ -88,6 +100,9 @@ namespace Geumeum.Data
         [SerializeField] private float _healRadius            = 6f;    // 회복 반경(m)
         [SerializeField] private float _healAmount            = 40f;   // 대상 한 명이 받는 회복량
         [SerializeField] private float _healCooldownDuration  = 4f;    // 쿨다운(초)
+
+        [Header("무녀 지원 버프")]
+        [SerializeField] private float _supportBuffDuration = 6f;
 
         [Header("락온")]
         [SerializeField] private float _lockOnAcquireRange = 25f; // 걸 수 있는 거리(m), 서버도 이 값으로 검증한다
@@ -116,6 +131,7 @@ namespace Geumeum.Data
         [SerializeField] private float _interactRange = 3f; // 상호작용 최대 거리(m)
         // 피해를 주거나 받은 뒤 이만큼 지나야 상호작용이 열린다. 협동 부활은 이 조건에서 제외한다
         [SerializeField] private float _interactOutOfCombatSeconds = 5f;
+        [SerializeField] private float _equipmentTransferOfferDuration = 30f;
 
         /****************************************
         *              Properties
@@ -126,6 +142,12 @@ namespace Geumeum.Data
         public float StaminaRegenDelay     => _staminaRegenDelay;
 
         public float SpiritMax => _spiritMax;
+
+        /// <summary> 임시 밸런스 1. 에셋의 0은 이전 데이터 호환을 위해 하한 없음으로 해석한다 </summary>
+        public float MinimumResourceCost => _minimumResourceCost;
+
+        /// <summary> 임시 밸런스 1.5. 에셋의 0은 이전 데이터 호환을 위해 상한 없음으로 해석한다 </summary>
+        public float MaximumAttackSpeedMultiplier => _maximumAttackSpeedMultiplier;
 
         public float WalkSpeed => _walkSpeed;
         public float RunSpeed  => _runSpeed;
@@ -162,6 +184,12 @@ namespace Geumeum.Data
         public float RangedMuzzleHeight     => _rangedMuzzleHeight;
         public float RangedMuzzleForward    => _rangedMuzzleForward;
 
+        public float PrecisionShotHoldDuration => _precisionShotHoldDuration;
+        public float PrecisionShotMoveSpeedMultiplier => _precisionShotMoveSpeedMultiplier;
+        public float PrecisionShotStaminaCost => _precisionShotStaminaCost;
+
+        public float BurstShotInterval => _burstShotInterval;
+
         public float BellStartupDuration   => _bellStartupDuration;
         public float BellRecoveryDuration  => _bellRecoveryDuration;
         public float BellStaminaCost       => _bellStaminaCost;
@@ -180,6 +208,8 @@ namespace Geumeum.Data
         public float HealRadius           => _healRadius;
         public float HealAmount           => _healAmount;
         public float HealCooldownDuration => _healCooldownDuration;
+
+        public float SupportBuffDuration => _supportBuffDuration;
 
         public float LockOnAcquireRange          => _lockOnAcquireRange;
         public float LockOnHoldRange             => _lockOnHoldRange;
@@ -201,5 +231,6 @@ namespace Geumeum.Data
 
         public float InteractRange              => _interactRange;
         public float InteractOutOfCombatSeconds => _interactOutOfCombatSeconds;
+        public float EquipmentTransferOfferDuration => _equipmentTransferOfferDuration;
     }
 }

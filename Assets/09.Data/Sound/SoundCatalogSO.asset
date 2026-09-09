@@ -77,18 +77,20 @@ MonoBehaviour:
     MinInterval: 0
   - Key: 7
     Channel: 1
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 056ca3d1310604823b68a791d3af7917, type: 3}
     Is2D: 0
     Volume: 0.9
     PitchJitter: 0.05
-    MinInterval: 0
+    MinInterval: 0.04
   - Key: 8
     Channel: 1
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 69ff91372fde648479a99dbb0c3e5d7b, type: 3}
     Is2D: 0
     Volume: 0.7
     PitchJitter: 0.05
-    MinInterval: 0
+    MinInterval: 0.04
   - Key: 9
     Channel: 1
     Clips: []
@@ -105,11 +107,12 @@ MonoBehaviour:
     MinInterval: 0
   - Key: 103
     Channel: 0
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 056ca3d1310604823b68a791d3af7917, type: 3}
     Is2D: 0
     Volume: 1
-    PitchJitter: 0.03
-    MinInterval: 0
+    PitchJitter: 0.02
+    MinInterval: 0.04
   - Key: 120
     Channel: 1
     Clips: []
@@ -124,3 +127,99 @@ MonoBehaviour:
     Volume: 0.8
     PitchJitter: 0.08
     MinInterval: 0
+  - Key: 100
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 69ff91372fde648479a99dbb0c3e5d7b, type: 3}
+    Is2D: 0
+    Volume: 0.72
+    PitchJitter: 0.04
+    MinInterval: 0.05
+  - Key: 101
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 69ff91372fde648479a99dbb0c3e5d7b, type: 3}
+    Is2D: 0
+    Volume: 0.78
+    PitchJitter: 0.04
+    MinInterval: 0.05
+  - Key: 102
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 69ff91372fde648479a99dbb0c3e5d7b, type: 3}
+    Is2D: 0
+    Volume: 0.88
+    PitchJitter: 0.03
+    MinInterval: 0.05
+  - Key: 110
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 979c8088438b44b45a63851c8e2398e8, type: 3}
+    Is2D: 0
+    Volume: 0.82
+    PitchJitter: 0.03
+    MinInterval: 0.05
+  - Key: 160
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 5d7ed6eadac15459a90c5f2c745762a1, type: 3}
+    Is2D: 0
+    Volume: 0.82
+    PitchJitter: 0.03
+    MinInterval: 0.08
+  - Key: 161
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 09293c5ae0da849fca0b7c49c92d0b37, type: 3}
+    Is2D: 0
+    Volume: 0.72
+    PitchJitter: 0.02
+    MinInterval: 0.1
+  - Key: 162
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: b79f0e09b1417457ea791e32c70e243f, type: 3}
+    Is2D: 0
+    Volume: 0.86
+    PitchJitter: 0.02
+    MinInterval: 0.1
+  - Key: 163
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 5d7ed6eadac15459a90c5f2c745762a1, type: 3}
+    Is2D: 0
+    Volume: 0.68
+    PitchJitter: 0.04
+    MinInterval: 0.08
+  - Key: 164
+    Channel: 0
+    Clips:
+    - {fileID: 8300000, guid: 69ff91372fde648479a99dbb0c3e5d7b, type: 3}
+    Is2D: 0
+    Volume: 0.8
+    PitchJitter: 0.02
+    MinInterval: 0.08
+  - Key: 170
+    Channel: 2
+    Clips:
+    - {fileID: 8300000, guid: 056ca3d1310604823b68a791d3af7917, type: 3}
+    Is2D: 1
+    Volume: 1
+    PitchJitter: 0.02
+    MinInterval: 0.12
+  - Key: 171
+    Channel: 2
+    Clips:
+    - {fileID: 8300000, guid: 4c994aca9429042c4a09399cf5e99c30, type: 3}
+    Is2D: 1
+    Volume: 1
+    PitchJitter: 0.02
+    MinInterval: 1
+  - Key: 172
+    Channel: 2
+    Clips:
+    - {fileID: 8300000, guid: b79f0e09b1417457ea791e32c70e243f, type: 3}
+    Is2D: 1
+    Volume: 1
+    PitchJitter: 0
+    MinInterval: 1

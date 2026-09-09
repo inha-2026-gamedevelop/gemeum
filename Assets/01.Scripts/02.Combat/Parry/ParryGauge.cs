@@ -74,9 +74,10 @@ namespace Geumeum.Combat
 
         public bool Validate(RunParticipantSnapshot snapshot, out string failure)
         {
-            if (snapshot.ParryGauge < 0f)
+            if ((snapshot == null) || float.IsNaN(snapshot.ParryGauge) ||
+                float.IsInfinity(snapshot.ParryGauge) || (snapshot.ParryGauge < 0f))
             {
-                failure = "패링 게이지가 음수다";
+                failure = "패링 게이지가 유효하지 않다";
                 return false;
             }
 
@@ -86,6 +87,11 @@ namespace Geumeum.Combat
 
         public bool Restore(RunParticipantSnapshot snapshot)
         {
+            if (!Validate(snapshot, out _))
+            {
+                return false;
+            }
+
             float max = GameDB.IsInitialized ? GameDB.Combat.ParryGaugeMax : snapshot.ParryGauge;
 
             _gauge = Mathf.Clamp(snapshot.ParryGauge, 0f, max);
@@ -105,8 +111,21 @@ namespace Geumeum.Combat
                 return;
             }
 
+            ServerAddSuccess(GameDB.Combat.ParryGaugeGainPerSuccess);
+        }
+
+        /// <summary> 수락한 loadout이 확정한 패링 성공 보상을 누적한다 </summary>
+        [Server]
+        public void ServerAddSuccess(float amount)
+        {
+            if ((!GameDB.IsInitialized) || float.IsNaN(amount) ||
+                float.IsInfinity(amount) || (amount <= 0f))
+            {
+                return;
+            }
+
             CombatConfigSO combat = GameDB.Combat;
-            _gauge = Mathf.Min(combat.ParryGaugeMax, _gauge + combat.ParryGaugeGainPerSuccess);
+            _gauge = Mathf.Min(combat.ParryGaugeMax, _gauge + amount);
         }
 
         /// <summary> 최대치에 도달한 게이지를 다음 공격이 한 번만 소비한다 </summary>

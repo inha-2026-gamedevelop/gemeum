@@ -67,6 +67,11 @@ GameObject:
   - component: {fileID: 938108207750820450}
   - component: {fileID: 4333782379585910833}
   - component: {fileID: 8619647877685703178}
+  - component: {fileID: 1215095510026869171}
+  - component: {fileID: 8883881346066244952}
+  - component: {fileID: 7777117034329814904}
+  - component: {fileID: 1922186990658148849}
+  - component: {fileID: 8596000307667448832}
   m_Layer: 9
   m_Name: Player
   m_TagString: Untagged
@@ -540,6 +545,76 @@ MonoBehaviour:
   syncInterval: 0
   _interactKey: 103
   _scanInterval: 0.15
+--- !u!114 &1215095510026869171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fec56c9350cb44ddb6d06243411edaba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.PrecisionShotController
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _precisionShotKey: 324
+--- !u!114 &8883881346066244952
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d38063ac15614a908f52f0d00f3b1b78, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.TalentController
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+--- !u!114 &7777117034329814904
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12fe3ca0a5c34568846df0342f3a2798, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Combat.SupportBuffController
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+--- !u!114 &1922186990658148849
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a6b33918e154fc8a91582856de04f10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.PlayerCombatPresentation
+--- !u!114 &8596000307667448832
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d2fb6026af44748a94c264aac89fbc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.PlayerDamageFlash
 --- !u!1001 &1331680180131862316
 PrefabInstance:
   m_ObjectHideFlags: 0

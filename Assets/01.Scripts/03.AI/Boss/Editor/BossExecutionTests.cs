@@ -39,6 +39,8 @@ namespace Geumeum.AI
         private BossController _controller;
         private BossStatus     _status;
         private BossPatternSO  _data;
+        private IRunTimeSource  _previousRunTimeSource;
+        private TestRunTimeSource _testRunTimeSource;
 
         /****************************************
         *                Fixtures
@@ -49,6 +51,13 @@ namespace Geumeum.AI
         {
             Assert.IsFalse(NetworkServer.active, "실행 중인 서버에서는 이 테스트를 실행하지 않는다");
             typeof(NetworkServer).GetProperty(nameof(NetworkServer.active)).SetValue(null, true);
+
+            _previousRunTimeSource = RunTimeLocator.Current;
+            _testRunTimeSource = new TestRunTimeSource
+            {
+                GameplayElapsedSeconds = 10d,
+            };
+            RunTimeLocator.Register(_testRunTimeSource);
 
             _boss = new GameObject("BossExecutionTest", typeof(NetworkIdentity), typeof(BossStatus));
             _target = new GameObject("BossExecutionTarget");
@@ -74,6 +83,11 @@ namespace Geumeum.AI
             UnityEngine.Object.DestroyImmediate(_target);
             UnityEngine.Object.DestroyImmediate(_data);
             MarkRegistry.ClearAll(); // 표식은 정적 상태라 테스트 사이에 새면 다음 검사가 오염된다
+            RunTimeLocator.Unregister(_testRunTimeSource);
+            if (_previousRunTimeSource != null)
+            {
+                RunTimeLocator.Register(_previousRunTimeSource);
+            }
             typeof(NetworkServer).GetProperty(nameof(NetworkServer.active)).SetValue(null, false);
         }
 
@@ -339,7 +353,7 @@ namespace Geumeum.AI
             const int MUNYEO_PATTERN = 4;
             const int OTHER_PATTERN  = 1;
 
-            MarkBossBody(NetworkTime.time);
+            MarkBossBody(_testRunTimeSource.GameplayElapsedSeconds);
 
             // 카운터 패턴이 아니면 표식이 살아 있어도 깎이지 않는다
             Invoke(_controller, "ServerNotifyPatternEnded", OTHER_PATTERN, ATTACK_ID);
@@ -347,10 +361,13 @@ namespace Geumeum.AI
 
             Assert.IsTrue(_data.TryGetGaugeReduction(CharacterKind.Munyeo, out float reduction));
 
+            // 씬 매니저가 다시 활성화돼도 공명 조회 직전에 fixture clock을 확정한다
+            RunTimeLocator.Register(_testRunTimeSource);
             Invoke(_controller, "ServerNotifyPatternEnded", MUNYEO_PATTERN, ATTACK_ID);
             Assert.AreEqual(100f - reduction, Get(_controller, "_groggyGauge"));
 
             // 같은 공격의 재통지는 무녀가 둘이어도 두 번 깎지 않는다
+            RunTimeLocator.Register(_testRunTimeSource);
             Invoke(_controller, "ServerNotifyPatternEnded", MUNYEO_PATTERN, ATTACK_ID);
             Assert.AreEqual(100f - reduction, Get(_controller, "_groggyGauge"));
         }
@@ -359,12 +376,116 @@ namespace Geumeum.AI
         public void ResonanceRejectsMarkAppliedBeforeWindow()
         {
             // 표식은 아직 살아 있지만(지속 8초) 공명 창(3초) 밖에 걸렸다
-            MarkBossBody(NetworkTime.time - _data.BrandWindow - 1d);
+            MarkBossBody(_testRunTimeSource.GameplayElapsedSeconds - _data.BrandWindow - 1d);
 
+            RunTimeLocator.Register(_testRunTimeSource);
             Invoke(_controller, "ServerNotifyPatternEnded", 4, ATTACK_ID);
 
             Assert.AreEqual(100f, Get(_controller, "_groggyGauge"),
                 "미리 찍어 둔 표식은 게이지를 깎지 못한다");
+        }
+
+        [Test]
+        public void PrecisionShotInterruptsCurrentCounterAttackOnce()
+        {
+            BossPhaseStateBase phase = CreateWindup(1);
+            Invoke(_controller, "ServerBeginTelegraph", new BossTelegraphCue
+            {
+                AttackInstanceId = ATTACK_ID,
+                PatternId        = 5,
+                ImpactServerTime = NetworkTime.time + 10d,
+            });
+            Assert.IsTrue(_data.TryGetGaugeReduction(CharacterKind.Singung, out float reduction));
+
+            PrecisionInterruptContext context = CreatePrecisionContext(NetworkTime.time);
+
+            Assert.IsTrue(_controller.TryInterruptPrecisionShot(context));
+            Assert.IsFalse(_controller.TryInterruptPrecisionShot(context));
+            Assert.AreEqual(100f - reduction, Get(_controller, "_groggyGauge"));
+            Assert.AreEqual(0u, Get(phase, "_activeAttackInstanceId"));
+            Assert.IsFalse(_controller.TelegraphCue.IsActive);
+        }
+
+        [Test]
+        public void PrecisionShotAcceptsWindupPreservedAcrossLongPause()
+        {
+            BossPhaseStateBase phase = CreateWindup(1);
+            Set(phase, "_activePattern", new BossPatternSO.PatternEntry
+            {
+                PatternId = 5,
+                TelegraphDuration = 10f,
+                ActiveDuration = 1f,
+            });
+            ((float[]) Get(phase, "_activeImpactOffsets"))[0] = 10f;
+            Invoke(_controller, "ServerBeginTelegraph", new BossTelegraphCue
+            {
+                AttackInstanceId = ATTACK_ID,
+                PatternId        = 5,
+                ImpactServerTime = NetworkTime.time + 10d,
+            });
+            BossTelegraphCue cue = _controller.TelegraphCue;
+
+            _testRunTimeSource.IsPaused = true;
+            Invoke(_controller, "ServerTick", 100f);
+            Assert.IsTrue(phase.IsAttackWindup(ATTACK_ID));
+
+            _testRunTimeSource.IsPaused = false;
+            Invoke(_controller, "ServerTick", 0.02f);
+            Assert.IsTrue(phase.IsAttackWindup(ATTACK_ID));
+
+            PrecisionInterruptContext afterLongPause = CreatePrecisionContext(
+                cue.ImpactServerTime + 100d);
+            Assert.IsTrue(_controller.TryInterruptPrecisionShot(afterLongPause));
+            Assert.IsFalse(phase.IsAttackWindup(ATTACK_ID));
+        }
+
+        [Test]
+        public void PrecisionShotRejectsWrongTargetAndEndedWindup()
+        {
+            BossPhaseStateBase phase = CreateWindup(1);
+            Invoke(_controller, "ServerBeginTelegraph", new BossTelegraphCue
+            {
+                AttackInstanceId = ATTACK_ID,
+                PatternId        = 5,
+                ImpactServerTime = NetworkTime.time + 10d,
+            });
+
+            PrecisionInterruptContext valid = CreatePrecisionContext(NetworkTime.time);
+            TargetRef wrong = TargetRef.Create(
+                new RunId(valid.Target.RunIdValue + 1u),
+                new SceneRevision(valid.Target.SceneRevisionValue),
+                valid.Target.EntityNetId,
+                valid.Target.PartId);
+            PrecisionInterruptContext wrongTarget = new PrecisionInterruptContext(
+                valid.ActionId,
+                valid.Attacker,
+                valid.AttackerNetId,
+                wrong,
+                true,
+                valid.HitServerTime);
+            Assert.IsFalse(_controller.TryInterruptPrecisionShot(wrongTarget));
+            phase.CancelActiveAttack();
+            Assert.IsFalse(_controller.TryInterruptPrecisionShot(valid));
+            Assert.IsFalse(_controller.TelegraphCue.IsActive);
+            Assert.AreEqual(100f, Get(_controller, "_groggyGauge"));
+        }
+
+        [Test]
+        public void PrecisionShotRejectsCounterPatternAssignedToAnotherCharacter()
+        {
+            BossPhaseStateBase phase = CreateWindup(1);
+            Invoke(_controller, "ServerBeginTelegraph", new BossTelegraphCue
+            {
+                AttackInstanceId = ATTACK_ID,
+                PatternId        = 4,
+                ImpactServerTime = NetworkTime.time + 10d,
+            });
+
+            Assert.IsFalse(_controller.TryInterruptPrecisionShot(
+                CreatePrecisionContext(NetworkTime.time)));
+            Assert.AreEqual(100f, Get(_controller, "_groggyGauge"));
+            Assert.AreEqual(ATTACK_ID, Get(phase, "_activeAttackInstanceId"));
+            Assert.IsTrue(_controller.TelegraphCue.IsActive);
         }
 
         /****************************************
@@ -381,6 +502,17 @@ namespace Geumeum.AI
                 MARK_DURATION, MARK_SLOT_COUNT, out MarkRejection rejection);
 
             Assert.IsTrue(applied, $"표식 부여가 거부됐다: {rejection}");
+        }
+
+        private PrecisionInterruptContext CreatePrecisionContext(double hitServerTime)
+        {
+            return new PrecisionInterruptContext(
+                31u,
+                new ParticipantId(9UL),
+                17u,
+                (TargetRef) Invoke(_controller, "CreateBodyTargetRef"),
+                true,
+                hitServerTime);
         }
 
         /// <summary> isServer와 서버 틱 스케줄러를 세운 채로 수명 경로를 실행하고, 끝나면 되돌린다 </summary>
@@ -474,7 +606,18 @@ namespace Geumeum.AI
 
         private static object Invoke(object target, string name, params object[] arguments)
         {
-            return target.GetType().GetMethod(name, PRIVATE_INSTANCE).Invoke(target, arguments);
+            MethodInfo[] methods = target.GetType().GetMethods(PRIVATE_INSTANCE);
+            for (int i = 0; i < methods.Length; ++i)
+            {
+                if ((methods[i].Name == name) &&
+                    (methods[i].GetParameters().Length == arguments.Length))
+                {
+                    return methods[i].Invoke(target, arguments);
+                }
+            }
+
+            Assert.Fail($"{target.GetType().Name}.{name}({arguments.Length}) not found");
+            return null;
         }
 
         private sealed class WindowStub : IParryWindowTarget
@@ -493,6 +636,19 @@ namespace Geumeum.AI
                 ++CloseCount;
                 ClosedKey = key;
             }
+        }
+
+        /// <summary> 표식 테스트가 NetworkTime과 우연히 어긋나지 않도록 gameplay clock을 고정한다 </summary>
+        private sealed class TestRunTimeSource : IRunTimeSource
+        {
+            public double GameplayElapsedSeconds { get; set; }
+
+            public double FieldElapsedSeconds => 0d;
+            public double BossElapsedSeconds => 0d;
+            public RunPauseReason PauseReasons => IsPaused
+                ? RunPauseReason.ParticipantMissing
+                : RunPauseReason.None;
+            public bool IsPaused { get; set; }
         }
         /// <summary>
         /// HandleDied는 보스 사망 사실을 GameEventBus로 발행한다. EditMode에는 버스가 없어

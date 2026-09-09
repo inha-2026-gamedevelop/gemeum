@@ -11,7 +11,7 @@ namespace Geumeum.Common
         ****************************************/
 
         /// <summary> 그릇의 형식 번호. 필드 구성이 바뀌면 올리고, 다른 번호의 값은 복구하지 않는다 </summary>
-        public const int CURRENT_SCHEMA_VERSION = 2;
+        public const int CURRENT_SCHEMA_VERSION = 5;
 
         /****************************************
         *              Properties
@@ -43,7 +43,10 @@ namespace Geumeum.Common
         // 남은 시간은 절대 시각이 아니라 남은 양으로 담는다.
         // 절대 시각으로 담으면 멈춰 있는 동안에도 만료가 다가온다
         public double SpectateRemainingSeconds  { get; set; }
+        /// <summary>Stable death generation used by idempotent revive charges.</summary>
+        public uint   ReviveDeathGeneration     { get; set; }
         public double SwallowedRemainingSeconds { get; set; }
+        public uint   SwallowGeneration         { get; set; }
 
         // 성장
         public int Level { get; set; }
@@ -54,7 +57,7 @@ namespace Geumeum.Common
 
         public InventorySnapshot Inventory { get; set; }
 
-        // TODO(민성): 특성 배분은 Systems 데이터 모델 확정 후 추가
+        public TalentAllocationSnapshot TalentAllocation { get; set; }
 
         // 위치
         public Vector3 Position { get; set; }

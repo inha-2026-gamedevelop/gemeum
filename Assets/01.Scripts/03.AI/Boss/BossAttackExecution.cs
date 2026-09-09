@@ -25,14 +25,24 @@ namespace Geumeum.AI
         ****************************************/
 
         public float ParryWindowDuration { get; }
+        public uint  AttackInstanceId    { get; }
+        public byte  RepeatIndex         { get; }
 
         /****************************************
         *              Constructor
         ****************************************/
 
         public BossAttackExecution(float parryWindowDuration, Action<BossAttackExecution, uint> onParried)
+            : this(parryWindowDuration, 0u, 0, onParried)
+        {
+        }
+
+        public BossAttackExecution(float parryWindowDuration, uint attackInstanceId,
+            byte repeatIndex, Action<BossAttackExecution, uint> onParried)
         {
             ParryWindowDuration = parryWindowDuration;
+            AttackInstanceId    = attackInstanceId;
+            RepeatIndex         = repeatIndex;
             _onParried          = onParried;
         }
 

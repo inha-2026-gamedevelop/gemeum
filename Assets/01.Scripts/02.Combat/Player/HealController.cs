@@ -26,14 +26,22 @@ namespace Geumeum.Combat
         private PlayerRollController _roll;
         private ParryController      _parry;
         private PlayerAttack         _attack;
+        private PlayerAnimationController _animation;
+        private ICombatLoadoutProvider _loadoutProvider;
+
+        private CombatStatsSnapshot _pendingLoadout;
+        private CombatStatsSnapshot _committedLoadout;
 
         private RequestIdTracker _requestIds;
         private uint             _nextRequestId = 1u;
+        private uint             _nextPresentationActionId = 1u;
+        private uint             _activePresentationActionId;
 
         private bool   _isCasting               = false;
         private double _castEndServerTime       = 0d;
         private double _actionLockEndServerTime = 0d;
         private double _cooldownEndServerTime   = 0d;
+        private bool   _hasRunResumedSubscription;
 
         // 회복 대상 이름을 화면 로그에 적기 위한 버퍼. 매 시전마다 새로 만들면 GC가 쌓인다
         private readonly System.Collections.Generic.List<string> _healedNames = new System.Collections.Generic.List<string>(Constants.Player.PARTY_SIZE);
@@ -49,17 +57,35 @@ namespace Geumeum.Combat
             _roll   = GetComponent<PlayerRollController>();
             _parry  = GetComponent<ParryController>();
             _attack = GetComponent<PlayerAttack>();
+            _animation = GetComponent<PlayerAnimationController>();
+            _loadoutProvider = GetComponent<ICombatLoadoutProvider>();
         }
 
         private void Update()
         {
-            if ((!isLocalPlayer) || (!Input.GetKeyDown(_healKey)))
+            if ((!isLocalPlayer) || (!LocalGameplayInputGate.AllowsGameplayInput) ||
+                (!Input.GetKeyDown(_healKey)))
             {
                 return;
             }
 
             CmdRequestHeal(_nextRequestId);
             ++_nextRequestId;
+        }
+
+        private void OnDestroy()
+        {
+            UnsubscribeRunResumed();
+        }
+
+        public override void OnStartServer()
+        {
+            EnsureRunResumedSubscription();
+        }
+
+        public override void OnStopServer()
+        {
+            UnsubscribeRunResumed();
         }
 
         /****************************************
@@ -79,6 +105,8 @@ namespace Geumeum.Combat
         [Command]
         private void CmdRequestHeal(uint requestId)
         {
+            EnsureRunResumedSubscription();
+
             ActionRejection rejection = PlayerActionPipeline.TryExecute(
                 ref _requestIds, requestId, this, NetworkTime.time);
 
@@ -104,6 +132,15 @@ namespace Geumeum.Combat
                 return false;
             }
 
+            ParticipantId participant = _status.Participant;
+            if ((_loadoutProvider == null) || (!participant.IsValid) ||
+                (!_loadoutProvider.TryBuildLoadout(participant, out _pendingLoadout)) ||
+                (!_pendingLoadout.IsValid))
+            {
+                Debug.LogError("[HealController] 유효한 치유 전투 수치를 만들지 못했다", this);
+                return false;
+            }
+
             bool isOtherActionInProgress = ((_roll != null) && (_roll.IsRolling))
                 || ((_parry != null) && (_parry.IsActionInProgress(serverTime)))
                 || ((_attack != null) && (_attack.IsActionInProgress(serverTime)))
@@ -121,7 +158,7 @@ namespace Geumeum.Combat
                 serverTime,
                 _cooldownEndServerTime,
                 _status.Spirit,
-                GameDB.Combat.HealSpiritCost);
+                _pendingLoadout.ResolveSpiritCost(GameDB.Combat.HealSpiritCost));
 
             return true;
         }
@@ -136,12 +173,29 @@ namespace Geumeum.Combat
         {
             CombatConfigSO combat = GameDB.Combat;
 
+            _committedLoadout = _pendingLoadout;
+
             _isCasting               = true;
             _castEndServerTime       = context.ServerTime + combat.HealCastDuration;
             _actionLockEndServerTime = _castEndServerTime + combat.HealRecoveryDuration;
 
             // 쿨다운은 수락 시점부터 잰다. 시전이 끊겨도 신력과 쿨다운은 돌려주지 않는다
             _cooldownEndServerTime = context.ServerTime + combat.HealCooldownDuration;
+
+            _activePresentationActionId = TakeNextPresentationActionId();
+            double gameplayStart = RunTimeLocator.Current.GameplayElapsedSeconds;
+            PlayerActionCue cue = new PlayerActionCue
+            {
+                ExecutionId = _activePresentationActionId,
+                Kind = PlayerActionCueKind.Heal,
+                Weapon = WeaponKind.Bell,
+                ComboStage = 0,
+                StartGameplayTime = gameplayStart,
+                ImpactGameplayTime = gameplayStart + combat.HealCastDuration,
+                EndGameplayTime = gameplayStart + combat.HealCastDuration +
+                    combat.HealRecoveryDuration,
+            };
+            RpcHealStarted(cue);
 
             GDebug.Server($"치유 시전 시작, 신력 -{context.ResourceCost:F0}");
         }
@@ -154,15 +208,18 @@ namespace Geumeum.Combat
         [Server]
         public void ServerUpdateState(double now)
         {
+            EnsureRunResumedSubscription();
+
             if (!_isCasting)
             {
                 return;
             }
 
             // 공격과 같은 규칙이다. 쓰러지거나 런이 멈추면 시전을 버린다
-            if ((_status.IsDead) || (IsRunStopped()))
+            if ((_status.IsDead) || _status.IsSwallowed || (IsRunStopped()))
             {
                 _isCasting = false;
+                CancelPresentation();
                 GDebug.Warn("치유 시전 취소, 사망이나 런 정지");
                 return;
             }
@@ -173,15 +230,26 @@ namespace Geumeum.Combat
             }
 
             _isCasting = false;
-            ApplyHeal(GameDB.Combat);
+            ApplyHeal();
         }
 
         [Server]
-        private void ApplyHeal(CombatConfigSO combat)
+        private void ApplyHeal()
         {
+            if (!_committedLoadout.IsValid)
+            {
+                CancelPresentation();
+                Debug.LogError("[HealController] 수락된 치유 snapshot이 없다", this);
+                return;
+            }
+
             Vector3 origin      = transform.position;
-            float   radiusSqr   = combat.HealRadius * combat.HealRadius;
+            float   radiusSqr   = _committedLoadout.HealRadius *
+                _committedLoadout.HealRadius;
             int     healedCount = 0;
+            int     buffedCount = 0;
+            ParticipantId healer = _status.Participant;
+            _healedNames.Clear();
 
             // 파티가 세 명이라 연결 목록을 도는 편이 물리 쿼리보다 싸고 레이어 설정에 기대지 않는다
             foreach (NetworkConnectionToClient conn in NetworkServer.connections.Values)
@@ -204,22 +272,127 @@ namespace Geumeum.Combat
 
                 // 결계 회복 배수와 최대 HP는 TryRestoreHealth가 이미 적용한다. 여기서 또 곱하면 두 번 걸린다.
                 // 쓰러진 사람도 그 안에서 거부되므로 치유가 부활을 대신하지 않는다
-                if (target.TryRestoreHealth(combat.HealAmount))
+                if (target.TryRestoreHealth(_committedLoadout.HealAmount, healer, out _))
                 {
                     ++healedCount;
                     _healedNames.Add(GDebug.Who(target.netId));
                 }
+
+                if ((!target.IsDead) && (!target.IsSwallowed) &&
+                    (_committedLoadout.SupportBuffDamageMultiplier > 1f) &&
+                    target.TryGetComponent(out ISupportBuffTarget buffTarget) &&
+                    buffTarget.ServerApplySupportBuff(
+                        _committedLoadout.SupportBuffDamageMultiplier,
+                        _committedLoadout.SupportBuffDuration))
+                {
+                    ++buffedCount;
+                }
             }
 
-            GDebug.Server($"{GDebug.Who(netId)} 치유 -> {healedCount}명 [{string.Join(", ", _healedNames)}]");
+            GDebug.Server($"{GDebug.Who(netId)} 치유 -> {healedCount}명, 지원 {buffedCount}명 " +
+                $"[{string.Join(", ", _healedNames)}]");
             _healedNames.Clear();
             TargetHealResult(healedCount);
+            RpcHealResolved(_activePresentationActionId, healedCount,
+                RunTimeLocator.Current.GameplayElapsedSeconds);
+            _activePresentationActionId = 0u;
+        }
+
+        [ClientRpc]
+        private void RpcHealStarted(PlayerActionCue cue)
+        {
+            _animation?.PlayActionCue(in cue);
+        }
+
+        [ClientRpc]
+        private void RpcHealCancelled(uint executionId)
+        {
+            _animation?.CancelActionCue(PlayerActionCueKind.Heal, executionId);
+        }
+
+        [ClientRpc]
+        private void RpcHealResolved(uint executionId, int healedCount,
+            double impactGameplayTime)
+        {
+            _animation?.PlayActionImpact(PlayerActionCueKind.Heal,
+                executionId, healedCount > 0, false, impactGameplayTime);
         }
 
         private static bool IsRunStopped()
         {
             RunManager run = RunManager.ServerInstance;
             return ((run == null) || (run.IsPaused));
+        }
+
+        [Server]
+        private void EnsureRunResumedSubscription()
+        {
+            if (_hasRunResumedSubscription || !GameEventBus.HasInstance)
+            {
+                return;
+            }
+
+            GameEventBus.Instance.Subscribe<RunResumedEvent>(OnRunResumed);
+            _hasRunResumedSubscription = true;
+        }
+
+        private void UnsubscribeRunResumed()
+        {
+            if (!_hasRunResumedSubscription || !GameEventBus.HasInstance)
+            {
+                _hasRunResumedSubscription = false;
+                return;
+            }
+
+            GameEventBus.Instance.Unsubscribe<RunResumedEvent>(OnRunResumed);
+            _hasRunResumedSubscription = false;
+        }
+
+        private void OnRunResumed(RunResumedEvent resumed)
+        {
+            double resumeServerTime = NetworkTime.time;
+            _castEndServerTime = ShiftPausedDeadline(
+                _castEndServerTime, resumeServerTime, resumed.PausedSeconds);
+            _actionLockEndServerTime = ShiftPausedDeadline(
+                _actionLockEndServerTime, resumeServerTime, resumed.PausedSeconds);
+            _cooldownEndServerTime = ShiftPausedDeadline(
+                _cooldownEndServerTime, resumeServerTime, resumed.PausedSeconds);
+        }
+
+        private static double ShiftPausedDeadline(double deadline,
+            double resumeServerTime, double pausedSeconds)
+        {
+            if (double.IsNaN(deadline) || double.IsInfinity(deadline) ||
+                double.IsNaN(resumeServerTime) || double.IsInfinity(resumeServerTime) ||
+                double.IsNaN(pausedSeconds) || double.IsInfinity(pausedSeconds) ||
+                (deadline <= 0.0) || (pausedSeconds <= 0.0))
+            {
+                return deadline;
+            }
+
+            double pauseStartServerTime = resumeServerTime - pausedSeconds;
+            return (deadline > pauseStartServerTime) ? deadline + pausedSeconds : deadline;
+        }
+
+        [Server]
+        private void CancelPresentation()
+        {
+            if (_activePresentationActionId == 0u)
+            {
+                return;
+            }
+
+            RpcHealCancelled(_activePresentationActionId);
+            _activePresentationActionId = 0u;
+        }
+
+        private uint TakeNextPresentationActionId()
+        {
+            uint result = _nextPresentationActionId;
+            _nextPresentationActionId = (_nextPresentationActionId == uint.MaxValue)
+                ? 1u
+                : _nextPresentationActionId + 1u;
+            return result;
         }
 
         /****************************************

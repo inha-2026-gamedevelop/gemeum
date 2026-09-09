@@ -25,6 +25,22 @@ namespace Geumeum.Network
         /// <summary> 서버 시작 조건을 모두 만족하는지 검사한다 </summary>
         public static bool TryValidate(NetworkManager manager, List<string> failures)
         {
+            GeumeumBootValidator.SceneProfile profile =
+                GeumeumBootValidator.ResolveSceneProfile(SceneManager.GetActiveScene().name);
+            return TryValidate(manager, profile, failures);
+        }
+
+        /// <summary> 지정한 씬 프로필로 서버 시작 조건을 검사한다 </summary>
+        public static bool TryValidate(
+            NetworkManager manager,
+            GeumeumBootValidator.SceneProfile profile,
+            List<string> failures)
+        {
+            if (failures == null)
+            {
+                return false;
+            }
+
             failures.Clear();
 
             if (manager == null)
@@ -33,17 +49,19 @@ namespace Geumeum.Network
                 return false;
             }
 
-            ValidateGameDatabase(failures);
+            ValidateGameDatabase(profile, failures);
             ValidateTransport(manager, failures);
             ValidateAuthenticator(manager, failures);
-            ValidatePlayerPrefab(manager, failures);
-            ValidateSpawnPrefabs(manager, failures);
-            ValidateSceneSetup(failures);
+            ValidatePlayerPrefab(manager, profile, failures);
+            ValidateSpawnPrefabs(manager, profile, failures);
+            ValidateSceneSetup(profile, failures);
 
             return (failures.Count == 0);
         }
 
-        private static void ValidateGameDatabase(List<string> failures)
+        private static void ValidateGameDatabase(
+            GeumeumBootValidator.SceneProfile profile,
+            List<string> failures)
         {
             if (!GameDB.IsInitialized)
             {
@@ -51,13 +69,22 @@ namespace Geumeum.Network
                 return;
             }
 
-            GeumeumBootValidator.ValidateData(GameDB.Barrier, GameDB.LevelCurve, GameDB.Spawn, failures);
+            GeumeumBootValidator.ValidateData(
+                GameDB.Barrier,
+                GameDB.LevelCurve,
+                GameDB.Spawn,
+                GameDB.Boss,
+                profile,
+                failures);
+            GeumeumBootValidator.ValidatePlayerServices(GameDB.Combat, GameDB.Shop, failures);
+            GeumeumBootValidator.ValidateProgressionData(GameDB.Combat, GameDB.Talent,
+                GameDB.Score, profile, failures);
         }
 
-        private static void ValidateSceneSetup(List<string> failures)
+        private static void ValidateSceneSetup(
+            GeumeumBootValidator.SceneProfile profile,
+            List<string> failures)
         {
-            bool isMain = (SceneManager.GetActiveScene().name == Constants.Scene.MAIN);
-            var profile = isMain ? GeumeumBootValidator.SceneProfile.Main : GeumeumBootValidator.SceneProfile.DevScene;
             GeumeumBootValidator.ValidateScene(profile, failures);
         }
 
@@ -99,7 +126,8 @@ namespace Geumeum.Network
             }
         }
 
-        private static void ValidatePlayerPrefab(NetworkManager manager, List<string> failures)
+        private static void ValidatePlayerPrefab(NetworkManager manager,
+            GeumeumBootValidator.SceneProfile profile, List<string> failures)
         {
             if (manager.playerPrefab == null)
             {
@@ -121,27 +149,120 @@ namespace Geumeum.Network
             {
                 failures.Add("플레이어 프리팹에 런 경계 창구(IPlayerRunLifecycle)가 없다");
             }
-        }
 
-        private static void ValidateSpawnPrefabs(NetworkManager manager, List<string> failures)
-        {
-            List<GameObject> spawnPrefabs = manager.spawnPrefabs;
-            if (spawnPrefabs == null)
+            if (profile != GeumeumBootValidator.SceneProfile.Main)
             {
                 return;
             }
 
-            for (int i = 0; i < spawnPrefabs.Count; ++i)
+            if ((manager.playerPrefab.GetComponent<ITalentAllocationProvider>() == null) ||
+                (manager.playerPrefab.GetComponent<ISupportBuffTarget>() == null) ||
+                (manager.playerPrefab.GetComponent<IResourceTransactionTarget>() == null) ||
+                (manager.playerPrefab.GetComponent<IRunResultParticipantSource>() == null) ||
+                (manager.playerPrefab.GetComponent<IBossSwallowTarget>() == null))
             {
-                if (spawnPrefabs[i] == null)
+                failures.Add("플레이어 프리팹에 특성, 지원 버프, 자원 거래, 정산 참가자 또는 삼켜짐 창구가 없다");
+            }
+        }
+
+        private static void ValidateSpawnPrefabs(
+            NetworkManager manager,
+            GeumeumBootValidator.SceneProfile profile,
+            List<string> failures)
+        {
+            List<GameObject> spawnPrefabs = manager.spawnPrefabs;
+            if (spawnPrefabs != null)
+            {
+                for (int i = 0; i < spawnPrefabs.Count; ++i)
                 {
-                    failures.Add($"스폰 프리팹 {i}번이 비어 있다");
+                    if (spawnPrefabs[i] == null)
+                    {
+                        failures.Add($"스폰 프리팹 {i}번이 비어 있다");
+                        continue;
+                    }
+
+                    if (spawnPrefabs[i].GetComponent<NetworkIdentity>() == null)
+                    {
+                        failures.Add($"스폰 프리팹 {spawnPrefabs[i].name}에 NetworkIdentity가 없다");
+                    }
+                }
+            }
+
+            ValidateRequiredSpawnPrefabs(manager, profile, failures);
+        }
+
+        private static void ValidateRequiredSpawnPrefabs(
+            NetworkManager manager,
+            GeumeumBootValidator.SceneProfile profile,
+            List<string> failures)
+        {
+            if (profile != GeumeumBootValidator.SceneProfile.Main)
+            {
+                return;
+            }
+
+            MonoBehaviour[] behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(
+                FindObjectsInactive.Include);
+            List<GameObject> requiredPrefabs = new List<GameObject>();
+            bool hasProvider = false;
+
+            for (int i = 0; i < behaviours.Length; ++i)
+            {
+                MonoBehaviour behaviour = behaviours[i];
+                if ((behaviour == null) || !(behaviour is IRequiredSpawnPrefabProvider provider))
+                {
                     continue;
                 }
 
-                if (spawnPrefabs[i].GetComponent<NetworkIdentity>() == null)
+#if UNITY_EDITOR
+                Transform current = behaviour.transform;
+                bool editorOnly = false;
+                while (current != null)
                 {
-                    failures.Add($"스폰 프리팹 {spawnPrefabs[i].name}에 NetworkIdentity가 없다");
+                    if (current.CompareTag("EditorOnly"))
+                    {
+                        editorOnly = true;
+                        break;
+                    }
+
+                    current = current.parent;
+                }
+
+                if (editorOnly)
+                {
+                    continue;
+                }
+#endif
+
+                hasProvider = true;
+                provider.CollectRequiredSpawnPrefabs(requiredPrefabs);
+            }
+
+            if (!hasProvider)
+            {
+                failures.Add("씬에 요구 스폰 프리팹 공급자가 없다");
+                return;
+            }
+
+            if (requiredPrefabs.Count == 0)
+            {
+                failures.Add("씬의 요구 스폰 프리팹 공급자가 프리팹을 제공하지 않았다");
+                return;
+            }
+
+            List<GameObject> spawnPrefabs = manager.spawnPrefabs;
+            for (int i = 0; i < requiredPrefabs.Count; ++i)
+            {
+                GameObject requiredPrefab = requiredPrefabs[i];
+                if (requiredPrefab == null)
+                {
+                    failures.Add($"요구 스폰 프리팹 {i}번이 비어 있다");
+                    continue;
+                }
+
+                if ((spawnPrefabs == null) || !spawnPrefabs.Contains(requiredPrefab))
+                {
+                    failures.Add($"요구 스폰 프리팹 {requiredPrefab.name}이 NetworkManager.spawnPrefabs에 등록되지 않았다");
                 }
             }
         }

@@ -66,6 +66,10 @@ namespace Geumeum.Common
             public int ScoreRuleVersion => 0;
 
             public int CalculateScore(in RunResultSnapshot facts) => 0;
+
+            public RunEvaluationGrade CalculateGrade(int score) => RunEvaluationGrade.None;
+
+            public string GetEvaluationMessage(RunEvaluationGrade grade) => string.Empty;
         }
     }
 }

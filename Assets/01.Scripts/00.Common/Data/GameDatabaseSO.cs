@@ -39,6 +39,7 @@ namespace Geumeum.Data
         [SerializeField] private DayCycleSO     _dayCycle;
         [SerializeField] private SoundCatalogSO _sound;
         [SerializeField] private CameraConfigSO _camera;
+        [SerializeField] private PresentationConfigSO _presentation;
 
         /****************************************
         *              Properties
@@ -62,6 +63,7 @@ namespace Geumeum.Data
         public DayCycleSO     DayCycle => _dayCycle;
         public SoundCatalogSO Sound    => _sound;
         public CameraConfigSO Camera   => _camera;
+        public PresentationConfigSO Presentation => _presentation;
 
         /****************************************
         *                Methods
@@ -147,6 +149,44 @@ namespace Geumeum.Data
             if (_camera == null)
             {
                 missing.Add(nameof(CameraConfigSO));
+            }
+
+            if (_presentation == null)
+            {
+                missing.Add(nameof(PresentationConfigSO));
+            }
+            else
+            {
+                if (!_presentation.ValidateDefinition(out string presentationFailure))
+                {
+                    missing.Add(nameof(PresentationConfigSO) + ": " + presentationFailure);
+                }
+
+                if (_presentation.MeleeSlashPrefab == null)
+                {
+                    missing.Add(nameof(PresentationConfigSO) + ".MeleeSlashPrefab");
+                }
+
+                if (_presentation.BellPulsePrefab == null)
+                {
+                    missing.Add(nameof(PresentationConfigSO) + ".BellPulsePrefab");
+                }
+
+                if (_presentation.HealCastPrefab == null)
+                {
+                    missing.Add(nameof(PresentationConfigSO) + ".HealCastPrefab");
+                }
+
+                if (_presentation.ParryPrefab == null)
+                {
+                    missing.Add(nameof(PresentationConfigSO) + ".ParryPrefab");
+                }
+
+                if (_presentation.MarkPrefab == null)
+                {
+                    missing.Add(nameof(PresentationConfigSO) + ".MarkPrefab");
+                }
+
             }
 
             // 믹서 그룹이 비면 소리가 Master로 새어 나가 Local과 Remote 구분이 사라진다

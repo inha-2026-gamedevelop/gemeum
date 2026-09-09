@@ -21,6 +21,17 @@ namespace Geumeum.Combat
                 return ActionRejection.Duplicate;
             }
 
+            return TryExecuteAccepted(action, serverTime);
+        }
+
+        /// <summary> 복합 요청이 자기 세대를 먼저 검증한 뒤 게이트부터 실행한다 </summary>
+        public static ActionRejection TryExecuteAccepted(IPlayerAction action, double serverTime)
+        {
+            if (action == null)
+            {
+                return ActionRejection.NotReady;
+            }
+
             if (!action.TryBuildContext(serverTime, out PlayerActionContext context))
             {
                 return ActionRejection.NotReady;
