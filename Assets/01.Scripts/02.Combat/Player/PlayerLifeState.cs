@@ -7,5 +7,6 @@ namespace Geumeum.Combat
         Downed             = 1, // 사망 판정 직후, 같은 죽음을 두 번 처리하지 않기 위한 서버 전이 상태
         Spectating         = 2, // 관전 대기, 전멸 판정에서는 사망자로 센다
         ReviveInvulnerable = 3, // 부활 직후 무적, 행동 가능한 생존자로 센다
+        Swallowed          = 4, // 보스 기믹에 붙잡힌 상태. 사망이나 전멸 인원으로 세지 않는다
     }
 }

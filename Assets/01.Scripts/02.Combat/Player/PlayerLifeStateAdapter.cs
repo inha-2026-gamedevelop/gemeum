@@ -19,6 +19,7 @@ namespace Geumeum.Combat
                 case PlayerLifeState.Downed:             return PlayerLifeSnapshotState.Downed;
                 case PlayerLifeState.Spectating:         return PlayerLifeSnapshotState.Spectating;
                 case PlayerLifeState.ReviveInvulnerable: return PlayerLifeSnapshotState.ReviveInvulnerable;
+                case PlayerLifeState.Swallowed:          return PlayerLifeSnapshotState.Swallowed;
                 default:                                 return PlayerLifeSnapshotState.Alive;
             }
         }
@@ -32,6 +33,7 @@ namespace Geumeum.Combat
                 case PlayerLifeSnapshotState.Downed:             state = PlayerLifeState.Downed;             return true;
                 case PlayerLifeSnapshotState.Spectating:         state = PlayerLifeState.Spectating;         return true;
                 case PlayerLifeSnapshotState.ReviveInvulnerable: state = PlayerLifeState.ReviveInvulnerable; return true;
+                case PlayerLifeSnapshotState.Swallowed:          state = PlayerLifeState.Swallowed;          return true;
 
                 default:
                     state = PlayerLifeState.Alive;

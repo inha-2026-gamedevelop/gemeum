@@ -9,13 +9,15 @@ using Mirror;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Network;
 
 namespace Geumeum.Combat
 {
     /// <summary> 로비와 런 관리자가 플레이어에게 말을 거는 단일 창구 </summary>
     [RequireComponent(typeof(PlayerWeapon))]
     [RequireComponent(typeof(PlayerCharacter))]
-    public class PlayerRunAgent : NetworkBehaviour, IPlayerRoleAssignment, IPlayerRunLifecycle
+    public class PlayerRunAgent : NetworkBehaviour, IPlayerRoleAssignment, IPlayerRunLifecycle,
+        IRunResultParticipantSource
     {
         /****************************************
         *                Fields
@@ -25,6 +27,10 @@ namespace Geumeum.Combat
         private PlayerCharacter _character = null;
         private PlayerStatus     _status     = null;
         private PlayerController _controller = null;
+
+        // PlayerStatus가 먼저 OnStopServer를 받으면 참가자 신원을 지운다.
+        // 결과 원본은 컴포넌트 종료 순서와 무관하게 마지막 상태를 기록해야 한다.
+        private ParticipantId _resultParticipant = ParticipantId.None;
 
         // 상태를 담고 붓는 컴포넌트들
         private readonly List<IRunStateCarrier> _carriers = new List<IRunStateCarrier>();
@@ -58,6 +64,25 @@ namespace Geumeum.Combat
             GetComponents(_carriers);
             GetComponents(_resettable);
             _carriers.Sort((left, right) => left.CarrierOrder.CompareTo(right.CarrierOrder));
+        }
+
+        public override void OnStartServer()
+        {
+            CacheResultParticipant();
+            RunResultParticipantSourceLocator.Register(this);
+        }
+
+        public override void OnStopServer()
+        {
+            RunManager run = RunManager.ServerInstance;
+            if ((run != null) && TryCaptureResultState(run.RunId,
+                    out RunParticipantStateFact state))
+            {
+                RunStatisticsSinkLocator.Current.RecordParticipantState(state);
+            }
+
+            RunResultParticipantSourceLocator.Unregister(this);
+            _resultParticipant = ParticipantId.None;
         }
 
         /****************************************
@@ -170,6 +195,33 @@ namespace Geumeum.Combat
             }
 
             return restored;
+        }
+
+        public bool TryCaptureResultState(RunId run, out RunParticipantStateFact state)
+        {
+            state = default;
+            if ((!isServer) || (!run.IsValid) || (_status == null) ||
+                (!CacheResultParticipant()) || float.IsNaN(_status.Health) ||
+                float.IsInfinity(_status.Health) || (_status.Health < 0f))
+            {
+                return false;
+            }
+
+            state = ((_character != null) && _character.HasCharacter)
+                ? new RunParticipantStateFact(run, _resultParticipant,
+                    _character.Character, _status.Health)
+                : new RunParticipantStateFact(run, _resultParticipant, _status.Health);
+            return state.IsValid;
+        }
+
+        private bool CacheResultParticipant()
+        {
+            if ((_status != null) && _status.Participant.IsValid)
+            {
+                _resultParticipant = _status.Participant;
+            }
+
+            return _resultParticipant.IsValid;
         }
 
         [Server]

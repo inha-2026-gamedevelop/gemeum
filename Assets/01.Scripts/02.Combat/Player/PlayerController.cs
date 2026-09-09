@@ -27,6 +27,7 @@ namespace Geumeum.Combat
         private PlayerStatus             _status;
         private PlayerRollController     _roll;
         private PlayerAttack             _attack;
+        private PrecisionShotController  _precisionShot;
         private LockOnController         _lockOn;
         private ReviveController         _revive;
         private HealController           _heal;
@@ -66,6 +67,7 @@ namespace Geumeum.Combat
             _status           = GetComponent<PlayerStatus>();
             _roll             = GetComponent<PlayerRollController>();
             _attack           = GetComponent<PlayerAttack>();
+            _precisionShot    = GetComponent<PrecisionShotController>();
             _lockOn           = GetComponent<LockOnController>();
             _revive           = GetComponent<ReviveController>();
             _heal             = GetComponent<HealController>();
@@ -80,10 +82,11 @@ namespace Geumeum.Combat
             }
 
             bool isPaused = ((RunManager.LocalInstance != null) && (RunManager.LocalInstance.IsPaused));
+            bool inputBlocked = !LocalGameplayInputGate.AllowsGameplayInput;
 
             bool isServerDrivenMotion = (((_roll != null) && (_roll.IsRolling))
-                || ((_status != null) && (_status.IsDead))
-                || (isPaused));
+                || ((_status != null) && (_status.IsDead || _status.IsSwallowed))
+                || (isPaused) || (inputBlocked));
 
             _prediction.SetSuspended(isServerDrivenMotion);
 
@@ -92,20 +95,23 @@ namespace Geumeum.Combat
                 _presentation.ClientReleaseLocalState();
             }
 
-            Vector2 moveAxis = new Vector2(
-                Input.GetAxisRaw(Constants.Player.AXIS_HORIZONTAL),
-                Input.GetAxisRaw(Constants.Player.AXIS_VERTICAL));
+            Vector2 moveAxis = inputBlocked
+                ? Vector2.zero
+                : new Vector2(
+                    Input.GetAxisRaw(Constants.Player.AXIS_HORIZONTAL),
+                    Input.GetAxisRaw(Constants.Player.AXIS_VERTICAL));
 
             Vector2 moveDirection = CameraFrame.ToWorld(Vector2.ClampMagnitude(moveAxis, 1f));
-            bool    sprintHeld    = Input.GetKey(Constants.Player.KEY_SPRINT);
+            bool    sprintHeld    = (!inputBlocked) && Input.GetKey(Constants.Player.KEY_SPRINT);
+            float   predictedSpeed = ResolveMoveSpeed(sprintHeld);
 
             if (!isServer)
             {
-                _prediction.Advance(moveDirection, sprintHeld, Time.deltaTime, ResolveMoveSpeed);
+                _prediction.Advance(moveDirection, sprintHeld, Time.deltaTime, predictedSpeed);
 
                 if ((_presentation != null) && (!isServerDrivenMotion))
                 {
-                    _presentation.ClientPredictMotion(moveDirection, ResolveMoveSpeed(sprintHeld));
+                    _presentation.ClientPredictMotion(moveDirection, predictedSpeed);
                 }
             }
 
@@ -127,7 +133,7 @@ namespace Geumeum.Combat
 
             if (!isServer)
             {
-                _prediction.RecordInput(input);
+                _prediction.RecordInput(input, predictedSpeed);
             }
 
             CmdSendMoveInput(input);
@@ -263,6 +269,11 @@ namespace Geumeum.Combat
                 _attack.ServerUpdateState(now);
             }
 
+            if (_precisionShot != null)
+            {
+                _precisionShot.ServerUpdateState();
+            }
+
             if (_lockOn != null)
             {
                 _lockOn.ServerUpdateState();
@@ -392,7 +403,11 @@ namespace Geumeum.Combat
                 return 0f;
             }
 
-            return sprintHeld ? GameDB.Combat.RunSpeed : GameDB.Combat.WalkSpeed;
+            float baseSpeed = (sprintHeld) ? GameDB.Combat.RunSpeed : GameDB.Combat.WalkSpeed;
+            float multiplier = (_precisionShot == null)
+                ? 1f
+                : _precisionShot.ResolveMovementMultiplier(isServer);
+            return baseSpeed * multiplier;
         }
 
         private static bool IsFinite(float value)

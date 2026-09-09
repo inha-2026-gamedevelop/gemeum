@@ -37,6 +37,7 @@ namespace Geumeum.Combat
         private const string PARAM_ATTACK      = "Attack";
         private const string PARAM_COMBO_STAGE = "ComboStage";
         private const string PARAM_PARRY       = "Parry";
+        private const string PARAM_HEAL        = "Heal";
 
         // 락온 스트레이프용 2D Freeform Directional 파라미터
         private const string PARAM_MOVE_X    = "MoveX";
@@ -78,6 +79,17 @@ namespace Geumeum.Combat
         private bool _hasStrafeParams    = false;
         private bool _hasDeathParam      = false;
         private bool _hasParryParam      = false;
+        private bool _hasHealParam       = false;
+
+        private IPlayerActionCueSink _actionCueSink;
+        private PlayerActionCueKind  _currentCueKind;
+        private uint                 _currentCueExecutionId;
+        private double               _currentCueEndGameplayTime;
+        private float                _pendingCueProgress;
+        private bool                 _hasPendingCueSeek;
+        private AnimatorHitStopState _hitStop;
+        private bool                 _isRunPauseHoldingAnimator;
+        private float                _prePauseAnimatorSpeed = 1f;
 
         /****************************************
         *              Unity Event
@@ -88,6 +100,7 @@ namespace Geumeum.Combat
             _presentation = GetComponent<PlayerPresentation>();
             _weapon       = GetComponent<PlayerWeapon>();
             _status       = GetComponent<PlayerStatus>();
+            _actionCueSink = GetComponent<IPlayerActionCueSink>();
             _visualPivot  = transform.Find(VISUAL_PIVOT_NAME);
 
             if (_visualPivot == null)
@@ -100,7 +113,27 @@ namespace Geumeum.Combat
 
         private void LateUpdate()
         {
-            if ((_animator == null) || (_presentation == null))
+            UpdateAnimatorPause();
+            UpdateHitStop();
+
+            if ((_currentCueExecutionId != 0u) &&
+                (RunTimeLocator.Current.GameplayElapsedSeconds >= _currentCueEndGameplayTime))
+            {
+                ClearCurrentCue();
+            }
+
+            if (_animator == null)
+            {
+                return;
+            }
+
+            if (_hasPendingCueSeek)
+            {
+                _hasPendingCueSeek = false;
+                _animator.Play(0, 0, _pendingCueProgress);
+            }
+
+            if (_presentation == null)
             {
                 return;
             }
@@ -115,6 +148,13 @@ namespace Geumeum.Combat
             ApplyDeath();
             ApplyStrafe(isLockedOn, smoothing);
             ApplyFacing(_presentation.FacingDirection, isLockedOn);
+        }
+
+        private void OnDisable()
+        {
+            RestoreHitStop();
+            RestoreAnimatorPause();
+            ClearCurrentCue();
         }
 
         /// <summary> 쓰러진 동안 사망 자세를 유지한다 </summary>
@@ -204,6 +244,8 @@ namespace Geumeum.Combat
 
             if (found != _animator)
             {
+                RestoreHitStop();
+                RestoreAnimatorPause();
                 _animator               = found;
                 _modelDefaultController = (found != null) ? found.runtimeAnimatorController : null;
             }
@@ -249,6 +291,115 @@ namespace Geumeum.Combat
             _animator.SetTrigger(PARAM_PARRY);
         }
 
+        public void PlayHeal()
+        {
+            if ((_animator == null) || (!_hasHealParam))
+            {
+                return;
+            }
+
+            _animator.SetTrigger(PARAM_HEAL);
+        }
+
+        /// <summary>Applies an authoritative action cue, including late-join progress.</summary>
+        public void PlayActionCue(in PlayerActionCue cue)
+        {
+            double gameplayTime = RunTimeLocator.Current.GameplayElapsedSeconds;
+            if (PlayerActionCueRules.ResolveStart(in cue, gameplayTime,
+                    _currentCueKind, _currentCueExecutionId,
+                    out float normalizedProgress) != PlayerActionCueDecision.Start)
+            {
+                return;
+            }
+
+            _currentCueKind = cue.Kind;
+            _currentCueExecutionId = cue.ExecutionId;
+            _currentCueEndGameplayTime = cue.EndGameplayTime;
+
+            switch (cue.Kind)
+            {
+                case PlayerActionCueKind.Attack:
+                    PlayAttack(cue.ComboStage);
+                    break;
+
+                case PlayerActionCueKind.Heal:
+                    PlayHeal();
+                    break;
+
+                case PlayerActionCueKind.Parry:
+                    PlayParry();
+                    break;
+            }
+
+            if (normalizedProgress > 0f)
+            {
+                _pendingCueProgress = normalizedProgress;
+                _hasPendingCueSeek = true;
+            }
+
+            _actionCueSink?.PlayActionCue(in cue, normalizedProgress);
+        }
+
+        /// <summary>Only the exact action instance may cancel its presentation.</summary>
+        public void CancelActionCue(PlayerActionCueKind kind, uint executionId)
+        {
+            if (!PlayerActionCueRules.CanCancel(kind, executionId,
+                    _currentCueKind, _currentCueExecutionId))
+            {
+                return;
+            }
+
+            if (_animator != null)
+            {
+                if (_hasAttackParam)
+                {
+                    _animator.ResetTrigger(PARAM_ATTACK);
+                }
+
+                if (_hasHealParam)
+                {
+                    _animator.ResetTrigger(PARAM_HEAL);
+                }
+
+                if (_hasParryParam)
+                {
+                    _animator.ResetTrigger(PARAM_PARRY);
+                }
+            }
+
+            _actionCueSink?.CancelActionCue(kind, executionId);
+            ClearCurrentCue();
+        }
+
+        public void PlayActionImpact(PlayerActionCueKind kind, uint executionId,
+            bool successful, bool critical, double impactGameplayTime)
+        {
+            _actionCueSink?.PlayActionImpact(kind, executionId, successful,
+                critical, impactGameplayTime);
+        }
+
+        public void PlayMarkCue(uint executionId, Vector3 worldPosition,
+            double appliedGameplayTime)
+        {
+            _actionCueSink?.PlayMarkCue(executionId, worldPosition,
+                appliedGameplayTime);
+        }
+
+        /// <summary>Stops only this character animator and preserves its prior speed.</summary>
+        public void PlayHitStop(float duration)
+        {
+            if ((_animator == null) || (!IsFinite(duration)) || (duration <= 0f))
+            {
+                return;
+            }
+
+            float currentSpeed = _isRunPauseHoldingAnimator
+                ? _prePauseAnimatorSpeed
+                : _animator.speed;
+            _hitStop.Begin(currentSpeed, duration);
+            _animator.speed = 0f;
+        }
+
         /// <summary> 무기가 바뀔 때마다 호출한다 </summary>
         public void RefreshWeaponAnimation()
         {
@@ -286,7 +437,84 @@ namespace Geumeum.Combat
             _hasStrafeParams = (HasParameter(PARAM_MOVE_X)) && (HasParameter(PARAM_MOVE_Y)) && (HasParameter(PARAM_IS_LOCK_ON));
             _hasDeathParam   = HasParameter(PARAM_IS_DEAD);
             _hasParryParam   = HasParameter(PARAM_PARRY);
+            _hasHealParam    = HasParameter(PARAM_HEAL);
             _smoothedMove    = Vector2.zero;
+        }
+
+        private void UpdateHitStop()
+        {
+            if ((!_hitStop.IsActive) || (_animator == null))
+            {
+                return;
+            }
+
+            if (_hitStop.Tick(Time.unscaledDeltaTime, RunTimeLocator.Current.IsPaused,
+                    out float restoreSpeed))
+            {
+                _animator.speed = restoreSpeed;
+            }
+        }
+
+        private void UpdateAnimatorPause()
+        {
+            if (_animator == null)
+            {
+                return;
+            }
+
+            bool isPaused = RunTimeLocator.Current.IsPaused;
+            if (isPaused && !_isRunPauseHoldingAnimator)
+            {
+                _prePauseAnimatorSpeed = _animator.speed;
+                _isRunPauseHoldingAnimator = true;
+                _animator.speed = 0f;
+            }
+            else if (!isPaused && _isRunPauseHoldingAnimator)
+            {
+                _isRunPauseHoldingAnimator = false;
+                _animator.speed = _hitStop.IsActive
+                    ? 0f
+                    : _prePauseAnimatorSpeed;
+            }
+        }
+
+        private void RestoreAnimatorPause()
+        {
+            if (!_isRunPauseHoldingAnimator)
+            {
+                return;
+            }
+
+            if (_animator != null)
+            {
+                _animator.speed = _hitStop.IsActive
+                    ? 0f
+                    : _prePauseAnimatorSpeed;
+            }
+
+            _isRunPauseHoldingAnimator = false;
+        }
+
+        private void RestoreHitStop()
+        {
+            if ((_animator != null) && _hitStop.Cancel(out float restoreSpeed))
+            {
+                _animator.speed = restoreSpeed;
+            }
+        }
+
+        private void ClearCurrentCue()
+        {
+            _currentCueKind = PlayerActionCueKind.None;
+            _currentCueExecutionId = 0u;
+            _currentCueEndGameplayTime = 0d;
+            _pendingCueProgress = 0f;
+            _hasPendingCueSeek = false;
+        }
+
+        private static bool IsFinite(float value)
+        {
+            return !float.IsNaN(value) && !float.IsInfinity(value);
         }
 
         private bool HasParameter(string parameterName)
@@ -389,6 +617,65 @@ namespace Geumeum.Combat
 
             float runRange = Mathf.Max(runSpeed - walkSpeed, MIN_SPEED_RANGE);
             return 1f + Mathf.Clamp01((speed - walkSpeed) / runRange);
+        }
+    }
+
+    /// <summary>Pure state for overlapping, pause-aware local animator hit stop.</summary>
+    public struct AnimatorHitStopState
+    {
+        private float _remainingSeconds;
+        private float _restoreSpeed;
+
+        public bool IsActive { get; private set; }
+        public float RemainingSeconds => _remainingSeconds;
+
+        public void Begin(float currentSpeed, float duration)
+        {
+            if (float.IsNaN(duration) || float.IsInfinity(duration) || (duration <= 0f))
+            {
+                return;
+            }
+
+            if (!IsActive)
+            {
+                _restoreSpeed = currentSpeed;
+                IsActive = true;
+            }
+
+            _remainingSeconds = Mathf.Max(_remainingSeconds, duration);
+        }
+
+        public bool Tick(float unscaledDeltaTime, bool isRunPaused,
+            out float restoreSpeed)
+        {
+            restoreSpeed = _restoreSpeed;
+            if (!IsActive || isRunPaused || float.IsNaN(unscaledDeltaTime) ||
+                float.IsInfinity(unscaledDeltaTime) || (unscaledDeltaTime <= 0f))
+            {
+                return false;
+            }
+
+            _remainingSeconds = Mathf.Max(0f, _remainingSeconds - unscaledDeltaTime);
+            if (_remainingSeconds > 0f)
+            {
+                return false;
+            }
+
+            IsActive = false;
+            return true;
+        }
+
+        public bool Cancel(out float restoreSpeed)
+        {
+            restoreSpeed = _restoreSpeed;
+            if (!IsActive)
+            {
+                return false;
+            }
+
+            IsActive = false;
+            _remainingSeconds = 0f;
+            return true;
         }
     }
 }

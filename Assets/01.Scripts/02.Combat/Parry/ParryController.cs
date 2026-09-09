@@ -37,15 +37,18 @@ namespace Geumeum.Combat
         private ParryGauge                _gauge;
         private PlayerAttack              _attack;
         private PlayerAnimationController _animation;
+        private ICombatLoadoutProvider     _loadoutProvider;
 
         private uint             _localRequestId     = 0;
         private ParryWindowKey   _clientActiveWindow = default;
         private uint             _lastAppliedResultId = 0; // 소유 클라 전용
+        private uint             _clientPresentationActionId;
         private RequestIdTracker _requestIds;
 
         // 서버 전용
         private double _actionLockEndServerTime = 0.0; // startup 또는 recovery가 끝나는 시각
         private double _lastRequestServerTime   = -1.0;
+        private uint   _nextPresentationActionId = 1u;
 
         /****************************************
         *              Unity Event
@@ -60,6 +63,7 @@ namespace Geumeum.Combat
             _attack = GetComponent<PlayerAttack>();
 
             _animation = GetComponent<PlayerAnimationController>();
+            _loadoutProvider = GetComponent<ICombatLoadoutProvider>();
         }
 
         private void Update()
@@ -69,7 +73,8 @@ namespace Geumeum.Combat
                 CleanupExpiredWindow(NetworkTime.time);
             }
 
-            if ((!isOwned) || (!Input.GetMouseButtonDown(Constants.Player.MOUSE_BUTTON_PARRY)))
+            if ((!isOwned) || (!LocalGameplayInputGate.AllowsGameplayInput) ||
+                (!Input.GetMouseButtonDown(Constants.Player.MOUSE_BUTTON_PARRY)))
             {
                 return;
             }
@@ -134,7 +139,8 @@ namespace Geumeum.Combat
             // 3. 필수 컴포넌트, GameDB 준비 확인
             if ((!GameDB.IsInitialized) || (_status == null) || (_weapon == null) || (_roll == null) || (_gauge == null))
             {
-                TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedDependency, now);
+                TargetParryResult(request.RequestId, request.ObservedWindow,
+                    ParryResultCode.RejectedDependency, now, 0d);
                 return;
             }
 
@@ -145,14 +151,26 @@ namespace Geumeum.Combat
             // 4. RunPhase + PlayerLifeState
             if (!PlayerActionGate.CanAct(phase, _status.LifeState, paused))
             {
-                TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedState, now);
+                TargetParryResult(request.RequestId, request.ObservedWindow,
+                    ParryResultCode.RejectedState, now, 0d);
                 return;
             }
 
             // 5. 무기 확인
             if ((!_weapon.HasWeapon) || (_weapon.Weapon != WeaponKind.Sword))
             {
-                TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedWeapon, now);
+                TargetParryResult(request.RequestId, request.ObservedWindow,
+                    ParryResultCode.RejectedWeapon, now, 0d);
+                return;
+            }
+
+            ParticipantId participant = _status.Participant;
+            if ((_loadoutProvider == null) || (!participant.IsValid) ||
+                (!_loadoutProvider.TryBuildLoadout(participant,
+                    out CombatStatsSnapshot loadout)) || (!loadout.IsValid))
+            {
+                TargetParryResult(request.RequestId, request.ObservedWindow,
+                    ParryResultCode.RejectedDependency, now, 0d);
                 return;
             }
 
@@ -160,7 +178,8 @@ namespace Geumeum.Combat
             if ((_roll.IsRolling) || (IsActionInProgress(now))
                 || ((_attack != null) && (_attack.IsActionInProgress(now))))
             {
-                TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedBusy, now);
+                TargetParryResult(request.RequestId, request.ObservedWindow,
+                    ParryResultCode.RejectedBusy, now, 0d);
                 return;
             }
 
@@ -173,7 +192,8 @@ namespace Geumeum.Combat
 
             if (matchesTombstone)
             {
-                TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedWindowConsumed, now);
+                TargetParryResult(request.RequestId, request.ObservedWindow,
+                    ParryResultCode.RejectedWindowConsumed, now, 0d);
                 return;
             }
 
@@ -190,26 +210,30 @@ namespace Geumeum.Combat
 
                 if (!keysMatch)
                 {
-                    TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedWindowMismatch, now);
+                    TargetParryResult(request.RequestId, request.ObservedWindow,
+                        ParryResultCode.RejectedWindowMismatch, now, 0d);
                     return;
                 }
 
                 if (window.Consumed)
                 {
-                    TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedWindowConsumed, now);
+                    TargetParryResult(request.RequestId, request.ObservedWindow,
+                        ParryResultCode.RejectedWindowConsumed, now, 0d);
                     return;
                 }
 
                 if (!window.HasValidSource())
                 {
-                    TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedDependency, now);
+                    TargetParryResult(request.RequestId, request.ObservedWindow,
+                        ParryResultCode.RejectedDependency, now, 0d);
                     return;
                 }
 
                 // 9. 서버 수신 시각이 impact 이전인지 확인
                 if (now >= window.ImpactTime)
                 {
-                    TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedResolutionClosed, now);
+                    TargetParryResult(request.RequestId, request.ObservedWindow,
+                        ParryResultCode.RejectedResolutionClosed, now, 0d);
                     return;
                 }
             }
@@ -228,13 +252,13 @@ namespace Geumeum.Combat
             double parryActivationTime = effectiveInputTime + combat.ParryStartupDuration;
 
             // 12. 스태미나 확인
-            if (!_status.TrySpendStamina(combat.ParryStaminaCost))
+            if (!_status.TrySpendStamina(
+                    loadout.ResolveStaminaCost(combat.ParryStaminaCost)))
             {
-                TargetParryResult(request.RequestId, request.ObservedWindow, ParryResultCode.RejectedStamina, now);
+                TargetParryResult(request.RequestId, request.ObservedWindow,
+                    ParryResultCode.RejectedStamina, now, 0d);
                 return;
             }
-
-            RpcParryStarted();
 
             // 13~14. window 없으면 허공 패링, 있으면 결과와 무관하게 여기서 한 번 소비한다
             bool             success;
@@ -264,7 +288,7 @@ namespace Geumeum.Combat
                 _actionLockEndServerTime = startupEnd;
 
                 _status.RestoreStaminaToMax();
-                _gauge.ServerAddSuccess();
+                _gauge.ServerAddSuccess(loadout.ParryGaugeGain);
                 _status.GrantTimedInvincibility(now + combat.ParryInvincibleDuration);
 
                 _activeWindow = null;
@@ -284,8 +308,26 @@ namespace Geumeum.Combat
                 }
             }
 
+            uint presentationActionId = TakeNextPresentationActionId();
+            double gameplayStart = RunTimeLocator.Current.GameplayElapsedSeconds;
+            double presentationImpact = gameplayStart + combat.ParryStartupDuration;
+            PlayerActionCue cue = new PlayerActionCue
+            {
+                ExecutionId = presentationActionId,
+                Kind = PlayerActionCueKind.Parry,
+                Weapon = WeaponKind.Sword,
+                ComboStage = 0,
+                StartGameplayTime = gameplayStart,
+                ImpactGameplayTime = presentationImpact,
+                EndGameplayTime = presentationImpact +
+                    (success ? 0.01f : Mathf.Max(0.01f,
+                        combat.ParryRecoveryDuration)),
+            };
+            RpcParryStarted(cue);
+
             // 18. 결과 전송
-            TargetParryResult(request.RequestId, request.ObservedWindow, resultCode, now);
+            TargetParryResult(request.RequestId, request.ObservedWindow,
+                resultCode, now, gameplayStart);
         }
 
         /****************************************
@@ -316,7 +358,18 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            float duration = Mathf.Clamp(source.ParryWindowDuration, 0f, GameDB.Combat.ParryWindowDurationMax);
+            if ((_loadoutProvider == null) || (_status == null) ||
+                (!_status.Participant.IsValid) ||
+                (!_loadoutProvider.TryBuildLoadout(_status.Participant,
+                    out CombatStatsSnapshot loadout)) || (!loadout.IsValid))
+            {
+                return false;
+            }
+
+            float duration = Mathf.Clamp(
+                source.ParryWindowDuration + loadout.ParryWindowBonus,
+                0f,
+                GameDB.Combat.ParryWindowDurationMax);
             if (duration <= 0f)
             {
                 return false;
@@ -394,14 +447,15 @@ namespace Geumeum.Combat
 
         /// <summary> 패링 자세를 모든 화면에서 재생한다 </summary>
         [ClientRpc]
-        private void RpcParryStarted()
+        private void RpcParryStarted(PlayerActionCue cue)
         {
+            _clientPresentationActionId = cue.ExecutionId;
             if (_animation == null)
             {
                 return;
             }
 
-            _animation.PlayParry();
+            _animation.PlayActionCue(in cue);
         }
 
         /****************************************
@@ -427,7 +481,9 @@ namespace Geumeum.Combat
         }
 
         [TargetRpc]
-        private void TargetParryResult(uint requestId, ParryWindowKey windowKey, ParryResultCode resultCode, double serverResolvedAt)
+        private void TargetParryResult(uint requestId, ParryWindowKey windowKey,
+            ParryResultCode resultCode, double serverResolvedAt,
+            double resultGameplayTime)
         {
             if (requestId <= _lastAppliedResultId)
             {
@@ -459,13 +515,14 @@ namespace Geumeum.Combat
                 CombatFeedbackLocator.Current.PlayParrySuccess();
             }
 
-            if ((resultCode == ParryResultCode.Success) || (resultCode == ParryResultCode.MissTiming))
+            if ((resultCode == ParryResultCode.Success) ||
+                (resultCode == ParryResultCode.MissTiming) ||
+                (resultCode == ParryResultCode.MissNoWindow))
             {
-                SfxPlayer.Play(
-                    (resultCode == ParryResultCode.Success) ? SoundKey.ParrySuccess : SoundKey.ParryFail,
-                    transform.position,
-                    true,
-                    netId);
+                _animation?.PlayActionImpact(PlayerActionCueKind.Parry,
+                    _clientPresentationActionId,
+                    resultCode == ParryResultCode.Success, false,
+                    resultGameplayTime);
             }
 
             Debug.Log($"[ParryController] 패링 결과 {resultCode}", this);
@@ -484,6 +541,15 @@ namespace Geumeum.Combat
             }
 
             return _localRequestId;
+        }
+
+        private uint TakeNextPresentationActionId()
+        {
+            uint result = _nextPresentationActionId;
+            _nextPresentationActionId = (_nextPresentationActionId == uint.MaxValue)
+                ? 1u
+                : _nextPresentationActionId + 1u;
+            return result;
         }
 
         private void CleanupExpiredWindow(double now)
