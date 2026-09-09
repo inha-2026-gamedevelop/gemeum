@@ -11,7 +11,7 @@
 
 ---
 
-> 2026-09-07 발췌 코드 정적 대조: 아래 `[현재]`는 코드 존재/호출 경로를 뜻한다. 씬·프리팹·meta·외부 패키지가 없는 발췌본으로 컴파일/배선/3인 동작을 검증한 것은 아니다.
+> 2026-09-07 발췌 코드 정적 대조: 아래 `[구현완료]`는 코드 존재/호출 경로를 뜻한다. 씬·프리팹·meta·외부 패키지가 없는 발췌본으로 컴파일/배선/3인 동작을 검증한 것은 아니다.
 
 ## 1. 한눈에 보는 구조
 
@@ -268,7 +268,7 @@ Main.unity
 > **네임스페이스는 소속 파트를 그대로 따른다**(`Player/`·`Lobby/`가 그렇듯 `Dev/`도 네임스페이스에 반영하지 않는다). 별도 어셈블리가 아니므로 **폴더만으로는 빌드에서 빠지지 않는다** — 출시 빌드에서 빼려면 `#if UNITY_EDITOR || DEVELOPMENT_BUILD`를 쓴다.
 > **원칙: 프로덕션 코드는 `Dev/`의 타입에 의존하지 않는다.** 현재 예외가 하나 있다 — `GeumeumBootValidator`가 `RequireInScene<FrameRecorder>`로 `Main` 씬에 측정기가 있을 것을 강제한다(의도 여부 미확인). 새 예외를 만들지 않는다.
 
-`[계획]` 항목의 구현 계약은 기능별 상세 설계에 있다 — [PlayerAttack](unity/PLAYER_ATTACK_DESIGN.md) · [보스](unity/BOSS_DESIGN.md) · [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) · [몬스터 패링 연결](unity/MONSTER_PARRY_LINK_DESIGN.md) · [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md).
+`[예정]` 항목의 구현 계약은 기능별 상세 설계에 있다 — [PlayerAttack](unity/PLAYER_ATTACK_DESIGN.md) · [보스](unity/BOSS_DESIGN.md) · [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) · [몬스터 패링 연결](unity/MONSTER_PARRY_LINK_DESIGN.md) · [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md).
 
 ### 4.0 00.Common — 공용 (소유: 팀장, 변경은 팀 공지 후)
 
@@ -291,9 +291,9 @@ Main.unity
 │  ├ LevelCurveSO.cs       SO  레벨별 필요 경험치 + 최대 HP 전체 (1레벨 기본값 포함)
 │  ├ ScoreRuleSO.cs        SO  점수 항목별 배점
 │  ├ DayCycleSO.cs         SO  실시간↔게임 내 시각 매핑, 조명 프리셋 (로컬 전용)
-│  ├ SoundCatalogSO.cs     SO  [현재] SoundKey → 클립 · 믹서 그룹 · 볼륨 · 중복 제거 간격.
+│  ├ SoundCatalogSO.cs     SO  [구현완료] SoundKey → 클립 · 믹서 그룹 · 볼륨 · 중복 제거 간격.
 │  │                            믹서 그룹 5개 참조를 여기가 들고 있다 (로컬 전용) → 사운드 설계 4.2
-│  └ CameraConfigSO.cs     SO  [현재] 카메라 거리 · 높이 · 오버숄더 · 감도 기본값 · pitch 한계 ·
+│  └ CameraConfigSO.cs     SO  [구현완료] 카메라 거리 · 높이 · 오버숄더 · 감도 기본값 · pitch 한계 ·
 │                               충돌 레이어와 반경 · FOV · 셰이크 6종 · 락온 거리 3종
 │                               (로컬 전용) → 카메라와 락온 2장 · 3.1 · 7장
 ├ Constants/               namespace Geumeum.Common — 코드 계약값 (partial class)
@@ -301,31 +301,31 @@ Main.unity
 │  ├ Constants.player.cs   입력 키/축, 판정 epsilon
 │  ├ Constants.combat.cs   히트스톱 등 전투 계약값
 │  ├ Constants.network.cs  틱 레이트, 동기화 상수
-│  └ Constants.sound.cs    [현재] 효과음 소스 수, 믹서 노출 파라미터 이름, dB 범위
+│  └ Constants.sound.cs    [구현완료] 효과음 소스 수, 믹서 노출 파라미터 이름, dB 범위
 ├ Utility/                 namespace Geumeum.Common
 │  ├ PersistentSingleton.cs  MB  DDOL 싱글턴 베이스 (제네릭 MonoBehaviour — 코딩 컨벤션 18)
 │  ├ SceneSingleton.cs       MB  씬 로컬 싱글턴 베이스 (제네릭 MonoBehaviour)
-│  ├ DamageTargetResolver.cs C#  [현재] 콜라이더 → IDamageable 해석 창구. 부위 콜라이더와
+│  ├ DamageTargetResolver.cs C#  [구현완료] 콜라이더 → IDamageable 해석 창구. 부위 콜라이더와
 │  │                             몸통이 같은 NetworkIdentity일 때의 중복 제거를 여기서만 한다
 │  ├ CombatFeedbackLocator.cs static ICombatFeedback 등록·조회. 기본값은 아무것도 하지
 │  │                             않는 NullCombatFeedback → 8.3
-│  ├ BarrierStateLocator.cs  static [현재] IBarrierState 등록·조회. 기본값은 결계가 꺼진 것으로
+│  ├ BarrierStateLocator.cs  static [구현완료] IBarrierState 등록·조회. 기본값은 결계가 꺼진 것으로
 │  │                             답하는 NullBarrierState라, 결계 구현 전에도 전투·AI·아트가 돈다
-│  └ RunTimeLocator.cs       static [현재] IRunTimeSource 등록·조회. RunManager가 OnEnable에서 등록하고
+│  └ RunTimeLocator.cs       static [구현완료] IRunTimeSource 등록·조회. RunManager가 OnEnable에서 등록하고
 │                                기본값은 0초에 멈춘 NullRunTimeSource다
 ├ Events/                  namespace Geumeum.Common — 파트 간 이벤트 계약 → 8장
 │  ├ IGameEventBus.cs      C#  타입이 지정된 이벤트 발행 · 구독 계약
 │  ├ GameEventBus.cs       MB  @Managers가 소유하는 서버/로컬 이벤트 허브.
 │                              SceneSingleton<GameEventBus>를 상속한다
-│  ├ RunResumedEvent.cs    struct [현재] 얼었던 런이 다시 도는 순간의 정지 시간(초).
+│  ├ RunResumedEvent.cs    struct [구현완료] 얼었던 런이 다시 도는 순간의 정지 시간(초).
 │  │                           절대 시각으로 잡아 둔 타이머는 각자 이만큼 민다
-│  └ RunPhaseChangedEvent.cs struct [현재] 구간 전환 통지
+│  └ RunPhaseChangedEvent.cs struct [구현완료] 구간 전환 통지
 ├ Interfaces/              namespace Geumeum.Common — 파트 경계 계약 → 8.2
-│  ├ IRunTimeSource.cs     C#  [현재] 두 시계와 정지 사유를 읽는 창구. RunManager가 구현한다
-│  ├ IRunStateCarrier.cs   C#  [현재] 참가자 값을 담고 되붓는 계약. 이탈·재접속·씬 전환이 같은 것을 쓴다
-│  ├ IRunSceneBinding.cs   C#  [현재] 씬이 바뀔 때 참조와 구독을 다시 거는 계약
-│  ├ ICombatLoadoutProvider.cs C# [현재] 장비·특성 → 유효 전투 수치 계약. Systems의 실제 provider 구현은 계획이다
-│  ├ IRunResultProvider.cs C#  [현재] 점수 계산. Systems가 순수 함수로 구현한다
+│  ├ IRunTimeSource.cs     C#  [구현완료] 두 시계와 정지 사유를 읽는 창구. RunManager가 구현한다
+│  ├ IRunStateCarrier.cs   C#  [구현완료] 참가자 값을 담고 되붓는 계약. 이탈·재접속·씬 전환이 같은 것을 쓴다
+│  ├ IRunSceneBinding.cs   C#  [구현완료] 씬이 바뀔 때 참조와 구독을 다시 거는 계약
+│  ├ ICombatLoadoutProvider.cs C# [구현완료] 장비·특성 → 유효 전투 수치 계약. Systems의 실제 provider 구현은 계획이다
+│  ├ IRunResultProvider.cs C#  [구현완료] 점수 계산. Systems가 순수 함수로 구현한다
 │  └ (그 밖에 IDamageable · IBarrierState · IRecoveryTarget · ICombatFeedback 등)
 ├ Types/                   namespace Geumeum.Common — 파트 공용 열거형·값 타입
 │  ├ DamageInfo.cs         struct 서버가 확정한 피해량 · 공격자 netId · HitStrength
@@ -337,7 +337,7 @@ Main.unity
 │  ├ EquipmentOptionKind.cs enum 장비 옵션 종류. 화살 속도 · 유도 시간 · 관통 수 포함
 │  ├ EnemyKind.cs / EnemyVisualState.cs / ItemGrade.cs / ShopItemKind.cs
 │  ├ RunPhase.cs / RunOutcome.cs / ParryWindowKey.cs
-│  ├ SoundKey.cs / SoundChannel.cs / BgmTrack.cs [현재] 사운드 키 → 사운드 설계 2.2 · 3.1
+│  ├ SoundKey.cs / SoundChannel.cs / BgmTrack.cs [구현완료] 사운드 키 → 사운드 설계 2.2 · 3.1
 │  ├ PlayerPlatformId.cs   struct 재접속에도 유지되는 신원. Steam은 SteamID64, 개발은 실행 인자값
 │  │
 │  │  ── 아래는 2026-09-06 TL-01에서 낸 런 수명 계약 ──
@@ -357,45 +357,45 @@ Main.unity
 │  ├ RunResultSnapshot.cs  struct 확정된 런 결과. 정산과 리더보드는 이것만 읽는다
 │  └ SceneTransitionSnapshot.cs struct 전환 한 번의 내용. 참가자 복구 여부를 여기서 정한다
 ├ Pooling/                 namespace Geumeum.Common — 로컬 표현 오브젝트 풀
-│  ├ LocalObjectPoolService.cs MB [현재] 프리팹별 ObjectPool<GameObject>.
+│  ├ LocalObjectPoolService.cs MB [구현완료] 프리팹별 ObjectPool<GameObject>.
 │  │                              PersistentSingleton을 상속한다. 호출부는 아직 없다
-│  └ LocalPoolRoot.cs      MB  [현재] 풀에 넣어도 되는 프리팹임을 선언하는 표식.
+│  └ LocalPoolRoot.cs      MB  [구현완료] 풀에 넣어도 되는 프리팹임을 선언하는 표식.
 │                              네트워크 개체를 걸러내는 화이트리스트다
-├ CameraFrame.cs           static [현재] 카메라 yaw · 입력 허용 플래그 · 락온 상태 셋.
+├ CameraFrame.cs           static [구현완료] 카메라 yaw · 입력 허용 플래그 · 락온 상태 셋.
 │                                 yaw는 카메라(05.Art)가 밀고 전투(02.Combat)가 읽으며,
 │                                 락온은 반대로 전투가 밀고 카메라가 읽는다 — 방향은 반대여도
 │                                 "오브젝트가 아니라 값"이라는 원칙은 같다.
 │                                 카메라가 없으면 yaw 0이라 지금과 같이 동작한다
-├ AimAssistPoint.cs        MB  [현재] IAimAssistTarget의 기본 구현. 로컬 오프셋 하나로
+├ AimAssistPoint.cs        MB  [구현완료] IAimAssistTarget의 기본 구현. 로컬 오프셋 하나로
 │                                 조준점을 만든다. 부위마다 하나씩 붙인다 —
 │                                 안 붙이면 락온이 콜라이더 bounds.center로 폴백한다
 │                                 → 카메라와 락온 3.0
 ├ Sound/                   namespace Geumeum.Common — 사운드 재생 (전부 로컬 전용)
-│  ├ SfxPlayer.cs          static [현재] SoundKey + isLocalPlayer만 받아 재생한다.
+│  ├ SfxPlayer.cs          static [구현완료] SoundKey + isLocalPlayer만 받아 재생한다.
 │  │                              AudioSource 16개 라운드로빈 · 같은 프레임 중복 제거 ·
 │  │                              일시정지 · 프리로드. 아트 구현체가 아니라 GameDB와 같은
 │  │                              위상의 공용 서비스라 05.Art가 아니라 여기 둔다 → 사운드 설계 4.1
-│  ├ BgmPlayer.cs          MB  [현재] PersistentSingleton. 소스 둘로 크로스페이드,
+│  ├ BgmPlayer.cs          MB  [구현완료] PersistentSingleton. 소스 둘로 크로스페이드,
 │  │                              무음을 둔 뒤 다음 트랙 재생(9.8의 무음 3초), 일시정지
-│  ├ RunSoundDirector.cs   static [현재] RunPhase → BgmTrack 매핑과 일시정지 전파.
+│  ├ RunSoundDirector.cs   static [구현완료] RunPhase → BgmTrack 매핑과 일시정지 전파.
 │  │                              RunManager의 SyncVar 훅이 부르고, 반대 방향 호출은 없다
-│  ├ SoundBootstrap.cs     MB  [현재] 저장된 볼륨을 첫 프레임에 믹서로 민 뒤 스스로 지운다.
+│  ├ SoundBootstrap.cs     MB  [구현완료] 저장된 볼륨을 첫 프레임에 믹서로 민 뒤 스스로 지운다.
 │  │                              씬 로드 직후에 넣으면 믹서가 안 깨어나 값이 덮인다
-│  └ SoundVolume.cs        static [현재] 마스터 · BGM · 효과음 볼륨. 0~1 ↔ dB 로그 변환,
+│  └ SoundVolume.cs        static [구현완료] 마스터 · BGM · 효과음 볼륨. 0~1 ↔ dB 로그 변환,
 │                                 PlayerPrefs 저장, 시작 시 자동 적용. 믹서 노출 파라미터로만
 │                                 바꿔 SFX_Remote의 상대 오프셋이 유지된다. UI는 Set만 부른다
 ├ Dev/                     개발 전용 도구
-│  ├ WeatherTimeDebugScript.cs MB [현재] 시간대 배속(Tab) · 즉시 이동(1~4). 전체 #if 가드됨.
+│  ├ WeatherTimeDebugScript.cs MB [구현완료] 시간대 배속(Tab) · 즉시 이동(1~4). 전체 #if 가드됨.
 │  │                          Main · Dev_Barrier에 배치. 날씨 스케줄(Environment/)과는 별개다
-│  └ DevToolHost.cs        C# [현재] 개발 도구가 씬 배치 없이 스스로 뜨게 하는 공용 호스트.
+│  └ DevToolHost.cs        C# [구현완료] 개발 도구가 씬 배치 없이 스스로 뜨게 하는 공용 호스트.
 │                              각 도구가 자기 파일에서 RuntimeInitializeOnLoadMethod로 붙는다 -
 │                              씬·프리팹에 심으면 시작 씬이 바뀔 때 통째로 사라진다(2026-09-08).
 │                              릴리스에서는 #if로 컴파일에서 빠진다
 └ Interfaces/              namespace Geumeum.Common — 파트 간 경계 → 8장
    ├ IDamageable.cs        피해를 받을 수 있는 대상 (플레이어 · 잡귀 · 보스)
-   ├ IRecoveryTarget.cs    [현재] 회복을 받을 수 있는 대상. 무녀 치유(전투)와 회복 물약(시스템)이
+   ├ IRecoveryTarget.cs    [구현완료] 회복을 받을 수 있는 대상. 무녀 치유(전투)와 회복 물약(시스템)이
                               쇠약 · 회복 봉쇄를 각자 계산하지 않게 하는 단일 창구
-   ├ IBarrierState.cs      [현재] 결계의 현재 중심 · 반경 · 밖 판정 · 회복 효율.
+   ├ IBarrierState.cs      [구현완료] 결계의 현재 중심 · 반경 · 밖 판정 · 회복 효율.
                               시스템이 구현하고 전투 · AI · 아트 · UI가 읽는다
    ├ IParryable.cs         패링당할 수 있는 공격의 계약
    ├ IInteractable.cs      상호작용 대상 (객주, 드랍 아이템)
@@ -405,7 +405,7 @@ Main.unity
    ├ IPlayerRunLifecycle.cs   런 경계에서 플레이어를 옮기고 상태를 되돌리는 계약
    ├ IPoolable.cs             풀에서 재사용될 때 파티클 · Trail · 코루틴을 되돌리는 계약
    ├ IParryWindowTarget.cs    패링 창을 여닫을 수 있는 대상의 계약
-   └ IBossTelegraphSource.cs  [현재] 보스 예고의 현재 값과 변경 통지 창구. 표현이 AI 구현을
+   └ IBossTelegraphSource.cs  [구현완료] 보스 예고의 현재 값과 변경 통지 창구. 표현이 AI 구현을
                               참조하지 않고 예고를 읽게 하는 경계 → 4.3
 ```
 
@@ -422,7 +422,7 @@ Main.unity
 │                              맡기고 외부에는 기존 API를 그대로 노출하는 파사드를 겸한다
 ├ GeumeumAuthenticator.cs  NA  접속 승인 게이트. 빌드, 신원, 입장 잠금, 중복 신원을 한 번에 본다.
 │                              Mirror 96은 인증 성공 후에만 OnServerConnect를 부르므로
-│                              입장 검증이 여기 있다 [현재]
+│                              입장 검증이 여기 있다 [구현완료]
 ├ Identity/
 │  ├ IPlayerIdentitySource.cs  원격 연결 -> PlatformId. 트랜스포트마다 신원 출처가 달라 여기서 갈린다
 │  ├ DevIdentitySource.cs   MB 개발 KCP 경로. 클라가 보낸 값을 그대로 믿으므로 개발 빌드 밖에서 거부한다
@@ -430,15 +430,15 @@ Main.unity
 ├ Lobby/
 │  ├ LobbyRoster.cs        NB  슬롯 목록(SyncList) 소유, 신원 해석, 이탈 자리 보존과 반환
 │  ├ LobbyRoleCoordinator.cs NB 배분기 호출, 역할 확정, 런 리셋, 일시정지 재개 시 역할 복원
-│  └ LobbySlot.cs          struct 네트워크 직렬화 값 타입. PlatformId가 슬롯의 키다
+│  └ LobbyRoster.cs 안의 LobbySlot struct  네트워크 직렬화 값 타입. PlatformId가 슬롯의 키다
 ├ LobbyRoleAllocator.cs    C#  무기 셔플과 외형 충돌 해결만 담는 순수 계산기. Mirror와
 │                              UnityEngine에 의존하지 않아 접속 없이 결과를 검증할 수 있다.
 │                              이미 가진 무기·외형은 보존해 재접속 후에도 직업이 바뀌지 않는다
-├ RunSceneDirector.cs      NB  [현재] 씬 전환 소유자. Freezing -> Capturing -> Loading ->
+├ RunSceneDirector.cs      NB  [구현완료] 씬 전환 소유자. Freezing -> Capturing -> Loading ->
 │                              WaitingForParticipant -> Binding -> Restoring -> Committing.
 │                              전환 중에는 SceneTransition 정지 사유를 걸어 판정을 멈춘다.
 │                              참가자 식별은 연결 번호가 아니라 인증기의 PlatformId를 쓴다
-├ SessionPersistence.cs    MB  [현재] 붙은 오브젝트를 DontDestroyOnLoad로 옮긴다.
+├ SessionPersistence.cs    MB  [구현완료] 붙은 오브젝트를 DontDestroyOnLoad로 옮긴다.
 │                              이것이 없으면 씬이 바뀔 때마다 런 매니저가 새로 생겨 런 상태를 잃는다
 ├ RunManager.cs            NB  런 상태 머신 + 경과 시간 → 5장. 프로젝트의 심장
 ├ RunPhase.cs              C#  enum { Lobby, Farming, Shrink1, Shrink2, Shrink3, Boss, Result }
@@ -446,16 +446,22 @@ Main.unity
 ├ RunPhaseChangedEvent.cs  struct 서버 프로세스 내부 phase 전환 payload
 ├ RunPhaseTimeline.cs      C#  phase 경계 계산 · 순서/연속성/런 길이 불변식 검사
 ├ RunTimelineBuilder.cs    static BarrierPhaseSO를 순수 타임라인으로 변환
-├ ReviveController.cs      NB  [현재] 실물은 02.Combat/Player/에 있다. 관전 30초와 협동 부활(3m·3초),
+├ ReviveController.cs      NB  [구현완료] 실물은 02.Combat/Player/에 있다. 관전 30초와 협동 부활(3m·3초),
 │                              부활 위치 보정. 노잣돈 차감은 재화 시스템 대기(TODO).
 │                              전멸 감지는 여기가 아니라 서버 플레이어 목록을 가진 PlayerStatus가 한다
 ├ Dev/                     개발 전용 도구 (namespace Geumeum.Network 유지)
-│  ├ FrameRecorder.cs      MB  [현재] 이름과 달리 영상 녹화가 아니라 **성능 측정기**다.
+│  ├ FrameRecorder.cs      MB  [구현완료] 이름과 달리 영상 녹화가 아니라 **성능 측정기**다.
 │  │                           F9/F10 · 전체 #if 가드. Main · Dev_Combat · Dev_Barrier에 배치.
 │  │                           ⚠️ GeumeumBootValidator가 Main 씬에 이것을 강제한다(4장 머리말)
-│  └ SteamLobbyHUD.cs      MB  [현재] 로비 ID 표시·참가용 개발 오버레이. 출시 로비 UI가 아니다.
+│  └ SteamLobbyHUD.cs      MB  [구현완료] 로비 ID 표시·참가용 개발 오버레이. 출시 로비 UI가 아니다.
 │                              전체 #if 가드. Dev_Combat에 배치
-└ AuthorityTickScheduler.cs NB [현재] 서버 전용 공용 시뮬레이션 틱. `FixedUpdate`에서
+├ Steam/                   [구현완료] FizzySteamworks 경로
+│  ├ SteamManager.cs       MB  SteamAPI 초기화와 수명 (Steamworks.NET 표준 구현)
+│  ├ SteamLobbyService.cs  MB  로비 생성·참가·멤버·데이터·초대. 로비 상태의 단일 출처
+│  ├ SteamSessionCoordinator.cs MB 로비와 Mirror 접속을 잇는 세션 단계
+│  ├ SteamMirrorConnector.cs MB 세션 게시 → StartHost → 접속 신호 발송
+│  └ SteamTransportSelector.cs MB 실행 인자로 KCP/Steam 트랜스포트를 고른다
+└ AuthorityTickScheduler.cs NB [구현완료] 서버 전용 공용 시뮬레이션 틱. `FixedUpdate`에서
                                등록 순서(우선순위 정수)대로 콜백 실행:
                                입력 적용(이동) → AI → 투사체 → 능력 판정 → 자원 회복.
                                Rigidbody 조작이 물리 스텝 안에서만 안전하므로 물리 주기를
@@ -473,93 +479,94 @@ Main.unity
 ```
 02.Combat/                 namespace Geumeum.Combat
 ├ Player/
-│  ├ PlayerController.cs   NB  [현재] 이동 입력 Command, sequence 검증, 구르기.
+│  ├ PlayerController.cs   NB  [구현완료] 이동 입력 Command, sequence 검증, 구르기.
 │  │                           서버가 Rigidbody 속도로 이동시키고 Y는 중력에 맡긴다
-│  ├ PlayerMotionModel.cs  C#  [현재] 서버와 클라 예측이 공유하는 순수 이동 계산
-│  ├ PlayerMoveInput.cs    C#  [현재] 순서 · 추정 서버 시각을 포함한 입력 스냅샷
-│  ├ PlayerPrediction.cs   MB  [현재] 매 프레임 로컬 예측 · 미확인 입력 버퍼 · 3단계 재조정
+│  ├ PlayerMotionModel.cs  C#  [구현완료] 서버와 클라 예측이 공유하는 순수 이동 계산
+│  ├ PlayerMoveInput.cs    C#  [구현완료] 순서 · 추정 서버 시각을 포함한 입력 스냅샷
+│  ├ PlayerPrediction.cs   MB  [구현완료] 매 프레임 로컬 예측 · 미확인 입력 버퍼 · 3단계 재조정
 │  │                           (데드존 · 지수 수렴 · 즉시 스냅)
-│  ├ PlayerActionGate.cs   C#  [현재] phase · 생명 상태 · 무기 · 진행 중 행동 · 쿨다운 · 자원 공통 검증
-│  ├ PlayerActionPipeline.cs C# [현재] 단발 행동의 유일한 서버 경로. 중복 검사 → 게이트 →
+│  ├ PlayerActionGate.cs   C#  [구현완료] phase · 생명 상태 · 무기 · 진행 중 행동 · 쿨다운 · 자원 공통 검증
+│  ├ PlayerActionPipeline.cs C# [구현완료] 단발 행동의 유일한 서버 경로. 중복 검사 → 게이트 →
 │  │                           자원 차감 → 커밋을 이 순서로만 밟게 하고 거부 사유를 돌려준다.
 │  │                           Mirror 비의존이라 테스트에서 그대로 부른다. 패링은 지나지 않는다
-│  ├ IPlayerAction.cs      C#  [현재] 행동 하나가 파이프라인에 제공하는 세 조각.
+│  ├ IPlayerAction.cs      C#  [구현완료] 행동 하나가 파이프라인에 제공하는 세 조각.
 │  │                           구현체는 NetworkBehaviour 자신이다(요청마다 객체를 만들지 않는다)
-│  ├ ActionRejection.cs    enum [현재] 거부 사유 7종. 조용한 return과 "입력이 씹혔다"를 가른다
-│  ├ LocalCombatState.cs   static [현재] 로컬 전투 상태를 읽는 창구. HUDController의 자원 바는 현재 PlayerStatus.Local을 직접 구독한다.
+│  ├ ActionRejection.cs    enum [구현완료] 거부 사유 7종. 조용한 return과 "입력이 씹혔다"를 가른다
+│  ├ LocalCombatState.cs   static [구현완료] 로컬 전투 상태를 읽는 창구. HUDController의 자원 바는 현재 PlayerStatus.Local을 직접 구독한다.
 │  │                           이산 전이는 이벤트, 연속값은 프로퍼티. 자기 캐릭터 확보 ·
 │  │                           늦은 구독 재생 · 재접속 시 구독 이관을 여기서 한 번에 푼다
-│  ├ PlayerPresentation.cs NB  [현재] 방향 · 속도를 명시적으로 보관하는 표현 상태.
+│  ├ PlayerPresentation.cs NB  [구현완료] 방향 · 속도를 명시적으로 보관하는 표현 상태.
 │  │                           서버는 수락한 이동, 소유 클라는 입력, 원격은 SyncVar
-│  ├ PlayerAnimationController.cs MB [현재] PlayerPresentation을 읽어 LateUpdate에서
+│  ├ PlayerAnimationController.cs MB [구현완료] PlayerPresentation을 읽어 LateUpdate에서
 │  │                           VisualPivot을 회전시키는 표현 전용. 위치 차분을 쓰지 않는다.
 │  │                           무기별 Animator를 골라 씌우고(짝이 없으면 모델 기본값 폴백)
 │  │                           구르기 · 공격 모션 재생 진입점을 제공한다
-│  ├ PlayerLifeState.cs    enum [현재] Alive · Downed · Spectating · ReviveInvulnerable
-│  ├ PlayerStatus.cs       NB  [현재] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable · IRecoveryTarget
-│  ├ PlayerWeapon.cs       NB  [현재] 현재 무기 SyncVar(초기 1회 배분). 훅이 무기 모델과
+│  ├ PlayerLifeState.cs    enum [구현완료] Alive · Downed · Spectating · ReviveInvulnerable
+│  ├ PlayerStatus.cs       NB  [구현완료] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable · IRecoveryTarget
+│  ├ PlayerWeapon.cs       NB  [구현완료] 현재 무기 SyncVar(초기 1회 배분). 훅이 무기 모델과
 │  │                           애니메이터를 함께 갱신한다. IRunStateCarrier(순서 11) —
-│  │                           씬 전환 뒤 무기를 되붓는다. [계획] 장비/특성 provider의 실제 구현과 소비 연결
+│  │                           씬 전환 뒤 무기를 되붓는다. [예정] 장비/특성 provider의 실제 구현과 소비 연결
 │  │                           (CombatStatsSnapshot · WeaponCombatSnapshot · ICombatLoadoutProvider 계약은 이미 있음)
-│  ├ PlayerWeaponVisual.cs MB  [현재] 활성 캐릭터 모델의 오른손 뼈에 무기 모델을 붙이는 표현 전용.
+│  ├ PlayerWeaponVisual.cs MB  [구현완료] 활성 캐릭터 모델의 오른손 뼈에 무기 모델을 붙이는 표현 전용.
 │  │                           부착 보정값은 아직 전부 0이라 무기가 몸통에 파묻힌다
-│  ├ PlayerCharacter.cs    NB  [현재] CharacterKind SyncVar 훅으로 캐릭터 모델을 켜는 표현 전용.
+│  ├ PlayerCharacter.cs    NB  [구현완료] CharacterKind SyncVar 훅으로 캐릭터 모델을 켜는 표현 전용.
 │  │                           차사 · 신궁 · 무녀 3종 바인딩 완료. 캐릭터가 무기를 정한다.
 │  │                           IRunStateCarrier(순서 10) — 씬 전환 뒤 캐릭터를 되붓는다
-│  ├ PlayerRollController.cs NB [현재] 구르기 Command와 서버 실행 · 무적 구간
-│  ├ PlayerRunAgent.cs     NB  [현재] 런 경계에서 플레이어 상태를 되돌리는 창구(IPlayerRunLifecycle)
-│  ├ PlayerActionContext.cs C# [현재] PlayerActionGate가 읽는 검증 입력 묶음
-│  ├ RequestIdTracker.cs   struct [현재] 요청 ID의 중복 · 역순을 막는다. 가변 struct이므로
+│  ├ HealController.cs     NB  [구현완료] 물약 사용 입력과 서버 회복 요청
+│  ├ PlayerRollController.cs NB [구현완료] 구르기 Command와 서버 실행 · 무적 구간
+│  ├ PlayerRunAgent.cs     NB  [구현완료] 런 경계에서 플레이어 상태를 되돌리는 창구(IPlayerRunLifecycle)
+│  ├ PlayerActionContext.cs C# [구현완료] PlayerActionGate가 읽는 검증 입력 묶음
+│  ├ RequestIdTracker.cs   struct [구현완료] 요청 ID의 중복 · 역순을 막는다. 가변 struct이므로
 │  │                           readonly 필드로 잡으면 방어 복사본이 생겨 동작하지 않는다
-│  ├ PlayerAttack.cs       NB  [현재] 공격의 유일한 클라이언트 Command 진입점. 근접 부채꼴과
+│  ├ PlayerAttack.cs       NB  [구현완료] 공격의 유일한 클라이언트 Command 진입점. 근접 부채꼴과
 │  │                           화살 발사를 AttackReach로 갈라 서버가 판정하고, 수락 시점에
 │  │                           RpcAttackStarted로 공격 시작을 모든 화면에 전파한다.
-│  │                           [현재] 방울 범위 공격·신력 획득·표식 부여와 HealController의 범위 치유
-│  │                           [계획] 장비/특성으로 산출하는 연사 · 관통 · 치유 강화 · 버프 변형
-│  ├ InteractionController.cs NB [계획] 상호작용 Command와 서버 검증
-│  └ LockOnController.cs  NB  [현재] 락온 대상 선택(로컬)과 CmdSetLockOn 서버 검증.
+│  │                           [구현완료] 방울 범위 공격·신력 획득·표식 부여와 HealController의 범위 치유
+│  │                           [예정] 장비/특성으로 산출하는 연사 · 관통 · 치유 강화 · 버프 변형
+│  ├ InteractionController.cs NB [예정] 상호작용 Command와 서버 검증
+│  └ LockOnController.cs  NB  [구현완료] 락온 대상 선택(로컬)과 CmdSetLockOn 서버 검증.
 │                             대상은 (netId + 부위 번호) SyncVar 둘로 확정하고,
 │                             PlayerPresentation에 대상 Transform을 넘겨 FacingDirection을
 │                             덮어쓴다. 카메라에는 CameraFrame으로 값만 민다 → 아래 정정 참고
-├ Weapon/                  [계획] 직업별 실행 계약. Mirror 비의존
+├ Weapon/                  [예정] 직업별 실행 계약. Mirror 비의존
 │  ├ IWeaponAbility.cs / IAbilityRuntime.cs
 │  ├ AbilityRequest.cs / AbilityResult.cs
 │  ├ TargetQuery.cs / ProjectileSpawnRequest.cs
-│  └ SwordAbility.cs / BowAbility.cs / BellAbility.cs / SwordSwingJudge.cs
+│  └ [예정] SwordAbility.cs / BowAbility.cs / BellAbility.cs / SwordSwingJudge.cs
 ├ Parry/
-│  ├ ParryController.cs    NB  [현재] 추정 서버 시각 Command, request/window 검증·소비·수신 마감 처리.
+│  ├ ParryController.cs    NB  [구현완료] 추정 서버 시각 Command, request/window 검증·소비·수신 마감 처리.
 │  │                           window ID는 공격자별 단조 증가 uint, 대상당 활성 창 1개
 │  │                           (새 창이 이전 미소비 창을 무효화)
-│  ├ ParryJudge.cs         C#  [현재] 시간 창 참·거짓만 계산하는 순수 판정
-│  ├ ParryRequest.cs / ParryWindow.cs / ParryResultCode.cs [현재] 요청 · 창 · 결과 코드 값 타입
-│  └ ParryGauge.cs         NB  [현재] 게이지 SyncVar와 누적 · 소비 · 리셋 서버 API.
+│  ├ ParryJudge.cs         C#  [구현완료] 시간 창 참·거짓만 계산하는 순수 판정
+│  ├ ParryRequest.cs / ParryWindow.cs / ParryResultCode.cs [구현완료] 요청 · 창 · 결과 코드 값 타입
+│  └ ParryGauge.cs         NB  [구현완료] 게이지 SyncVar와 누적 · 소비 · 리셋 서버 API.
 │                              치명 배율 roll은 PlayerAttack이 읽어 적용한다.
 │                              빗나가면 소비하지 않는다(2026-09-03 확정)
 ├ Arrow/
-│  ├ ArrowProjectile.cs    NB  [현재] 서버 물리 틱마다 SphereCast로 훑는 궤적 · 명중 · 관통.
-│  │                           netId로 대상 중복을 막는다. [현재] 장애물 판정 · 락온 유도
+│  ├ ArrowProjectile.cs    NB  [구현완료] 서버 물리 틱마다 SphereCast로 훑는 궤적 · 명중 · 관통.
+│  │                           netId로 대상 중복을 막는다. [구현완료] 장애물 판정 · 락온 유도
 │  │                           (TryFindWorldBlock · UpdateGuidance; 활성 WorldMask는 ArrowConfigSO.asset에서 확인)
-│  ├ ArrowLauncher.cs      NB  [계획] 별도 스폰 실행기. 지금은 PlayerAttack이 직접 띄운다
-│  └ ArrowGuidance         [현재] 독립 클래스는 없고 ArrowProjectile.UpdateGuidance에 구현되어 있다.
+│  ├ ArrowLauncher.cs      NB  [예정] 별도 스폰 실행기. 지금은 PlayerAttack이 직접 띄운다
+│  └ ArrowGuidance         [구현완료] 독립 클래스는 없고 ArrowProjectile.UpdateGuidance에 구현되어 있다.
 │                              별도 클래스가 아니라 ArrowProjectile의 서버 틱 안에서 처리한다.
 │                              유도가 락온의 공통 기능이라 연사 · 관통 특성의 축이 되지 않는다
 │                              → 카메라와 락온 12장 · 화살 조준 보정 설계 5.4
 └ Dev/                     개발 전용 도구 (namespace Geumeum.Combat 유지)
-   ├ CharacterPreviewRig.cs MB [현재] 네트워크 없이 캐릭터 3종 × 무기 3종과 애니메이션을 확인하고
+   ├ CharacterPreviewRig.cs MB [구현완료] 네트워크 없이 캐릭터 3종 × 무기 3종과 애니메이션을 확인하고
    │                           무기 부착 보정을 조정해 Player.prefab에 저장하는 리그.
    │                           Dev_Character 씬 전용. 판정 · 스태미나 · 동기화는 확인할 수 없다
-   └ ParryTestDummy.cs     MB  [현재] 패링 검증용 더미. Dev_Combat에 배치.
+   └ ParryTestDummy.cs     MB  [구현완료] 패링 검증용 더미. Dev_Combat에 배치.
                                IParryable 구현이라 #if로 감싸면 계약이 깨진다 — 감싸지 않는다
 ```
 
-> 🔧 **2026-09-05 정정** — 이 트리에 `02.Combat/Camera/`가 있었고 그 아래 `CameraRig.cs [계획]`과
+> 🔧 **2026-09-05 정정** — 이 트리에 `02.Combat/Camera/`가 있었고 그 아래 `CameraRig.cs [예정]`과
 > 폐기 표시된 `LockOnSystem.cs`가 있었다. **둘 다 틀렸다.** 카메라 리그는 `05.Art/Camera/`가 소유하고
 > (`02.Combat`이 `05.Art`를 참조하지 않도록 `CameraFrame`의 yaw 값만 읽는다), 락온은 2026-09-05에
 > 부활해 `Player/`의 `LockOnController.cs`가 된다 — 대상 선택은 로컬이지만 `CmdSetLockOn`은
 > 서버가 검증하고, 대상 방향이 `PlayerPresentation.FacingDirection`을 덮어써 남의 화면에서도 옳게 선다
 > → [카메라와 락온](unity/CAMERA_AND_LOCKON.md) 1장 · 3장 · 11장
 >
-> **2026-09-05 구현 완료.** `[계획]` 표시를 지웠다. 함께 들어온 것은 `00.Common/AimAssistPoint.cs`
+> **2026-09-05 구현 완료.** `[예정]` 표시를 지웠다. 함께 들어온 것은 `00.Common/AimAssistPoint.cs`
 > (계약의 기본 구현)와 `CameraFrame`의 락온 값 셋이다. **`CameraFrame`은 이제 양방향이다** —
 > yaw는 `05.Art → 00.Common → 02.Combat`, 락온은 `02.Combat → 00.Common → 05.Art`로 흐른다.
 > 어느 쪽도 상대 어셈블리를 참조하지 않으므로 8.1 의존 방향은 그대로다
@@ -593,6 +600,7 @@ Main.unity
 ```
 03.AI/                     namespace Geumeum.AI
 ├ Enemy/
+│  ├ EnemyAnimationController.cs MB [구현완료] 잡귀 애니메이션 파라미터 갱신 (로컬 전용)
 │  ├ EnemyController.cs    NB  잡귀 공통: 추적 · 공격 실행 · 사망 → 드랍/경험치 이벤트 발행.
 │  │                           EnemySO의 종류 필드로 구동 (종류별 상속 대신 데이터 구동)
 │  ├ EnemyStatus.cs        NB  HP SyncVar + 강화 배수 적용. IDamageable 구현.
@@ -608,50 +616,66 @@ Main.unity
 │  │                           결계 축소 시 범위 밖 클러스터 비활성화
 │  └ SpawnCluster.cs       MB  씬에 배치되는 거점 마커 (3~5마리). 위치 고정 · 구성 랜덤
 └ Boss/
-   ├ BossController.cs        NB [현재] 페이즈 전환(EnterHealthRatio) · 대상 스캔(RefreshTarget) ·
+   ├ BossController.cs        NB [구현완료] 페이즈 전환(EnterHealthRatio) · 대상 스캔(RefreshTarget) ·
    │                              공격 instance ID 발급 · 그로기 게이지 상태머신(Active/Groggy/Immune)
    │                              관리, 판정 자체는 현재 페이즈 상태에 위임.
-   │                              [현재] 예고는 BossTelegraphCue SyncVar 하나로 전달하고
+   │                              [구현완료] 예고는 BossTelegraphCue SyncVar 하나로 전달하고
    │                              IBossTelegraphSource로 공개한다(빈 RPC 두 개를 대체).
-   │                              [현재] 전환 잠금(TransitionLockDuration) · 그로기 본체 피해 배율 ·
+   │                              [구현완료] 전환 잠금(TransitionLockDuration) · 그로기 본체 피해 배율 ·
    │                              정지(비활성화, 재개 가능)와 종료(사망 · 런 이탈 · 스폰 해제) 분리.
-   │                              [현재] 무녀 표식 공명 카운터(패턴 종료 시 1회).
-   │                              [계획] 신궁 시전 취소 카운터 · 예고 view · 다중 cue ·
+   │                              [구현완료] 무녀 표식 공명 카운터(패턴 종료 시 1회).
+   │                              [예정] 신궁 시전 취소 카운터 · 예고 view · 다중 cue ·
    │                              syncInterval 확정
-   ├ BossStatus.cs            NB [현재] 보스 HP SyncVar + 현재 본체 피해 배율. IDamageable
-   ├ BossPhaseStateBase.cs    C#  [현재] 페이즈 추상 클래스 (enum+switch 금지 — 기술 구현 4.2).
+   ├ BossStatus.cs            NB [구현완료] 보스 HP SyncVar + 현재 본체 피해 배율. IDamageable
+   ├ BossPhaseStateBase.cs    C#  [구현완료] 페이즈 추상 클래스 (enum+switch 금지 — 기술 구현 4.2).
    │                              CancelActiveAttack()로 진행 중 판정 · 패링 창 · 예고를 정리하고,
    │                              Exit()는 멱등이라 종료된 페이즈는 다시 공격하지 않는다
-   ├ Phase1State.cs           C#  [현재] 1페이즈 MVP: 오프닝 고정 시퀀스(1→2→4) 이후 거리 3단
+   ├ Phase1State.cs           C#  [구현완료] 1페이즈 MVP: 오프닝 고정 시퀀스(1→2→4) 이후 거리 3단
    │                              필터 + 균등 무작위 추첨. 템플릿 넷(MeleeArc·TargetedDash·
    │                              MarkedCircle·ConeBurst) 전부 단일 판정으로 구현됨
-   ├ Phase2State.cs           C#  [현재] 2페이즈 MVP: 패턴 6~9(패턴 10 백귀야행은 꼬리 부위
-   │                              파괴 시스템 선행 필요 — [계획], BOSS_PATTERN_CONTRACT.md 4.1)
-   ├ BossPatternRunner.cs     C#  [현재] MeleeArc 부채꼴 판정(NonAlloc), netId 중복 제거
-   ├ BossAttackExecution.cs   C#  [현재] 보스 공격 1회의 IParryable 구현체. 공격마다 새 인스턴스로
+   ├ Phase2State.cs           C#  [구현완료] 2페이즈 MVP: 패턴 6~9(패턴 10 백귀야행은 꼬리 부위
+   │                              파괴 시스템 선행 필요 — [예정], BOSS_PATTERN_CONTRACT.md 4.1)
+   ├ BossPatternRunner.cs     C#  [구현완료] MeleeArc 부채꼴 판정(NonAlloc), netId 중복 제거
+   ├ BossAttackExecution.cs   C#  [구현완료] 보스 공격 1회의 IParryable 구현체. 공격마다 새 인스턴스로
    │                              늦은 패링 통지를 차단(창귀와 동일 패턴)
-   ├ BossSpawner.cs           NB [현재] Boss_Proxy.prefab 스폰
+   ├ BossSpawner.cs           NB [구현완료] Boss_Proxy.prefab 스폰
    └ Editor/
-      └ BossExecutionTests.cs C# [현재] EditMode. 취소 · 종료 · 정지/재개 · 그로기 배율 ·
+      └ BossExecutionTests.cs C# [구현완료] EditMode. 취소 · 종료 · 정지/재개 · 그로기 배율 ·
                                  예고 만료의 서버 계약을 고정한다
 ```
 
 `BossTelegraphCue.cs`(서버→클라 공격 예고 값 타입, struct)는 공용 스키마라 `00.Common/Types/`에 있다 → 4.1절.
 `Boss/`의 서버 실행부(전환 · 취소 · 예고 · 그로기 판정)는 폴더 소유와 별개로 **서버 담당 @AidenKim923이 구현한다.**
-꼬리 3덩이 부위 파괴·25% 하드 게이트·백귀야행(패턴 10)은 전부 [계획]이며 아직 파일이 없다 —
-BOSS_PATTERN_CONTRACT.md 8.2·4.1절 참조.
+**갱신** — 위 문단은 "아직 파일이 없다"였으나 아래 파일이 생겼다. 다만 **실제 3인 검증은 아직이라
+[구현완료]로 올리지 않았다.** EditMode와 코드 존재만 확인한 상태다.
 
-### 4.4 04.Systems — 장비 · 경제 · 성장 · 점수 · 결계 (소유: 게임플레이 시스템 파트 @kjw1237)
+```
+03.AI/Boss/  (추가분)
+├ BossPartController.cs   NB  꼬리 부위 HP와 파괴 상태. 부위별 판정과 본체 하한을 서버가 관리
+├ BossPartHitbox.cs       NB  부위 콜라이더 → 부위 ID 대응
+├ BossSoulController.cs   NB  원혼 생명 주기와 카운터
+├ BossSoulHitbox.cs       NB  원혼 피격 판정
+├ BossPatternSelector.cs  C#  ★거리 · 개별 쿨다운 · 직전 패턴 필터 후 균등 추첨
+└ BossPatternExecutionSpec.cs C# SO 실행값 snapshot. ⚠️ ResolveLegacyShape에 낡은 형상 상수가
+                              남아 있다(1.37/10.26 등). SO 검증기가 막아 도달 불가한 죽은 코드다
+```
+
+25% 하드 게이트·백귀야행(패턴 10)은 여전히 [예정]이다 — BOSS_PATTERN_CONTRACT.md 8.2·4.1절 참조.
+
+`02.Combat/Player/PrecisionShotController.cs`·`PrecisionShotRules.cs`(신궁 정밀 사격)와
+`SupportBuffController.cs`·`ReviveResolutionRules.cs`도 추가됐다. 같은 이유로 미검증이다.
+
+### 4.4 04.Systems — 장비 · 경제 · 성장 · 결과 · 상호작용 · 결계 (소유: 게임플레이 시스템 파트 @kjw1237)
 
 ```
 04.Systems/                namespace Geumeum.Systems
 ├ Equipment/
-│  ├ EquipmentInstance.cs  C#  개별 드랍 결과 (굴려진 공격력 · 특수옵션). 직렬화 가능 구조로
+│  ├ EquipmentInstance.cs  C#  [예정] 개별 드랍 결과 (굴려진 공격력 · 특수옵션). 직렬화 가능 구조로
 │  │                           만든다. Unity/SO 참조는 보유하지 않는다. 필드(2026-08-30 결정):
 │  │                           WeaponKind · ItemGrade · InstanceId(uint, 서버 발급) ·
 │  │                           AttackPower(float, 등급 롤 범위 내 확정값) ·
 │  │                           Options({EquipmentOptionKind, float} 목록)
-│  ├ EquipmentInstanceSerializer.cs C# Mirror Reader/Writer 확장. 장비 ID · 종류 · 등급 · 롤 ·
+│  ├ EquipmentInstanceSerializer.cs C# [예정] Mirror Reader/Writer 확장. 장비 ID · 종류 · 등급 · 롤 ·
 │  │                           옵션 ID/값만 명시적으로 직렬화
 │  ├ EquipmentGenerator.cs C#  ★2단계 랜덤: 필드 레벨 → 등급 룰렛 → 롤. 서버에서만 호출.
 │  │                           재조정권 = 재생성, 등급 상승권 = 상위 EquipmentSO로 교체 후 재생성
@@ -665,20 +689,35 @@ BOSS_PATTERN_CONTRACT.md 8.2·4.1절 참조.
 │  │                           (동시 습득 경합은 서버 도착 순서로 해소)
 │  ├ InventoryRules.cs     C#  ★Mirror 비의존 순수 규칙. 검증 후 바꿀 칸 하나만 계산해
 │  │                           InventoryWrite로 돌려준다. EditMode 20건
-│  └ Editor/InventoryRulesTests.cs
-├ Economy/
+│  ├ EquipmentTransferService.cs NB 파티원 간 장비 양도. 제안 · 수락 · 거절 · 취소를
+│  │                           무권한 Command로 받고 서버가 호출자와 양쪽 revision을 검증
+│  │                           [구현완료]
+│  └ Editor/InventoryRulesTests.cs · InventoryControllerTests.cs · EquipmentSwapRulesTests.cs
+├ Interaction/             [구현완료]
+│  ├ InteractionController.cs NB 상호작용 입력과 줍기 · 장착 요청. 판정은 전부 서버
+│  ├ InteractionRules.cs   C#  ★거리 · 생사 · 씬 · 비전투 유예 판정 전용 순수 C#
+│  ├ DroppedItem.cs        NB  필드에 떨어진 장비. IInteractable, 습득은 [Command] → 서버 확정
+│  └ ShopInteractionPoint.cs NB 객주 지점. 서버가 개방 상태와 거리를 검사한다
+├ Economy/                 [구현완료]
 │  ├ CurrencyManager.cs    NB  팀 공용 노잣돈 단일 SyncVar. 구매 · 부활 차감 요청을
 │  │                           서버 큐로 순차 처리 — 잔액 음수 방지
-│  └ ShopKeeper.cs         NB  객주 NPC. RunPhase == Shrink2에만 IInteractable 활성.
-│                              상품 · 가격은 ShopSO 참조
-├ Growth/
+│  ├ CurrencyRules.cs      C#  ★지출 계획과 잔액 판정 전용 순수 C#
+│  ├ ShopTransactionService.cs NB 구매 · 물약 사용 · 재조정권 · 상승권. 무권한 Command에
+│  │                           호출자 검증 + revision + 재전송 방지를 걸어 원자로 처리
+│  ├ TransactionRequestRules.cs C# ★요청 헤더 수명과 거부 사유 판정. run/scene/세대 대조
+│  └ TransactionServiceUtility.cs C# 상점과 양도가 공유하는 호출자 · 생사 · 거리 검증
+├ Growth/                  [구현완료]
 │  ├ GrowthManager.cs      NB  경험치(파티 공유) · 레벨 · 특성 포인트. LevelCurveSO 참조
-│  └ TalentController.cs   NB  노드 찍기 · 무료 초기화 · 무기 교체 시 자동 초기화.
-│                              효과 적용은 이벤트로 각 파트에 통지 (예: 패링 판정 창 확대)
-├ Score/
-│  ├ ScoreManager.cs       NB  런 동안 처치 수 · 사망 수 집계, 종료 시 ScoreRuleSO로 정산
-│  └ LeaderboardService.cs C#  기록 저장. 저장 방식 미정 — 로컬 JSON으로 시작하고 교체 가능하게
-│                             인터페이스 뒤에 숨긴다
+│  ├ GrowthRules.cs        C#  ★누적 경험치 → 레벨 · 다중 레벨업 · HP 증가분 판정
+│  ├ TalentController.cs   NB  노드 찍기 · 무료 초기화 · 무기 교체 시 자동 초기화.
+│  │                           효과 적용은 이벤트로 각 파트에 통지 (예: 패링 판정 창 확대)
+│  ├ TalentRules.cs        C#  ★선행 노드 · 포인트 비용 · 효과 종류 판정
+│  └ CombatStatCalculator.cs C# ★장비 · 성장 · 특성을 합쳐 전투 수치를 산출
+├ Results/                 [구현완료] (구 Score/)
+│  ├ RunStatistics.cs      NB  런 동안 서버가 확정한 처치 · 사망 · 피해 · 회복 사실 수집
+│  ├ RunResultRecorder.cs  NB  결과 확정 시점에 사실을 동결해 점수 provider로 넘긴다
+│  └ RunLeaderboardStore.cs C# 호스트 로컬 JSON 기록. 배타 락 · 원자적 쓰기 · 중복 제거 ·
+│                             스키마 버전. **이 프로젝트에서 유일하게 영속되는 데이터**
 └ Barrier/
    ├ BarrierController.cs  NB  현재 단계 · 중심 · 반경 SyncVar. 중심은 씬의 BarrierCenter 고정,
    │                          30초 반경 보간, 10초 전 경고 이벤트,
@@ -695,20 +734,20 @@ BOSS_PATTERN_CONTRACT.md 8.2·4.1절 참조.
 ```
 05.Art/                    namespace Geumeum.Art
 ├ DayCycleController.cs    MB  RunManager의 경과 시간 → DayCycleSO로 조명 · 스카이박스 · 안개
-├ BarrierVisual.cs         MB  BarrierController의 반경 SyncVar → 원통 셰이더 · 경계 파티클
+├ BarrierVisual.cs         MB  [예정] BarrierController의 반경 SyncVar → 원통 셰이더 · 경계 파티클
 ├ CombatFeedbackImpl.cs    MB  ICombatFeedback 구현체: 히트 이펙트, 셰이크, 패링 슬로우모션.
 │                              OnEnable/OnDisable에서 CombatFeedbackLocator에 등록·해제 → 8.3
-├ ScreenEffects.cs         MB  저체력 · 결계 밖 · 쇠약 화면 효과
-├ Boss/                    [현재] 보스 아레나 연출
+├ ScreenEffects.cs         MB  [예정] 저체력 · 결계 밖 · 쇠약 화면 효과
+├ Boss/                    [구현완료] 보스 아레나 연출
 │  └ BossArenaPhaseView.cs MB  페이즈 루트 · 안개 · 하늘 · 바닥 머티리얼 · 달 원반을 한 번에 교체.
 │                              판정에 관여하지 않는다. 서버 페이즈 신호에 연결하는 것은 미착수
-├ Camera/                  [현재] → 카메라와 락온 사양
+├ Camera/                  [구현완료] → 카메라와 락온 사양
 │  ├ CameraRig.cs          MB  추적 · 충돌 · 셰이크 · 줌. LateUpdate.
 │  │                           Target이 바뀔 수 있어야 한다 — 관전 카메라가 같은 물건이다.
 │  │                           커서 잠금은 Update가 소유한다 — ESC로 CameraFrame.InputEnabled를
 │  │                           뒤집는다. LateUpdate는 대상이 없으면 먼저 빠져나가 로비에서 안 먹힌다
-│  └ CutsceneDirector.cs   MB  페이즈 전환 8초. Timeline이 카메라를 잡고 끝나면 리그에 돌려준다
-├ Dev/                     [현재] 개발 전용 도구 (namespace Geumeum.Art 유지)
+│  └ CutsceneDirector.cs   MB  [예정] 페이즈 전환 8초. Timeline이 카메라를 잡고 끝나면 리그에 돌려준다
+├ Dev/                     [구현완료] 개발 전용 도구 (namespace Geumeum.Art 유지)
 │  ├ CameraTuneOverlay.cs  MB  게임을 끄지 않고 카메라 값을 만지는 F11 패널. 조정 항목은
 │  │                           CameraConfigSO.Tunables가 소유한다 — 설명 문구가 필드에서
 │  │                           멀어지면 값을 고칠 때 같이 안 고쳐져 거짓말이 된다.
@@ -727,11 +766,24 @@ BOSS_PATTERN_CONTRACT.md 8.2·4.1절 참조.
 ```
 06.UI/                     namespace Geumeum.UI
 ├ Combat/    HUD(HP · 스태미나 · 신력 · 패링 게이지), 정밀 조준 상태, 무녀 표식 슬롯, 관전 화면
+│  └ HUDController.cs
 ├ AI/        보스 HP 바
-├ Systems/   인벤토리, 특성 트리, 객주 상점, 정산 · 리더보드,
-│            결계 경고 배너 · 미니맵 원
+├ Lobby/     [구현완료]
+│  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
+│  ├ SteamLobbyPanel.cs    MB  Steam 로비 화면. 방 만들기 · 로비 ID 참가 · 정원이 차면 시작.
+│  │                           런이 시작되면 접히고, 열려 있는 동안 커서 소유권을 가진다
+│  └ Editor/SteamLobbyUiBuilder.cs  위 화면을 SessionNetwork 프리팹 안에 짓는 에디터 도구
+├ Systems/   [구현완료] 인벤토리, 특성 트리, 객주 상점, 정산 · 리더보드
+│  ├ FunctionalManagementPanel.cs · RunStatusPanel.cs · RunResultPanel.cs ·
+│  │  RunResultViewAdapter.cs · FunctionalUiIndexedButton.cs · FunctionalUiText.cs
+│  └ Editor/RunManagementUiBuilder.cs  위 화면을 SessionManagers 프리팹 안에 짓는 에디터 도구
 └ Art/       페이드 · 트랜지션, 연출성 UI
 ```
+
+> ⚠️ **`*UiBuilder` 두 개는 임시 개발용이다.** `SteamLobbyUiBuilder`와 `RunManagementUiBuilder`는
+> `new GameObject`로 uGUI 계층을 만든다 — 아래 "씬·프리팹 우선" 규칙에 어긋난다.
+> 3인 접속을 당장 돌려 보려고 만든 것이고, **UI 담당(@kjw1237)이 만들 최종 화면은 이 방식이 아니다.**
+> 최종 UI가 들어오면 두 빌더와 그 산출물은 걷어낸다. 새 UI를 이 방식으로 만들지 않는다. [예정]
 
 폴더는 화면이 참조하는 게임 상태의 출처를 기준으로 그대로 나눠 두되(코드가 어느 시스템의 SyncVar · 이벤트를 읽는지 한눈에 보이도록), 소유자는 폴더 구분과 무관하게 @kjw1237 한 명이다.
 
@@ -789,7 +841,7 @@ RunManager : NetworkBehaviour
 **보스 사망→Victory 연결은 2026-09-08 구현했다(U03, 미검증).** 실제 정산 provider·결과 집계는
 남아 있다. ScoreRuleSO.CalculateFinalScore 계산식은 이미 있다.
 
-#### 슬롯의 키는 connectionId가 아니라 PlatformId다 [현재]
+#### 슬롯의 키는 connectionId가 아니라 PlatformId다 [구현완료]
 
 `connectionId`는 재접속마다 새로 발급되어 같은 사람을 알아볼 수 없다. 그래서 슬롯과 이탈 자리 보존은
 `PlayerPlatformId`로 키를 잡는다. Steam 빌드는 FizzySteamworks가 `conn.address`로 주는 SteamID64를,
@@ -802,7 +854,7 @@ RunManager : NetworkBehaviour
 신원으로 키를 잡으면서 두 명 이상이 동시에 이탈해도 각자 자기 자리로 돌아온다.
 예전 선입선출 큐에서는 돌아오는 순서에 따라 자리가 뒤바뀔 수 있었다.
 
-#### 이탈은 런을 끝내지 않는다 - 일시정지 [현재]
+#### 이탈은 런을 끝내지 않는다 - 일시정지 [구현완료]
 
 런 도중 누가 빠지면 `Result`로 확정하지 않고 `RunManager.PauseRun`이 세계를 얼린다.
 보스전 30분을 진행하다 한 명이 튕겼다고 런을 버리면 복구가 아니라 손실이기 때문이다.
@@ -817,9 +869,9 @@ phase와 직교하고, `RunPhase`에 값을 더하면 전진 전용 가드와 �
 - 재개: 돌아온 사람이 두고 간 자리와 역할을 물려받고, 멈춰 있던 시간만큼 시계를 밀어 경과 시간을 보존한다
 - 포기: 대기를 끊으면 그때 `PlayerLeft`로 확정하고 아래 복귀 경로를 탄다
 
-기다리는 시간에 제한은 없다 [현재]. 남은 인원이 대기를 끊는 UI는 아직 없어 Dev 단축키로만 가능하다 [계획].
+기다리는 시간에 제한은 없다 [구현완료]. 남은 인원이 대기를 끊는 UI는 아직 없어 Dev 단축키로만 가능하다 [예정].
 
-#### Result → Lobby 복귀 [현재]
+#### Result → Lobby 복귀 [구현완료]
 
 `Result`는 종착점이 아니다. 도달하고 `Constants.Network.RESULT_TO_LOBBY_SECONDS` 뒤에
 `RunManager.ServerReturnToLobby`가 `Lobby`로 되돌린다. 같은 프레임에 되돌리지 않는 이유는
@@ -833,7 +885,7 @@ SyncVar가 마지막 값만 보내 클라이언트가 `Result`를 아예 수신�
 나눠 처리한다. 역방향은 `SetPhase`만 허용하므로 런 시계가 지나간 경계를 되돌릴 수는 없다.
 outcome은 여전히 `TryFinishRun`이 한 번만 커밋한다.
 
-`SpawnManager`의 생존 잡귀 정리는 [현재] 구현되어 있다. RunResetEvent를 구독하고
+`SpawnManager`의 생존 잡귀 정리는 [구현완료] 구현되어 있다. RunResetEvent를 구독하고
 ServerDespawnAll로 자신이 스폰한 개체를 지운 뒤 ServerResetState를 호출한다. 두 판 연속의
 런타임 검증은 별도다. 보스 등 다른 스포너의 개체 정리를 뜻하지 않는다.
 
@@ -863,7 +915,7 @@ Assets/09.Data/
 ├ Resources/GameDB.asset        루트 GameDatabaseSO (Resources.Load 진입점)
 ├ Combat/CombatConfigSO.asset 스태미나 · 신력 · 이동 · 구르기 · 패링 (HP 제외)
 ├ Arrow/ArrowConfigSO.asset   화살 발사각 보정 · 유도 각도 · 지속 시간
-├ Weapon/WeaponAbilityConfigSO.asset [계획] 직업별 공격 능력의 사거리 · 범위 · 각도 ·
+├ Weapon/WeaponAbilityConfigSO.asset [예정] 직업별 공격 능력의 사거리 · 범위 · 각도 ·
 │                             쿨다운 · 자원 비용 · 치유/버프 환산 비율 (공격력 자체는 미보유)
 ├ Equipment/EquipmentSO.asset
 ├ DropTable/DropTableSO.asset

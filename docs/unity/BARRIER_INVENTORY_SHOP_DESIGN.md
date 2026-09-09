@@ -3,7 +3,7 @@
 > **2026-09-08 — 인벤토리 절은 폐기됐다.** 팀장 결정 D12로 인벤토리가 **4x3 12칸 통합**이 되었다.
 > 장비 · 물약 · 권을 한 인벤토리에 담고, 물약을 슬롯 밖 별도 수량으로 두던 규칙과 "정확히 4칸"
 > 불변식은 더 이상 유효하지 않다. 아래 본문의 4칸 · 물약 별도 스택 · `InventorySlotNet` 서술을
-> 근거로 구현하지 않는다. 현행 기준은 [잔여 서버 기능 기획서](../06-server-systems-implementation-design.md)의
+> 근거로 구현하지 않는다. 현행 기준은 [프로젝트 구조 설계서](../04-architecture.md)의
 > 6장과 17장 D12이며, 실제 코드는 `Assets/01.Scripts/04.Systems/Inventory/`다.
 > 결계와 상점 절은 그대로 유효하다.
 
@@ -217,7 +217,7 @@ if (BarrierStateLocator.Current.IsOutsideTarget(enemy.position)) { /* 안쪽으�
 
 `EquipmentInstance`와 네트워크용 struct는 동일한 의미를 갖되 Unity 오브젝트 참조를 포함하지 않는다. Mirror는 지원 기본 타입으로 구성된 struct를 Remote Action/SyncList에 사용할 수 있고, struct는 통째로 교체해야 변경 동기화가 된다고 문서화한다. 따라서 슬롯 내부 필드만 바꾸지 말고 새 `InventorySlotNet` 값으로 `slots[index] = changed`를 수행한다. [Mirror Data Types](https://mirror-networking.gitbook.io/docs/manual/guides/data-types)
 
-`Assets/01.Scripts/02.Combat/Player/PlayerWeapon.cs`의 `Geumeum.Combat.PlayerWeapon`은 `IWeaponLoadoutTarget`과 snapshot SyncVar hook을 구현하도록 확장한다. 시작 무기는 기존 `ServerSetInitialWeapon`에서 `EquipmentSO`의 일반 등급 롤 범위를 서버가 한 번 굴려 `InstanceId == 0` snapshot으로 만든다. 첫 교환 때 인벤토리가 이전 시작 무기에 새 서버 ID를 부여한다. 공격력은 `[계획]`인 `WeaponAbilityConfigSO`에 넣지 않으며, 실제 공격 소비는 `PlayerAttack` 구현 뒤 연결한다.
+`Assets/01.Scripts/02.Combat/Player/PlayerWeapon.cs`의 `Geumeum.Combat.PlayerWeapon`은 `IWeaponLoadoutTarget`과 snapshot SyncVar hook을 구현하도록 확장한다. 시작 무기는 기존 `ServerSetInitialWeapon`에서 `EquipmentSO`의 일반 등급 롤 범위를 서버가 한 번 굴려 `InstanceId == 0` snapshot으로 만든다. 첫 교환 때 인벤토리가 이전 시작 무기에 새 서버 ID를 부여한다. 공격력은 `[예정]`인 `WeaponAbilityConfigSO`에 넣지 않으며, 실제 공격 소비는 `PlayerAttack` 구현 뒤 연결한다.
 
 장착 교환은 다음 순서로 서버 한 프레임 안에서 끝낸다.
 

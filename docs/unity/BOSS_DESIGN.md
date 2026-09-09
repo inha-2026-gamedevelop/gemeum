@@ -68,7 +68,7 @@ MVP 패턴은 아래 8개다. **보스 정체는 2026-09-03에 구미호로 개�
 | 보스 위치·회전 | 서버 `NavMeshAgent`/이동 실행 | 서버 상태 보간 | 네트워크 결과가 달라지는 이동이므로 서버가 원본이다. |
 | 애니메이션·카메라·파티클 | 공격 시작/피격 결과 이벤트만 서버에서 전달 | 각 클라이언트가 재생 | 판정과 표현을 분리하고 GTX 1060에서 네트워크·CPU 부하를 줄인다. |
 
-`[Command]`는 보스에 두지 않는다. 패링 요청은 소유 플레이어의 현재 `ParryController` Command를 거친다. 공격 요청은 `docs/04-architecture.md`에서 `[계획]`인 `PlayerAttack`이 구현된 뒤 그 소유 플레이어 Command를 거친다. 따라서 보스의 플레이어 피해 수신 통합은 `PlayerAttack` 수직 슬라이스 이후 단계이며, 보스가 클라이언트 입력을 직접 받거나 `requiresAuthority = false`를 쓸 이유는 없다.
+`[Command]`는 보스에 두지 않는다. 패링 요청은 소유 플레이어의 현재 `ParryController` Command를 거친다. 공격 요청은 `docs/04-architecture.md`에서 `[예정]`인 `PlayerAttack`이 구현된 뒤 그 소유 플레이어 Command를 거친다. 따라서 보스의 플레이어 피해 수신 통합은 `PlayerAttack` 수직 슬라이스 이후 단계이며, 보스가 클라이언트 입력을 직접 받거나 `requiresAuthority = false`를 쓸 이유는 없다.
 
 ## 3. 구조
 
