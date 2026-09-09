@@ -39,9 +39,12 @@ namespace Geumeum.AI
         *                Fields
         ****************************************/
 
-        private const float TARGET_SCAN_INTERVAL    = 0.5f; // 매 틱 스캔 대신 주기 스캔, EnemyController와 같은 간격
+        private const float TARGET_SCAN_INTERVAL    = 1f;   // 근접 어그로 재평가 주기(BOSS_PATTERN_CONTRACT.md 5장, 2026-09-09: 12초 -> 1초)
         private const float TARGET_SCAN_RADIUS      = 30f;  // 보스 사거리들보다 넉넉히 잡는다
         private const int   TARGET_SCAN_BUFFER_SIZE = Constants.Network.MAX_PLAYERS + 1;
+
+        // 5.1절 오프탱크 응징(슬롯 밖 규칙). 패턴 추첨과 무관하게 12초마다 강제 발동한다
+        private const float OFF_TANK_STRIKE_INTERVAL = 12f;
 
         [SerializeField] private BossStatus _status;
 
@@ -56,6 +59,8 @@ namespace Geumeum.AI
         private BossPatternSO       _bossData;
         private GameEventBus        _eventBus;
         private float               _targetScanTimer         = 0f;
+        private float               _offTankStrikeTimer      = 0f;
+        private NetworkTransformBase _networkTransform;
         private uint                _nextAttackInstanceId    = 0u;
         private float               _transitionLockRemaining = 0f;
         private bool                _serverStopped           = false;
@@ -85,6 +90,7 @@ namespace Geumeum.AI
                 TryGetComponent(out _status);
             }
 
+            TryGetComponent(out _networkTransform); // 5.1절 오프탱크 응징의 순간이동에 쓴다, 없으면 폴백(아래 참고)
             _playerLayerMask = LayerMask.GetMask(Constants.Layer.PLAYER);
         }
 
@@ -291,7 +297,76 @@ namespace Geumeum.AI
                 return; // 그로기 중엔 패턴을 새로 고르거나 발동하지 않는다
             }
 
+            TickOffTankStrike(deltaTime);
+
             _currentPhaseState.Tick(deltaTime);
+        }
+
+        // 5.1절 오프탱크 응징. 다른 패턴이 진행 중이면 TryForceOffTankStrike가 false를 돌려주고
+        // 타이머는 계속 누적된다 - Idle로 돌아오는 즉시 다음 틱에서 발동한다
+        [Server]
+        private void TickOffTankStrike(float deltaTime)
+        {
+            _offTankStrikeTimer += deltaTime;
+            if (_offTankStrikeTimer < OFF_TANK_STRIKE_INTERVAL)
+            {
+                return;
+            }
+
+            Transform offTankTarget = SelectOffTankTarget();
+            if ((offTankTarget != null) && _currentPhaseState.TryForceOffTankStrike(offTankTarget))
+            {
+                _offTankStrikeTimer = 0f;
+            }
+        }
+
+        // 현재 근접 어그로 대상을 뺀 생존자 중 최근접자. 후보가 없으면(생존자가 근접 대상
+        // 하나뿐) null - 호출부가 이번 주기를 건너뛴다
+        [Server]
+        private Transform SelectOffTankTarget()
+        {
+            int count = Physics.OverlapSphereNonAlloc(transform.position, TARGET_SCAN_RADIUS, _targetScanBuffer, _playerLayerMask);
+
+            Transform currentTank     = _currentPhaseState.Target;
+            Transform nearest         = null;
+            float     nearestDistance = float.MaxValue;
+
+            for (int i = 0; i < count; ++i)
+            {
+                if ((_targetScanBuffer[i].TryGetComponent(out IDamageable damageable)) && (damageable.IsDead))
+                {
+                    continue; // RefreshTarget과 같은 규칙 - 관전 중인 플레이어는 노려도 무의미하다
+                }
+
+                Transform candidate = _targetScanBuffer[i].transform;
+                if (ReferenceEquals(candidate, currentTank))
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(transform.position, candidate.position);
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                    nearest         = candidate;
+                }
+            }
+
+            return nearest;
+        }
+
+        /// <summary> 서버에서 순간이동시키고 클라이언트에 즉시 방송한다(보간 없음). NetworkTransform이 없으면 위치만 옮긴다 </summary>
+        [Server]
+        internal void ServerTeleport(Vector3 destination, Quaternion rotation)
+        {
+            if (_networkTransform != null)
+            {
+                _networkTransform.ServerTeleport(destination, rotation);
+            }
+            else
+            {
+                transform.SetPositionAndRotation(destination, rotation);
+            }
         }
 
         // 그로기와 면역의 시간만 진행한다. 게이지 감소는 카운터 수락 경로가 맡는다.

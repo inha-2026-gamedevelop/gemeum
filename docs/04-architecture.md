@@ -621,14 +621,21 @@ Main.unity
    ├ BossStatus.cs            NB [현재] 보스 HP SyncVar + 현재 본체 피해 배율. IDamageable
    ├ BossPhaseStateBase.cs    C#  [현재] 페이즈 추상 클래스 (enum+switch 금지 — 기술 구현 4.2).
    │                              CancelActiveAttack()로 진행 중 판정 · 패링 창 · 예고를 정리하고,
-   │                              Exit()는 멱등이라 종료된 페이즈는 다시 공격하지 않는다
-   ├ Phase1State.cs           C#  [현재] 1페이즈 MVP: 오프닝 고정 시퀀스(1→2→4) 이후 거리 3단
-   │                              필터 + 균등 무작위 추첨. 패턴 1(여우불 봉 3연격)은 진짜 3연타
-   │                              구조(1·2타 패링 불가, 3타만 패링). 패턴 3(TargetedDash)은
-   │                              직전 지목자 제외 규칙 구현됨(SelectDashTarget). 나머지
-   │                              (MarkedCircle·ConeBurst)은 아직 단일 판정 MVP.
-   │                              [계획] 패턴 3 DashTrackRatio(앞 절반 추적), 패턴 4·7·8
-   │                              직전 지목자 제외 확장, 패턴 5 신궁 시전 중단
+   │                              Exit()는 멱등이라 종료된 페이즈는 다시 공격하지 않는다.
+   │                              TryForceOffTankStrike()는 5.1절 오프탱크 응징 훅 - 기본 false,
+   │                              페이즈가 지원할 때만 override
+   ├ Phase1State.cs           C#  [현재] 1페이즈 MVP: 오프닝 고정 시퀀스(1→2→3→4) 이후 거리 2단
+   │                              필터(근접·중거리) + 균등 무작위 추첨. 패턴 1(여우불 봉 3연격)은
+   │                              진짜 3연타 구조(1·2타 패링 불가, 3타만 패링). 패턴 3
+   │                              (TargetedDash)은 2026-09-09부터 평소 추첨에서 빠지고 오프닝
+   │                              1회용으로만 남았다 - 직전 지목자 제외(SelectDashTarget)와
+   │                              DashTrackRatio(예고 앞 절반 추적, 11.2절) 둘 다 구현돼 있지만
+   │                              이제 오프닝에서만 관찰된다. 원거리 압박은 TryForceOffTankStrike
+   │                              (BossController가 12초마다 강제 발동, 대상 등 뒤 0.5m 순간이동 +
+   │                              반월 베기)가 대신한다. 나머지(MarkedCircle·ConeBurst)는 아직
+   │                              단일 판정 MVP.
+   │                              [계획] 패턴 4·7·8 직전 지목자 제외 확장, 패턴 5 신궁 시전 중단,
+   │                              2페이즈 TryForceOffTankStrike 지원(미정)
    ├ Phase2State.cs           C#  [현재] 2페이즈 MVP: 패턴 6~9(패턴 10 백귀야행은 꼬리 부위
    │                              파괴 시스템 선행 필요 — [계획], BOSS_PATTERN_CONTRACT.md 4.1)
    ├ BossPatternRunner.cs     C#  [현재] MeleeArc 부채꼴 판정(NonAlloc), netId 중복 제거
