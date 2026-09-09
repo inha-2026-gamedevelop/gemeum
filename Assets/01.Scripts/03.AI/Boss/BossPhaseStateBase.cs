@@ -44,13 +44,6 @@ namespace Geumeum.AI
         /// <summary> 진행 중인 판정, 패링 창, 예고를 정리하고 회복 상태로 돌아간다 </summary>
         public abstract void CancelActiveAttack();
 
-        /// <summary>
-        /// 5.1절 오프탱크 응징(슬롯 밖 규칙). Idle일 때만 발동 가능하다 - 다른 패턴 예고·판정
-        /// 중이면 false를 돌려주고 호출부(BossController)가 다음 틱에 다시 시도한다.
-        /// 페이즈가 지원하지 않으면(예: 2페이즈, 아직 미정) 항상 false
-        /// </summary>
-        public virtual bool TryForceOffTankStrike(Transform target) => false;
-
         /// <summary> 페이즈를 종료한다. 종료된 상태는 다시 실행하지 않는다 </summary>
         public void Exit()
         {

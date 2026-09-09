@@ -5,27 +5,23 @@ using UnityEngine;
 using Mirror;
 
 // 프로젝트 내부
-using Geumeum.Combat;
 using Geumeum.Common;
 using Geumeum.Data;
 
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 1페이즈, 가르치는 판. 평소 추첨 후보는 패턴 1(여우불 봉 3연격, MeleeArc, 진짜 3연타 -
-    /// 1·2타는 패링 불가, 마지막 3타만 패링 가능, BOSS_PATTERN_CONTRACT.md 3장), 패턴 4(여우불
-    /// 낙인, MarkedCircle - 패턴 3과 같은 직전 지목자 제외 규칙 적용됨, SelectTargetExcludingLast),
-    /// 패턴 5(여우 구슬 충격파, ConeBurst) 셋뿐이다. 근접/중거리 거리
-    /// 대역별로 후보 하나씩과, 거리 무관인 MarkedCircle이 항상 낀다 - 후보 중 무작위로 하나를
-    /// 고른다(가중치 추첨은 아직 없다, 균등 추첨이다).
-    /// 패턴 3(순간 접근 3연계, TargetedDash)은 2026-09-09부터 평소 추첨에서 빠졌다 - 원거리
-    /// 압박은 5.1절 오프탱크 응징(TryForceOffTankStrike, 순간이동 + 반월 베기 재사용)이 대신한다.
-    /// 인간형 마법사 컨셉에 육상 돌진이 안 맞는다는 판단(사용자 결정, 2026-09-09).
-    /// 전투 시작 직후엔 오프닝 고정 시퀀스(1 -> 2 -> 3 -> 4)가 먼저 돈다, 쿨다운을 무시하고
-    /// 순서대로 발동한다 - 패턴 3은 이 오프닝에서만 노출되고 그 뒤로는 안 나온다.
-    /// 패턴 2(반월 베기)는 패턴 1과 같은 MeleeArc 판정(사거리, 각도 동일)이고 윈드업만 짧고
-    /// 패링이 안 되고 단일 타격이다, 독립 쿨다운이 없어 후보 추첨 대상이 아니다 - 오프탱크
-    /// 응징에도 그대로 재사용된다
+    /// 1페이즈, 가르치는 판. 네 템플릿이 전부 돈다 - 패턴 1(여우불 봉 3연격, MeleeArc, 진짜
+    /// 3연타 - 1·2타는 패링 불가, 마지막 3타만 패링 가능, BOSS_PATTERN_CONTRACT.md 3장),
+    /// 패턴 3(순간 접근 3연계, TargetedDash, 단일 돌진 MVP - 예고 앞 절반 추적 DashTrackRatio
+    /// 적용됨, 11.2절), 패턴 4(여우불 낙인, MarkedCircle), 패턴 5(여우 구슬 충격파, ConeBurst).
+    /// 거리 대역별로 근접/중거리/원거리 후보 하나씩과, 거리 무관인 MarkedCircle이 항상 낀다 -
+    /// 후보 중 무작위로 하나를 고른다(가중치 추첨은 아직 없다, 균등 추첨이다).
+    /// 대상을 고르는 패턴(TargetedDash·MarkedCircle)은 직전 지목자를 제외한다
+    /// (SelectTargetExcludingLast, BOSS_PATTERN_CONTRACT.md 5장 어그로 규칙).
+    /// 전투 시작 직후엔 오프닝 고정 시퀀스(1 -> 2 -> 4)가 먼저 돈다, 쿨다운을 무시하고 순서대로
+    /// 발동한다 - 패턴 2(반월 베기)는 패턴 1과 같은 MeleeArc 판정(사거리, 각도 동일)이고
+    /// 윈드업만 짧고 패링이 안 되고 단일 타격이다, 독립 쿨다운이 없어 후보 추첨 대상이 아니다
     /// </summary>
     public sealed class Phase1State : BossPhaseStateBase
     {
@@ -91,10 +87,6 @@ namespace Geumeum.AI
 
         private const float MARKED_CIRCLE_RADIUS = 3.99f; // m, 1페이즈 낙인 반경 (3.5 x1.14)
 
-        // 5.1절 오프탱크 응징 전용. 대상 등 뒤 이 거리만큼에 순간이동한다 - 겹치지 않으면서
-        // 반월 베기(MELEE_RANGE 3.19m)가 확실히 닿는 거리
-        private const float OFF_TANK_TELEPORT_DISTANCE = 0.5f;
-
         private const float CONE_RANGE         = 10.26f; // m, 충격파 사거리 (9 x1.14)
         private const float CONE_ANGLE_DEGREES = 60f;     // 도, 충격파 부채꼴 전체 각도
 
@@ -102,10 +94,8 @@ namespace Geumeum.AI
         *                Fields
         ****************************************/
 
-        // 오프닝 고정 시퀀스(9.3절): 추첨 없이 이 순서대로, 쿨다운 무시하고 발동한다.
-        // 2026-09-09 - 패턴 3(TargetedDash)이 평소 추첨에서 빠지면서(아래 TickIdle 참고) 노출을
-        // 보장하려고 여기 추가했다. 반복 학습은 포기하고 1회 노출만 보장한다(BOSS_PATTERN_CONTRACT.md 9.3)
-        private static readonly int[] OPENING_SEQUENCE = { MELEE_ARC_PATTERN_ID, DERIVED_MELEE_PATTERN_ID, TARGETED_DASH_PATTERN_ID, MARKED_CIRCLE_PATTERN_ID };
+        // 오프닝 고정 시퀀스(9.3절): 추첨 없이 이 순서대로, 쿨다운 무시하고 발동한다
+        private static readonly int[] OPENING_SEQUENCE = { MELEE_ARC_PATTERN_ID, DERIVED_MELEE_PATTERN_ID, MARKED_CIRCLE_PATTERN_ID };
 
         private readonly BossController  _controller;
         private readonly NetworkIdentity _selfIdentity;
@@ -198,52 +188,6 @@ namespace Geumeum.AI
             _controller.ServerCancelTelegraph(attackInstanceId);
         }
 
-        // 5.1절 오프탱크 응징. Idle일 때만 발동한다 - 다른 패턴 진행 중이면 false를 돌려주고
-        // BossController가 Idle로 돌아올 때까지 다음 틱마다 다시 시도한다. 순간이동 후
-        // 반월 베기(패턴 2, 파생)를 그대로 재사용한다 - 인간형 마법사 컨셉이라 육상 돌진 대신
-        // 순간이동으로 거리를 좁힌다(BOSS_PATTERN_CONTRACT.md 5.1)
-        public override bool TryForceOffTankStrike(Transform target)
-        {
-            if ((IsExited) || (_state != AttackState.Idle) || (target == null))
-            {
-                return false;
-            }
-
-            if (!GameDB.Boss.TryGetPattern(DERIVED_MELEE_PATTERN_ID, out BossPatternSO.PatternEntry pattern))
-            {
-                return false;
-            }
-
-            // 대상 등 뒤로 순간이동한다(플레이어 정면이 아니라) - "뒤에서 기습" 컨셉
-            Vector3 behindDirection = GetBehindDirection(target);
-            Vector3 destination     = target.position + (behindDirection * OFF_TANK_TELEPORT_DISTANCE);
-            Vector3 attackDirection = -behindDirection; // 등 뒤에서 대상을 바라본다
-
-            _controller.ServerTeleport(destination, Quaternion.LookRotation(attackDirection, Vector3.up));
-
-            Target = target; // 이번 발동만 조준을 옮긴다 - 다음 1초 어그로 재평가에서 다시 최근접자로 돌아간다
-            BeginAttack(pattern, PatternKind.MeleeArc);
-            return true;
-        }
-
-        // 플레이어가 보는 방향의 반대(등 뒤)를 반환한다. PlayerPresentation이 없는 대상은
-        // (예: 씬 테스트용 더미) 그 자리에서 보스를 바라보는 쪽을 등 뒤로 대신 쓴다
-        private Vector3 GetBehindDirection(Transform target)
-        {
-            if (target.TryGetComponent(out PlayerPresentation presentation))
-            {
-                Vector2 facing = presentation.FacingDirection; // x=월드 X, y=월드 Z
-                if (facing.sqrMagnitude > 0.0001f)
-                {
-                    return -new Vector3(facing.x, 0f, facing.y).normalized;
-                }
-            }
-
-            Vector3 toBoss = Self.position - target.position;
-            toBoss.y = 0f;
-            return (toBoss.sqrMagnitude > 0.0001f) ? toBoss.normalized : target.forward;
-        }
-
         private void TickIdle()
         {
             if (Target == null)
@@ -273,9 +217,7 @@ namespace Geumeum.AI
             float distance = Vector3.Distance(Self.position, Target.position);
             int   candidateCount = 0;
 
-            // 근접/중거리 거리 대역별로 후보 하나씩만 낀다. 원거리(둘 다 벗어남)는 대역 후보가
-            // 없다 - 패턴 3(TargetedDash)이 여기 있었지만 2026-09-09부터 오프닝 1회용으로
-            // 옮겼다(BOSS_PATTERN_CONTRACT.md 9.3) - 원거리 압박은 5.1 오프탱크 응징이 대신한다
+            // 근접/중거리/원거리 거리 대역별로 후보 하나씩만 낀다
             if (distance <= MELEE_RANGE)
             {
                 _candidatePatternIds[candidateCount] = MELEE_ARC_PATTERN_ID;
@@ -284,6 +226,11 @@ namespace Geumeum.AI
             else if (distance <= CONE_RANGE)
             {
                 _candidatePatternIds[candidateCount] = CONE_BURST_PATTERN_ID;
+                ++candidateCount;
+            }
+            else
+            {
+                _candidatePatternIds[candidateCount] = TARGETED_DASH_PATTERN_ID;
                 ++candidateCount;
             }
 
