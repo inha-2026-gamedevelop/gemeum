@@ -628,13 +628,13 @@ Main.unity
    │                              필터(근접·중거리) + 균등 무작위 추첨. 패턴 1(여우불 봉 3연격)은
    │                              진짜 3연타 구조(1·2타 패링 불가, 3타만 패링). 패턴 3
    │                              (TargetedDash)은 2026-09-09부터 평소 추첨에서 빠지고 오프닝
-   │                              1회용으로만 남았다 - 직전 지목자 제외(SelectDashTarget)와
-   │                              DashTrackRatio(예고 앞 절반 추적, 11.2절) 둘 다 구현돼 있지만
-   │                              이제 오프닝에서만 관찰된다. 원거리 압박은 TryForceOffTankStrike
-   │                              (BossController가 12초마다 강제 발동, 대상 등 뒤 0.5m 순간이동 +
-   │                              반월 베기)가 대신한다. 나머지(MarkedCircle·ConeBurst)는 아직
-   │                              단일 판정 MVP.
-   │                              [계획] 패턴 4·7·8 직전 지목자 제외 확장, 패턴 5 신궁 시전 중단,
+   │                              1회용으로만 남았다. 직전 지목자 제외 규칙(SelectTargetExcludingLast
+   │                              공용 헬퍼)은 패턴 3·4(MarkedCircle) 둘 다 적용됨. DashTrackRatio
+   │                              (예고 앞 절반 추적, 11.2절)는 패턴 3 전용, 이제 오프닝에서만
+   │                              관찰된다. 원거리 압박은 TryForceOffTankStrike(BossController가
+   │                              12초마다 강제 발동, 대상 등 뒤 0.5m 순간이동 + 반월 베기)가
+   │                              대신한다. ConeBurst는 아직 단일 판정 MVP.
+   │                              [계획] 패턴 7·8 직전 지목자 제외 확장, 패턴 5 신궁 시전 중단,
    │                              2페이즈 TryForceOffTankStrike 지원(미정)
    ├ Phase2State.cs           C#  [현재] 2페이즈 MVP: 패턴 6~9(패턴 10 백귀야행은 꼬리 부위
    │                              파괴 시스템 선행 필요 — [계획], BOSS_PATTERN_CONTRACT.md 4.1)

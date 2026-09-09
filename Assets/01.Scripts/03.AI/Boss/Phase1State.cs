@@ -14,7 +14,8 @@ namespace Geumeum.AI
     /// <summary>
     /// 1페이즈, 가르치는 판. 평소 추첨 후보는 패턴 1(여우불 봉 3연격, MeleeArc, 진짜 3연타 -
     /// 1·2타는 패링 불가, 마지막 3타만 패링 가능, BOSS_PATTERN_CONTRACT.md 3장), 패턴 4(여우불
-    /// 낙인, MarkedCircle), 패턴 5(여우 구슬 충격파, ConeBurst) 셋뿐이다. 근접/중거리 거리
+    /// 낙인, MarkedCircle - 패턴 3과 같은 직전 지목자 제외 규칙 적용됨, SelectTargetExcludingLast),
+    /// 패턴 5(여우 구슬 충격파, ConeBurst) 셋뿐이다. 근접/중거리 거리
     /// 대역별로 후보 하나씩과, 거리 무관인 MarkedCircle이 항상 낀다 - 후보 중 무작위로 하나를
     /// 고른다(가중치 추첨은 아직 없다, 균등 추첨이다).
     /// 패턴 3(순간 접근 3연계, TargetedDash)은 2026-09-09부터 평소 추첨에서 빠졌다 - 원거리
@@ -83,10 +84,10 @@ namespace Geumeum.AI
         // 완전 추적이면 회피 창이 없어진다 - 그 절충
         private const float DASH_TRACK_RATIO = 0.5f;
 
-        // 패턴 3(순간 접근 3연계) 지목자 선정 전용. BossController.RefreshTarget과 같은 반경 -
-        // 전역 어그로 대상(Target)과 별개로, 직전 지목자를 뺀 후보 중에서 다시 뽑는다
-        // (BOSS_PATTERN_CONTRACT.md 어그로 규칙)
-        private const float DASH_TARGET_SCAN_RADIUS = 30f;
+        // 대상을 고르는 패턴(TargetedDash·MarkedCircle) 공용 - 직전 지목자를 뺀 후보를 다시
+        // 뽑을 때 쓰는 스캔 반경. BossController.RefreshTarget과 같은 반경이다
+        // (BOSS_PATTERN_CONTRACT.md 5장 어그로 규칙)
+        private const float TARGET_EXCLUSION_SCAN_RADIUS = 30f;
 
         private const float MARKED_CIRCLE_RADIUS = 3.99f; // m, 1페이즈 낙인 반경 (3.5 x1.14)
 
@@ -110,9 +111,10 @@ namespace Geumeum.AI
         private readonly NetworkIdentity _selfIdentity;
         private readonly int             _playerLayerMask;
         private readonly int[]           _candidatePatternIds = new int[MAX_CANDIDATE_COUNT]; // 매 선택마다 재사용, 할당 없음
-        private readonly Collider[]      _dashTargetScanBuffer = new Collider[Constants.Network.MAX_PLAYERS + 1]; // 재사용, 할당 없음
+        private readonly Collider[]      _exclusionScanBuffer = new Collider[Constants.Network.MAX_PLAYERS + 1]; // 재사용, 할당 없음
 
-        private Transform _lastDashTarget; // 패턴 3 전용, 직전 지목자. 다음 지목에서 후보 제외 대상
+        private Transform _lastDashTarget;   // 패턴 3 전용, 직전 지목자. 다음 지목에서 후보 제외 대상
+        private Transform _lastMarkedTarget; // 패턴 4 전용, 직전 낙인 대상. 다음 지목에서 후보 제외 대상
 
         private AttackState _state              = AttackState.Idle;
         private float       _stateTimer         = 0f;
@@ -335,23 +337,24 @@ namespace Geumeum.AI
 
         // 직전 지목자를 뺀 생존 플레이어 중 가장 가까운 대상을 고른다. 후보가 없으면(생존자가
         // 직전 지목자 하나뿐) null을 돌려주고 호출부가 Target(전역 어그로 대상)으로 대체한다 -
-        // "후보가 0이 되면 직전 지목자 제외를 먼저 푼다"는 어그로 규칙의 필터 우선순위
-        private Transform SelectDashTarget()
+        // "후보가 0이 되면 직전 지목자 제외를 먼저 푼다"는 어그로 규칙의 필터 우선순위.
+        // TargetedDash(패턴 3)·MarkedCircle(패턴 4) 둘 다 이 헬퍼를 쓴다(BOSS_PATTERN_CONTRACT.md 5장)
+        private Transform SelectTargetExcludingLast(Transform lastTarget)
         {
-            int count = Physics.OverlapSphereNonAlloc(Self.position, DASH_TARGET_SCAN_RADIUS, _dashTargetScanBuffer, _playerLayerMask);
+            int count = Physics.OverlapSphereNonAlloc(Self.position, TARGET_EXCLUSION_SCAN_RADIUS, _exclusionScanBuffer, _playerLayerMask);
 
             Transform nearestExcludingLast = null;
             float     nearestDistance      = float.MaxValue;
 
             for (int i = 0; i < count; ++i)
             {
-                if ((!_dashTargetScanBuffer[i].TryGetComponent(out IDamageable damageable)) || (damageable.IsDead))
+                if ((!_exclusionScanBuffer[i].TryGetComponent(out IDamageable damageable)) || (damageable.IsDead))
                 {
                     continue;
                 }
 
-                Transform candidate = _dashTargetScanBuffer[i].transform;
-                if (ReferenceEquals(candidate, _lastDashTarget))
+                Transform candidate = _exclusionScanBuffer[i].transform;
+                if (ReferenceEquals(candidate, lastTarget))
                 {
                     continue;
                 }
@@ -369,13 +372,22 @@ namespace Geumeum.AI
 
         private void BeginAttack(BossPatternSO.PatternEntry pattern, PatternKind kind)
         {
-            // TargetedDash(패턴 3)는 전역 어그로 대상(Target)이 아니라 직전 지목자를 뺀
-            // 후보 중에서 다시 뽑는다 - 안 그러면 같은 사람만 계속 지목당해 3인 역할 분리가 안 된다
-            _activeTarget = (kind == PatternKind.TargetedDash) ? (SelectDashTarget() ?? Target) : Target;
-
+            // TargetedDash(패턴 3)·MarkedCircle(패턴 4)은 전역 어그로 대상(Target)이 아니라
+            // 직전 지목자를 뺀 후보 중에서 다시 뽑는다 - 안 그러면 같은 사람만 계속 지목당해
+            // 3인 역할 분리가 안 된다(BOSS_PATTERN_CONTRACT.md 5장)
             if (kind == PatternKind.TargetedDash)
             {
+                _activeTarget   = SelectTargetExcludingLast(_lastDashTarget) ?? Target;
                 _lastDashTarget = _activeTarget;
+            }
+            else if (kind == PatternKind.MarkedCircle)
+            {
+                _activeTarget     = SelectTargetExcludingLast(_lastMarkedTarget) ?? Target;
+                _lastMarkedTarget = _activeTarget;
+            }
+            else
+            {
+                _activeTarget = Target;
             }
 
             _activeTarget.TryGetComponent(out _activeTargetStatus);
