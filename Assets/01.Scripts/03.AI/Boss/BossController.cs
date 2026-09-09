@@ -41,7 +41,7 @@ namespace Geumeum.AI
         *                Fields
         ****************************************/
 
-        private const float TARGET_SCAN_INTERVAL    = 0.5f; // 매 틱 스캔 대신 주기 스캔, EnemyController와 같은 간격
+        private const float TARGET_SCAN_INTERVAL    = 12f;  // 근접 어그로 재평가 주기(BOSS_PATTERN_CONTRACT.md 5장)
         private const float TARGET_SCAN_RADIUS      = 30f;  // 보스 사거리들보다 넉넉히 잡는다
         private const int   TARGET_SCAN_BUFFER_SIZE = Constants.Network.MAX_PLAYERS * 4;
         private const int   MAX_ACTIVE_TELEGRAPHS   = 8;

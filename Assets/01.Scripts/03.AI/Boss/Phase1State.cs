@@ -18,7 +18,7 @@ namespace Geumeum.AI
     /// 개별 쿨다운과 직전 패턴을 걸러낸 뒤 남은 후보를 균등 추첨한다.
     /// 전투 시작 직후엔 오프닝 고정 시퀀스(1 -> 2 -> 4)가 먼저 돈다, 쿨다운을 무시하고 순서대로
     /// 발동한다 - 패턴 2(반월 베기)는 패턴 1과 같은 MeleeArc 판정(사거리, 각도 동일)이고
-    /// 윈드업만 짧고 패링이 안 된다, 독립 쿨다운이 없어 후보 추첨 대상이 아니다
+    /// 윈드업만 짧고 패링이 안 되고 단일 타격이다, 독립 쿨다운이 없어 후보 추첨 대상이 아니다
     /// </summary>
     public sealed class Phase1State : BossPhaseStateBase
     {
@@ -96,6 +96,7 @@ namespace Geumeum.AI
         private float                       _activeDamageMultiplier = 1f;
         private Vector3                    _lockedForward;  // 예고 시작 시점에 고정한 방향(방향 완전 잠금)
         private Vector3                    _dashDestination;
+        private Vector3                    _dashStartPosition; // TargetedDash 전용, 추적 중 잔여 거리 계산 기준
         private Vector3                    _markedCenter; // MarkedCircle 전용, 예고 시작 시점에 고정
         private uint                       _activeAttackInstanceId;
         private byte                       _activeRepeatIndex;
@@ -354,9 +355,61 @@ namespace Geumeum.AI
             }
         }
 
+        // 직전 지목자를 뺀 생존 플레이어 중 가장 가까운 대상을 고른다. 후보가 없으면(생존자가
+        // 직전 지목자 하나뿐) null을 돌려주고 호출부가 Target(전역 어그로 대상)으로 대체한다 -
+        // "후보가 0이 되면 직전 지목자 제외를 먼저 푼다"는 어그로 규칙의 필터 우선순위.
+        // TargetedDash(패턴 3)·MarkedCircle(패턴 4) 둘 다 이 헬퍼를 쓴다(BOSS_PATTERN_CONTRACT.md 5장)
+        private Transform SelectTargetExcludingLast(Transform lastTarget)
+        {
+            int count = Physics.OverlapSphereNonAlloc(Self.position, TARGET_EXCLUSION_SCAN_RADIUS, _exclusionScanBuffer, _playerLayerMask);
+
+            Transform nearestExcludingLast = null;
+            float     nearestDistance      = float.MaxValue;
+
+            for (int i = 0; i < count; ++i)
+            {
+                if ((!_exclusionScanBuffer[i].TryGetComponent(out IDamageable damageable)) || (damageable.IsDead))
+                {
+                    continue;
+                }
+
+                Transform candidate = _exclusionScanBuffer[i].transform;
+                if (ReferenceEquals(candidate, lastTarget))
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(Self.position, candidate.position);
+                if (distance < nearestDistance)
+                {
+                    nearestDistance       = distance;
+                    nearestExcludingLast  = candidate;
+                }
+            }
+
+            return nearestExcludingLast;
+        }
+
         private void BeginAttack(BossPatternSO.PatternEntry pattern, PatternKind kind)
         {
-            _activeTarget           = Target;
+            // TargetedDash(패턴 3)·MarkedCircle(패턴 4)은 전역 어그로 대상(Target)이 아니라
+            // 직전 지목자를 뺀 후보 중에서 다시 뽑는다 - 안 그러면 같은 사람만 계속 지목당해
+            // 3인 역할 분리가 안 된다(BOSS_PATTERN_CONTRACT.md 5장)
+            if (kind == PatternKind.TargetedDash)
+            {
+                _activeTarget   = SelectTargetExcludingLast(_lastDashTarget) ?? Target;
+                _lastDashTarget = _activeTarget;
+            }
+            else if (kind == PatternKind.MarkedCircle)
+            {
+                _activeTarget     = SelectTargetExcludingLast(_lastMarkedTarget) ?? Target;
+                _lastMarkedTarget = _activeTarget;
+            }
+            else
+            {
+                _activeTarget = Target;
+            }
+
             _activeTarget.TryGetComponent(out _activeTargetStatus);
             _activePattern          = pattern;
             _activeSpec             = new BossPatternExecutionSpec(pattern);
@@ -377,7 +430,7 @@ namespace Geumeum.AI
             direction.y = 0f;
             direction   = (direction.sqrMagnitude > 0.0001f) ? direction.normalized : Self.forward;
 
-            _lockedForward = direction; // 방향 완전 잠금 - 예고 중 대상이 움직여도 안 따라간다
+            _lockedForward = direction; // 방향 완전 잠금 - 예고 중 대상이 움직여도 안 따라간다(3연격도 첫 타 기준으로 고정)
 
             if (_activeKind == PatternKind.TargetedDash)
             {
@@ -395,7 +448,8 @@ namespace Geumeum.AI
             TryOpenParryWindow(pattern, _activeRepeatIndex);
 
             // BossTelegraphView가 아직 없어 예고가 화면에 안 보인다. 확인용 임시 로그 - 뷰 붙으면 지운다
-            GDebug.Server($"[보스] {PatternName(pattern.PatternId)} 예고 시작");
+            string hitLabel = IsMeleeArcCombo ? $" ({_meleeArcHitIndex + 1}/{MELEE_ARC_HIT_COUNT}타)" : "";
+            GDebug.Server($"[보스] {PatternName(_activePattern.PatternId)} 예고 시작{hitLabel}");
         }
 
         private static PatternKind ToKind(BossPatternSO.PatternTemplate template,
@@ -538,6 +592,10 @@ namespace Geumeum.AI
             }
 
             // MeleeArc. 방향은 예고 시작 시점에 잠근 값을 쓴다(방향 완전 잠금)
+            // 패턴 1(3연격)은 SO의 Damage가 3타 합산값이라 타당 균등 분배한다 - 타별 배분은
+            // 아직 밸런스 확정 전이라 임시값이다(팀 확인 필요, 패턴 2는 단일 타라 영향 없음)
+            float damage = IsMeleeArcCombo ? (_activePattern.Damage / MELEE_ARC_HIT_COUNT) : _activePattern.Damage;
+
             BossPatternRunner.ExecuteMeleeArc(
                 Self.position,
                 _lockedForward,
@@ -584,6 +642,13 @@ namespace Geumeum.AI
             }
 
             if ((_activeTarget == null) || (_selfIdentity == null))
+            {
+                return;
+            }
+
+            // 3연격은 마지막 타만 패링 가능하다(BOSS_PATTERN_CONTRACT.md 3장) - 1·2타는
+            // SO.IsParryable이 true여도 여기서 걸러진다
+            if (IsMeleeArcCombo && (_meleeArcHitIndex < MELEE_ARC_HIT_COUNT - 1))
             {
                 return;
             }
