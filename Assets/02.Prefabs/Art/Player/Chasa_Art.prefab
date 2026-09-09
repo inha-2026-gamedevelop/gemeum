@@ -705,6 +705,7 @@ GameObject:
   m_Component:
   - component: {fileID: 393397955894592858}
   - component: {fileID: 6443340766993086875}
+  - component: {fileID: 5586700039138111595}
   m_Layer: 0
   m_Name: Chasa_Art
   m_TagString: Untagged
@@ -751,6 +752,18 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &5586700039138111595
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6109318188778874129}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e72f67fa7a5b456cbeef6ddd20acf3bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.LegacyPlayerAnimationEventReceiver
 --- !u!1 &6291280644860101584
 GameObject:
   m_ObjectHideFlags: 0

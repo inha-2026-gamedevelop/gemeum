@@ -24058,6 +24058,8 @@ GameObject:
   - component: {fileID: 1633082173}
   - component: {fileID: 1633082172}
   - component: {fileID: 1633082171}
+  - component: {fileID: 1633082181}
+  - component: {fileID: 1633082180}
   m_Layer: 0
   m_Name: '@Managers'
   m_TagString: Untagged
@@ -24199,6 +24201,36 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1633082180
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1633082170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b1fd4f0f77b4df3a5c7ea3fd677ba24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.CurrencyManager
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+--- !u!114 &1633082181
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1633082170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b5c6766e19d4a4d8ea8f4cf86b3c4d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.GrowthManager
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1 &1637030590
 GameObject:
   m_ObjectHideFlags: 0
