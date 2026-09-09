@@ -60,6 +60,10 @@ namespace Geumeum.AI
 
         public override EnemyVisualState VisualState => ToVisualState(_state);
 
+        public override bool AllowsHerdingMovement =>
+            (_state == BrainState.Idle) || (_state == BrainState.Chase) ||
+            (_state == BrainState.Retreat) || (_state == BrainState.Return);
+
         /****************************************
         *              Constructor
         ****************************************/

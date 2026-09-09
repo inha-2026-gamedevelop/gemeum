@@ -2,6 +2,9 @@
 // Unity
 using UnityEngine;
 
+// 프로젝트 내부
+using Geumeum.Common;
+
 namespace Geumeum.Systems
 {
     /// <summary>
@@ -128,8 +131,8 @@ namespace Geumeum.Systems
                 TargetCenter    = _targetCenter,
                 FromRadius      = _fromRadius,
                 TargetRadius    = _targetRadius,
-                StartServerTime = 0.0,
-                EndServerTime   = _shrinkDuration,
+                StartGameplayTime = 0.0,
+                EndGameplayTime   = _shrinkDuration,
             };
         }
 

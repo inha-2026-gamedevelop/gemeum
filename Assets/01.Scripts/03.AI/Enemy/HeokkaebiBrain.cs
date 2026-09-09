@@ -32,6 +32,8 @@ namespace Geumeum.AI
 
         private BrainState _state      = BrainState.Idle;
         private float      _stateTimer = 0f;
+        private uint       _nextAttackExecutionId   = 0u;
+        private uint       _activeAttackExecutionId = 0u;
 
         /****************************************
         *              Properties
@@ -45,6 +47,12 @@ namespace Geumeum.AI
         public override bool IsAttackCommitted => (_state == BrainState.Windup) || (_state == BrainState.Attack);
 
         public override EnemyVisualState VisualState => ToVisualState(_state);
+
+        public override bool AllowsHerdingMovement =>
+            (_state == BrainState.Idle) || (_state == BrainState.Chase);
+
+        public override uint ActiveAttackExecutionId =>
+            (_state == BrainState.Windup) ? _activeAttackExecutionId : 0u;
 
         /****************************************
         *              Constructor
@@ -124,6 +132,21 @@ namespace Geumeum.AI
             _state = BrainState.Chase;
         }
 
+        public override bool TryInterruptPrecision(uint expectedExecutionId)
+        {
+            if ((expectedExecutionId == 0u) ||
+                (expectedExecutionId != _activeAttackExecutionId) ||
+                (_state != BrainState.Windup))
+            {
+                return false;
+            }
+
+            _activeAttackExecutionId = 0u;
+            _state                    = BrainState.Stagger;
+            _stateTimer               = 0f;
+            return true;
+        }
+
         private void TickIdle()
         {
             if (Target == null)
@@ -155,9 +178,16 @@ namespace Geumeum.AI
 
             if (distance <= Status.AttackRange)
             {
-                _state       = BrainState.Windup;
-                _stateTimer  = 0f;
+                BeginWindup();
             }
+        }
+
+        private void BeginWindup()
+        {
+            _nextAttackExecutionId = NextExecutionId(_nextAttackExecutionId);
+            _activeAttackExecutionId = _nextAttackExecutionId;
+            _state      = BrainState.Windup;
+            _stateTimer = 0f;
         }
 
         private void TickWindup(float deltaTime)
@@ -173,8 +203,9 @@ namespace Geumeum.AI
         private void TickAttack()
         {
             // 실제 공격 판정 실행은 EnemyController가 State == Attack을 보고 이번 틱에 수행한다
-            _state      = BrainState.Cooldown;
-            _stateTimer = 0f;
+            _activeAttackExecutionId = 0u;
+            _state                    = BrainState.Cooldown;
+            _stateTimer               = 0f;
         }
 
         private void TickCooldown(float deltaTime)
@@ -217,6 +248,12 @@ namespace Geumeum.AI
                 case BrainState.Knockback: return EnemyVisualState.Knockback;
                 default:                   return EnemyVisualState.Idle;
             }
+        }
+
+        private static uint NextExecutionId(uint current)
+        {
+            uint next = current + 1u;
+            return (next == 0u) ? 1u : next;
         }
     }
 }

@@ -13,12 +13,13 @@ using Mirror;
 using Geumeum.Common;
 using Geumeum.Data;
 using Geumeum.Network;
+using Geumeum.Systems;
 
 namespace Geumeum.AI
 {
     /// <summary>
     /// RunPhase별 동시 존재 수 · 리스폰 타이머 · 구성 비율을 관리한다.
-    /// 결계 축소 시 범위 밖 클러스터를 비활성화한다. SpawnConfigSO/BarrierPhaseSO 데이터로 구동된다
+    /// 결계 목표 원으로 거점과 기존 잡귀 몰이를 갱신한다. SpawnConfigSO/BarrierPhaseSO 데이터로 구동된다
     /// </summary>
     public class SpawnManager : NetworkBehaviour
     {
@@ -46,13 +47,14 @@ namespace Geumeum.AI
         // 런 초기화에서 생존 개체를 지울 때 쓰는 복사 버퍼. 순회 중 사전이 바뀌는 것을 막는다
         private readonly List<uint>                          _despawnBuffer        = new List<uint>();
 
-        private Transform                _barrierCenter;
         private SpawnConfigSO.PhaseEntry _currentPhase;
         private bool                     _isPhaseActive     = false; // 현재 phase에 스폰 설정이 있는지
         private int                      _targetConcurrent  = 0;     // [ConcurrentMin, ConcurrentMax]에서 이번 phase 진입 시 한 번 뽑은 목표치
         private int                      _totalAliveCount   = 0;
-        private Coroutine                _respawnRoutine    = null;
-        private WaitForSeconds           _respawnWait       = null;
+        private double                   _nextSpawnGameplayTime = double.PositiveInfinity;
+        private uint                     _lastHerdingRevision   = 0u;
+        private Coroutine                _schedulerWaitRoutine;
+        private IBarrierTransitionSource _barrierSource;
 
         /****************************************
         *              Server Callbacks
@@ -65,13 +67,25 @@ namespace Geumeum.AI
             ServerResetState();
 
             FindClusters();
-            FindBarrierCenter();
 
             GameEventBus.Instance.Subscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
             GameEventBus.Instance.Subscribe<EnemyDiedEvent>(HandleEnemyDied);
 
             // 같은 세션에서 다음 판을 열면 이전 필드의 생존 개체와 점유가 그대로 남는다
             GameEventBus.Instance.Subscribe<RunResetEvent>(HandleRunReset);
+
+            BarrierStateLocator.Changed += HandleBarrierSourceChanged;
+            BindBarrierSource(BarrierStateLocator.TransitionSource);
+
+            if (AuthorityTickScheduler.ServerInstance != null)
+            {
+                AuthorityTickScheduler.ServerInstance.Register(
+                    Constants.Network.TICK_PRIORITY_AI, ServerTickSpawn);
+            }
+            else
+            {
+                _schedulerWaitRoutine = StartCoroutine(CoWaitForScheduler());
+            }
 
             ServerApplyCurrentPhase();
         }
@@ -94,23 +108,35 @@ namespace Geumeum.AI
             HandlePhaseChanged(new RunPhaseChangedEvent(run.Phase, run.Phase));
         }
 
-        /// <summary> 이전 런의 클러스터 점유·생존 카운트·respawn 코루틴을 모두 비운다 </summary>
+        /// <summary> 이전 런의 클러스터 점유, 생존 카운트, 다음 스폰 시각을 모두 비운다 </summary>
         [Server]
         private void ServerResetState()
         {
-            StopRespawnRoutine();
-
             _aliveNetIdsByCluster.Clear();
             _clusterByNetId.Clear();
             _totalAliveCount  = 0;
             _targetConcurrent = 0;
             _isPhaseActive    = false;
             _currentPhase     = default;
+            _nextSpawnGameplayTime = double.PositiveInfinity;
+            _lastHerdingRevision   = 0u;
         }
 
         public override void OnStopServer()
         {
-            StopRespawnRoutine();
+            BarrierStateLocator.Changed -= HandleBarrierSourceChanged;
+            BindBarrierSource(null);
+
+            if (_schedulerWaitRoutine != null)
+            {
+                StopCoroutine(_schedulerWaitRoutine);
+                _schedulerWaitRoutine = null;
+            }
+
+            if (AuthorityTickScheduler.ServerInstance != null)
+            {
+                AuthorityTickScheduler.ServerInstance.Unregister(ServerTickSpawn);
+            }
 
             // HasInstance->Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다(_isQuitting을
             // HasInstance는 안 보고 Instance는 본다). Instance 한 번만 받아 그 결과로 null 체크한다
@@ -133,18 +159,6 @@ namespace Geumeum.AI
         {
             _clusters.Clear();
             _clusters.AddRange(FindObjectsByType<SpawnCluster>(FindObjectsInactive.Exclude));
-        }
-
-        private void FindBarrierCenter()
-        {
-            GameObject marker = GameObject.FindWithTag(Constants.Tag.BARRIER_CENTER);
-            if (marker == null)
-            {
-                Debug.LogWarning("[SpawnManager] BarrierCenter 마커를 찾지 못했다, 결계 반경 판정 없이 전 클러스터를 활성 상태로 둔다", this);
-                return;
-            }
-
-            _barrierCenter = marker.transform;
         }
 
         // 런이 끝나면 남은 잡귀를 지우고 점유와 카운트를 되돌린다.
@@ -183,23 +197,21 @@ namespace Geumeum.AI
         [Server]
         private void HandlePhaseChanged(RunPhaseChangedEvent evt)
         {
-            RefreshClusterRange(evt.Current);
-
-            StopRespawnRoutine();
-
             _isPhaseActive = GameDB.Spawn.TryGetPhase(evt.Current, out _currentPhase);
             if (!_isPhaseActive)
             {
+                _nextSpawnGameplayTime = double.PositiveInfinity;
                 return; // 이 구간엔 스폰 설정이 없다 (Lobby, Shrink3, Boss, Result) — 신규 스폰 중단
             }
 
             _targetConcurrent = UnityEngine.Random.Range(_currentPhase.ConcurrentMin, _currentPhase.ConcurrentMax + 1);
-            TryFillClusters();
+            double now = RunTimeLocator.Current.FieldElapsedSeconds;
+            _nextSpawnGameplayTime = SpawnHerdingRules.GetFirstSpawnGameplayTime(
+                evt.Current, now, GameDB.Spawn.PostShrinkSpawnGraceSeconds);
 
-            if (_currentPhase.RespawnInterval > 0f)
+            if (_nextSpawnGameplayTime <= now)
             {
-                _respawnWait    = new WaitForSeconds(_currentPhase.RespawnInterval);
-                _respawnRoutine = StartCoroutine(CoRespawnTick());
+                ServerRunSpawnAttempt(now);
             }
         }
 
@@ -220,48 +232,128 @@ namespace Geumeum.AI
             _totalAliveCount = Mathf.Max(0, _totalAliveCount - 1);
         }
 
-        // TODO(오나): BarrierController는 이미 있고 중심도 매 단계 이동한다. 이 메서드는 아직 고정 마커와
-        // BarrierPhaseSO의 "단계별 목표 반경"을 읽는 근사치다 — IBarrierState(Locator)로 실제 중심·반경을
-        // 읽도록 바꾸는 작업은 docs/05-implementation-roadmap.md U24
-        private void RefreshClusterRange(RunPhase phase)
+        private IEnumerator CoWaitForScheduler()
         {
-            if (_barrierCenter == null)
+            while (AuthorityTickScheduler.ServerInstance == null)
             {
-                return; // 마커가 없으면 전 클러스터를 활성 상태로 둔 채 판정을 건너뛴다
+                yield return null;
             }
 
-            if (!GameDB.Barrier.TryGetPhase(phase, out BarrierPhaseSO.PhaseEntry barrierPhase))
+            AuthorityTickScheduler.ServerInstance.Register(
+                Constants.Network.TICK_PRIORITY_AI, ServerTickSpawn);
+            _schedulerWaitRoutine = null;
+        }
+
+        [Server]
+        private void ServerTickSpawn(float deltaTime)
+        {
+            if (!_isPhaseActive)
             {
                 return;
             }
 
-            float radius = GameDB.Barrier.MaxRadius * barrierPhase.RadiusRatio;
+            double now = RunTimeLocator.Current.FieldElapsedSeconds;
+            if (now < _nextSpawnGameplayTime)
+            {
+                return;
+            }
+
+            ServerRunSpawnAttempt(now);
+        }
+
+        [Server]
+        private void ServerRunSpawnAttempt(double now)
+        {
+            TryFillClusters();
+            _nextSpawnGameplayTime = (_currentPhase.RespawnInterval > 0f)
+                ? now + _currentPhase.RespawnInterval
+                : double.PositiveInfinity;
+        }
+
+        private void HandleBarrierSourceChanged(IBarrierTransitionSource source)
+        {
+            BindBarrierSource(source);
+        }
+
+        private void BindBarrierSource(IBarrierTransitionSource source)
+        {
+            if (_barrierSource != null)
+            {
+                _barrierSource.SnapshotChanged -= HandleBarrierSnapshot;
+            }
+
+            _barrierSource = source;
+            if (_barrierSource == null)
+            {
+                return;
+            }
+
+            _barrierSource.SnapshotChanged += HandleBarrierSnapshot;
+            HandleBarrierSnapshot(_barrierSource.Snapshot);
+        }
+
+        [Server]
+        private void HandleBarrierSnapshot(BarrierTransitionState snapshot)
+        {
+            if (snapshot.Revision == 0u)
+            {
+                return;
+            }
+
+            RefreshClusterRange(snapshot.TargetCenter, snapshot.TargetRadius);
+
+            bool supportsHerding = (snapshot.TargetPhase == RunPhase.Shrink1) ||
+                (snapshot.TargetPhase == RunPhase.Shrink2) ||
+                ((snapshot.TargetPhase == RunPhase.Shrink3) &&
+                 GameDB.Spawn.EnableShrink3Herding);
+            if (!supportsHerding || (snapshot.Revision == _lastHerdingRevision))
+            {
+                return;
+            }
+
+            if (!GameDB.Barrier.TryGetPhase(snapshot.TargetPhase,
+                    out BarrierPhaseSO.PhaseEntry targetPhase))
+            {
+                Debug.LogError($"[SpawnManager] {snapshot.TargetPhase} 결계 데이터를 찾지 못해 몰이를 시작하지 못했다", this);
+                return;
+            }
+
+            _lastHerdingRevision = snapshot.Revision;
+            foreach (KeyValuePair<uint, SpawnCluster> pair in _clusterByNetId)
+            {
+                if (!NetworkServer.spawned.TryGetValue(pair.Key,
+                        out NetworkIdentity identity) ||
+                    !identity.TryGetComponent(out EnemyController enemy))
+                {
+                    continue;
+                }
+
+                enemy.ServerBeginHerding(snapshot.TargetCenter, snapshot.TargetRadius,
+                    targetPhase.FieldLevel, snapshot.Revision);
+            }
+        }
+
+        private void RefreshClusterRange(Vector3 center, float radius)
+        {
+            if (float.IsNaN(radius) || float.IsInfinity(radius) || (radius < 0f) ||
+                !IsFinite(center))
+            {
+                Debug.LogError("[SpawnManager] 목표 결계 snapshot의 중심 또는 반경이 유효하지 않다", this);
+                return;
+            }
 
             for (int i = 0; i < _clusters.Count; ++i)
             {
-                float distance = Vector3.Distance(_clusters[i].transform.position, _barrierCenter.position);
-                _clusters[i].IsInRange = (distance <= radius);
+                _clusters[i].IsInRange = BarrierTargetSelector.IsInside(
+                    _clusters[i].transform.position, center, radius);
             }
         }
 
-        private IEnumerator CoRespawnTick()
+        private static bool IsFinite(Vector3 value)
         {
-            while (true)
-            {
-                yield return _respawnWait;
-                TryFillClusters();
-            }
-        }
-
-        private void StopRespawnRoutine()
-        {
-            if (_respawnRoutine == null)
-            {
-                return;
-            }
-
-            StopCoroutine(_respawnRoutine);
-            _respawnRoutine = null;
+            return !float.IsNaN(value.x) && !float.IsInfinity(value.x) &&
+                !float.IsNaN(value.y) && !float.IsInfinity(value.y) &&
+                !float.IsNaN(value.z) && !float.IsInfinity(value.z);
         }
 
         // 목표 동시 존재 수(_targetConcurrent)에 닿을 때까지, 비어 있고 범위 안인 클러스터를 순서대로 채운다
@@ -273,9 +365,10 @@ namespace Geumeum.AI
                 return;
             }
 
+            int desiredConcurrent = ResolveDesiredConcurrent();
             for (int i = 0; i < _clusters.Count; ++i)
             {
-                if (_totalAliveCount >= _targetConcurrent)
+                if (_totalAliveCount >= desiredConcurrent)
                 {
                     return;
                 }
@@ -286,8 +379,28 @@ namespace Geumeum.AI
                     continue;
                 }
 
-                PopulateCluster(cluster);
+                PopulateCluster(cluster, desiredConcurrent);
             }
+        }
+
+        private int ResolveDesiredConcurrent()
+        {
+            int herdingCount = 0;
+            foreach (KeyValuePair<uint, SpawnCluster> pair in _clusterByNetId)
+            {
+                if (NetworkServer.spawned.TryGetValue(pair.Key,
+                        out NetworkIdentity identity) &&
+                    identity.TryGetComponent(out EnemyController enemy) &&
+                    enemy.IsHerding)
+                {
+                    ++herdingCount;
+                }
+            }
+
+            return SpawnHerdingRules.GetDesiredConcurrent(_targetConcurrent,
+                _currentPhase.ConcurrentMax,
+                GameDB.Spawn.HerdingConcurrentCapMultiplier,
+                herdingCount);
         }
 
         private bool IsOccupied(SpawnCluster cluster)
@@ -296,9 +409,9 @@ namespace Geumeum.AI
         }
 
         [Server]
-        private void PopulateCluster(SpawnCluster cluster)
+        private void PopulateCluster(SpawnCluster cluster, int desiredConcurrent)
         {
-            int remainingBudget = _targetConcurrent - _totalAliveCount;
+            int remainingBudget = desiredConcurrent - _totalAliveCount;
             int clusterSize     = UnityEngine.Random.Range(GameDB.Spawn.ClusterSizeMin, GameDB.Spawn.ClusterSizeMax + 1);
             int spawnCount      = Mathf.Min(clusterSize, remainingBudget);
 

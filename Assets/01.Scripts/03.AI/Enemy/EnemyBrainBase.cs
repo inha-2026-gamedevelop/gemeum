@@ -18,6 +18,10 @@ namespace Geumeum.AI
         protected readonly Transform   Self;
         protected readonly EnemyStatus Status;
 
+        private bool    _isHerding        = false;
+        private uint    _herdingRevision  = 0u;
+        private Vector3 _herdingDestination;
+
         /****************************************
         *              Constructor
         ****************************************/
@@ -59,12 +63,58 @@ namespace Geumeum.AI
         /// <summary> 여러 공격 모션 중 이번 공격에 쓸 인덱스, 몬스터별로 다른 공격이 없으면 항상 0. 애니메이션 표현 전용, 판정에는 영향 없다 </summary>
         public virtual int AttackVariant => 0;
 
+        /// <summary> 목표 결계 안으로 이동 중인지 </summary>
+        public bool IsHerding => _isHerding;
+
+        /// <summary> 현재 몰이 목표 revision </summary>
+        public uint HerdingRevision => _herdingRevision;
+
+        /// <summary> NavMeshAgent가 향할 목표 원 내부 지점 </summary>
+        public Vector3 HerdingDestination => _herdingDestination;
+
+        /// <summary> 공격, 경직, 넉백을 방해하지 않고 몰이 이동을 적용할 수 있는 상태인지 </summary>
+        public virtual bool AllowsHerdingMovement => false;
+
+        /// <summary> 현재 중단 가능한 공격 실행 ID. 창이 없으면 0 </summary>
+        public virtual uint ActiveAttackExecutionId => 0u;
+
         /****************************************
         *                Methods
         ****************************************/
 
         /// <summary> 서버 틱마다 호출된다, deltaTime은 호출부(EnemyController)가 넘긴다 </summary>
         public abstract void Tick(float deltaTime);
+
+        /// <summary> 더 새 revision의 목표 원 이동을 시작한다 </summary>
+        public bool BeginHerding(Vector3 destination, uint revision)
+        {
+            if ((revision == 0u) || (revision <= _herdingRevision))
+            {
+                return false;
+            }
+
+            _herdingRevision    = revision;
+            _herdingDestination = destination;
+            _isHerding          = true;
+            return true;
+        }
+
+        /// <summary> 목표 원 안에 도착했을 때 이동을 끝낸다 </summary>
+        public void CompleteHerding(uint revision)
+        {
+            if (!_isHerding || (revision != _herdingRevision))
+            {
+                return;
+            }
+
+            _isHerding = false;
+        }
+
+        /// <summary> 캡처한 실행 ID가 여전히 현재 공격이면 정밀 명중으로 취소한다 </summary>
+        public virtual bool TryInterruptPrecision(uint expectedExecutionId)
+        {
+            return false;
+        }
 
         /// <summary> 비공격 상태에서 일반 피격을 당했을 때 EnemyController가 호출한다 </summary>
         public virtual void EnterStagger() { }
