@@ -14,7 +14,17 @@
 > 아직 없음 — 3단계부터 이어서 진행한다.
 >
 > 실물 모델(`Kitsune Yuna`, 162,246 tris — 12.1절 수치와 정확히 일치 확인함)은 로컬에 있으나
-> 애니메이션 클립이 없어 지금은 붙이지 않았다. 설계 문서 지침대로 프록시로 L3까지 통과한 뒤 교체한다.
+> 애니메이션 클립이 없어 한동안 붙이지 않았다. 설계 문서 지침대로 프록시로 L3까지 통과한 뒤 교체할 예정이었다.
+>
+> **2026-09-10 갱신 — 애니메이션 클립 확보로 방침 변경(팀장 지시).** `Succubus_Anim_Set`
+> (`Assets/99.ThirdParty/Animation/`, Humanoid 리그)을 구했고, 팀장이 L3 대기 없이 바로
+> 붙이라고 지시해 프록시 교체를 앞당겼다. `Boss_Proxy.prefab`에 `Kitsune Yuna` 모델을
+> `Model` 자식으로 부착(스케일 1.2, 기존 히트박스·NetworkIdentity 구조는 유지)하고,
+> `BossLocomotion.controller`(`Assets/05.Animator/`) + `BossAnimationView.cs`
+> (`Assets/01.Scripts/05.Art/Boss/`)로 서버 텔레그래프·파츠 스냅샷·사망 이벤트를
+> Animator 파라미터에 연결했다. Play(Host) 1인 세션에서 공격 트리거·상태 전환·복귀까지 확인함.
+> 다만 **셰이더가 Built-in 전용이라 URP에서 핑크로 표시**되고(`URP_KitsuneYuna.unitypackage`
+> 임포트로 해결 예정, 팀 드라이브 재공유 필요해 별도 협의 중), **L3(3인 접속)는 여전히 미검증.**
 
 > 상태: 구현 제안. 코드·씬·프리팹은 수정하지 않았다.
 >
