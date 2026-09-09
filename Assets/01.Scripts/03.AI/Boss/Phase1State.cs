@@ -11,11 +11,11 @@ using Geumeum.Data;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 1페이즈, 가르치는 판. 네 템플릿이 전부 돈다 - 패턴 1(여우불 봉 3연격, MeleeArc, 단일 타격
-    /// MVP), 패턴 3(순간 접근 3연계, TargetedDash, 단일 돌진 MVP), 패턴 4(여우불 낙인,
+    /// 1페이즈, 가르치는 판. 네 템플릿이 전부 돈다 - 패턴 1(여우불 봉 3연격, MeleeArc 연타),
+    /// 패턴 3(순간 접근 3연계, TargetedDash), 패턴 4(여우불 낙인,
     /// MarkedCircle), 패턴 5(여우 구슬 충격파, ConeBurst). 거리 대역별로 근접/중거리/원거리
-    /// 후보 하나씩과, 거리 무관인 MarkedCircle이 항상 낀다 - 후보 중 무작위로 하나를 고른다
-    /// (가중치 추첨은 아직 없다, 균등 추첨이다).
+    /// 거리 대역에 맞는 후보와, 거리 무관인 MarkedCircle을 선택기에 넘긴다. 선택기는
+    /// 개별 쿨다운과 직전 패턴을 걸러낸 뒤 남은 후보를 균등 추첨한다.
     /// 전투 시작 직후엔 오프닝 고정 시퀀스(1 -> 2 -> 4)가 먼저 돈다, 쿨다운을 무시하고 순서대로
     /// 발동한다 - 패턴 2(반월 베기)는 패턴 1과 같은 MeleeArc 판정(사거리, 각도 동일)이고
     /// 윈드업만 짧고 패링이 안 된다, 독립 쿨다운이 없어 후보 추첨 대상이 아니다
@@ -54,25 +54,10 @@ namespace Geumeum.AI
         private const int CONE_BURST_PATTERN_ID    = 5; // 여우 구슬 충격파
         // 위 다섯 다 GameDB.Boss._patterns의 PatternId와 맞춘다
 
-        private const int MAX_CANDIDATE_COUNT = 4; // 지금 있는 템플릿 수만큼, 늘어나면 같이 늘린다
+        private const int MAX_CANDIDATE_COUNT     = 4; // 현재 독립 후보 수, 패턴 2는 오프닝 전용
+        private const int SELECTABLE_PATTERN_COUNT = 4;
 
-        // TODO: BossPatternSO.PatternEntry에 템플릿별 필드(Range, AngleDegrees, DashSpeed 등)가
-        // 생기면 SO로 옮긴다. 지금은 스키마가 00.Common 공용 파일이라 팀장 확인 없이 필드를
-        // 추가하지 않고, 우리 파트 안에 임시 상수로 둔다
-        // 2026-09-07 - 실측 키(2.109m)가 설계 가정(1.85m) 대비 x1.14라 사거리·반경류만 그 비율로 스케일했다.
-        // 속도·각도·Telegraph 시간은 BOSS_DESIGN.md 11장 원칙(Windup 고정, 사거리만 확대)대로 그대로 둔다
-        private const float MELEE_RANGE                 = 3.19f; // m, 1페이즈 MeleeArc 사거리 (2.8 x1.14)
-        private const float MELEE_ANGLE_DEGREES         = 100f;  // 도, 부채꼴 전체 각도
         private const float MELEE_PARRY_WINDOW_DURATION = 0.32f; // 초, 패링 판정 창 길이
-
-        private const float DASH_SPEED      = 10f;   // m/s, 1페이즈 돌진 속도
-        private const float DASH_DISTANCE   = 9.12f; // m, 1페이즈 돌진 거리 (8 x1.14)
-        private const float DASH_HIT_RADIUS = 1.37f; // m, 돌진 도착 지점 명중 판정 반경 (1.2 x1.14)
-
-        private const float MARKED_CIRCLE_RADIUS = 3.99f; // m, 1페이즈 낙인 반경 (3.5 x1.14)
-
-        private const float CONE_RANGE         = 10.26f; // m, 충격파 사거리 (9 x1.14)
-        private const float CONE_ANGLE_DEGREES = 60f;     // 도, 충격파 부채꼴 전체 각도
 
         /****************************************
         *                Fields
@@ -84,21 +69,40 @@ namespace Geumeum.AI
         private readonly BossController  _controller;
         private readonly NetworkIdentity _selfIdentity;
         private readonly int             _playerLayerMask;
-        private readonly int[]           _candidatePatternIds = new int[MAX_CANDIDATE_COUNT]; // 매 선택마다 재사용, 할당 없음
+        private static readonly int[] G_SELECTABLE_PATTERN_IDS =
+        {
+            MELEE_ARC_PATTERN_ID,
+            TARGETED_DASH_PATTERN_ID,
+            MARKED_CIRCLE_PATTERN_ID,
+            CONE_BURST_PATTERN_ID,
+        };
+
+        private readonly BossPatternSelector.Candidate[] _candidatePatterns =
+            new BossPatternSelector.Candidate[MAX_CANDIDATE_COUNT];
+        private readonly float[] _patternCooldowns = new float[SELECTABLE_PATTERN_COUNT];
+        private readonly System.Random _random = new System.Random();
 
         private AttackState _state              = AttackState.Idle;
         private float       _stateTimer         = 0f;
         private float       _cooldownRemaining  = 0f;
         private int         _openingIndex       = 0; // OPENING_SEQUENCE.Length에 도달하면 오프닝이 끝난 것
+        private int         _previousPatternId = 0;
 
         private Transform                  _activeTarget;
         private IDamageable                _activeTargetStatus;
         private BossPatternSO.PatternEntry _activePattern;
         private PatternKind                _activeKind;
+        private BossPatternExecutionSpec   _activeSpec;
+        private float                       _activeDamageMultiplier = 1f;
         private Vector3                    _lockedForward;  // 예고 시작 시점에 고정한 방향(방향 완전 잠금)
         private Vector3                    _dashDestination;
         private Vector3                    _markedCenter; // MarkedCircle 전용, 예고 시작 시점에 고정
         private uint                       _activeAttackInstanceId;
+        private byte                       _activeRepeatIndex;
+        private double                     _activeAttackStartServerTime;
+        private uint                       _activeTargetNetId;
+        private readonly float[]           _activeImpactOffsets =
+            new float[BossPatternExecutionSpec.MAX_REPEAT_COUNT];
         private bool                       _activeParried;
         private BossAttackExecution        _activeExecution; // 늦게 도착한 이전 공격의 OnParried를 걸러내는 참조
         private IParryWindowTarget         _openParryTarget;
@@ -126,6 +130,7 @@ namespace Geumeum.AI
                 return;
             }
 
+            TickPatternCooldowns(deltaTime);
             if (_cooldownRemaining > 0f)
             {
                 _cooldownRemaining -= deltaTime;
@@ -156,14 +161,35 @@ namespace Geumeum.AI
             _activeAttackInstanceId  = 0u;
             _activeExecution        = null;
             _activeParried          = true;
+            _activeDamageMultiplier = 1f;
             _activeTarget           = null;
             _activeTargetStatus     = null;
             _stateTimer             = 0f;
-            _cooldownRemaining      = _activePattern.Cooldown;
+            _cooldownRemaining      = _controller.ServerGetGlobalCadence(1);
             _state                  = AttackState.Recovery;
 
             CloseParryWindowIfOpen();
             _controller.ServerCancelTelegraph(attackInstanceId);
+        }
+
+        public override bool IsAttackWindup(uint attackInstanceId)
+        {
+            return (!IsExited) && (attackInstanceId != 0u)
+                && (_state == AttackState.Windup)
+                && (_activeAttackInstanceId == attackInstanceId);
+        }
+
+        public override bool TryBeginForcedAttack(int patternId, int repeatCountOverride)
+        {
+            if (IsExited || (Target == null) || _controller.ServerIsPatternSealed(patternId) ||
+                (!GameDB.Boss.TryGetPattern(patternId, out BossPatternSO.PatternEntry pattern)))
+            {
+                return false;
+            }
+
+            CancelActiveAttack();
+            BeginAttack(pattern, KindOf(patternId));
+            return true;
         }
 
         private void TickIdle()
@@ -193,37 +219,105 @@ namespace Geumeum.AI
             }
 
             float distance = Vector3.Distance(Self.position, Target.position);
-            int   candidateCount = 0;
-
-            // 근접/중거리/원거리 거리 대역별로 후보 하나씩만 낀다
-            if (distance <= MELEE_RANGE)
-            {
-                _candidatePatternIds[candidateCount] = MELEE_ARC_PATTERN_ID;
-                ++candidateCount;
-            }
-            else if (distance <= CONE_RANGE)
-            {
-                _candidatePatternIds[candidateCount] = CONE_BURST_PATTERN_ID;
-                ++candidateCount;
-            }
-            else
-            {
-                _candidatePatternIds[candidateCount] = TARGETED_DASH_PATTERN_ID;
-                ++candidateCount;
-            }
-
-            // MarkedCircle은 거리 무관 패턴이라 항상 후보에 낀다
-            _candidatePatternIds[candidateCount] = MARKED_CIRCLE_PATTERN_ID;
-            ++candidateCount;
-
-            int chosenPatternId = _candidatePatternIds[Random.Range(0, candidateCount)];
-
-            if (!GameDB.Boss.TryGetPattern(chosenPatternId, out BossPatternSO.PatternEntry pattern))
+            int candidateCount = BuildCandidates(distance);
+            if (!BossPatternSelector.TrySelect(
+                _candidatePatterns,
+                candidateCount,
+                _previousPatternId,
+                _random,
+                out BossPatternSelector.Candidate selected))
             {
                 return;
             }
 
-            BeginAttack(pattern, KindOf(chosenPatternId));
+            BeginAttack(selected.Pattern, KindOf(selected.Pattern.PatternId));
+        }
+
+        private void TickPatternCooldowns(float deltaTime)
+        {
+            if (deltaTime <= 0f)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _patternCooldowns.Length; ++i)
+            {
+                _patternCooldowns[i] = Mathf.Max(0f, _patternCooldowns[i] - deltaTime);
+            }
+        }
+
+        private int BuildCandidates(float distance)
+        {
+            int candidateCount = 0;
+            candidateCount = AddCandidate(candidateCount, MELEE_ARC_PATTERN_ID, distance);
+            candidateCount = AddCandidate(candidateCount, TARGETED_DASH_PATTERN_ID, distance);
+            candidateCount = AddCandidate(candidateCount, MARKED_CIRCLE_PATTERN_ID, distance);
+            candidateCount = AddCandidate(candidateCount, CONE_BURST_PATTERN_ID, distance);
+            return candidateCount;
+        }
+
+        private int AddCandidate(int candidateCount, int patternId, float distance)
+        {
+            if (candidateCount >= _candidatePatterns.Length)
+            {
+                return candidateCount;
+            }
+
+            if (!GameDB.Boss.TryGetPattern(patternId, out BossPatternSO.PatternEntry pattern))
+            {
+                return candidateCount;
+            }
+
+            int patternSlot = GetPatternSlot(patternId);
+            var spec = new BossPatternExecutionSpec(pattern);
+            bool isDistanceEligible = IsDistanceEligible(spec, distance);
+            _candidatePatterns[candidateCount] = new BossPatternSelector.Candidate(
+                pattern,
+                (patternSlot < 0) ? 0f : _patternCooldowns[patternSlot],
+                isDistanceEligible,
+                pattern.IsConditional,
+                _controller.ServerIsPatternSealed(patternId));
+            ++candidateCount;
+            return candidateCount;
+        }
+
+        private static bool IsDistanceEligible(BossPatternExecutionSpec spec, float distance)
+        {
+            switch (spec.Template)
+            {
+                case BossPatternSO.PatternTemplate.MeleeArc:
+                    return distance <= spec.Range;
+                case BossPatternSO.PatternTemplate.TargetedDash:
+                    return distance > spec.Range;
+                case BossPatternSO.PatternTemplate.ConeBurst:
+                    return (distance > 0f) && (distance <= spec.Range);
+                default:
+                    return true;
+            }
+        }
+
+        private int GetPatternSlot(int patternId)
+        {
+            for (int i = 0; i < G_SELECTABLE_PATTERN_IDS.Length; ++i)
+            {
+                if (G_SELECTABLE_PATTERN_IDS[i] == patternId)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private void SetPatternCooldown(int patternId, float cooldown)
+        {
+            int patternSlot = GetPatternSlot(patternId);
+            if (patternSlot < 0)
+            {
+                return;
+            }
+
+            _patternCooldowns[patternSlot] = Mathf.Max(0f, cooldown);
         }
 
         private static PatternKind KindOf(int patternId)
@@ -265,10 +359,17 @@ namespace Geumeum.AI
             _activeTarget           = Target;
             _activeTarget.TryGetComponent(out _activeTargetStatus);
             _activePattern          = pattern;
-            _activeKind             = kind;
+            _activeSpec             = new BossPatternExecutionSpec(pattern);
+            _activeKind             = ToKind(_activeSpec.Template, kind);
+            _activeDamageMultiplier = _controller.ServerGetAttackDamageMultiplier();
+            _previousPatternId      = pattern.PatternId;
             _activeParried          = false;
             _activeExecution        = null;
             _activeAttackInstanceId = _controller.ServerNextAttackInstanceId();
+            _activeRepeatIndex      = 0;
+            _activeAttackStartServerTime = NetworkTime.time;
+            _activeSpec.BuildImpactSchedule(pattern, _random, _activeImpactOffsets);
+            SetPatternCooldown(pattern.PatternId, pattern.Cooldown);
             _stateTimer             = 0f;
             _state                  = AttackState.Windup;
 
@@ -278,40 +379,67 @@ namespace Geumeum.AI
 
             _lockedForward = direction; // 방향 완전 잠금 - 예고 중 대상이 움직여도 안 따라간다
 
-            if (kind == PatternKind.TargetedDash)
+            if (_activeKind == PatternKind.TargetedDash)
             {
-                _dashDestination = Self.position + (direction * DASH_DISTANCE);
+                _dashDestination = Self.position + (direction * _activeSpec.MoveDistance);
             }
-            else if (kind == PatternKind.MarkedCircle)
+            else if (_activeKind == PatternKind.MarkedCircle)
             {
                 // 위치 확정 후 잠금 - 예고 중 대상이 움직여도 낙인 중심은 안 따라간다
                 _markedCenter = _activeTarget.position;
             }
 
-            TryOpenParryWindow(pattern);
-
-            uint targetNetId = _activeTarget.TryGetComponent(out NetworkIdentity targetIdentity) ? targetIdentity.netId : 0u;
-            Vector3 cueOrigin = (kind == PatternKind.MarkedCircle) ? _markedCenter : Self.position;
-
-            BossTelegraphCue cue = new BossTelegraphCue
-            {
-                AttackInstanceId = _activeAttackInstanceId,
-                PatternId        = pattern.PatternId,
-                TargetNetId      = targetNetId,
-                Origin           = cueOrigin,
-                Direction        = direction,
-                ImpactServerTime = NetworkTime.time + pattern.TelegraphDuration,
-            };
-
-            _controller.ServerBeginTelegraph(cue);
+            _activeTargetNetId = _activeTarget.TryGetComponent(out NetworkIdentity targetIdentity)
+                ? targetIdentity.netId : 0u;
+            PublishRepeatTelegraphs();
+            TryOpenParryWindow(pattern, _activeRepeatIndex);
 
             // BossTelegraphView가 아직 없어 예고가 화면에 안 보인다. 확인용 임시 로그 - 뷰 붙으면 지운다
             GDebug.Server($"[보스] {PatternName(pattern.PatternId)} 예고 시작");
         }
 
+        private static PatternKind ToKind(BossPatternSO.PatternTemplate template,
+            PatternKind fallback)
+        {
+            switch (template)
+            {
+                case BossPatternSO.PatternTemplate.TargetedDash: return PatternKind.TargetedDash;
+                case BossPatternSO.PatternTemplate.MarkedCircle: return PatternKind.MarkedCircle;
+                case BossPatternSO.PatternTemplate.ConeBurst:    return PatternKind.ConeBurst;
+                case BossPatternSO.PatternTemplate.MeleeArc:     return PatternKind.MeleeArc;
+                default:                                         return fallback;
+            }
+        }
+
+        private void PublishRepeatTelegraphs()
+        {
+            Vector3 cueOrigin = (_activeKind == PatternKind.MarkedCircle)
+                ? _markedCenter : Self.position;
+            for (int i = 0; i < _activeSpec.RepeatCount; ++i)
+            {
+                float impactOffset = _activeImpactOffsets[i];
+                float startOffset = (i == 0)
+                    ? 0f
+                    : _activeImpactOffsets[i - 1];
+                _controller.ServerBeginTelegraph(new BossTelegraphCue
+                {
+                    AttackInstanceId = _activeAttackInstanceId,
+                    RepeatIndex      = (byte) i,
+                    PatternId        = _activePattern.PatternId,
+                    TargetNetId      = _activeTargetNetId,
+                    Origin           = cueOrigin,
+                    Direction        = _lockedForward,
+                    StartServerTime  = _activeAttackStartServerTime + startOffset,
+                    ImpactServerTime = _activeAttackStartServerTime + impactOffset,
+                });
+            }
+        }
+
         private void TickWindup(float deltaTime)
         {
-            if ((_activeTarget == null) || ((_activeTargetStatus != null) && (_activeTargetStatus.IsDead)))
+            if ((_activeTarget == null) || ((_activeTargetStatus != null) &&
+                (_activeTargetStatus.IsDead ||
+                    ((_activeTargetStatus is IBossSwallowTarget swallowed) && swallowed.IsSwallowed))))
             {
                 CancelActiveAttack();
                 return;
@@ -319,12 +447,13 @@ namespace Geumeum.AI
 
             if (_activeKind == PatternKind.TargetedDash)
             {
-                // 앞뒤 절반 추적 대신 시작 시점에 전부 확정하는 완전 잠금으로 단순화했다(MVP)
-                Self.position = Vector3.MoveTowards(Self.position, _dashDestination, DASH_SPEED * deltaTime);
+                Self.position = Vector3.MoveTowards(Self.position, _dashDestination,
+                    _activeSpec.MoveSpeed * deltaTime);
             }
 
             _stateTimer += deltaTime;
-            if (_stateTimer < _activePattern.TelegraphDuration)
+            float nextImpactOffset = _activeImpactOffsets[_activeRepeatIndex];
+            if (_stateTimer < nextImpactOffset)
             {
                 return;
             }
@@ -336,14 +465,23 @@ namespace Geumeum.AI
                 ResolveImpact();
             }
 
-            _controller.ServerCancelTelegraph(_activeAttackInstanceId);
+            _controller.ServerCancelTelegraph(_activeAttackInstanceId,
+                _activeRepeatIndex, _activeTargetNetId);
             _activeExecution = null;
+
+            ++_activeRepeatIndex;
+            if (_activeRepeatIndex < _activeSpec.RepeatCount)
+            {
+                _activeParried = false;
+                TryOpenParryWindow(_activePattern, _activeRepeatIndex);
+                return;
+            }
 
             // 회복으로 넘어가는 이 지점이 패턴 종료다. 반복 패턴은 마지막 판정에서 한 번만 온다
             _controller.ServerNotifyPatternEnded(_activePattern.PatternId, _activeAttackInstanceId);
 
             _stateTimer        = 0f;
-            _cooldownRemaining = _activePattern.Cooldown;
+            _cooldownRemaining = _controller.ServerGetGlobalCadence(1);
             _state             = AttackState.Recovery;
         }
 
@@ -353,6 +491,7 @@ namespace Geumeum.AI
             GDebug.Server($"[보스] {PatternName(_activePattern.PatternId)} 타격 판정");
 
             uint attackerNetId = (_selfIdentity != null) ? _selfIdentity.netId : 0u;
+            float damage       = _activePattern.Damage * _activeDamageMultiplier;
 
             if (_activeKind == PatternKind.TargetedDash)
             {
@@ -360,11 +499,12 @@ namespace Geumeum.AI
                 BossPatternRunner.ExecuteMeleeArc(
                     Self.position,
                     Self.forward,
-                    DASH_HIT_RADIUS,
+                    _activeSpec.ImpactRadius,
                     360f,
-                    _activePattern.Damage,
+                    damage,
                     attackerNetId,
-                    _playerLayerMask);
+                    _playerLayerMask,
+                    _controller);
                 return;
             }
 
@@ -374,11 +514,12 @@ namespace Geumeum.AI
                 BossPatternRunner.ExecuteMeleeArc(
                     _markedCenter,
                     Vector3.forward,
-                    MARKED_CIRCLE_RADIUS,
+                    _activeSpec.ImpactRadius,
                     360f,
-                    _activePattern.Damage,
+                    damage,
                     attackerNetId,
-                    _playerLayerMask);
+                    _playerLayerMask,
+                    _controller);
                 return;
             }
 
@@ -387,11 +528,12 @@ namespace Geumeum.AI
                 BossPatternRunner.ExecuteMeleeArc(
                     Self.position,
                     _lockedForward,
-                    CONE_RANGE,
-                    CONE_ANGLE_DEGREES,
-                    _activePattern.Damage,
+                    _activeSpec.Range,
+                    _activeSpec.AngleDegrees,
+                    damage,
                     attackerNetId,
-                    _playerLayerMask);
+                    _playerLayerMask,
+                    _controller);
                 return;
             }
 
@@ -399,11 +541,12 @@ namespace Geumeum.AI
             BossPatternRunner.ExecuteMeleeArc(
                 Self.position,
                 _lockedForward,
-                MELEE_RANGE,
-                MELEE_ANGLE_DEGREES,
-                _activePattern.Damage,
+                _activeSpec.Range,
+                _activeSpec.AngleDegrees,
+                damage,
                 attackerNetId,
-                _playerLayerMask);
+                _playerLayerMask,
+                _controller);
         }
 
         private void TickRecovery(float deltaTime)
@@ -427,13 +570,20 @@ namespace Geumeum.AI
                 return;
             }
 
+            uint attackInstanceId = _activeAttackInstanceId;
             CancelActiveAttack();
-            _controller.ServerReduceGroggyGauge(CharacterKind.Chasa); // 검 사용자만 패링에 성공할 수 있다
+            _controller.ServerRecordParryCounter(parriedByNetId, attackInstanceId);
         }
 
-        private void TryOpenParryWindow(BossPatternSO.PatternEntry pattern)
+        private void TryOpenParryWindow(BossPatternSO.PatternEntry pattern, byte repeatIndex)
         {
-            if ((!pattern.IsParryable) || (_activeTarget == null) || (_selfIdentity == null))
+            if ((!_activeSpec.IsRepeatParryable(pattern, repeatIndex)) &&
+                (!_controller.ServerIsTransferredParryRepeat(pattern.PatternId, repeatIndex)))
+            {
+                return;
+            }
+
+            if ((_activeTarget == null) || (_selfIdentity == null))
             {
                 return;
             }
@@ -443,12 +593,16 @@ namespace Geumeum.AI
                 return;
             }
 
-            ParryWindowKey key = new ParryWindowKey(_selfIdentity.netId, _activeAttackInstanceId);
+            ParryWindowKey key = new ParryWindowKey(_selfIdentity.netId,
+                _controller.ServerNextParryWindowId());
 
             double now        = NetworkTime.time;
-            double impactTime = now + pattern.TelegraphDuration;
+            double impactTime = _activeAttackStartServerTime +
+                _activeImpactOffsets[repeatIndex];
 
-            BossAttackExecution execution = new BossAttackExecution(MELEE_PARRY_WINDOW_DURATION, HandleAttackParried);
+            BossAttackExecution execution = new BossAttackExecution(
+                MELEE_PARRY_WINDOW_DURATION, _activeAttackInstanceId, repeatIndex,
+                HandleAttackParried);
 
             if (parryTarget.OpenParryWindow(execution, key, now, impactTime))
             {
