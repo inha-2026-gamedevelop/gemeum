@@ -1,5 +1,6 @@
 // System
 using System;
+using System.Collections.Generic;
 
 // Unity
 using UnityEngine;
@@ -19,7 +20,7 @@ namespace Geumeum.Systems
     /// 생성기와 난수는 런 하나에 하나만 두어, 씬을 옮겨도 인스턴스 ID가 겹치지 않게 한다
     /// </summary>
     [DisallowMultipleComponent]
-    public class DropDirector : NetworkBehaviour
+    public class DropDirector : NetworkBehaviour, IRequiredSpawnPrefabProvider
     {
         /****************************************
         *                Fields
@@ -35,13 +36,28 @@ namespace Geumeum.Systems
         private EquipmentGenerator _generator;
         private DropRules          _rules;
         private bool               _hasSubscribed;
+        private readonly HashSet<TargetRef> _claimedBossParts = new HashSet<TargetRef>();
 
         /****************************************
         *              Unity Event
         ****************************************/
 
+        public void CollectRequiredSpawnPrefabs(List<GameObject> prefabs)
+        {
+            if (prefabs == null)
+            {
+                return;
+            }
+
+            // null도 넣어 배선 누락을 부트 검사가 놓치지 않게 한다
+            prefabs.Add(_droppedItemPrefab);
+        }
+
         public override void OnStartServer()
         {
+            _generator = null;
+            _rules     = null;
+            _claimedBossParts.Clear();
             ServerEnsureRuntime();
 
             if (!GameEventBus.HasInstance)
@@ -51,20 +67,23 @@ namespace Geumeum.Systems
             }
 
             GameEventBus.Instance.Subscribe<EnemyDiedEvent>(HandleEnemyDied);
+            GameEventBus.Instance.Subscribe<BossPartBrokenEvent>(HandleBossPartBroken);
             GameEventBus.Instance.Subscribe<RunResetEvent>(HandleRunReset);
             _hasSubscribed = true;
         }
 
         public override void OnStopServer()
         {
-            if ((!_hasSubscribed) || (!GameEventBus.HasInstance))
+            if (_hasSubscribed && GameEventBus.HasInstance)
             {
-                return;
+                GameEventBus.Instance.Unsubscribe<EnemyDiedEvent>(HandleEnemyDied);
+                GameEventBus.Instance.Unsubscribe<BossPartBrokenEvent>(HandleBossPartBroken);
+                GameEventBus.Instance.Unsubscribe<RunResetEvent>(HandleRunReset);
             }
 
-            GameEventBus.Instance.Unsubscribe<EnemyDiedEvent>(HandleEnemyDied);
-            GameEventBus.Instance.Unsubscribe<RunResetEvent>(HandleRunReset);
             _hasSubscribed = false;
+            _generator     = null;
+            _rules         = null;
         }
 
         /****************************************
@@ -74,7 +93,31 @@ namespace Geumeum.Systems
         [Server]
         private void HandleEnemyDied(EnemyDiedEvent evt)
         {
+            RunManager run = RunManager.ServerInstance;
+            if ((run == null) || (!run.RunId.IsValid) || run.IsPaused ||
+                (run.Phase == RunPhase.Lobby) || (run.Phase == RunPhase.Result) ||
+                RunSceneDirector.IsServerTransitioning || (!evt.IsValid))
+            {
+                return;
+            }
+
             if (!ServerEnsureRuntime())
+            {
+                return;
+            }
+
+            if (!ServerCanSpawnDrop())
+            {
+                return;
+            }
+
+            if (!DropRules.TryResolveFieldLevel(evt.IsBoss, evt.FieldLevelAtSpawn, out int fieldLevel))
+            {
+                return;
+            }
+
+            // 드랍 여부를 포함한 사망 판정을 먼저 소유해, 같은 이벤트가 재전달되어도 난수를 다시 굴리지 않는다
+            if (!_rules.TryClaimDeath(run.RunId, evt.EnemyNetId))
             {
                 return;
             }
@@ -84,9 +127,40 @@ namespace Geumeum.Systems
                 return;
             }
 
-            int fieldLevel = DropRules.ResolveFieldLevel(evt.IsBoss, ServerGetFieldLevel());
             WeaponCombatSnapshot equipment = _generator.Generate(_rules.RollWeaponKind(), fieldLevel);
 
+            ServerSpawnDrop(equipment, evt.Position);
+        }
+
+        /// <summary>
+        /// A fixed boss PartId earns exactly one guaranteed reward.  The normal
+        /// death claim cannot be reused because all three parts share one netId.
+        /// </summary>
+        [Server]
+        private void HandleBossPartBroken(BossPartBrokenEvent evt)
+        {
+            RunManager run = RunManager.ServerInstance;
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            if ((run == null) || (!run.RunId.IsValid) || run.IsPaused ||
+                (run.Phase != RunPhase.Boss) || RunSceneDirector.IsServerTransitioning ||
+                (!evt.IsValid) || (evt.Target.RunIdValue != run.RunId.Value) ||
+                ((director != null) &&
+                    (evt.Target.SceneRevisionValue != director.Revision.Value)) ||
+                (!_claimedBossParts.Add(evt.Target)))
+            {
+                return;
+            }
+
+            if ((!ServerEnsureRuntime()) || (!ServerCanSpawnDrop()))
+            {
+                // Wiring failure is retryable if the same event is deliberately
+                // replayed after repair; no reward was committed yet.
+                _claimedBossParts.Remove(evt.Target);
+                return;
+            }
+
+            WeaponCombatSnapshot equipment = _generator.Generate(
+                _rules.RollWeaponKind(), DropRules.BOSS_REWARD_FIELD_LEVEL);
             ServerSpawnDrop(equipment, evt.Position);
         }
 
@@ -96,14 +170,14 @@ namespace Geumeum.Systems
         {
             _generator = null;
             _rules     = null;
+            _claimedBossParts.Clear();
         }
 
         [Server]
         private void ServerSpawnDrop(in WeaponCombatSnapshot equipment, Vector3 deathPosition)
         {
-            if (_droppedItemPrefab == null)
+            if (!ServerCanSpawnDrop())
             {
-                Debug.LogError("[DropDirector] 드랍 프리팹이 배선되지 않아 장비를 떨어뜨리지 못했다", this);
                 return;
             }
 
@@ -121,6 +195,30 @@ namespace Geumeum.Systems
             // 스폰 전에 값을 심는다. 클라이언트가 빈 장비를 한 프레임이라도 보면 안 된다
             dropped.ServerInitialize(equipment);
             NetworkServer.Spawn(instance);
+        }
+
+        [Server]
+        private bool ServerCanSpawnDrop()
+        {
+            if (_droppedItemPrefab == null)
+            {
+                Debug.LogError("[DropDirector] 드랍 프리팹이 배선되지 않아 장비를 떨어뜨리지 못했다", this);
+                return false;
+            }
+
+            if (!_droppedItemPrefab.TryGetComponent<NetworkIdentity>(out _))
+            {
+                Debug.LogError("[DropDirector] 드랍 프리팹에 NetworkIdentity가 없다", this);
+                return false;
+            }
+
+            if (!_droppedItemPrefab.TryGetComponent<DroppedItem>(out _))
+            {
+                Debug.LogError("[DropDirector] 드랍 프리팹에 DroppedItem이 없다", this);
+                return false;
+            }
+
+            return true;
         }
 
         /****************************************
@@ -159,13 +257,6 @@ namespace Geumeum.Systems
             }
 
             return true;
-        }
-
-        [Server]
-        private static int ServerGetFieldLevel()
-        {
-            RunManager run = RunManager.ServerInstance;
-            return ((run != null) ? run.FieldLevel : 0);
         }
     }
 }

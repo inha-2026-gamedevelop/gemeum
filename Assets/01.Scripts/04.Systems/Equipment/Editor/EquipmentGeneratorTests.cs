@@ -128,6 +128,63 @@ namespace Geumeum.Systems.Tests
         }
 
         [Test]
+        public void RerollPreservesIdentityGradeAndGeneratorSequence()
+        {
+            var generator = CreateGenerator();
+            WeaponCombatSnapshot current = generator.Generate(WeaponKind.Sword, 0);
+            uint lastInstanceId = generator.LastInstanceId;
+
+            WeaponCombatSnapshot rerolled = generator.Reroll(current);
+
+            Assert.AreEqual(current.InstanceId, rerolled.InstanceId);
+            Assert.AreEqual(current.WeaponKind, rerolled.WeaponKind);
+            Assert.AreEqual(current.Grade, rerolled.Grade);
+            Assert.AreEqual(lastInstanceId, generator.LastInstanceId);
+            Assert.IsTrue(InventoryRules.IsValidItem(rerolled));
+        }
+
+        [Test]
+        public void UpgradePreservesIdentityAndAdvancesExactlyOneGrade()
+        {
+            var generator = CreateGenerator();
+            var current = new WeaponCombatSnapshot
+            {
+                InstanceId  = 71u,
+                WeaponKind  = WeaponKind.Bow,
+                Grade       = ItemGrade.Common,
+                AttackPower = 10f,
+            };
+
+            WeaponCombatSnapshot upgraded = generator.Upgrade(current);
+
+            Assert.AreEqual(current.InstanceId, upgraded.InstanceId);
+            Assert.AreEqual(current.WeaponKind, upgraded.WeaponKind);
+            Assert.AreEqual(ItemGrade.Talisman, upgraded.Grade);
+            Assert.AreEqual(0u, generator.LastInstanceId);
+            Assert.IsTrue(InventoryRules.IsValidItem(upgraded));
+        }
+
+        [Test]
+        public void ServiceRejectsBasicAndMaximumGradeWithoutAllocatingId()
+        {
+            var generator = CreateGenerator();
+            var basic = new WeaponCombatSnapshot
+            {
+                InstanceId  = 0u,
+                WeaponKind  = WeaponKind.Sword,
+                Grade       = ItemGrade.Common,
+                AttackPower = 10f,
+            };
+            WeaponCombatSnapshot maximum = basic;
+            maximum.InstanceId = 72u;
+            maximum.Grade = ItemGrade.Divine;
+
+            Assert.Throws<ArgumentException>(() => generator.Reroll(basic));
+            Assert.Throws<InvalidOperationException>(() => generator.Upgrade(maximum));
+            Assert.AreEqual(0u, generator.LastInstanceId);
+        }
+
+        [Test]
         public void DataIsCapturedAtConstruction()
         {
             var generator = CreateGenerator();

@@ -1,5 +1,9 @@
 // System
 using System;
+using SystemRandom = System.Random;
+
+// Unity
+using UnityEngine;
 
 // 서드파티
 using NUnit.Framework;
@@ -26,7 +30,7 @@ namespace Geumeum.Systems.Tests
         [Test]
         public void DropRateStaysNearConfiguredChance()
         {
-            var rules = new DropRules(DROP_CHANCE, new Random(SEED));
+            var rules = new DropRules(DROP_CHANCE, new SystemRandom(SEED));
 
             int dropped = 0;
             for (int i = 0; i < SAMPLE_COUNT; ++i)
@@ -45,8 +49,8 @@ namespace Geumeum.Systems.Tests
         [Test]
         public void SameSeedProducesSameSequence()
         {
-            var first  = new DropRules(DROP_CHANCE, new Random(SEED));
-            var second = new DropRules(DROP_CHANCE, new Random(SEED));
+            var first  = new DropRules(DROP_CHANCE, new SystemRandom(SEED));
+            var second = new DropRules(DROP_CHANCE, new SystemRandom(SEED));
 
             for (int i = 0; i < 200; ++i)
             {
@@ -58,8 +62,8 @@ namespace Geumeum.Systems.Tests
         [Test]
         public void BossAlwaysDropsWithoutConsumingRandom()
         {
-            var withBoss    = new DropRules(DROP_CHANCE, new Random(SEED));
-            var withoutBoss = new DropRules(DROP_CHANCE, new Random(SEED));
+            var withBoss    = new DropRules(DROP_CHANCE, new SystemRandom(SEED));
+            var withoutBoss = new DropRules(DROP_CHANCE, new SystemRandom(SEED));
 
             // 보스 판정이 난수를 먹으면 이후 잡귀 추첨 결과가 갈린다
             Assert.IsTrue(withBoss.ShouldDrop(true));
@@ -73,8 +77,8 @@ namespace Geumeum.Systems.Tests
         [Test]
         public void ZeroChanceNeverDropsAndKeepsSequence()
         {
-            var zero      = new DropRules(0f, new Random(SEED));
-            var untouched = new Random(SEED);
+            var zero      = new DropRules(0f, new SystemRandom(SEED));
+            var untouched = new SystemRandom(SEED);
 
             for (int i = 0; i < 50; ++i)
             {
@@ -89,7 +93,7 @@ namespace Geumeum.Systems.Tests
         [Test]
         public void FullChanceAlwaysDrops()
         {
-            var rules = new DropRules(1f, new Random(SEED));
+            var rules = new DropRules(1f, new SystemRandom(SEED));
 
             for (int i = 0; i < 50; ++i)
             {
@@ -100,7 +104,7 @@ namespace Geumeum.Systems.Tests
         [Test]
         public void WeaponKindStaysInRangeAndCoversAll()
         {
-            var rules = new DropRules(DROP_CHANCE, new Random(SEED));
+            var rules = new DropRules(DROP_CHANCE, new SystemRandom(SEED));
 
             var seen = new bool[Constants.Combat.WEAPON_KIND_COUNT];
             for (int i = 0; i < 300; ++i)
@@ -121,7 +125,7 @@ namespace Geumeum.Systems.Tests
         [TestCase(float.NaN)]
         public void InvalidChanceIsRejected(float chance)
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DropRules(chance, new Random(SEED)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DropRules(chance, new SystemRandom(SEED)));
         }
 
         [Test]
@@ -139,6 +143,74 @@ namespace Geumeum.Systems.Tests
 
             Assert.AreEqual(0, DropRules.ResolveFieldLevel(false, 0));
             Assert.AreEqual(2, DropRules.ResolveFieldLevel(false, 2));
+        }
+
+        [Test]
+        public void DeathClaimUsesRunAndEnemyIdentity()
+        {
+            var rules = new DropRules(DROP_CHANCE, new SystemRandom(SEED));
+
+            Assert.IsFalse(rules.TryClaimDeath(RunId.None, 11u));
+            Assert.IsFalse(rules.TryClaimDeath(new RunId(1u), 0u));
+            Assert.IsTrue(rules.TryClaimDeath(new RunId(1u), 11u));
+            Assert.IsFalse(rules.TryClaimDeath(new RunId(1u), 11u));
+            Assert.IsTrue(rules.TryClaimDeath(new RunId(2u), 11u));
+        }
+
+        [Test]
+        public void DuplicateDeathDoesNotConsumeDropRandom()
+        {
+            var random = new CountingRandom(0.1d);
+            var rules = new DropRules(DROP_CHANCE, random);
+
+            Assert.IsTrue(rules.TryClaimDeath(new RunId(1u), 11u));
+            Assert.IsTrue(rules.ShouldDrop(false));
+            int callsAfterFirstDecision = random.NextDoubleCalls;
+
+            Assert.IsFalse(rules.TryClaimDeath(new RunId(1u), 11u));
+            Assert.AreEqual(callsAfterFirstDecision, random.NextDoubleCalls);
+        }
+
+        [Test]
+        public void SpawnSnapshotSelectsOriginalFieldAfterCurrentFieldChanges()
+        {
+            EnemyDiedEvent died = EnemyDiedEvent.ForEnemy(11u, EnemyKind.Heokkaebi,
+                Vector3.zero, DamageInfo.NO_ATTACKER, 1, 1.25f);
+            int currentFieldLevel = 2;
+
+            Assert.AreNotEqual(currentFieldLevel, died.FieldLevelAtSpawn);
+            Assert.IsTrue(DropRules.TryResolveFieldLevel(died.IsBoss, died.FieldLevelAtSpawn,
+                out int resolvedFieldLevel));
+            Assert.AreEqual(1, resolvedFieldLevel);
+            Assert.AreEqual(1.25f, died.RewardMultiplier);
+        }
+
+        [Test]
+        public void InvalidSpawnFieldIsRejectedBeforeDropResolution()
+        {
+            Assert.IsFalse(DropRules.TryResolveFieldLevel(false, -1, out _));
+            Assert.IsFalse(DropRules.TryResolveFieldLevel(false,
+                Constants.Combat.FIELD_LEVEL_COUNT, out _));
+            Assert.IsFalse(DropRules.TryResolveFieldLevel(true,
+                DropRules.BOSS_REWARD_FIELD_LEVEL - 1, out _));
+        }
+
+        private sealed class CountingRandom : SystemRandom
+        {
+            private readonly double _value;
+
+            public int NextDoubleCalls { get; private set; }
+
+            public CountingRandom(double value)
+            {
+                _value = value;
+            }
+
+            public override double NextDouble()
+            {
+                ++NextDoubleCalls;
+                return _value;
+            }
         }
     }
 }
