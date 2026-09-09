@@ -39,6 +39,7 @@ namespace Geumeum.Data
         public static DayCycleSO     DayCycle => Require().DayCycle;
         public static SoundCatalogSO Sound    => Require().Sound;
         public static CameraConfigSO Camera   => Require().Camera;
+        public static PresentationConfigSO Presentation => Require().Presentation;
 
         /****************************************
         *                Methods

@@ -31,7 +31,18 @@ namespace Geumeum.Common
                 return;
             }
 
-            ((Action<T>) registered).Invoke(payload);
+            Delegate[] observers = registered.GetInvocationList();
+            for (int i = 0; i < observers.Length; ++i)
+            {
+                try
+                {
+                    ((Action<T>) observers[i])(payload);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[GameEventBus] {typeof(T).Name} observer 실패: {e}", this);
+                }
+            }
         }
 
         /// <summary> 구독한다, 같은 핸들러를 두 번 넣으면 두 번 불린다 </summary>

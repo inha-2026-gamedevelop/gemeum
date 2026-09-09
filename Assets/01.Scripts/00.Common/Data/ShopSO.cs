@@ -25,6 +25,7 @@ namespace Geumeum.Data
             public int          Price;       // 냥
             public float        EffectValue; // 물약 회복량, 권종은 0
             public int          CarryLimit;  // 1인 소지 제한, -1이면 무제한
+            public int          MaxStack;    // 한 슬롯에 보관 가능한 수량
         }
 
         /****************************************
@@ -52,6 +53,12 @@ namespace Geumeum.Data
         /// <summary> 상품 정보를 찾는다, 없으면 false </summary>
         public bool TryGetItem(ShopItemKind kind, out ItemEntry entry)
         {
+            if (_items == null)
+            {
+                entry = default;
+                return false;
+            }
+
             for (int i = 0; i < _items.Length; ++i)
             {
                 if (_items[i].Kind == kind)

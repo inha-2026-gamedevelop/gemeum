@@ -44,6 +44,9 @@ namespace Geumeum.Data
 
         public int TalentPointPerLevel => _talentPointPerLevel;
 
+        /// <summary> 서버 부트가 전 레벨 항목 수를 확인할 때 읽는다 </summary>
+        public int LevelCount => (_levels == null) ? 0 : _levels.Length;
+
         /// <summary> 만렙까지 얻는 특성 포인트 총합 </summary>
         public int TotalTalentPoints => (MaxLevel - 1) * _talentPointPerLevel;
 
@@ -54,6 +57,12 @@ namespace Geumeum.Data
         /// <summary> 레벨 정보를 찾는다, 없으면 false </summary>
         public bool TryGetLevel(int level, out LevelEntry entry)
         {
+            if (_levels == null)
+            {
+                entry = default;
+                return false;
+            }
+
             for (int i = 0; i < _levels.Length; ++i)
             {
                 if (_levels[i].Level == level)
@@ -77,6 +86,11 @@ namespace Geumeum.Data
         /// <summary> 만렙까지의 누적 필요 경험치. 스폰 표를 고쳤을 때 목표 처치량과 대조하는 용도 </summary>
         public int GetTotalExperienceToMaxLevel()
         {
+            if (_levels == null)
+            {
+                return 0;
+            }
+
             int total = 0;
             for (int i = 0; i < _levels.Length; ++i)
             {

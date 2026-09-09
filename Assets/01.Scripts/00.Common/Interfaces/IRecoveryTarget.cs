@@ -16,5 +16,9 @@ namespace Geumeum.Common
         /// 실제로 오른 양이 없으면(사망, 회복 봉쇄, 이미 최대치) false
         /// </summary>
         bool TryRestoreHealth(float amount);
+
+        /// <summary> 회복 출처와 실제 적용량을 함께 확정한다, 서버에서만 호출한다 </summary>
+        bool TryRestoreHealth(float amount, ParticipantId sourceParticipant,
+            out float appliedAmount);
     }
 }

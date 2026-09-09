@@ -53,6 +53,23 @@ public class MarkRegistryTests
         Assert.AreEqual(2, MarkRegistry.CountActive(MUNYEO_A, 3d), "슬롯이 2를 넘었다");
     }
 
+    /// <summary> 슬롯에서 밀려난 대상도 원래 만료 전에는 재부여할 수 없다 </summary>
+    [Test]
+    public void EvictedTargetCannotBeReappliedBeforeExpiry()
+    {
+        Assert.IsTrue(Apply(MUNYEO_A, 1u, 0d));
+        Assert.IsTrue(Apply(MUNYEO_A, 2u, 0.1d));
+        Assert.IsTrue(Apply(MUNYEO_A, 3u, 1d));
+
+        bool beforeExpiry = MarkRegistry.TryApply(
+            MUNYEO_A, Target(1u), 2d, DURATION, SLOT_COUNT, out MarkRejection rejection);
+
+        Assert.IsFalse(beforeExpiry);
+        Assert.AreEqual(MarkRejection.AlreadyMarked, rejection);
+        Assert.IsTrue(Apply(MUNYEO_A, 1u, DURATION));
+        Assert.IsTrue(MarkRegistry.IsMarkedBy(MUNYEO_A, Target(1u), DURATION + 0.001d));
+    }
+
     /// <summary> 지속 시간이 지나면 스스로 풀린다 </summary>
     [Test]
     public void MarkExpiresAfterDuration()
@@ -139,6 +156,36 @@ public class MarkRegistryTests
         Assert.AreEqual(1, MarkRegistry.CountActive(MUNYEO_B, 1d));
     }
 
+    /// <summary> 대상이 파괴되면 슬롯과 재부여 제한도 함께 거둔다 </summary>
+    [Test]
+    public void ClearTargetRemovesSlotAndHistory()
+    {
+        Assert.IsTrue(Apply(MUNYEO_A, 1u, 0d));
+
+        MarkRegistry.ClearTarget(Target(1u));
+
+        Assert.IsFalse(MarkRegistry.IsMarkedBy(MUNYEO_A, Target(1u), 0.1d));
+        Assert.IsTrue(Apply(MUNYEO_A, 1u, 0.1d));
+    }
+
+    /// <summary> netId가 재사용돼도 파괴된 엔티티의 이전 세대 기록이 남지 않는다 </summary>
+    [Test]
+    public void ClearEntityRemovesEveryGenerationWithSameNetId()
+    {
+        TargetRef oldTarget = TargetRef.Create(new RunId(1u), new SceneRevision(1u), 7u, TargetRef.BODY_PART_ID);
+        TargetRef newTarget = TargetRef.Create(new RunId(2u), new SceneRevision(2u), 7u, TargetRef.BODY_PART_ID);
+
+        Assert.IsTrue(MarkRegistry.TryApply(
+            MUNYEO_A, oldTarget, 0d, DURATION, SLOT_COUNT, out MarkRejection _));
+        Assert.IsTrue(MarkRegistry.TryApply(
+            MUNYEO_B, newTarget, 0d, DURATION, SLOT_COUNT, out MarkRejection _));
+
+        MarkRegistry.ClearEntity(7u);
+
+        Assert.IsFalse(MarkRegistry.IsMarkedBy(MUNYEO_A, oldTarget, 0.1d));
+        Assert.IsFalse(MarkRegistry.IsMarkedBy(MUNYEO_B, newTarget, 0.1d));
+    }
+
     /// <summary> 씬을 넘기면 netId가 의미를 잃으므로 전부 지운다 </summary>
     [Test]
     public void ClearAllRemovesEveryOwner()
@@ -165,6 +212,27 @@ public class MarkRegistryTests
 
         MarkRegistry.TryApply(MUNYEO_A, Target(1u), 0d, DURATION, 0, out MarkRejection noSlots);
         Assert.AreEqual(MarkRejection.InvalidSlots, noSlots);
+    }
+
+    /// <summary> 게임 시각과 지속 시간은 유한하고 양수인 범위만 받는다 </summary>
+    [Test]
+    public void NonFiniteTimesAndDurationsAreRejected()
+    {
+        MarkRegistry.TryApply(
+            MUNYEO_A, Target(1u), double.NaN, DURATION, SLOT_COUNT, out MarkRejection nanTime);
+        Assert.AreEqual(MarkRejection.InvalidTime, nanTime);
+
+        MarkRegistry.TryApply(
+            MUNYEO_A, Target(1u), double.PositiveInfinity, DURATION, SLOT_COUNT, out MarkRejection infiniteTime);
+        Assert.AreEqual(MarkRejection.InvalidTime, infiniteTime);
+
+        MarkRegistry.TryApply(
+            MUNYEO_A, Target(1u), 0d, double.NaN, SLOT_COUNT, out MarkRejection nanDuration);
+        Assert.AreEqual(MarkRejection.InvalidDuration, nanDuration);
+
+        MarkRegistry.TryApply(
+            MUNYEO_A, Target(1u), 0d, double.PositiveInfinity, SLOT_COUNT, out MarkRejection infiniteDuration);
+        Assert.AreEqual(MarkRejection.InvalidDuration, infiniteDuration);
     }
 
     /// <summary> 슬롯 수를 늘려도 유지 중인 표식이 사라지지 않는다 </summary>

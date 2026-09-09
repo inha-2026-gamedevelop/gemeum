@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 각 대상이 마지막으로 전투한 서버 시각을 기록한다.
+    /// 각 대상이 마지막으로 전투한 게임 시각을 기록한다.
     /// 게임 디자인 6.5의 "피해를 주거나 받은 지 5초"를 판정하는 단일 원본이며,
     /// 상호작용이 열렸는지 묻는 쪽은 이 값만 본다.
     ///
@@ -34,30 +34,30 @@ namespace Geumeum.Common
         /// 피해 한 건을 기록한다. 맞은 쪽과 때린 쪽 모두 전투한 것으로 친다.
         /// 결계나 환경 피해처럼 가해자가 없으면 맞은 쪽만 기록한다
         /// </summary>
-        public static void ServerNotifyDamage(uint victimNetId, uint attackerNetId, double serverTime)
+        public static void ServerNotifyDamage(uint victimNetId, uint attackerNetId, double gameplayTime)
         {
-            Record(victimNetId, serverTime);
+            Record(victimNetId, gameplayTime);
 
             if (attackerNetId != victimNetId)
             {
-                Record(attackerNetId, serverTime);
+                Record(attackerNetId, gameplayTime);
             }
         }
 
-        /// <summary> 마지막 전투 시각. 기록이 없으면 NEVER를 돌려준다 </summary>
+        /// <summary> 마지막 전투 게임 시각. 기록이 없으면 NEVER를 돌려준다 </summary>
         public static double GetLastCombatTime(uint netId)
         {
             if ((netId == DamageInfo.NO_ATTACKER) ||
-                (!_lastCombatByNetId.TryGetValue(netId, out double serverTime)))
+                (!_lastCombatByNetId.TryGetValue(netId, out double gameplayTime)))
             {
                 return NEVER;
             }
 
-            return serverTime;
+            return gameplayTime;
         }
 
-        /// <summary> 지금 전투 중인지. 유예는 CombatConfigSO에서 읽어 넘긴다 </summary>
-        public static bool IsInCombat(uint netId, double serverTime, float outOfCombatSeconds)
+        /// <summary> 지금 전투 중인지. gameplayTime과 유예는 게임 시계 기준이다 </summary>
+        public static bool IsInCombat(uint netId, double gameplayTime, float outOfCombatSeconds)
         {
             double last = GetLastCombatTime(netId);
             if (last < 0d)
@@ -65,7 +65,7 @@ namespace Geumeum.Common
                 return false;
             }
 
-            return ((serverTime - last) < outOfCombatSeconds);
+            return ((gameplayTime - last) < outOfCombatSeconds);
         }
 
         /// <summary> 대상이 사라졌을 때 기록을 지운다. netId가 재사용돼도 이전 값이 남지 않는다 </summary>
@@ -89,7 +89,7 @@ namespace Geumeum.Common
         *               Internals
         ****************************************/
 
-        private static void Record(uint netId, double serverTime)
+        private static void Record(uint netId, double gameplayTime)
         {
             // 가해자가 없는 환경 피해를 거른다
             if (netId == DamageInfo.NO_ATTACKER)
@@ -97,18 +97,18 @@ namespace Geumeum.Common
                 return;
             }
 
-            if ((double.IsNaN(serverTime)) || (double.IsInfinity(serverTime)) || (serverTime < 0d))
+            if ((double.IsNaN(gameplayTime)) || (double.IsInfinity(gameplayTime)) || (gameplayTime < 0d))
             {
                 return;
             }
 
             // 늦게 도착한 기록이 최신 시각을 되돌리면 상호작용이 다시 열린다
-            if ((_lastCombatByNetId.TryGetValue(netId, out double previous)) && (previous >= serverTime))
+            if ((_lastCombatByNetId.TryGetValue(netId, out double previous)) && (previous >= gameplayTime))
             {
                 return;
             }
 
-            _lastCombatByNetId[netId] = serverTime;
+            _lastCombatByNetId[netId] = gameplayTime;
         }
     }
 }

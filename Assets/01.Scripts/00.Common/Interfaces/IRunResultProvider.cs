@@ -12,5 +12,11 @@ namespace Geumeum.Common
 
         /// <summary> 확정된 사실만 담긴 결과에서 점수를 낸다. 상태를 읽거나 바꾸지 않는다 </summary>
         int CalculateScore(in RunResultSnapshot facts);
+
+        /// <summary> 확정된 점수를 SO의 경계값으로 평가한다 </summary>
+        RunEvaluationGrade CalculateGrade(int score);
+
+        /// <summary> 확정된 등급의 SO 문구를 반환한다 </summary>
+        string GetEvaluationMessage(RunEvaluationGrade grade);
     }
 }

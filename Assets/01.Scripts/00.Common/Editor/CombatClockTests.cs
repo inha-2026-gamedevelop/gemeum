@@ -67,6 +67,17 @@ namespace Geumeum.Common.Tests
         }
 
         [Test]
+        public void PausedGameplayTimeDoesNotAdvanceCombatGrace()
+        {
+            CombatClock.ServerNotifyDamage(ENEMY, PLAYER, NOW);
+
+            // 벽시계가 지나도 정지 중 gameplay time은 같은 값이다
+            double gameplayTimeAfterPause = NOW;
+
+            Assert.IsTrue(CombatClock.IsInCombat(PLAYER, gameplayTimeAfterPause, GRACE));
+        }
+
+        [Test]
         public void EnvironmentDamageRecordsVictimOnly()
         {
             // 결계 피해처럼 가해자가 없는 경우
@@ -107,9 +118,9 @@ namespace Geumeum.Common.Tests
         [TestCase(double.NaN)]
         [TestCase(double.PositiveInfinity)]
         [TestCase(-1d)]
-        public void MalformedTimeIsIgnored(double serverTime)
+        public void MalformedTimeIsIgnored(double gameplayTime)
         {
-            CombatClock.ServerNotifyDamage(ENEMY, PLAYER, serverTime);
+            CombatClock.ServerNotifyDamage(ENEMY, PLAYER, gameplayTime);
 
             Assert.AreEqual(CombatClock.NEVER, CombatClock.GetLastCombatTime(PLAYER));
         }

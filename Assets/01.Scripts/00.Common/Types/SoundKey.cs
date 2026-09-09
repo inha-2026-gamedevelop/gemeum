@@ -34,5 +34,15 @@ namespace Geumeum.Common
         BarrierShrink = 140,
 
         EnemyDeath = 150,
+
+        BellSwing  = 160,
+        HealCast   = 161,
+        HealResolve = 162,
+        MarkApplied = 163,
+        ParryStart = 164,
+
+        BossTailBreak = 170,
+        BossGateOpen  = 171,
+        BossPhaseShift = 172,
     }
 }
