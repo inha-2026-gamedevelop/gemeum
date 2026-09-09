@@ -8,6 +8,8 @@ namespace Geumeum.Systems
         InCombat       = 3,
         RunNotActive   = 4,
         InvalidRequest = 5,
+        WrongScene     = 6,
+        Unavailable    = 7,
     }
 
     /// <summary> 상호작용 한 건을 판정하는 데 필요한 서버 사실들 </summary>

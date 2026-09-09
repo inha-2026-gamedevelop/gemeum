@@ -59,7 +59,8 @@ namespace Geumeum.Systems
                 RefreshCandidate();
             }
 
-            if ((Input.GetKeyDown(_interactKey)) && (_localCandidateNetId != 0u))
+            if (LocalGameplayInputGate.AllowsGameplayInput &&
+                (Input.GetKeyDown(_interactKey)) && (_localCandidateNetId != 0u))
             {
                 CmdInteract(_localCandidateNetId);
             }
