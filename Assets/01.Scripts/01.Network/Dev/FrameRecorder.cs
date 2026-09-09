@@ -50,6 +50,7 @@ namespace Geumeum.Network
         private int  _warmupLeft  = Constants.Diagnostics.WARMUP_FRAMES;
 
         private RunManager _runManager = null;
+        private string     _instanceKey = null;
 
         private float  _autosaveTimer = 0f;
         private float  _overlayTimer  = 0f;
@@ -62,6 +63,7 @@ namespace Geumeum.Network
 
         private void Awake()
         {
+            _instanceKey = Guid.NewGuid().ToString("N");
             _phaseCount  = Enum.GetValues(typeof(RunPhase)).Length;
             _bucketCount = Mathf.CeilToInt(Constants.Diagnostics.HISTOGRAM_MAX_MS / Constants.Diagnostics.HISTOGRAM_BUCKET_MS);
 
@@ -167,7 +169,7 @@ namespace Geumeum.Network
         {
             if (_runManager == null)
             {
-                _runManager = FindAnyObjectByType<RunManager>(FindObjectsInactive.Exclude);
+                _runManager = RunManager.LocalInstance;
             }
 
             return (_runManager == null) ? RunPhase.Lobby : _runManager.Phase;
@@ -293,8 +295,26 @@ namespace Geumeum.Network
             AppendRow(csv, "전체", _mergedBuckets, totalFrames, totalSeconds, totalWorst, totalOverBudget);
 
             string path = Path.Combine(Application.persistentDataPath,
-                Constants.Diagnostics.FRAME_LOG_PREFIX + "_" + role + "_" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".csv");
-            File.WriteAllText(path, csv.ToString());
+                Constants.Diagnostics.FRAME_LOG_PREFIX + "_" + role + "_" +
+                DateTime.Now.ToString("yyyyMMdd-HHmmss") + "_" + _instanceKey + ".csv");
+
+            try
+            {
+                File.WriteAllText(path, csv.ToString());
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                Debug.LogError(
+                    $"[FrameRecorder] CSV 기록 권한이 없다: {path}, {exception.Message}", this);
+                return;
+            }
+            catch (IOException exception)
+            {
+                Debug.LogError(
+                    $"[FrameRecorder] CSV 기록 중 파일 오류가 발생했다: {path}, {exception.Message}",
+                    this);
+                return;
+            }
 
             if (announce)
             {

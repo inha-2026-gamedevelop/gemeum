@@ -39,12 +39,17 @@ namespace Geumeum.Network
         private bool _isTicking            = false;
         private bool _isSimulationEnabled  = true;
 
+        private static ulong G_ServerGeneration = 0UL;
+
         /****************************************
         *              Properties
         ****************************************/
 
         /// <summary> 서버 프로세스의 인스턴스, 클라이언트에서는 null이다 </summary>
         public static AuthorityTickScheduler ServerInstance { get; private set; }
+
+        /// <summary> 서버 틱 스케줄러가 시작될 때마다 증가하는 수명 토큰 </summary>
+        public static ulong ServerGeneration => G_ServerGeneration;
 
         /// <summary> 서버 시뮬레이션 틱의 번호. FixedUpdate마다 하나씩 오른다 </summary>
         public ulong TickId { get; private set; } = 0UL;
@@ -117,6 +122,19 @@ namespace Geumeum.Network
 
         public override void OnStartServer()
         {
+            if (ServerInstance != this)
+            {
+                unchecked
+                {
+                    ++G_ServerGeneration;
+                }
+
+                if (G_ServerGeneration == 0UL)
+                {
+                    G_ServerGeneration = 1UL;
+                }
+            }
+
             ServerInstance         = this;
             _isTicking             = true;
             _isSimulationEnabled   = true;

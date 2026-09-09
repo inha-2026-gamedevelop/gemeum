@@ -19,11 +19,13 @@ namespace Geumeum.Network
         *                Fields
         ****************************************/
 
-        [Tooltip("접속하면 자동으로 준비 상태로 만든다. 로비 UI가 아직 없는 Dev 씬 테스트 전용, Main.unity에서는 반드시 꺼 둔다")]
+        [Tooltip("접속하거나 새 런의 LobbyIdle에 도착하면 자동으로 준비 상태로 만든다. 로비 준비 UI가 없는 현재 기본 흐름에서 사용한다")]
         [SerializeField] private bool _devAutoReady = false;
 
         [Tooltip("런을 시작하는 데 필요한 인원. 혼자 이동, 모션을 확인하려고 낮추는 Dev 씬 전용 값이고, Main.unity에서는 반드시 3으로 둔다")]
         [SerializeField] private int _devMinPlayers = Constants.Network.MAX_PLAYERS;
+
+        private bool _autoReadyForLobbyPending = false;
 
         /****************************************
         *              Properties
@@ -38,11 +40,14 @@ namespace Geumeum.Network
 
         public override void OnStartServer()
         {
-            ServerInstance = this;
+            ServerInstance            = this;
+            _autoReadyForLobbyPending = false;
         }
 
         public override void OnStopServer()
         {
+            _autoReadyForLobbyPending = false;
+
             if (ServerInstance == this)
             {
                 ServerInstance = null;
@@ -78,7 +83,50 @@ namespace Geumeum.Network
 
             if (_devAutoReady)
             {
-                SetSlotReady(conn.connectionId, true);
+                QueueAutoReadyForLobby();
+            }
+
+            TryEnterLobbyScene();
+        }
+
+        /// <summary>
+        /// 정원이 차면 로비 씬으로 넘긴다.
+        ///
+        /// 자동 준비(IsLobbyIdle)와 런 시작(RunManager.StartRun)이 둘 다
+        /// "로비 씬에서 대기 중"을 요구한다. Boot에 머물면 그 조건이 영영 참이 되지 않아
+        /// 3인이 다 붙어도 런이 시작되지 않고, 플레이어는 바닥 없는 Boot에서 계속 떨어진다.
+        ///
+        /// 호스트를 여는 것과 게임에 들어가는 것은 다른 일이라 여기서 이어 준다
+        /// </summary>
+        [Server]
+        private void TryEnterLobbyScene()
+        {
+            RunManager       run      = RunManager.ServerInstance;
+            LobbyRoster      roster   = LobbyRoster.ServerInstance;
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            if ((run == null) || (roster == null) || (director == null))
+            {
+                return;
+            }
+
+            // 진행 중인 런에 끼어드는 경우는 TryResumePausedRun이 이미 처리했다
+            if ((run.Phase != RunPhase.Lobby) || (director.State != RunTransitionState.Idle) ||
+                (director.CurrentScene == RunSceneId.Lobby))
+            {
+                return;
+            }
+
+            int requiredPlayers = ResolveRequiredPlayers();
+            if (roster.SlotCount != requiredPlayers)
+            {
+                Debug.Log($"[LobbyController] 로비 씬 진입 대기: {roster.SlotCount}/{requiredPlayers}명", this);
+                return;
+            }
+
+            Debug.Log($"[LobbyController] 정원이 찼다. 로비 씬으로 넘긴다: 현재={director.CurrentScene}", this);
+            if (!director.ServerBeginTransition(RunSceneId.Lobby))
+            {
+                Debug.LogError("[LobbyController] 로비 씬 전환을 시작하지 못했다", this);
             }
         }
 
@@ -105,21 +153,15 @@ namespace Geumeum.Network
                 coordinator.ServerResetForNewRun();
             }
 
-            if (!_devAutoReady)
-            {
-                return;
-            }
+            _autoReadyForLobbyPending = _devAutoReady;
+            TryApplyAutoReadyForLobby();
+        }
 
-            LobbyRoster roster = LobbyRoster.ServerInstance;
-            if (roster == null)
-            {
-                return;
-            }
-
-            for (int i = 0; i < roster.SlotCount; ++i)
-            {
-                SetSlotReady(roster.GetSlot(i).ConnectionId, true);
-            }
+        /// <summary> 로비 씬의 도착과 바인딩이 끝난 뒤 유예한 자동 준비를 한 번 적용한다 </summary>
+        [Server]
+        public void ServerHandleLobbyIdle()
+        {
+            TryApplyAutoReadyForLobby();
         }
 
         /// <summary> 배분된 무기를 조회한다, 런 시작 전에는 false </summary>
@@ -276,6 +318,63 @@ namespace Geumeum.Network
         }
 
         [Server]
+        private void QueueAutoReadyForLobby()
+        {
+            _autoReadyForLobbyPending = true;
+            TryApplyAutoReadyForLobby();
+        }
+
+        [Server]
+        private void TryApplyAutoReadyForLobby()
+        {
+            if ((!_autoReadyForLobbyPending) || (!IsLobbyIdle()))
+            {
+                return;
+            }
+
+            LobbyRoster roster = LobbyRoster.ServerInstance;
+            if (roster == null)
+            {
+                Debug.LogError("[LobbyController] 로스터가 없어 유예한 자동 준비를 적용하지 못했다", this);
+                return;
+            }
+
+            _autoReadyForLobbyPending = false;
+
+            for (int i = 0; i < roster.SlotCount; ++i)
+            {
+                LobbySlot slot = roster.GetSlot(i);
+                if (slot.IsReady)
+                {
+                    continue;
+                }
+
+                slot.IsReady = true;
+                roster.SetSlot(i, slot);
+            }
+
+            TryStartRun();
+        }
+
+        private static bool IsLobbyIdle()
+        {
+            RunManager run = RunManager.ServerInstance;
+            if ((run == null) || (run.Phase != RunPhase.Lobby))
+            {
+                return false;
+            }
+
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            if ((director == null) || (director.CurrentScene == RunSceneId.None))
+            {
+                return true;
+            }
+
+            return (director.State == RunTransitionState.Idle) &&
+                (director.CurrentScene == RunSceneId.Lobby);
+        }
+
+        [Server]
         private bool TryResumePausedRun(NetworkConnectionToClient conn)
         {
             RunManager run = RunManager.ServerInstance;
@@ -307,6 +406,14 @@ namespace Geumeum.Network
 
         private int ResolveRequiredPlayers()
         {
+            // Steam 경로는 PC 3대로만 검증할 수 있어 인원을 낮출 이유가 없다.
+            // 씬 값이나 실행 인자로 1이 들어오면 호스트 혼자 런이 시작되면서
+            // 입장이 잠겨 나머지 둘이 거부되므로, 여기서 정원으로 고정한다
+            if (SteamTransportSelector.IsSteamTransport(Transport.active))
+            {
+                return Constants.Network.MAX_PLAYERS;
+            }
+
             int required = _devMinPlayers;
 
             // 씬 파일은 머지가 안 되므로 인원을 바꾸려고 매번 씬을 고치지 않는다. 실행 인자가 있으면 그쪽이 이긴다

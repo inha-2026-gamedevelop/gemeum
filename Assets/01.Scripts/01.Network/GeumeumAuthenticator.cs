@@ -47,6 +47,12 @@ namespace Geumeum.Network
         /// <summary> 짝 검사를 위한 신원 소스 이름. 없으면 빈 문자열 </summary>
         public string IdentityLabel => (ActiveSource != null) ? ActiveSource.Label : string.Empty;
 
+        /// <summary>
+        /// 인증 직후 SceneMessage를 기다려야 하는지 로컬 NetworkManager가 읽는다.
+        /// AuthResponse가 ClientAccept보다 먼저 이 값을 확정한다.
+        /// </summary>
+        public static bool ClientSceneSyncExpected { get; private set; }
+
         private IPlayerIdentitySource ActiveSource
         {
             get
@@ -177,7 +183,14 @@ namespace Geumeum.Network
 
             _acceptedIds[conn.connectionId] = id;
 
-            conn.Send(new AuthResponseMessage { Code = AuthResultCode.Accepted, Reason = string.Empty });
+            conn.Send(new AuthResponseMessage
+            {
+                Code = AuthResultCode.Accepted,
+                Reason = string.Empty,
+                SceneSyncRequired = RequiresInitialSceneSync(
+                    NetworkManager.networkSceneName,
+                    (manager == null) ? string.Empty : manager.offlineScene),
+            });
             ServerAccept(conn);
 
             Debug.Log($"[GeumeumAuthenticator] 승인: connectionId={conn.connectionId}, platformId={id}, source={source.Label}");
@@ -195,17 +208,14 @@ namespace Geumeum.Network
                 return true;
             }
 
+            // 개발 빌드에서도 우회하지 않는다. 로비를 건너뛰고 호스트 SteamID로 바로 붙는 경로가
+            // 열려 있으면 검증한 흐름과 실제로 쓰는 흐름이 갈라져, 로비 쪽 결함이 테스트에서 안 드러난다
             SteamLobbyService lobby = SteamLobbyService.Instance;
             if ((lobby == null) || (!lobby.IsInLobby))
             {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                Debug.LogWarning("[GeumeumAuthenticator] 서버가 Steam 로비에 없다, 로비 검증을 건너뛴다 (개발 직접 접속)");
-                return true;
-#else
                 code   = AuthResultCode.NotLobbyMember;
                 reason = "서버가 Steam 로비에 들어가 있지 않다";
                 return false;
-#endif
             }
 
             if (!lobby.IsMember(id.Value))
@@ -247,12 +257,14 @@ namespace Geumeum.Network
 
         public override void OnStartClient()
         {
+            ClientSceneSyncExpected = false;
             NetworkClient.RegisterHandler<AuthResponseMessage>(OnAuthResponse, false);
         }
 
         public override void OnStopClient()
         {
             NetworkClient.UnregisterHandler<AuthResponseMessage>();
+            ClientSceneSyncExpected = false;
         }
 
         public override void OnClientAuthenticate()
@@ -297,12 +309,28 @@ namespace Geumeum.Network
         {
             if (message.Code != AuthResultCode.Accepted)
             {
+                ClientSceneSyncExpected = false;
                 Debug.LogError($"[GeumeumAuthenticator] 접속 거부됨({message.Code}): {message.Reason}");
                 NetworkClient.Disconnect();
                 return;
             }
 
+            ClientSceneSyncExpected = message.SceneSyncRequired;
             ClientAccept();
+        }
+
+        private static bool RequiresInitialSceneSync(string currentNetworkScene,
+            string configuredOfflineScene)
+        {
+            return !string.IsNullOrEmpty(currentNetworkScene) &&
+                !string.Equals(currentNetworkScene, configuredOfflineScene,
+                    StringComparison.Ordinal);
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetClientSceneSyncExpectation()
+        {
+            ClientSceneSyncExpected = false;
         }
     }
 }

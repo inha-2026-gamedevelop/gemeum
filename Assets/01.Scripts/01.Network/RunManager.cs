@@ -1,4 +1,5 @@
 // System
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -21,10 +22,15 @@ namespace Geumeum.Network
         *                Fields
         ****************************************/
 
+        private const string SCORE_CONFIGURATION_ERROR_MESSAGE =
+            "점수 설정 오류로 이번 런의 점수와 등급을 확정하지 못했다.";
+
         [SyncVar] private uint    _runIdValue = 0u;
         [SyncVar] private RunMode _mode       = RunMode.Standard;
 
-        [SyncVar] private RunResultSnapshot _result = default;
+        [SyncVar(hook = nameof(OnResultChangedLocal))] private RunResultSnapshot _result = default;
+
+        private ulong _sessionIdValue = 0UL; // 서버 프로세스 수명 동안 결과 기록 키에 쓰는 값
 
         [SyncVar] private float      _elapsedSeconds     = 0f;
         [SyncVar] private float      _bossElapsedSeconds = 0f;
@@ -33,6 +39,9 @@ namespace Geumeum.Network
         [SyncVar(hook = nameof(OnPhaseChangedLocal))] private RunPhase _phase = RunPhase.Lobby;
 
         [SyncVar(hook = nameof(OnPauseReasonsChangedLocal))] private RunPauseReason _pauseReasons = RunPauseReason.None;
+
+        [SyncVar] private BossEntranceState _bossEntranceState                = BossEntranceState.Idle;
+        [SyncVar] private float             _bossEntranceDeadlineFieldSeconds = 0f;
 
         private RunPhaseTimeline _timeline               = null;  // 서버 전용
         private double           _runStartServerTime     = 0.0;   // 서버 전용
@@ -67,6 +76,9 @@ namespace Geumeum.Network
         /// <summary> 어떤 사유로든 세계가 얼어 있다. 시계도 멈춘다 </summary>
         public bool IsPaused => (_pauseReasons != RunPauseReason.None);
 
+        /// <summary>Server NetworkTime when the current pause began; zero while the run is active.</summary>
+        public double PauseStartServerTime => _pauseStartServerTime;
+
         /// <summary> 필드 구간의 경과 시간(초). 보스전에서는 더 이상 늘지 않는다 </summary>
         public float ElapsedSeconds => _elapsedSeconds;
 
@@ -87,6 +99,29 @@ namespace Geumeum.Network
         /// <summary> 지금 걸려 있는 정지 사유. 하나라도 남아 있으면 런은 멈춘 채다 </summary>
         public RunPauseReason PauseReasons => _pauseReasons;
 
+        /// <summary> 정식 보스 입구의 카운트다운과 전실 경유 상태 </summary>
+        public BossEntranceState EntranceState => _bossEntranceState;
+
+        /// <summary> 카운트다운이 끝나는 필드 시각. 시작 전에는 0이다 </summary>
+        public float BossEntranceDeadlineFieldSeconds => _bossEntranceDeadlineFieldSeconds;
+
+        /// <summary> UI가 표시할 남은 초. 필드 시계가 멈추면 이 값도 그대로다 </summary>
+        public float BossEntranceCountdownRemainingSeconds => BossEntranceRules.GetRemaining(
+            _bossEntranceState, _elapsedSeconds, _bossEntranceDeadlineFieldSeconds);
+
+        /// <summary> 이 프로세스의 호스트 UI가 참가자 이탈 또는 전환 실패 대기를 포기할 수 있는가 </summary>
+        public bool CanLocalAbandonParticipantWait
+        {
+            get
+            {
+                RunSceneDirector director = RunSceneDirector.LocalInstance;
+                bool hasTransitionFailure = ((director != null) &&
+                                             (director.State == RunTransitionState.Failed));
+                return BossEntranceRules.CanAbandonParticipantWait(
+                    NetworkServer.activeHost, _phase, _pauseReasons, hasTransitionFailure);
+            }
+        }
+
         public RunPhase   Phase   => _phase;
         public RunOutcome Outcome => _outcome;
 
@@ -98,6 +133,12 @@ namespace Geumeum.Network
 
         /// <summary> 확정된 결과. 아직 끝나지 않았으면 Outcome이 None이다 </summary>
         public RunResultSnapshot Result => _result;
+
+        /// <summary> 서버 확정 결과가 클라이언트에 도착했을 때 발생한다 </summary>
+        public event Action<RunResultSnapshot> ResultChanged;
+
+        /// <summary> 참가자 대기 포기 요청을 서버가 수락했는지 요청한 호스트에게 알린다 </summary>
+        public event Action<bool> AbandonParticipantWaitRequestCompleted;
 
         private ulong CurrentTickId
         {
@@ -174,6 +215,11 @@ namespace Geumeum.Network
             RunSoundDirector.OnPausedChanged(isPaused);
         }
 
+        private void OnResultChangedLocal(RunResultSnapshot oldResult, RunResultSnapshot newResult)
+        {
+            ResultChanged?.Invoke(newResult);
+        }
+
         /****************************************
         *              Server Callbacks
         ****************************************/
@@ -195,6 +241,11 @@ namespace Geumeum.Network
         {
             ServerInstance = this;
             LocalInstance  = this;
+
+            if (_sessionIdValue == 0UL)
+            {
+                _sessionIdValue = CreateSessionId();
+            }
 
             ServerResetState();
 
@@ -268,6 +319,15 @@ namespace Geumeum.Network
 
         public override void OnStopServer()
         {
+            IRunResultFactsProvider factsProvider = RunResultFactsProviderLocator.Current;
+            if (factsProvider != null)
+            {
+                factsProvider.ResetRun(RunId);
+            }
+
+            MarkRegistry.ClearAll();
+            CombatClock.ClearAll();
+
             if (_schedulerWaitRoutine != null)
             {
                 StopCoroutine(_schedulerWaitRoutine);
@@ -315,15 +375,38 @@ namespace Geumeum.Network
                 return false;
             }
 
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            if ((director != null) && (director.CurrentScene != RunSceneId.None) &&
+                ((director.State != RunTransitionState.Idle) ||
+                 (director.CurrentScene != RunSceneId.Lobby)))
+            {
+                Debug.LogWarning(
+                    $"[RunManager] 로비 씬 준비가 끝나지 않아 런을 시작할 수 없다: " +
+                    $"scene={director.CurrentScene}, transition={director.State}", this);
+                return false;
+            }
+
             if (!_timeline.TryGetPhaseAt(0f, out RunPhase firstPhase))
             {
                 Debug.LogError("[RunManager] 0초에 해당하는 구간이 없어 런을 시작할 수 없다", this);
                 return false;
             }
 
+            MarkRegistry.ClearAll();
+            CombatClock.ClearAll();
             _runIdValue = RunId.Next().Value;
             _mode       = mode;
             _result     = default;
+
+            IRunResultFactsProvider factsProvider = RunResultFactsProviderLocator.Current;
+            if (factsProvider == null)
+            {
+                Debug.LogError("[RunManager] 결과 사실 provider가 없어 이 런의 정산은 미집계로 남는다", this);
+            }
+            else if (!factsProvider.BeginRun(RunId))
+            {
+                Debug.LogError($"[RunManager] 결과 사실 수집을 시작하지 못했다: run={RunId}", this);
+            }
 
             _runStartServerTime     = NetworkTime.time;
             _previousElapsedSeconds = 0f;
@@ -331,6 +414,8 @@ namespace Geumeum.Network
             _bossElapsedSeconds     = 0f;
             _bossStartServerTime    = 0.0;
             _hasBossClockStarted    = false;
+            _bossEntranceState                = BossEntranceState.Idle;
+            _bossEntranceDeadlineFieldSeconds = 0f;
             _outcome                = RunOutcome.None;
             _candidateOutcome       = RunOutcome.None;
 
@@ -403,6 +488,15 @@ namespace Geumeum.Network
 
                 StopTick();
                 SetSimulationEnabled(false);
+
+                if (!GameEventBus.HasInstance)
+                {
+                    Debug.LogError("[RunManager] GameEventBus가 없어 정지를 알리지 못했다, 물리 이동이 계속될 수 있다", this);
+                }
+                else
+                {
+                    GameEventBus.Instance.Publish(new RunPausedEvent(_pauseReasons));
+                }
             }
 
             Debug.Log($"[RunManager] 정지 사유를 걸었다: {reason}({detail}), 현재 사유={_pauseReasons}, phase={_phase}");
@@ -456,10 +550,116 @@ namespace Geumeum.Network
         [Server]
         public void AbortRun(string reason)
         {
-            if (TryFinishRun(RunOutcome.PlayerLeft))
+            ServerTryAbortRun(reason);
+        }
+
+        /// <summary>
+        /// 필드의 정식 입구가 서버에서 감지한 참가자로 카운트다운을 시작한다.
+        /// 같은 입구의 자식 collider가 겹쳐 호출돼도 최초 deadline만 유지한다
+        /// </summary>
+        [Server]
+        public bool ServerTryStartBossEntranceCountdown(NetworkConnectionToClient sender)
+        {
+            if ((sender == null) || (IsPaused) || (!GameDB.IsInitialized))
             {
-                Debug.Log($"[RunManager] 런 중단: {reason}");
+                return false;
             }
+
+            if ((!NetworkServer.connections.TryGetValue(sender.connectionId,
+                    out NetworkConnectionToClient registered)) || (!ReferenceEquals(sender, registered)) ||
+                (sender.identity == null))
+            {
+                return false;
+            }
+
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            if ((director == null) || (director.CurrentScene != RunSceneId.Field))
+            {
+                return false;
+            }
+
+            IPlayerRunLifecycle lifecycle = sender.identity.GetComponent<IPlayerRunLifecycle>();
+            if (lifecycle == null)
+            {
+                return false;
+            }
+
+            RunParticipantSnapshot snapshot = new RunParticipantSnapshot();
+            if ((!lifecycle.CaptureRunState(snapshot)) ||
+                (!BossEntranceRules.CanEnter(_phase, snapshot.LifeState, snapshot.Health)))
+            {
+                return false;
+            }
+
+            float fieldLimitSeconds   = GameDB.Barrier.FieldTimeLimitSeconds;
+            float currentFieldSeconds = Mathf.Min(
+                (float) (NetworkTime.time - _runStartServerTime), fieldLimitSeconds);
+            return ServerStartBossEntranceCountdown(currentFieldSeconds, fieldLimitSeconds,
+                GameDB.Barrier.BossEntryCountdownSeconds, "입구 진입");
+        }
+
+        /// <summary> 호스트 UI가 참가자 이탈 대기를 끝내 달라고 서버에 요청한다 </summary>
+        public bool RequestAbandonParticipantWait()
+        {
+            if ((!NetworkClient.active) || (!NetworkClient.ready))
+            {
+                return false;
+            }
+
+            CmdRequestAbandonParticipantWait();
+            return true;
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdRequestAbandonParticipantWait(NetworkConnectionToClient sender = null)
+        {
+            bool accepted = ServerTryAbandonParticipantWait(sender);
+            if ((sender != null) && NetworkServer.active)
+            {
+                TargetAbandonParticipantWaitRequestCompleted(sender, accepted);
+            }
+        }
+
+        [TargetRpc]
+        private void TargetAbandonParticipantWaitRequestCompleted(
+            NetworkConnection target, bool accepted)
+        {
+            ObserverDispatch.Invoke(AbandonParticipantWaitRequestCompleted, accepted,
+                this, nameof(RunManager), nameof(AbandonParticipantWaitRequestCompleted));
+        }
+
+        [Server]
+        private bool ServerTryAbandonParticipantWait(NetworkConnectionToClient sender)
+        {
+            bool isHostConnection = (NetworkServer.activeHost && (sender != null) &&
+                                     ReferenceEquals(sender, NetworkServer.localConnection));
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            bool hasTransitionFailure = ((director != null) &&
+                                         (director.State == RunTransitionState.Failed));
+            if (!BossEntranceRules.CanAbandonParticipantWait(
+                    isHostConnection, _phase, _pauseReasons, hasTransitionFailure))
+            {
+                return false;
+            }
+
+            if (hasTransitionFailure && (_phase == RunPhase.Result))
+            {
+                return director.ServerRetryFailedResultTransition();
+            }
+
+            if (hasTransitionFailure && (_phase == RunPhase.Lobby))
+            {
+                return director.ServerStopSessionAfterFailedTransition();
+            }
+
+            if (hasTransitionFailure && (!director.ServerArmTerminalExit()))
+            {
+                return false;
+            }
+
+            return ServerTryAbortRun(hasTransitionFailure
+                ? "호스트가 실패한 씬 전환을 끝냈다"
+                : "호스트가 참가자 이탈 대기를 끊었다");
         }
 
         /// <summary>
@@ -483,8 +683,16 @@ namespace Geumeum.Network
         [Server]
         public void ServerResetState()
         {
+            IRunResultFactsProvider factsProvider = RunResultFactsProviderLocator.Current;
+            if (factsProvider != null)
+            {
+                factsProvider.ResetRun(RunId);
+            }
+
             StopTick();
             StopReturnToLobby();
+            MarkRegistry.ClearAll();
+            CombatClock.ClearAll();
 
             _phase                  = RunPhase.Lobby;
             _outcome                = RunOutcome.None;
@@ -497,6 +705,9 @@ namespace Geumeum.Network
             _runStartServerTime     = 0.0;
             _bossStartServerTime    = 0.0;
             _hasBossClockStarted    = false;
+            _bossEntranceState                = BossEntranceState.Idle;
+            _bossEntranceDeadlineFieldSeconds = 0f;
+            _result                  = default;
         }
 
         /// <summary> Result로 끝난 런을 로비 상태로 되돌린다 </summary>
@@ -505,6 +716,20 @@ namespace Geumeum.Network
         {
             if (_phase != RunPhase.Result)
             {
+                return;
+            }
+
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            bool isDevelopmentScene = ((director == null) ||
+                                       (director.CurrentScene == RunSceneId.None));
+            bool isResultReady = ((director != null) &&
+                                  (director.State == RunTransitionState.Idle) &&
+                                  (director.CurrentScene == RunSceneId.Result));
+            if ((!isDevelopmentScene) && (!isResultReady))
+            {
+                Debug.LogWarning(
+                    $"[RunManager] Result 씬 준비 전에는 Lobby phase를 확정하지 않는다: " +
+                    $"scene={director.CurrentScene}, transition={director.State}", this);
                 return;
             }
 
@@ -592,17 +817,22 @@ namespace Geumeum.Network
                 return;
             }
 
-            _outcome      = outcome;
-            _pauseReasons = RunPauseReason.None;
+            _outcome                          = outcome;
+            _pauseReasons                     = RunPauseReason.None;
+            _bossEntranceState                = BossEntranceState.Idle;
+            _bossEntranceDeadlineFieldSeconds = 0f;
 
             _result = BuildResultSnapshot(outcome);
+
+            MarkRegistry.ClearAll();
+            CombatClock.ClearAll();
 
             StopTick();
             CommitPhase(RunPhase.Result);
 
             SetSimulationEnabled(false);
 
-            StartReturnToLobby();
+            ServerTryStartReturnToLobbyCountdown();
 
             Debug.Log($"[RunManager] 런을 끝냈다: {outcome}, 필드={_elapsedSeconds:F1}초, 보스={_bossElapsedSeconds:F1}초");
         }
@@ -612,26 +842,105 @@ namespace Geumeum.Network
         {
             RunResultSnapshot snapshot = new RunResultSnapshot
             {
+                SessionIdValue      = _sessionIdValue,
                 RunIdValue          = _runIdValue,
                 Mode                = _mode,
                 Outcome             = outcome,
                 FieldElapsedSeconds = _elapsedSeconds,
                 BossElapsedSeconds  = _bossElapsedSeconds,
+                ScoreTimeLimitSeconds = GameDB.Barrier.FieldTimeLimitSeconds +
+                    GameDB.Boss.BossTimeLimitSeconds,
                 BossKilled          = (outcome == RunOutcome.Victory),
-
-                // TODO(민성): 처치 수·사망 수·잔액·남은 HP는 점수, 경제, 성장 시스템이 생기면 채운다
-                EnemyKills          = 0,
-                DeathCount          = 0,
-                RemainingCurrency   = 0,
-                RemainingHealthSum  = 0f,
             };
 
-            IRunResultProvider provider = RunResultProviderLocator.Current;
+            IRunResultFactsProvider factsProvider = RunResultFactsProviderLocator.Current;
+            bool hasFacts = ((factsProvider != null) && factsProvider.TryFreeze(ref snapshot));
+            if (!hasFacts)
+            {
+                snapshot.FactsState      = RunResultFactsState.Unavailable;
+                snapshot.ResultRevision = 0u;
+                snapshot.Participants   = null;
+                Debug.LogError($"[RunManager] 서버 결과 사실을 동결하지 못했다: run={RunId}", this);
+                return snapshot;
+            }
 
-            snapshot.ScoreRuleVersion = provider.ScoreRuleVersion;
-            snapshot.Score            = provider.CalculateScore(snapshot);
+            ApplyScore(ref snapshot, outcome);
 
             return snapshot;
+        }
+
+        private void ApplyScore(ref RunResultSnapshot snapshot, RunOutcome outcome)
+        {
+            if (!RunResultProviderLocator.HasProvider)
+            {
+                snapshot.ScoreRuleVersion  = 0;
+                snapshot.Score             = 0;
+                snapshot.EvaluationGrade   = RunEvaluationGrade.None;
+                snapshot.EvaluationMessage = SCORE_CONFIGURATION_ERROR_MESSAGE;
+                Debug.LogError(
+                    $"[RunManager] 결과 확정 시 점수 provider가 없다: run={RunId}", this);
+                return;
+            }
+
+            IRunResultProvider provider = RunResultProviderLocator.Current;
+            int scoreRuleVersion = provider.ScoreRuleVersion;
+            if (scoreRuleVersion <= 0)
+            {
+                snapshot.ScoreRuleVersion  = 0;
+                snapshot.Score             = 0;
+                snapshot.EvaluationGrade   = RunEvaluationGrade.None;
+                snapshot.EvaluationMessage = SCORE_CONFIGURATION_ERROR_MESSAGE;
+                Debug.LogError(
+                    $"[RunManager] 점수 규칙 판이 유효하지 않다: run={RunId}, version={scoreRuleVersion}",
+                    this);
+                return;
+            }
+
+            snapshot.ScoreRuleVersion = scoreRuleVersion;
+            snapshot.Score            = provider.CalculateScore(snapshot);
+            if (outcome != RunOutcome.Victory)
+            {
+                snapshot.EvaluationGrade   = RunEvaluationGrade.None;
+                snapshot.EvaluationMessage = GetIncompleteRunMessage(outcome);
+                return;
+            }
+
+            RunEvaluationGrade grade = provider.CalculateGrade(snapshot.Score);
+            if ((!Enum.IsDefined(typeof(RunEvaluationGrade), grade)) ||
+                (grade == RunEvaluationGrade.None))
+            {
+                snapshot.EvaluationGrade   = RunEvaluationGrade.None;
+                snapshot.EvaluationMessage = SCORE_CONFIGURATION_ERROR_MESSAGE;
+                Debug.LogError(
+                    $"[RunManager] 승리 점수 등급이 유효하지 않다: run={RunId}, " +
+                    $"version={scoreRuleVersion}, grade={grade}", this);
+                return;
+            }
+
+            snapshot.EvaluationGrade   = grade;
+            snapshot.EvaluationMessage = provider.GetEvaluationMessage(grade);
+        }
+
+        private static string GetIncompleteRunMessage(RunOutcome outcome)
+        {
+            switch (outcome)
+            {
+                case RunOutcome.TimeExpired:
+                    return "제한 시간이 끝나 이번 런을 마치지 못했다.";
+                case RunOutcome.PartyWipe:
+                    return "모든 참가자가 쓰러져 이번 런을 마치지 못했다.";
+                case RunOutcome.PlayerLeft:
+                    return "참가자 이탈로 이번 런을 마치지 못했다.";
+                default:
+                    return "이번 런은 완료되지 않았다.";
+            }
+        }
+
+        private static ulong CreateSessionId()
+        {
+            byte[] bytes = Guid.NewGuid().ToByteArray();
+            ulong value = BitConverter.ToUInt64(bytes, 0);
+            return (value == 0UL) ? 1UL : value;
         }
 
         /// <summary> 다음 판을 열 수 있도록 런이 소유한 것들을 되돌린다 </summary>
@@ -639,6 +948,8 @@ namespace Geumeum.Network
         private void ServerResetRunOwnedState()
         {
             uint finishedRunIdValue = _runIdValue;
+            MarkRegistry.ClearAll();
+            CombatClock.ClearAll();
 
             _elapsedSeconds         = 0f;
             _bossElapsedSeconds     = 0f;
@@ -646,9 +957,17 @@ namespace Geumeum.Network
             _runStartServerTime     = 0.0;
             _bossStartServerTime    = 0.0;
             _hasBossClockStarted    = false;
+            _bossEntranceState                = BossEntranceState.Idle;
+            _bossEntranceDeadlineFieldSeconds = 0f;
             _candidateOutcome       = RunOutcome.None;
             _pauseReasons           = RunPauseReason.None;
             _pauseStartServerTime   = 0.0;
+
+            IRunResultFactsProvider factsProvider = RunResultFactsProviderLocator.Current;
+            if (factsProvider != null)
+            {
+                factsProvider.ResetRun(new RunId(finishedRunIdValue));
+            }
 
             RunParticipantRegistry.ServerClear();
 
@@ -665,6 +984,30 @@ namespace Geumeum.Network
         {
             StopReturnToLobby();
             _returnRoutine = StartCoroutine(CoReturnToLobby());
+        }
+
+        [Server]
+        private bool ServerTryStartReturnToLobbyCountdown()
+        {
+            if ((_phase != RunPhase.Result) || (_outcome == RunOutcome.None) ||
+                (_returnRoutine != null))
+            {
+                return false;
+            }
+
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            bool isDevelopmentScene = ((director == null) ||
+                                       (director.CurrentScene == RunSceneId.None));
+            bool isResultReady = ((director != null) &&
+                                  (director.State == RunTransitionState.Idle) &&
+                                  (director.CurrentScene == RunSceneId.Result));
+            if ((!isDevelopmentScene) && (!isResultReady))
+            {
+                return false;
+            }
+
+            StartReturnToLobby();
+            return true;
         }
 
         private void StopReturnToLobby()
@@ -744,10 +1087,24 @@ namespace Geumeum.Network
             _previousElapsedSeconds = elapsedSeconds;
             _elapsedSeconds         = elapsedSeconds;
 
-            if (isFieldOver)
+            if (_bossEntranceState == BossEntranceState.Idle)
             {
-                ServerBeginBossPhase();
+                float automaticStart = BossEntranceRules.GetAutomaticStart(
+                    GameDB.Barrier.BossEntryCountdownSeconds, fieldTimeLimitSeconds);
+                if (elapsedSeconds >= automaticStart)
+                {
+                    ServerStartBossEntranceCountdown(elapsedSeconds, fieldTimeLimitSeconds,
+                        GameDB.Barrier.BossEntryCountdownSeconds, "필드 자동 개시");
+                }
             }
+
+            if (BossEntranceRules.HasExpired(
+                    _bossEntranceState, elapsedSeconds, _bossEntranceDeadlineFieldSeconds))
+            {
+                _bossEntranceState = BossEntranceState.TransitionRequested;
+            }
+
+            ServerProgressBossEntranceRoute();
         }
 
         [Server]
@@ -828,6 +1185,53 @@ namespace Geumeum.Network
         }
 
         /// <summary>
+        /// RunSceneDirector가 전원 도착, 바인딩, 참가자 복구를 마친 뒤 호출한다.
+        /// 전실 다음 아레나를 열거나, 전환 중 확정된 Result 목적지를 다시 요청한다
+        /// </summary>
+        [Server]
+        public void ServerHandleSceneTransitionReady()
+        {
+            if (_phase == RunPhase.Lobby)
+            {
+                LobbyController lobby = LobbyController.ServerInstance;
+                if (lobby != null)
+                {
+                    lobby.ServerHandleLobbyIdle();
+                }
+
+                if (_phase == RunPhase.Lobby)
+                {
+                    ServerSyncSceneToPhase(_phase);
+                }
+
+                return;
+            }
+
+            if (_phase == RunPhase.Result)
+            {
+                if (!ServerTryStartReturnToLobbyCountdown())
+                {
+                    ServerSyncSceneToPhase(RunPhase.Result);
+                }
+                return;
+            }
+
+            if ((_bossEntranceState == BossEntranceState.TransitionRequested) ||
+                (_bossEntranceState == BossEntranceState.Entering))
+            {
+                ServerProgressBossEntranceRoute();
+
+                if ((_bossEntranceState == BossEntranceState.Entering) ||
+                    (_bossEntranceState == BossEntranceState.Ready))
+                {
+                    return;
+                }
+            }
+
+            ServerSyncSceneToPhase(_phase);
+        }
+
+        /// <summary>
         /// phase가 요구하는 씬으로 1회 전환한다. 씬 전환의 결정은 런 상태를 소유한 여기가 하고
         /// 실행은 RunSceneDirector가 한다.
         ///
@@ -864,6 +1268,91 @@ namespace Geumeum.Network
             {
                 Debug.LogWarning($"[RunManager] {next} 전환에 필요한 씬 이동을 시작하지 못했다: {director.CurrentScene} -> {target}", this);
             }
+        }
+
+        [Server]
+        private bool ServerStartBossEntranceCountdown(float currentFieldSeconds, float fieldLimitSeconds,
+            float countdownSeconds, string reason)
+        {
+            if (!BossEntranceRules.TryGetDeadline(_bossEntranceState, currentFieldSeconds,
+                    countdownSeconds, fieldLimitSeconds, out float deadlineFieldSeconds))
+            {
+                return false;
+            }
+
+            _bossEntranceDeadlineFieldSeconds = deadlineFieldSeconds;
+            _bossEntranceState                = BossEntranceState.CountingDown;
+
+            Debug.Log($"[RunManager] 보스 입구 카운트다운 시작: {reason}, " +
+                      $"현재={currentFieldSeconds:F1}초, 만료={deadlineFieldSeconds:F1}초");
+            return true;
+        }
+
+        [Server]
+        private void ServerProgressBossEntranceRoute()
+        {
+            if ((_bossEntranceState != BossEntranceState.TransitionRequested) &&
+                (_bossEntranceState != BossEntranceState.Entering))
+            {
+                return;
+            }
+
+            if (IsPaused)
+            {
+                return;
+            }
+
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            if ((director == null) || (director.CurrentScene == RunSceneId.None))
+            {
+                // 카탈로그 밖 개발 씬은 기존처럼 같은 씬에서 보스 구간을 시험할 수 있게 한다.
+                _bossEntranceState = BossEntranceState.Ready;
+                ServerBeginBossPhase();
+                return;
+            }
+
+            if (RunSceneDirector.IsServerTransitioning)
+            {
+                return;
+            }
+
+            if (director.CurrentScene == RunSceneId.Boss)
+            {
+                _bossEntranceState = BossEntranceState.Ready;
+                ServerBeginBossPhase();
+                return;
+            }
+
+            if (!RunSceneCatalog.TryGetSceneForBossEntrance(
+                    _bossEntranceState, director.CurrentScene, out RunSceneId target))
+            {
+                return;
+            }
+
+            if (director.ServerBeginTransition(target))
+            {
+                _bossEntranceState = BossEntranceState.Entering;
+            }
+        }
+
+        [Server]
+        private bool ServerTryAbortRun(string reason)
+        {
+            bool submitted = TryFinishRun(RunOutcome.PlayerLeft);
+            if ((!submitted) && ((!IsPaused) || (_candidateOutcome == RunOutcome.None)))
+            {
+                return false;
+            }
+
+            // 참가자 이탈로 scheduler와 런 틱이 멈춘 상태에서는 다음 control tick이 없다.
+            // 이 구간에는 전투 판정도 멈춰 있으므로 기존의 더 높은 후보까지 여기서 확정한다.
+            if ((IsPaused) && (_candidateOutcome != RunOutcome.None))
+            {
+                ServerCommitOutcome(_candidateOutcome);
+            }
+
+            Debug.Log($"[RunManager] 런 중단: {reason}");
+            return true;
         }
     }
 }

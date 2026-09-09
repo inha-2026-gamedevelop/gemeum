@@ -24,6 +24,9 @@ namespace Geumeum.Network
     {
         public AuthResultCode Code;
         public string         Reason;
+
+        /// <summary>인증 직후 서버가 현재 network scene을 보낼 예정이면 true.</summary>
+        public bool SceneSyncRequired;
     }
 
     /// <summary> 접속 거부 사유 </summary>
