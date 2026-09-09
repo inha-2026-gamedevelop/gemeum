@@ -3,6 +3,7 @@ using UnityEngine;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Combat;
 using Geumeum.Data;
 
 namespace Geumeum.Art
@@ -43,12 +44,17 @@ namespace Geumeum.Art
         /// <summary> 타격 순간 </summary>
         public void PlayHit(HitStrength strength, float duration)
         {
-            if (!TryGetConfig(out CameraConfigSO config))
+            if (TryGetConfig(out CameraConfigSO config))
             {
-                return;
+                Shake(config.ResolveHitShake(strength));
             }
 
-            Shake(config.ResolveHitShake(strength));
+            PlayerStatus localStatus = PlayerStatus.Local;
+            if ((localStatus != null) &&
+                localStatus.TryGetComponent(out PlayerAnimationController animation))
+            {
+                animation.PlayHitStop(duration);
+            }
         }
 
         /// <summary> 패링 성공 </summary>
@@ -87,12 +93,12 @@ namespace Geumeum.Art
         /// <summary> 보스 부위 파괴(꼬리 한 덩이) </summary>
         public void PlayPartBreak()
         {
-            if (!TryGetConfig(out CameraConfigSO config))
+            if (TryGetConfig(out CameraConfigSO config))
             {
-                return;
+                Shake(config.ShakePartBreak);
             }
 
-            Shake(config.ShakePartBreak);
+            SfxPlayer.Play(SoundKey.BossTailBreak, false);
         }
 
         /****************************************

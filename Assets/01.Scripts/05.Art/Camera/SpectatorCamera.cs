@@ -208,7 +208,7 @@ namespace Geumeum.Art
                 return null;
             }
 
-            return (status.IsDead) ? null : identity.transform;
+            return (status.IsDead || status.IsSwallowed) ? null : identity.transform;
         }
 
         /// <summary> 보던 대상이 죽거나 파괴됐는지 </summary>
@@ -219,7 +219,8 @@ namespace Geumeum.Art
                 return false;
             }
 
-            return (target.TryGetComponent(out PlayerStatus status)) && (!status.IsDead);
+            return (target.TryGetComponent(out PlayerStatus status)) &&
+                (!status.IsDead) && (!status.IsSwallowed);
         }
     }
 }
