@@ -14656,7 +14656,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
+  m_RenderPostProcessing: 1
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
@@ -25069,6 +25069,74 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4871039275056876, guid: abff4394a0b52c94d9f3b18eb65e3241, type: 3}
   m_PrefabInstance: {fileID: 1456118772}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1456489049
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1456489051}
+  - component: {fileID: 1456489050}
+  m_Layer: 0
+  m_Name: '@BarrierVisual'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1456489050
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1456489049}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7360445d205c00247a3bff27a881542a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.BarrierVisual
+  _wallMaterial: {fileID: 2100000, guid: aee1a8ab5bc1b374385bc607b14c655d, type: 2}
+  _wallHeight: 120
+  _wallSegments: 48
+  _groundSink: 30
+  _doubleSidedShell: 0
+  _patchCount: 56
+  _autoFitWidth: 1
+  _patchWidth: 14
+  _patchThickness: 6
+  _groundEffectAsset: {fileID: 8926484042661614526, guid: 7a1e5839a1c1a2244953e52040052ee7, type: 3}
+  _showGroundLayer: 0
+  _groundLayerHeight: 12
+  _bodyEffectAsset: {fileID: 8926484042661614526, guid: 30bd25a0873325e49a6ae2fb42ab739e, type: 3}
+  _bodyRows: 1
+  _bodyHeight: 30
+  _rowSpacing: 14
+  _effectAlphaScale: 0.3
+  _effectPlayRate: 0.15
+  _useTerrainHeight: 1
+  _groundMask:
+    serializedVersion: 2
+    m_Bits: 257
+  _groundProbeHeight: 500
+  _groundResampleDistance: 2
+--- !u!4 &1456489051
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1456489049}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1461593073
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -25990,6 +26058,55 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1920158762507531025, guid: 35348ac853f10584a9e52b978af197f9, type: 3}
   m_PrefabInstance: {fileID: 1547698271}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1565348950
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1565348952}
+  - component: {fileID: 1565348951}
+  m_Layer: 0
+  m_Name: '@PostProcess'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1565348951
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1565348950}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
+  m_IsGlobal: 1
+  priority: 1
+  blendDistance: 0
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: e1fe620ea21f0b64588c7a6b367bdb1c, type: 2}
+--- !u!4 &1565348952
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1565348950}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1570876812
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -27050,6 +27167,12 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  _showPillar: 1
+  _pillarHeight: 60
+  _pillarMaterial: {fileID: 0}
+  _groundLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!114 &1633082181
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -27060,7 +27183,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0ebe2f6e358fbce48ab3f556b04e6d6e, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.BarrierTestHarness
   _barrierController: {fileID: 1633082180}
   _testPhaseDurationSeconds: 10
@@ -31651,31 +31774,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &1860393401
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1860393306}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f3c8a19d2e4b7c449fa61b8730dfe2c, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.BarrierDamageTestDummy
-  _maxHealth: 100
---- !u!114 &1860393402
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1860393306}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a4aecc85cbcf3654a891c56e3a9b404e, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.BarrierTargetAdapter
 --- !u!23 &1860393308
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -31748,6 +31846,31 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1860393401
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1860393306}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f3c8a19d2e4b7c449fa61b8730dfe2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.BarrierDamageTestDummy
+  _maxHealth: 100
+--- !u!114 &1860393402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1860393306}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4aecc85cbcf3654a891c56e3a9b404e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.BarrierTargetAdapter
 --- !u!1001 &1862435404
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -38980,3 +39103,5 @@ SceneRoots:
   - {fileID: 8423909}
   - {fileID: 47883608}
   - {fileID: 1860393310}
+  - {fileID: 1565348952}
+  - {fileID: 1456489051}
