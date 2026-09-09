@@ -623,8 +623,16 @@ Main.unity
    │                              CancelActiveAttack()로 진행 중 판정 · 패링 창 · 예고를 정리하고,
    │                              Exit()는 멱등이라 종료된 페이즈는 다시 공격하지 않는다
    ├ Phase1State.cs           C#  [현재] 1페이즈 MVP: 오프닝 고정 시퀀스(1→2→4) 이후 거리 3단
-   │                              필터 + 균등 무작위 추첨. 템플릿 넷(MeleeArc·TargetedDash·
-   │                              MarkedCircle·ConeBurst) 전부 단일 판정으로 구현됨
+   │                              필터 + 균등 무작위 추첨. 패턴 1(여우불 봉 3연격)은 진짜 3연타
+   │                              구조(1·2타 패링 불가, 3타만 패링). 패턴 3(TargetedDash)은 예고
+   │                              앞 절반 추적(DashTrackRatio, 11.2절) 적용됨. 직전 지목자 제외
+   │                              규칙(SelectTargetExcludingLast 공용 헬퍼)은 패턴 3·4
+   │                              (MarkedCircle) 둘 다 적용됨. 나머지(ConeBurst)는 아직 단일
+   │                              판정 MVP.
+   │                              [계획] 패턴 7·8 직전 지목자 제외 확장, 패턴 5 신궁 시전 중단.
+   │                              근접 어그로가 최근접자에게 쏠리는 문제(2026-09-09 실측)는
+   │                              BOSS_PATTERN_CONTRACT.md 5장의 12초 재평가로 정리 - L3 관찰
+   │                              후 부족하면 재검토
    ├ Phase2State.cs           C#  [현재] 2페이즈 MVP: 패턴 6~9(패턴 10 백귀야행은 꼬리 부위
    │                              파괴 시스템 선행 필요 — [계획], BOSS_PATTERN_CONTRACT.md 4.1)
    ├ BossPatternRunner.cs     C#  [현재] MeleeArc 부채꼴 판정(NonAlloc), netId 중복 제거
