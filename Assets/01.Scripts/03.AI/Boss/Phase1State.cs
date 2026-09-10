@@ -11,11 +11,14 @@ using Geumeum.Data;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 1페이즈, 가르치는 판. 네 템플릿이 전부 돈다 - 패턴 1(여우불 봉 3연격, MeleeArc 연타),
-    /// 패턴 3(순간 접근 3연계, TargetedDash), 패턴 4(여우불 낙인,
-    /// MarkedCircle), 패턴 5(여우 구슬 충격파, ConeBurst). 거리 대역별로 근접/중거리/원거리
-    /// 거리 대역에 맞는 후보와, 거리 무관인 MarkedCircle을 선택기에 넘긴다. 선택기는
-    /// 개별 쿨다운과 직전 패턴을 걸러낸 뒤 남은 후보를 균등 추첨한다.
+    /// 1페이즈, 가르치는 판. 네 템플릿이 전부 돈다 - 패턴 1(여우불 봉 3연격, MeleeArc, SO의
+    /// ImpactOffsets 3개로 진짜 3연타 - 1·2타는 패링 불가, 마지막 3타만 패링 가능,
+    /// BOSS_PATTERN_CONTRACT.md 3장), 패턴 3(순간 접근 3연계, TargetedDash, 예고 앞 절반
+    /// 추적 DASH_TRACK_RATIO 적용됨, 11.2절), 패턴 4(여우불 낙인, MarkedCircle), 패턴 5(여우
+    /// 구슬 충격파, ConeBurst). 거리 대역별로 근접/중거리/원거리 거리 대역에 맞는 후보와,
+    /// 거리 무관인 MarkedCircle을 선택기에 넘긴다. 선택기는 개별 쿨다운과 직전 패턴을 걸러낸
+    /// 뒤 남은 후보를 균등 추첨한다. 대상을 고르는 패턴(TargetedDash·MarkedCircle)은 직전
+    /// 지목자를 제외한다(SelectTargetExcludingLast, BOSS_PATTERN_CONTRACT.md 5장 어그로 규칙).
     /// 전투 시작 직후엔 오프닝 고정 시퀀스(1 -> 2 -> 4)가 먼저 돈다, 쿨다운을 무시하고 순서대로
     /// 발동한다 - 패턴 2(반월 베기)는 패턴 1과 같은 MeleeArc 판정(사거리, 각도 동일)이고
     /// 윈드업만 짧고 패링이 안 된다, 독립 쿨다운이 없어 후보 추첨 대상이 아니다
@@ -59,6 +62,16 @@ namespace Geumeum.AI
 
         private const float MELEE_PARRY_WINDOW_DURATION = 0.32f; // 초, 패링 판정 창 길이
 
+        // 예고(TelegraphDuration) 앞 절반은 대상을 따라가고 뒤 절반은 방향을 확정한다
+        // (BOSS_PATTERN_CONTRACT.md 11.2절 확정값). 완전 잠금이면 정지 표적을 지나쳐버리고,
+        // 완전 추적이면 회피 창이 없어진다 - 그 절충
+        private const float DASH_TRACK_RATIO = 0.5f;
+
+        // 대상을 고르는 패턴(TargetedDash·MarkedCircle) 공용 - 직전 지목자를 뺀 후보를 다시
+        // 뽑을 때 쓰는 스캔 반경. BossController.RefreshTarget과 같은 반경이다
+        // (BOSS_PATTERN_CONTRACT.md 5장 어그로 규칙)
+        private const float TARGET_EXCLUSION_SCAN_RADIUS = 30f;
+
         /****************************************
         *                Fields
         ****************************************/
@@ -82,6 +95,14 @@ namespace Geumeum.AI
         private readonly float[] _patternCooldowns = new float[SELECTABLE_PATTERN_COUNT];
         private readonly System.Random _random = new System.Random();
 
+        // 대상을 고르는 패턴(TargetedDash·MarkedCircle) 공용 - 직전 지목자를 뺀 후보를 다시
+        // 뽑을 때 쓰는 재사용 버퍼, 할당 없음
+        private readonly Collider[] _exclusionScanBuffer =
+            new Collider[Constants.Network.MAX_PLAYERS + 1];
+
+        private Transform _lastDashTarget;   // 패턴 3 전용, 직전 지목자. 다음 지목에서 후보 제외 대상
+        private Transform _lastMarkedTarget; // 패턴 4 전용, 직전 낙인 대상. 다음 지목에서 후보 제외 대상
+
         private AttackState _state              = AttackState.Idle;
         private float       _stateTimer         = 0f;
         private float       _cooldownRemaining  = 0f;
@@ -96,6 +117,7 @@ namespace Geumeum.AI
         private float                       _activeDamageMultiplier = 1f;
         private Vector3                    _lockedForward;  // 예고 시작 시점에 고정한 방향(방향 완전 잠금)
         private Vector3                    _dashDestination;
+        private Vector3                    _dashStartPosition; // TargetedDash 전용, 추적 중 잔여 거리 계산 기준
         private Vector3                    _markedCenter; // MarkedCircle 전용, 예고 시작 시점에 고정
         private uint                       _activeAttackInstanceId;
         private byte                       _activeRepeatIndex;
@@ -354,13 +376,67 @@ namespace Geumeum.AI
             }
         }
 
+        // 직전 지목자를 뺀 생존 플레이어 중 가장 가까운 대상을 고른다. 후보가 없으면(생존자가
+        // 직전 지목자 하나뿐) null을 돌려주고 호출부가 Target(전역 어그로 대상)으로 대체한다 -
+        // "후보가 0이 되면 직전 지목자 제외를 먼저 푼다"는 어그로 규칙의 필터 우선순위.
+        // TargetedDash(패턴 3)·MarkedCircle(패턴 4) 둘 다 이 헬퍼를 쓴다(BOSS_PATTERN_CONTRACT.md 5장)
+        private Transform SelectTargetExcludingLast(Transform lastTarget)
+        {
+            int count = Physics.OverlapSphereNonAlloc(Self.position, TARGET_EXCLUSION_SCAN_RADIUS,
+                _exclusionScanBuffer, _playerLayerMask);
+
+            Transform nearestExcludingLast = null;
+            float     nearestDistance      = float.MaxValue;
+
+            for (int i = 0; i < count; ++i)
+            {
+                if ((!_exclusionScanBuffer[i].TryGetComponent(out IDamageable damageable)) || (damageable.IsDead))
+                {
+                    continue;
+                }
+
+                Transform candidate = _exclusionScanBuffer[i].transform;
+                if (ReferenceEquals(candidate, lastTarget))
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(Self.position, candidate.position);
+                if (distance < nearestDistance)
+                {
+                    nearestDistance      = distance;
+                    nearestExcludingLast = candidate;
+                }
+            }
+
+            return nearestExcludingLast;
+        }
+
         private void BeginAttack(BossPatternSO.PatternEntry pattern, PatternKind kind)
         {
-            _activeTarget           = Target;
+            _activeSpec = new BossPatternExecutionSpec(pattern);
+            _activeKind = ToKind(_activeSpec.Template, kind);
+
+            // TargetedDash(패턴 3)·MarkedCircle(패턴 4)은 전역 어그로 대상(Target)이 아니라
+            // 직전 지목자를 뺀 후보 중에서 다시 뽑는다 - 안 그러면 같은 사람만 계속 지목당해
+            // 3인 역할 분리가 안 된다(BOSS_PATTERN_CONTRACT.md 5장)
+            if (_activeKind == PatternKind.TargetedDash)
+            {
+                _activeTarget   = SelectTargetExcludingLast(_lastDashTarget) ?? Target;
+                _lastDashTarget = _activeTarget;
+            }
+            else if (_activeKind == PatternKind.MarkedCircle)
+            {
+                _activeTarget     = SelectTargetExcludingLast(_lastMarkedTarget) ?? Target;
+                _lastMarkedTarget = _activeTarget;
+            }
+            else
+            {
+                _activeTarget = Target;
+            }
+
             _activeTarget.TryGetComponent(out _activeTargetStatus);
             _activePattern          = pattern;
-            _activeSpec             = new BossPatternExecutionSpec(pattern);
-            _activeKind             = ToKind(_activeSpec.Template, kind);
             _activeDamageMultiplier = _controller.ServerGetAttackDamageMultiplier();
             _previousPatternId      = pattern.PatternId;
             _activeParried          = false;
@@ -381,7 +457,8 @@ namespace Geumeum.AI
 
             if (_activeKind == PatternKind.TargetedDash)
             {
-                _dashDestination = Self.position + (direction * _activeSpec.MoveDistance);
+                _dashStartPosition = Self.position;
+                _dashDestination   = Self.position + (direction * _activeSpec.MoveDistance);
             }
             else if (_activeKind == PatternKind.MarkedCircle)
             {
@@ -447,6 +524,21 @@ namespace Geumeum.AI
 
             if (_activeKind == PatternKind.TargetedDash)
             {
+                float trackDuration = _activePattern.TelegraphDuration * DASH_TRACK_RATIO;
+                if (_stateTimer < trackDuration)
+                {
+                    // 앞 절반 - 매 틱 대상 방향으로 갱신하되, 남은 거리(총 MoveDistance 유지)만큼만 목적지를 다시 잡는다
+                    Vector3 direction = _activeTarget.position - Self.position;
+                    direction.y = 0f;
+                    direction   = (direction.sqrMagnitude > 0.0001f) ? direction.normalized : _lockedForward;
+                    _lockedForward = direction;
+
+                    float traveled  = Vector3.Distance(_dashStartPosition, Self.position);
+                    float remaining = Mathf.Max(0f, _activeSpec.MoveDistance - traveled);
+                    _dashDestination = Self.position + (direction * remaining);
+                }
+                // 뒤 절반은 위에서 마지막으로 갱신된 _dashDestination을 그대로 따라간다(방향 확정)
+
                 Self.position = Vector3.MoveTowards(Self.position, _dashDestination,
                     _activeSpec.MoveSpeed * deltaTime);
             }

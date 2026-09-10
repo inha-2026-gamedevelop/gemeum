@@ -738,9 +738,12 @@ Main.unity
 ├ CombatFeedbackImpl.cs    MB  ICombatFeedback 구현체: 히트 이펙트, 셰이크, 패링 슬로우모션.
 │                              OnEnable/OnDisable에서 CombatFeedbackLocator에 등록·해제 → 8.3
 ├ ScreenEffects.cs         MB  [예정] 저체력 · 결계 밖 · 쇠약 화면 효과
-├ Boss/                    [구현완료] 보스 아레나 연출
-│  └ BossArenaPhaseView.cs MB  페이즈 루트 · 안개 · 하늘 · 바닥 머티리얼 · 달 원반을 한 번에 교체.
-│                              판정에 관여하지 않는다. 서버 페이즈 신호에 연결하는 것은 미착수
+├ Boss/                    [구현완료] 보스 아레나 연출 · 애니메이션
+│  ├ BossArenaPhaseView.cs MB  페이즈 루트 · 안개 · 하늘 · 바닥 머티리얼 · 달 원반을 한 번에 교체.
+│  │                           판정에 관여하지 않는다. 서버 페이즈 신호에 연결하는 것은 미착수
+│  └ BossAnimationView.cs  MB  IBossTelegraphSource · IBossPartSource · BossStatus.Died를 구독해
+│                              BossLocomotion.controller(05.Animator/)의 파라미터로 옮긴다.
+│                              예고 장판(BossTelegraphView)은 아직 미착수 — 이 파일은 애니메이션만 다룬다
 ├ Camera/                  [구현완료] → 카메라와 락온 사양
 │  ├ CameraRig.cs          MB  추적 · 충돌 · 셰이크 · 줌. LateUpdate.
 │  │                           Target이 바뀔 수 있어야 한다 — 관전 카메라가 같은 물건이다.
