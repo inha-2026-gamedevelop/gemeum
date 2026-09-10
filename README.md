@@ -76,7 +76,6 @@ git checkout feature/{자기이름}
 | [시스템 기획서](docs/01-system-design.md) | 개요, 세계관, 코어 루프, 일정, 스코프 원칙 |
 | [게임 디자인](docs/02-game-design.md) | 밸런스 수치, 직업, 장비, 경제, 성장, 점수 |
 | [기술 설계](docs/03-technical-design.md) | 아키텍처, 서버·클라 경계, 파트별 스펙 |
-| [잔여 서버 기능 시스템 기획](docs/06-server-systems-implementation-design.md) | 서버 전체 구현 규칙, 의존 순서, 경합·복구, 결정 항목과 검증 기준 |
 
 ### 개발
 
