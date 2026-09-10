@@ -42,7 +42,7 @@ namespace Geumeum.Network
                 }
 
                 Debug.LogWarning(
-                    $"[DevIdentitySource] connectionId={conn.connectionId}에 -platformid가 없다. "
+                    $"[DevIdentitySource] {NetworkPeerLabel.Describe(conn)}에 -platformid가 없다. "
                     + "재접속하면 다른 사람으로 취급되어 자리와 역할이 복구되지 않는다. "
                     + "실행 인자에 -platformid <숫자>를 줄 것", this);
 

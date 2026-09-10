@@ -1,7 +1,7 @@
 // Unity
 using UnityEngine;
 
-namespace Geumeum.Common
+namespace Geumeum.Dev
 {
     /// <summary>
     /// 개발 도구가 씬 배치 없이 스스로 뜨게 하는 공용 호스트.
@@ -15,7 +15,7 @@ namespace Geumeum.Common
     /// </summary>
     public static class DevToolHost
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *                Fields
@@ -30,12 +30,24 @@ namespace Geumeum.Common
         *                Methods
         ****************************************/
 
-        /// <summary> 도구를 공용 호스트에 붙인다. 이미 붙어 있으면 그것을 그대로 쓴다 </summary>
+        /// <summary>
+        /// 도구를 공용 호스트에 붙인다. 이미 붙어 있으면 그것을 그대로 쓴다.
+        ///
+        /// 잠겨 있으면 붙이지 않고 기억만 해 뒀다가 치트 모드가 켜지는 순간 붙인다.
+        /// 그래서 도구 쪽 코드는 잠금을 몰라도 된다 - 다만 그동안은 null이 돌아오므로
+        /// 호출부가 반환값을 바로 쓰면 안 된다. 지금 호출부 다섯 곳은 모두 버린다
+        /// </summary>
         public static T Attach<T>() where T : Component
         {
             // 에디트 모드에서는 DontDestroyOnLoad가 예외를 낸다
             if (!Application.isPlaying)
             {
+                return null;
+            }
+
+            if (!DevAccess.IsUnlocked)
+            {
+                DevAccess.RunWhenUnlocked(() => Attach<T>());
                 return null;
             }
 

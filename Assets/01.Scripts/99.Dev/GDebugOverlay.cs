@@ -1,7 +1,10 @@
 // Unity
 using UnityEngine;
 
-namespace Geumeum.Common
+// 프로젝트 내부
+using Geumeum.Common;
+
+namespace Geumeum.Dev
 {
     /// <summary>
     /// GDebug가 쌓은 줄을 브라우저 개발 패널로 보낸다.
@@ -23,10 +26,14 @@ namespace Geumeum.Common
         /// </summary>
         public static void EnsureExists()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
             // 플레이 중이 아니면 만들지 않는다. DontDestroyOnLoad가 에디트 모드에서 예외를 낸다.
-            // 로그는 그래도 버퍼에 쌓이므로 에디터 스크립트에서 불러도 안전하다
-            if ((!Application.isPlaying) || (HasInstance))
+            // 로그는 그래도 버퍼에 쌓이므로 에디터 스크립트에서 불러도 안전하다.
+            //
+            // 잠겨 있을 때도 만들지 않는다. 여기는 GDebug가 로그 한 줄마다 부르는 자리라
+            // 잠금 해제를 기다리는 큐에 넣으면 큐가 로그 수만큼 자란다 -
+            // 대신 아래 Preload가 해제 시점에 한 번만 다시 부른다
+            if ((!Application.isPlaying) || (HasInstance) || (!DevAccess.IsUnlocked))
             {
                 return;
             }
@@ -35,7 +42,7 @@ namespace Geumeum.Common
 #endif
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *              Constants
@@ -56,7 +63,7 @@ namespace Geumeum.Common
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Preload()
         {
-            EnsureExists();
+            DevAccess.RunWhenUnlocked(EnsureExists);
         }
 
         /****************************************

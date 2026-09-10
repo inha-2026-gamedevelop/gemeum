@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace Geumeum.Common
+namespace Geumeum.Dev
 {
     /// <summary> 브라우저 패널에 그릴 조작 하나의 종류 </summary>
     public enum DevControlKind

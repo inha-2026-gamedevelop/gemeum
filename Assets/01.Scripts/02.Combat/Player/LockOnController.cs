@@ -7,6 +7,7 @@ using Mirror;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
+using Geumeum.Dev;
 
 namespace Geumeum.Combat
 {
@@ -573,6 +574,7 @@ namespace Geumeum.Combat
         /// </summary>
         [System.Diagnostics.Conditional("UNITY_EDITOR")]
         [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        [System.Diagnostics.Conditional("GEUMEUM_DEVTOOLS")]
         private void ReportCandidateSearch(Candidate best, int overlapCount, float range, float maxAngle,
                                            float closestAngle, int noIdentity, int dead, int noCamera,
                                            int overAngle, int occluded)

@@ -562,7 +562,7 @@ namespace Geumeum.Network
             if (!authenticator.TryGetPlatformId(
                     connection.connectionId, out PlayerPlatformId platformId))
             {
-                Debug.LogError($"[RunSceneDirector] 인증 목록에 없는 연결이다: {connection.connectionId}");
+                Debug.LogError($"[RunSceneDirector] 인증 목록에 없는 연결이다: {NetworkPeerLabel.Describe(connection)}");
                 return false;
             }
 
@@ -660,7 +660,7 @@ namespace Geumeum.Network
         private bool ServerFailParticipant(int connectionId, string reason)
         {
             _faultedConnections.Add(connectionId);
-            ServerFailTransition($"참가자 전환 실패(연결 {connectionId}): {reason}");
+            ServerFailTransition($"참가자 전환 실패({NetworkPeerLabel.Describe(connectionId)}): {reason}");
             return false;
         }
 

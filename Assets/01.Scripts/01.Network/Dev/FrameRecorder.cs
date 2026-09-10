@@ -11,13 +11,14 @@ using Mirror;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Dev;
 
 namespace Geumeum.Network
 {
     /// <summary> 런 구간별 프레임 시간을 모아 CSV로 남긴다 </summary>
     public class FrameRecorder : MonoBehaviour
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *                Fields
@@ -59,6 +60,31 @@ namespace Geumeum.Network
         ****************************************/
 
         private void Awake()
+        {
+            // 잠겨 있으면 프레임 상한도 건드리지 않고 패널도 등록하지 않는다.
+            // 치트 모드를 켜기 전의 릴리스 빌드는 이 도구가 없는 것과 같아야 한다
+            if (!DevAccess.IsUnlocked)
+            {
+                enabled = false;
+
+                DevAccess.RunWhenUnlocked(() =>
+                {
+                    if (this == null)
+                    {
+                        return;
+                    }
+
+                    Initialize();
+                    enabled = true;
+                });
+
+                return;
+            }
+
+            Initialize();
+        }
+
+        private void Initialize()
         {
             _instanceKey = Guid.NewGuid().ToString("N");
             _phaseCount  = Enum.GetValues(typeof(RunPhase)).Length;

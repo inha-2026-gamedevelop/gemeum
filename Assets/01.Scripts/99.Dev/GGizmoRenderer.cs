@@ -2,7 +2,10 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace Geumeum.Common
+// 프로젝트 내부
+using Geumeum.Common;
+
+namespace Geumeum.Dev
 {
     /// <summary>
     /// GGizmo가 쌓아 둔 선과 글자를 게임 화면에 그리고, 켜고 끄는 조작은 브라우저 패널로 보낸다.
@@ -25,9 +28,10 @@ namespace Geumeum.Common
         /// </summary>
         public static void EnsureExists()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // 플레이 중이 아니면 만들지 않는다. DontDestroyOnLoad가 에디트 모드에서 예외를 낸다
-            if ((!Application.isPlaying) || (HasInstance))
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+            // 플레이 중이 아니면 만들지 않는다. DontDestroyOnLoad가 에디트 모드에서 예외를 낸다.
+            // 잠겨 있을 때도 만들지 않는다 - 여기는 기즈모를 찍을 때마다 불리는 자리다
+            if ((!Application.isPlaying) || (HasInstance) || (!DevAccess.IsUnlocked))
             {
                 return;
             }
@@ -36,7 +40,7 @@ namespace Geumeum.Common
 #endif
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *              Constants
@@ -61,7 +65,7 @@ namespace Geumeum.Common
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Preload()
         {
-            EnsureExists();
+            DevAccess.RunWhenUnlocked(EnsureExists);
         }
 
         /****************************************

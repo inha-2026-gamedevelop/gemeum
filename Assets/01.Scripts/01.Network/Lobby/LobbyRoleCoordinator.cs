@@ -74,7 +74,7 @@ namespace Geumeum.Network
 
                 if (!LobbyRoster.TryFindPlayerComponent(slot.ConnectionId, out targets[i]))
                 {
-                    Debug.LogError($"[LobbyRoleCoordinator] connectionId={slot.ConnectionId}의 역할 확정 창구를 찾지 못했다", this);
+                    Debug.LogError($"[LobbyRoleCoordinator] {NetworkPeerLabel.Describe(slot.ConnectionId)}의 역할 확정 창구를 찾지 못했다", this);
                     return false;
                 }
 
@@ -126,7 +126,7 @@ namespace Geumeum.Network
 
                 if (!targets[i].TryCommitRole(weapons[i], characters[i]))
                 {
-                    Debug.LogError($"[LobbyRoleCoordinator] connectionId={slot.ConnectionId}에 역할을 확정하지 못했다", this);
+                    Debug.LogError($"[LobbyRoleCoordinator] {NetworkPeerLabel.Describe(slot.ConnectionId)}에 역할을 확정하지 못했다", this);
                     return false;
                 }
 
@@ -205,7 +205,7 @@ namespace Geumeum.Network
 
             if (!role.TryCommitRole(slot.Weapon, slot.Character))
             {
-                Debug.LogError($"[LobbyRoleCoordinator] connectionId={conn.connectionId}의 역할을 되돌려 주지 못했다", this);
+                Debug.LogError($"[LobbyRoleCoordinator] {NetworkPeerLabel.Describe(conn)}의 역할을 되돌려 주지 못했다", this);
                 return false;
             }
 
@@ -232,19 +232,19 @@ namespace Geumeum.Network
                     break;
 
                 case LobbyRoleAllocator.FailureKind.InvalidCharacter:
-                    Debug.LogError($"[LobbyRoleCoordinator] connectionId={connectionId}의 캐릭터 선택이 유효하지 않다", this);
+                    Debug.LogError($"[LobbyRoleCoordinator] {NetworkPeerLabel.Describe(connectionId)}의 캐릭터 선택이 유효하지 않다", this);
                     break;
 
                 case LobbyRoleAllocator.FailureKind.NoFreeCharacter:
-                    Debug.LogError($"[LobbyRoleCoordinator] connectionId={connectionId}에 줄 남은 캐릭터가 없다", this);
+                    Debug.LogError($"[LobbyRoleCoordinator] {NetworkPeerLabel.Describe(connectionId)}에 줄 남은 캐릭터가 없다", this);
                     break;
 
                 case LobbyRoleAllocator.FailureKind.InvalidWeapon:
-                    Debug.LogError($"[LobbyRoleCoordinator] connectionId={connectionId}가 이어받은 무기가 유효하지 않다", this);
+                    Debug.LogError($"[LobbyRoleCoordinator] {NetworkPeerLabel.Describe(connectionId)}가 이어받은 무기가 유효하지 않다", this);
                     break;
 
                 case LobbyRoleAllocator.FailureKind.NoFreeWeapon:
-                    Debug.LogError($"[LobbyRoleCoordinator] connectionId={connectionId}에 줄 남은 무기가 없다", this);
+                    Debug.LogError($"[LobbyRoleCoordinator] {NetworkPeerLabel.Describe(connectionId)}에 줄 남은 무기가 없다", this);
                     break;
 
                 default:

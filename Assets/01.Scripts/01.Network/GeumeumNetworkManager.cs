@@ -165,7 +165,7 @@ namespace Geumeum.Network
         {
             base.OnServerConnect(conn);
 
-            Debug.Log($"[GeumeumNetworkManager] 접속: connectionId={conn.connectionId}, address={conn.address}, 현재 인원={numPlayers}");
+            Debug.Log($"[GeumeumNetworkManager] 접속: {NetworkPeerLabel.Describe(conn)}, address={conn.address}, 현재 인원={numPlayers}");
         }
 
         public override void OnServerAddPlayer(NetworkConnectionToClient conn)
@@ -183,7 +183,7 @@ namespace Geumeum.Network
 
         public override void OnServerDisconnect(NetworkConnectionToClient conn)
         {
-            Debug.Log($"[GeumeumNetworkManager] 해제: connectionId={conn.connectionId}");
+            Debug.Log($"[GeumeumNetworkManager] 해제: {NetworkPeerLabel.Describe(conn)}");
 
             if (LobbyController.ServerInstance != null)
             {
@@ -240,7 +240,7 @@ namespace Geumeum.Network
                 return;
             }
 
-            RunManager.ServerInstance.PauseRun($"connectionId={conn.connectionId} 이탈");
+            RunManager.ServerInstance.PauseRun($"{NetworkPeerLabel.Describe(conn)} 이탈");
         }
     }
 }

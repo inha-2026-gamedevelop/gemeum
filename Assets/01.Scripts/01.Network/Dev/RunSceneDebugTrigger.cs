@@ -6,6 +6,7 @@ using Mirror;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Dev;
 
 namespace Geumeum.Network
 {
@@ -15,7 +16,7 @@ namespace Geumeum.Network
     /// </summary>
     public class RunSceneDebugTrigger : MonoBehaviour
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *                Preload

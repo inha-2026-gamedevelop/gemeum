@@ -193,7 +193,7 @@ namespace Geumeum.Network
             });
             ServerAccept(conn);
 
-            Debug.Log($"[GeumeumAuthenticator] 승인: connectionId={conn.connectionId}, platformId={id}, source={source.Label}");
+            Debug.Log($"[GeumeumAuthenticator] 승인: {NetworkPeerLabel.Describe(conn)}, platformId={id}, source={source.Label}");
         }
 
         /// <summary> Steam 경로에서만 도는 세션 검증 </summary>
@@ -245,7 +245,7 @@ namespace Geumeum.Network
 
         private void Reject(NetworkConnectionToClient conn, AuthResultCode code, string reason)
         {
-            Debug.LogWarning($"[GeumeumAuthenticator] 거부({code}): connectionId={conn.connectionId}, {reason}", this);
+            Debug.LogWarning($"[GeumeumAuthenticator] 거부({code}): {NetworkPeerLabel.Describe(conn)}, {reason}", this);
 
             conn.Send(new AuthResponseMessage { Code = code, Reason = reason });
             ServerReject(conn);

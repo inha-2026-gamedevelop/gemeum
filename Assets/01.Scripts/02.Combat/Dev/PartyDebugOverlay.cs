@@ -10,6 +10,7 @@ using Mirror;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
+using Geumeum.Dev;
 
 namespace Geumeum.Combat
 {
@@ -19,7 +20,7 @@ namespace Geumeum.Combat
     /// </summary>
     public class PartyDebugOverlay : PersistentSingleton<PartyDebugOverlay>
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *                Preload
@@ -33,7 +34,7 @@ namespace Geumeum.Combat
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Preload()
         {
-            EnsureCreated(OBJECT_NAME);
+            DevAccess.RunWhenUnlocked(() => EnsureCreated(OBJECT_NAME));
         }
 
         /****************************************
@@ -105,7 +106,7 @@ namespace Geumeum.Combat
                 return;
             }
 
-            EnsureCreated(OBJECT_NAME);
+            DevAccess.RunWhenUnlocked(() => EnsureCreated(OBJECT_NAME));
         }
 
         private void Update()

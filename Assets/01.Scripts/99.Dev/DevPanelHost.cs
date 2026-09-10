@@ -9,7 +9,10 @@ using UnityEngine;
 // 서드파티
 using Mirror;
 
-namespace Geumeum.Common
+// 프로젝트 내부
+using Geumeum.Common;
+
+namespace Geumeum.Dev
 {
     /// <summary>
     /// 개발용 패널을 모아 브라우저에 보낼 상태를 만들고, 브라우저가 누른 것을 게임에 적용한다.
@@ -32,7 +35,7 @@ namespace Geumeum.Common
         public static void Register(string id, string title, Action<DevPanelBuilder> build,
                                     Action<DevCommand> handle)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
             if ((string.IsNullOrEmpty(id)) || (build == null))
             {
                 return;
@@ -50,7 +53,7 @@ namespace Geumeum.Common
 
             if (Application.isPlaying)
             {
-                EnsureCreated(OBJECT_NAME);
+                DevAccess.RunWhenUnlocked(() => EnsureCreated(OBJECT_NAME));
             }
 #endif
         }
@@ -58,7 +61,7 @@ namespace Geumeum.Common
         /// <summary> 등록을 지운다. 패널을 만든 쪽이 파괴될 때 부른다 </summary>
         public static void Unregister(string id)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
             for (int i = 0; i < _panels.Count; ++i)
             {
                 if (_panels[i].Id == id)
@@ -70,7 +73,7 @@ namespace Geumeum.Common
 #endif
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *              Constants
@@ -150,7 +153,7 @@ namespace Geumeum.Common
                 return;
             }
 
-            EnsureCreated(OBJECT_NAME);
+            DevAccess.RunWhenUnlocked(() => EnsureCreated(OBJECT_NAME));
         }
 
         /// <summary> 도메인 리로드를 끈 환경에서 이전 플레이의 등록이 남지 않게 한다 </summary>

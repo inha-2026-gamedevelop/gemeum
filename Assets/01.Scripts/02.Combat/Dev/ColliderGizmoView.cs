@@ -7,6 +7,7 @@ using Mirror;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
+using Geumeum.Dev;
 
 namespace Geumeum.Combat
 {
@@ -19,7 +20,7 @@ namespace Geumeum.Combat
     /// </summary>
     public class ColliderGizmoView : MonoBehaviour
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *                Preload

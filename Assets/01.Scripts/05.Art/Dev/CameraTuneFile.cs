@@ -17,7 +17,7 @@ namespace Geumeum.Art
     /// </summary>
     public static class CameraTuneFile
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *                Types

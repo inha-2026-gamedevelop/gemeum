@@ -9,7 +9,10 @@ using System.Threading;
 // Unity
 using UnityEngine;
 
-namespace Geumeum.Common
+// 프로젝트 내부
+using Geumeum.Common;
+
+namespace Geumeum.Dev
 {
     /// <summary>
     /// 개발 패널을 브라우저에 띄우기 위한 아주 작은 HTTP 서버.
@@ -23,7 +26,7 @@ namespace Geumeum.Common
     /// </summary>
     public class DevWebServer : PersistentSingleton<DevWebServer>
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *              Constants
@@ -64,7 +67,11 @@ namespace Geumeum.Common
         *                Preload
         ****************************************/
 
-        /// <summary> 씬에 배치하지 않아도 실행 시작에 스스로 뜬다 </summary>
+        /// <summary>
+        /// 씬에 배치하지 않아도 실행 시작에 스스로 뜬다.
+        /// 잠겨 있는 동안에는 만들지 않는다 - 이 서버는 게임을 조작할 수 있는 창구라
+        /// 치트 모드를 켜기 전에는 포트를 열어 두면 안 된다
+        /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Preload()
         {
@@ -73,7 +80,7 @@ namespace Geumeum.Common
                 return;
             }
 
-            EnsureCreated(OBJECT_NAME);
+            DevAccess.RunWhenUnlocked(() => EnsureCreated(OBJECT_NAME));
         }
 
         /****************************************

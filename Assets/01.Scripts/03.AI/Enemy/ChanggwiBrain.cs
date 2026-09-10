@@ -79,6 +79,10 @@ namespace Geumeum.AI
 
         public override float? MoveSpeedOverride => (_state == BrainState.Charge) ? Status.ChargeSpeed : (float?)null;
 
+        // 시전 사거리(AttackRange)는 "이 거리면 돌진을 시작한다"는 값이라 실제 손이 닿는 거리보다 훨씬 멀다.
+        // 때리는 것은 돌진이 멈춰 서는 자리이므로 그 반경을 쓴다
+        public override float MeleeHitRange => Status.ChargeHitRadius;
+
         public override bool IsAttackCommitted => (_state == BrainState.Telegraph) || (_state == BrainState.Charge) || (_state == BrainState.Attack);
 
         public override EnemyVisualState VisualState => ToVisualState(_state);

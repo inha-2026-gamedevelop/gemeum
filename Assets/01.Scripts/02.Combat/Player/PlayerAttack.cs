@@ -10,6 +10,7 @@ using Mirror;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
+using Geumeum.Dev;
 using Geumeum.Network;
 
 namespace Geumeum.Combat
