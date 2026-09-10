@@ -54,6 +54,14 @@ namespace Geumeum.AI
         /// <summary> true면 ShouldAttackNow 실행 시 근접 피해 대신 투사체를 발사한다 </summary>
         public virtual bool IsRangedAttack => false;
 
+        /// <summary>
+        /// 타격이 확정되는 순간 대상이 이 거리 안에 있어야 근접 공격이 들어간다.
+        /// 선딜 동안 대상이 굴러 빠져나가면 빗나가야 하므로, 공격을 시작할 때가 아니라
+        /// EnemyController가 피해를 주기 직전에 다시 잰다.
+        /// 기본은 시전 사거리이고, 돌진처럼 멈춰 서는 자리가 따로 있는 몬스터는 덮어쓴다
+        /// </summary>
+        public virtual float MeleeHitRange => Status.AttackRange;
+
         /// <summary> 선딜 · 공격 판정 중이면 true. true인 동안은 일반 피격으로 경직하지 않는다 </summary>
         public virtual bool IsAttackCommitted => false;
 

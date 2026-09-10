@@ -12,6 +12,7 @@ using Mirror;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
+using Geumeum.Dev;
 using Geumeum.Network;
 using Geumeum.Systems;
 
@@ -32,6 +33,10 @@ namespace Geumeum.AI
         private const float TARGET_SCAN_INTERVAL    = 0.5f; // 매 프레임 탐색 대신 주기 탐색
         private const float TARGET_SCAN_RADIUS      = 20f;  // Brain의 AggroRange보다 넉넉히 잡고, 실제 인지 여부는 Brain이 판단
         private const float PROJECTILE_RANGE_MARGIN = 1.5f; // 시전 사거리보다 이만큼 더 날아갈 여유를 준다
+
+        // 타격 순간 사거리를 그대로 쓰면 몬스터가 멈춰 선 자리에서 한 걸음만 밀려도 전부 빗나간다.
+        // 투사체와 같은 방식으로 여유를 준다
+        private const float MELEE_HIT_RANGE_MARGIN = 1.2f;
         private const int   TARGET_SCAN_BUFFER_SIZE = 8;    // 파티 최대 인원(3)보다 넉넉히 잡은 NonAlloc 버퍼 크기
 
         [SerializeField] private EnemyStatus     _status;
@@ -532,7 +537,35 @@ namespace Geumeum.AI
                 return;
             }
 
+            // 공격을 시작할 때가 아니라 지금 다시 잰다. 선딜 동안 굴러 빠져나갔으면 빗나가야 한다 -
+            // 예고를 보고 피할 수 있어야 회피가 의미를 가진다
+            if (!IsWithinMeleeReach(target))
+            {
+                GDebug.Server($"{GDebug.Who(netId)} 근접 빗나감: 대상이 사거리 밖");
+                return;
+            }
+
             damageable.TakeDamage(new DamageInfo(_status.AttackPower, netId, HitStrength.Light));
+        }
+
+        /// <summary> 타격이 확정되는 순간 대상이 아직 손 닿는 거리에 있는지 본다 </summary>
+        [Server]
+        private bool IsWithinMeleeReach(Transform target)
+        {
+            float reach = _brain.MeleeHitRange * MELEE_HIT_RANGE_MARGIN;
+            if (reach <= 0f)
+            {
+                // 사거리 값이 비어 있으면 이 검사로 공격을 막지 않는다.
+                // 데이터가 빠진 것을 전투 불능으로 갚게 하면 원인 찾기가 더 어려워진다
+                Debug.LogWarning($"[EnemyController] {_status.Kind}의 근접 사거리가 0이다, 타격 시점 검사를 건너뛴다", this);
+                return true;
+            }
+
+            // 높이는 빼고 잰다. 경사에 서 있다고 사거리가 달라지면 안 된다
+            Vector3 toTarget = (target.position - transform.position);
+            toTarget.y       = 0f;
+
+            return (toTarget.sqrMagnitude <= (reach * reach));
         }
 
         [Server]
