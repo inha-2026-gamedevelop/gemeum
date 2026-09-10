@@ -115,6 +115,24 @@ namespace Geumeum.Combat
             _hasLocalState = true;
         }
 
+        /// <summary>
+        /// 소유 클라이언트가 방향만 즉시 반영한다. 속도는 건드리지 않는다.
+        ///
+        /// 공격처럼 제자리에서 방향만 바뀌는 행동에 쓴다. 서버가 확정한 방향은 SyncVar로 오지만,
+        /// 소유 클라이언트는 자기 화면에서 로컬 예측값을 그리므로 여기서도 같이 돌려 놓지 않으면
+        /// 호스트 화면에서만 캐릭터가 조준 방향을 본다
+        /// </summary>
+        public void ClientPredictFacing(Vector2 direction)
+        {
+            if ((!isOwned) || (isServer))
+            {
+                return;
+            }
+
+            _localFacing   = ResolveFacing(direction, _localFacing);
+            _hasLocalState = true;
+        }
+
         /// <summary> 이동을 서버가 대신 정하는 구간에서는 로컬 예측을 버리고 서버 값을 따른다 </summary>
         public void ClientReleaseLocalState()
         {
