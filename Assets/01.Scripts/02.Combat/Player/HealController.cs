@@ -69,6 +69,15 @@ namespace Geumeum.Combat
                 return;
             }
 
+            // 치유는 방울 전용이다. 무기를 안 보고 보내면 검·활을 든 사람이 우클릭할 때마다
+            // 서버까지 갔다가 NoWeapon으로 거부돼 화면에 거부 로그가 뜬다.
+            // 우클릭은 무기마다 다른 행동에 걸려 있으므로, 내 무기가 아니면 이 요청은 아예 안 보낸다.
+            // 서버는 그대로 검증한다 - 여기는 입력을 걸러 주는 것뿐이다
+            if ((_weapon == null) || (!_weapon.HasWeapon) || (_weapon.Weapon != WeaponKind.Bell))
+            {
+                return;
+            }
+
             CmdRequestHeal(_nextRequestId);
             ++_nextRequestId;
         }
