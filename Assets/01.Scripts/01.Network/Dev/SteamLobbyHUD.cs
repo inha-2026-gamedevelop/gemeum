@@ -4,6 +4,9 @@ using UnityEngine;
 // 서드파티
 using Mirror;
 
+// 프로젝트 내부
+using Geumeum.Common;
+
 namespace Geumeum.Network
 {
     /// <summary> Steam 로비를 손으로 돌려 보기 위한 개발용 오버레이 </summary>
@@ -15,10 +18,8 @@ namespace Geumeum.Network
         *              Constants
         ****************************************/
 
-        private const int WIDTH    = 260;
-        private const int HEIGHT   = 460;
-        private const int OFFSET_X = 10;
-        private const int OFFSET_Y = 220;
+        private const string PANEL_ID    = "steam";
+        private const string PANEL_TITLE = "Steam 로비";
 
         /****************************************
         *                Fields
@@ -30,9 +31,6 @@ namespace Geumeum.Network
         // 키(GeumeumNetworkManager의 _devStartHostKey=F1, _devAbandonRunKey=F3)가 있어
         // 코드만 훑으면 비어 보인다. 새 키를 잡기 전에 PartyDebugOverlay의 G_KeyHelp와
         // 프리팹 직렬화 값을 함께 볼 것. 그래서 네 키 모두 F키 밖 이동키 무리로 모았다
-        [Tooltip("로비 패널을 껐다 켠다. 기본은 꺼짐이라 평소 화면을 가리지 않는다")]
-        [SerializeField] private KeyCode _togglePanelKey = KeyCode.PageUp;
-
         [Tooltip("방을 만든다. 호스트가 될 PC에서 누른다")]
         [SerializeField] private KeyCode _createLobbyKey = KeyCode.Home;
 
@@ -48,8 +46,6 @@ namespace Geumeum.Network
         // 초대할 친구의 SteamID64
         private string _inviteSteamId = string.Empty;
 
-        // 기본은 꺼짐. 플레이 화면을 가리지 않게 두고 필요할 때만 연다
-        private bool _isPanelVisible = false;
 
         /****************************************
         *              Unity Event
@@ -57,15 +53,24 @@ namespace Geumeum.Network
 
         private void Start()
         {
+            // Steam 전송이 아니어도 패널은 등록한다. 전송을 바꾸고 다시 켰을 때
+            // 패널이 없으면 왜 없는지 알기 어렵다
+            DevPanelHost.Register(PANEL_ID, PANEL_TITLE, Build, Handle);
+
             if (!SteamTransportSelector.IsSteamTransport(Transport.active))
             {
                 return;
             }
 
             // 패널이 기본으로 꺼져 있어 화면에 안내가 없다. 로그로 한 번 남긴다
-            Debug.Log($"[SteamLobbyHUD] Steam 단축키 — [{_togglePanelKey}] 패널 · " +
-                      $"[{_createLobbyKey}] 방 만들기 · [{_joinLobbyKey}] 클립보드 로비 ID로 참가 · " +
-                      $"[{_startHostKey}] 호스트 시작", this);
+            Debug.Log($"[SteamLobbyHUD] Steam 단축키 — [{_createLobbyKey}] 방 만들기 · " +
+                      $"[{_joinLobbyKey}] 클립보드 로비 ID로 참가 · [{_startHostKey}] 호스트 시작. " +
+                      "나머지 조작은 브라우저 개발 패널에 있다", this);
+        }
+
+        private void OnDestroy()
+        {
+            DevPanelHost.Unregister(PANEL_ID);
         }
 
         private void Update()
@@ -73,11 +78,6 @@ namespace Geumeum.Network
             if (!SteamTransportSelector.IsSteamTransport(Transport.active))
             {
                 return;
-            }
-
-            if (Input.GetKeyDown(_togglePanelKey))
-            {
-                _isPanelVisible = !_isPanelVisible;
             }
 
             SteamSessionCoordinator session = SteamSessionCoordinator.Instance;
@@ -105,142 +105,114 @@ namespace Geumeum.Network
             }
         }
 
-        private void OnGUI()
+        /****************************************
+        *                Panel
+        ****************************************/
+
+        /// <summary>
+        /// 브라우저 개발 패널에 지금 상태와 조작을 적는다 -
+        /// 예전에는 게임 화면 왼쪽에 고정 크기로 겹쳐 그려 로비 UI와 파티창이 서로를 덮었다
+        /// </summary>
+        private void Build(DevPanelBuilder builder)
         {
-            if ((!_isPanelVisible) ||
-                (!SteamTransportSelector.IsSteamTransport(Transport.active)))
+            if (!SteamTransportSelector.IsSteamTransport(Transport.active))
             {
+                builder.Label("지금은 Steam 전송이 아니다 (KCP)");
                 return;
             }
-
-            GUILayout.BeginArea(new Rect(OFFSET_X, OFFSET_Y, WIDTH, HEIGHT));
-            GUILayout.Label("Steam 로비 (개발용)");
-            GUILayout.Label($"[{_togglePanelKey}] 패널  [{_createLobbyKey}] 방 만들기");
-            GUILayout.Label($"[{_joinLobbyKey}] 참가  [{_startHostKey}] 호스트 시작");
 
             SteamSessionCoordinator session = SteamSessionCoordinator.Instance;
             SteamLobbyService       lobby   = SteamLobbyService.Instance;
 
             if ((session == null) || (lobby == null))
             {
-                GUILayout.Label("세션 구성이 씬에 없다");
-                GUILayout.EndArea();
+                builder.Label("세션 구성이 씬에 없다");
                 return;
             }
 
-            DrawStatus(session, lobby);
-            DrawButtons(session, lobby);
-
-            GUILayout.EndArea();
-        }
-
-        /****************************************
-        *                Methods
-        ****************************************/
-
-        private static void DrawStatus(SteamSessionCoordinator session, SteamLobbyService lobby)
-        {
-            GUILayout.Label($"단계: {session.State}");
+            builder.Label($"단계: {session.State}");
 
             if (!lobby.IsInLobby)
             {
-                GUILayout.Label("로비: 없음");
+                builder.Label("로비: 없음");
+                builder.Button("create", $"방 만들기 ({_createLobbyKey})");
+                builder.Text("joinid", "로비 ID로 참가", _joinLobbyId);
+                builder.Button("join", "참가");
                 return;
             }
 
-            GUILayout.Label($"로비: {lobby.LobbyId}");
-            GUILayout.Label($"소유자: {(lobby.IsOwner ? "나" : lobby.OwnerId.ToString())}");
-            GUILayout.Label($"인원: {lobby.Members.Count} / {SteamLobbyService.MAX_MEMBERS}");
-        }
-
-        private void DrawButtons(SteamSessionCoordinator session, SteamLobbyService lobby)
-        {
-            if (!lobby.IsInLobby)
-            {
-                if (GUILayout.Button("방 만들기"))
-                {
-                    session.CreateLobby();
-                }
-
-                DrawJoinById(session);
-                return;
-            }
+            builder.Label($"로비: {lobby.LobbyId}");
+            builder.Label($"소유자: {(lobby.IsOwner ? "나" : lobby.OwnerId.ToString())}");
+            builder.Label($"인원: {lobby.Members.Count} / {SteamLobbyService.MAX_MEMBERS}");
 
             if (lobby.IsOverlayEnabled)
             {
-                if (GUILayout.Button("친구 초대"))
-                {
-                    session.OpenInviteOverlay();
-                }
+                builder.Button("invite", "친구 초대 (오버레이)");
             }
             else
             {
-                GUILayout.Label("오버레이 없음");
-
-                if (GUILayout.Button("로비 ID 복사"))
-                {
-                    GUIUtility.systemCopyBuffer = lobby.LobbyId.ToString();
-                }
-
-                DrawDirectInvite(session);
+                builder.Label("오버레이 없음");
+                builder.Text("friendid", "SteamID로 초대", _inviteSteamId);
+                builder.Button("sendinvite", "초대 보내기");
             }
 
-            GUI.enabled = session.CanStartHost;
-            if (GUILayout.Button("호스트 시작"))
+            if (session.CanStartHost)
             {
-                session.StartHost();
+                builder.Button("starthost", $"호스트 시작 ({_startHostKey})");
             }
-
-            GUI.enabled = true;
-
-            if ((!session.CanStartHost) && (session.State == SteamSessionState.Gathering))
+            else if (session.State == SteamSessionState.Gathering)
             {
-                GUILayout.Label(lobby.IsOwner ? "인원이 덜 모였다" : "소유자만 시작할 수 있다");
+                builder.Label(lobby.IsOwner ? "인원이 덜 모였다" : "소유자만 시작할 수 있다");
             }
 
-            if (GUILayout.Button("방 나가기"))
-            {
-                session.LeaveLobby();
-            }
+            builder.Button("leave", "방 나가기");
         }
 
-        private void DrawDirectInvite(SteamSessionCoordinator session)
+        private void Handle(DevCommand command)
         {
-            GUILayout.Label("SteamID로 초대");
-            _inviteSteamId = GUILayout.TextField(_inviteSteamId);
-
-            GUI.enabled = ulong.TryParse(_inviteSteamId, out ulong friendId);
-            if (GUILayout.Button("초대 보내기"))
+            SteamSessionCoordinator session = SteamSessionCoordinator.Instance;
+            if (session == null)
             {
-                session.InviteUser(friendId);
+                return;
             }
 
-            GUI.enabled = true;
+            switch (command.Control)
+            {
+                case "create":
+                    session.CreateLobby();
+                    return;
+
+                case "joinid":
+                    _joinLobbyId = command.Value;
+                    return;
+
+                case "join":
+                    JoinById(session);
+                    return;
+
+                case "invite":
+                    session.OpenInviteOverlay();
+                    return;
+
+                case "friendid":
+                    _inviteSteamId = command.Value;
+                    return;
+
+                case "sendinvite":
+                    SendInvite(session);
+                    return;
+
+                case "starthost":
+                    session.StartHost();
+                    return;
+
+                case "leave":
+                    session.LeaveLobby();
+                    return;
+            }
         }
 
-        private void DrawJoinById(SteamSessionCoordinator session)
-        {
-            GUILayout.Label("로비 ID로 참가");
-            _joinLobbyId = GUILayout.TextField(_joinLobbyId);
-
-            GUI.enabled = ulong.TryParse(_joinLobbyId, out ulong lobbyId);
-            if (GUILayout.Button("참가"))
-            {
-                session.JoinLobby(lobbyId);
-            }
-
-            GUI.enabled = true;
-
-            if (GUILayout.Button("붙여넣기"))
-            {
-                _joinLobbyId = GUIUtility.systemCopyBuffer;
-            }
-        }
-
-        /// <summary>
-        /// 클립보드에 복사해 둔 로비 ID로 바로 참가한다.
-        /// 호스트가 [로비 ID 복사]로 넘긴 값을 클라이언트가 붙여넣기 없이 쓰는 경로다
-        /// </summary>
+        /// <summary> 클립보드에 복사해 둔 로비 ID로 바로 참가한다. 3대를 오가며 손으로 옮겨 적지 않기 위한 것이다 </summary>
         private void JoinFromClipboard(SteamSessionCoordinator session)
         {
             string clipboard = GUIUtility.systemCopyBuffer;
@@ -248,16 +220,38 @@ namespace Geumeum.Network
 
             if (!ulong.TryParse(trimmed, out ulong lobbyId))
             {
-                Debug.LogWarning($"[SteamLobbyHUD] 클립보드에 로비 ID가 없다: \"{trimmed}\". " +
+                Debug.LogWarning($"[SteamLobbyHUD] 클립보드에 로비 ID가 없다: {trimmed}. " +
                                  "호스트의 [로비 ID 복사]로 받은 18자리 값을 복사해 둘 것", this);
                 return;
             }
 
-            // 패널을 열었을 때 무엇으로 들어갔는지 보이도록 입력칸도 맞춘다
+            // 패널의 입력칸도 맞춘다. 무엇으로 들어갔는지 보이게 한다
             _joinLobbyId = trimmed;
 
             Debug.Log($"[SteamLobbyHUD] [{_joinLobbyKey}] 로비 {lobbyId}에 참가한다", this);
             session.JoinLobby(lobbyId);
+        }
+
+        private void JoinById(SteamSessionCoordinator session)
+        {
+            if (!ulong.TryParse(_joinLobbyId, out ulong lobbyId))
+            {
+                Debug.LogWarning($"[SteamLobbyHUD] 로비 ID가 숫자가 아니다: {_joinLobbyId}", this);
+                return;
+            }
+
+            session.JoinLobby(lobbyId);
+        }
+
+        private void SendInvite(SteamSessionCoordinator session)
+        {
+            if (!ulong.TryParse(_inviteSteamId, out ulong friendId))
+            {
+                Debug.LogWarning($"[SteamLobbyHUD] SteamID가 숫자가 아니다: {_inviteSteamId}", this);
+                return;
+            }
+
+            session.InviteUser(friendId);
         }
 
 #endif

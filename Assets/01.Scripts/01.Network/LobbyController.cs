@@ -81,7 +81,7 @@ namespace Geumeum.Network
                 return;
             }
 
-            if (_devAutoReady)
+            if (IsAutoReadyEnabled())
             {
                 QueueAutoReadyForLobby();
             }
@@ -153,7 +153,7 @@ namespace Geumeum.Network
                 coordinator.ServerResetForNewRun();
             }
 
-            _autoReadyForLobbyPending = _devAutoReady;
+            _autoReadyForLobbyPending = IsAutoReadyEnabled();
             TryApplyAutoReadyForLobby();
         }
 
@@ -297,7 +297,7 @@ namespace Geumeum.Network
 
             LockAdmission();
 
-            if (RunManager.ServerInstance.StartRun())
+            if (RunManager.ServerInstance.StartRun(ResolveRunMode()))
             {
                 return;
             }
@@ -404,8 +404,40 @@ namespace Geumeum.Network
             return true;
         }
 
+        /// <summary> 씬 값과 테스트 실행 창의 설정을 합쳐 자동 준비 여부를 정한다 </summary>
+        private bool IsAutoReadyEnabled()
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (DevForceAutoReady)
+            {
+                return true;
+            }
+#endif
+
+            return _devAutoReady;
+        }
+
+        /// <summary> 런을 어떤 모드로 시작할지. 릴리스에서는 언제나 정식 런이다 </summary>
+        private static RunMode ResolveRunMode()
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            return DevRunMode;
+#else
+            return RunMode.Standard;
+#endif
+        }
+
         private int ResolveRequiredPlayers()
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // 테스트 실행 창에서 사람이 직접 고른 값. 씬 값·실행 인자와 달리 사고로 들어올 수 없어
+            // Steam 경로에서도 통한다. 대신 나머지 둘은 못 들어오므로 3인 검증에는 쓸 수 없다
+            if (IsDevRequiredPlayersValid())
+            {
+                return DevRequiredPlayers;
+            }
+#endif
+
             // Steam 경로는 PC 3대로만 검증할 수 있어 인원을 낮출 이유가 없다.
             // 씬 값이나 실행 인자로 1이 들어오면 호스트 혼자 런이 시작되면서
             // 입장이 잠겨 나머지 둘이 거부되므로, 여기서 정원으로 고정한다
@@ -431,6 +463,53 @@ namespace Geumeum.Network
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+
+        /****************************************
+        *              Dev Override
+        ****************************************/
+
+        /// <summary>
+        /// 테스트 실행 창이 고른 시작 인원. 0이면 오버라이드 없음.
+        /// 씬 값·실행 인자와 달리 사람이 그 화면에서 직접 누른 값이라 Steam 경로에서도 통한다
+        /// </summary>
+        public static int DevRequiredPlayers { get; set; } = 0;
+
+        /// <summary> 테스트 실행 창이 켠 자동 준비. 씬 값이 꺼져 있어도 이쪽이 켜면 켜진다 </summary>
+        public static bool DevForceAutoReady { get; set; } = false;
+
+        /// <summary> 테스트 실행 창이 고른 런 모드 </summary>
+        public static RunMode DevRunMode { get; set; } = RunMode.Standard;
+
+        /// <summary>
+        /// 창에서 값을 바꾼 뒤 지금 상태로 런 시작을 다시 시도한다.
+        /// 접속은 이미 끝나 있고 정원 조건만 바뀐 경우가 많아, 값 변경만으로는 아무 일도 일어나지 않는다
+        /// </summary>
+        [Server]
+        public void DevTryStartRunNow()
+        {
+            if (IsAutoReadyEnabled())
+            {
+                QueueAutoReadyForLobby();
+            }
+
+            TryEnterLobbyScene();
+            TryStartRun();
+        }
+
+        /// <summary> 창이 고른 인원이 쓸 수 있는 값인지 </summary>
+        private static bool IsDevRequiredPlayersValid()
+        {
+            return ((DevRequiredPlayers > 0) && (DevRequiredPlayers <= Constants.Network.MAX_PLAYERS));
+        }
+
+        /// <summary> 도메인 리로드를 끈 환경에서 이전 플레이의 오버라이드가 남지 않게 한다 </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetDevOverride()
+        {
+            DevRequiredPlayers = 0;
+            DevForceAutoReady  = false;
+            DevRunMode         = RunMode.Standard;
+        }
 
         private const string ARG_MIN_PLAYERS = "-minplayers"; // 뒤에 런을 시작할 인원이 온다
 

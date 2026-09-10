@@ -16,9 +16,8 @@ namespace Geumeum.Art
         *                Fields
         ****************************************/
 
-        private const float LABEL_MARGIN = 10f;
-        private const float LABEL_WIDTH  = 320f;
-        private const float LABEL_HEIGHT = 22f;
+        private const string PANEL_ID    = "bossphase";
+        private const string PANEL_TITLE = "보스 페이즈";
 
         [Header("대상")]
         [SerializeField] private BossArenaPhaseView _phaseView;
@@ -34,10 +33,6 @@ namespace Geumeum.Art
         // F6/F7이 두 페이즈를 직접 주므로 키를 하나 더 차지할 이유가 없다
         [SerializeField] private KeyCode _toggleKeyCode     = KeyCode.None;
 
-        [Header("화면에 현재 페이즈를 표시한다")]
-        [SerializeField] private bool _showLabel = true;
-
-        private GUIStyle _labelStyle;
 
         /****************************************
         *              Unity Event
@@ -57,11 +52,15 @@ namespace Geumeum.Art
         {
             SceneManager.sceneLoaded += HandleSceneLoaded;
             ResolveView();
+
+            DevPanelHost.Register(PANEL_ID, PANEL_TITLE, Build, Handle);
         }
 
         private void OnDisable()
         {
             SceneManager.sceneLoaded -= HandleSceneLoaded;
+
+            DevPanelHost.Unregister(PANEL_ID);
         }
 
         private void HandleSceneLoaded(Scene loaded, LoadSceneMode mode)
@@ -117,24 +116,42 @@ namespace Geumeum.Art
             _phaseView.ShowPhase(isShrine ? BossArenaPhase.Underworld : BossArenaPhase.Shrine);
         }
 
-        private void OnGUI()
+        /// <summary>
+        /// 페이즈 전환은 브라우저 개발 패널에서 누른다.
+        /// 화면 왼쪽 위 고정 라벨은 다른 개발 표시와 같은 자리를 써서 서로를 덮었다
+        /// </summary>
+        private void Build(DevPanelBuilder builder)
         {
-            if ((!_showLabel) || (_phaseView == null))
+            if (_phaseView == null)
+            {
+                builder.Label("보스 아레나 밖이라 전환할 것이 없다");
+                return;
+            }
+
+            bool isShrine = (_phaseView.CurrentPhase == BossArenaPhase.Shrine);
+
+            builder.Label(isShrine ? "지금 1페이즈 산속 사당" : "지금 2페이즈 저승 물길");
+            builder.Button("shrine",     $"1페이즈로 ({_shrineKeyCode})");
+            builder.Button("underworld", $"2페이즈로 ({_underworldKeyCode})");
+        }
+
+        private void Handle(DevCommand command)
+        {
+            if (_phaseView == null)
             {
                 return;
             }
 
-            if (_labelStyle == null)
+            if (command.Control == "shrine")
             {
-                _labelStyle = new GUIStyle(GUI.skin.label);
-                _labelStyle.normal.textColor = Color.white;
+                _phaseView.ShowPhase(BossArenaPhase.Shrine);
+                return;
             }
 
-            bool isShrine = (_phaseView.CurrentPhase == BossArenaPhase.Shrine);
-            string phaseName = isShrine ? "1페이즈 산속 사당" : "2페이즈 저승 물길";
-            GUI.Label(new Rect(LABEL_MARGIN, LABEL_MARGIN, LABEL_WIDTH, LABEL_HEIGHT),
-                phaseName + "   [" + _shrineKeyCode + "] 1P  [" + _underworldKeyCode + "] 2P"
-                + ((_toggleKeyCode == KeyCode.None) ? "" : "  [" + _toggleKeyCode + "] 전환"), _labelStyle);
+            if (command.Control == "underworld")
+            {
+                _phaseView.ShowPhase(BossArenaPhase.Underworld);
+            }
         }
 
 #endif

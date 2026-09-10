@@ -32,6 +32,9 @@ namespace Geumeum.Combat
 
         // 클라이언트가 스스로 같은 궤적을 그리도록 발사 조건만 보낸다. 유도로 방향이 바뀌면 그때 다시 간다
         [SyncVar] private Vector3 _direction;
+        // 화살이 지나간 자리를 잠깐 남긴다. 한 프레임만 그리면 빠른 화살은 눈에 안 들어온다
+        private const float GIZMO_SECONDS = 1f;
+
         [SyncVar] private float   _speed;
         private float   _damage;
         private HitStrength _strength;
@@ -194,6 +197,11 @@ namespace Geumeum.Combat
 
             bool  isBlocked   = TryFindWorldBlock(origin, step, out float blockDistance, out Vector3 blockPoint);
             float travelLimit = (isBlocked) ? blockDistance : step;
+
+            // 화살은 콜라이더로 부딪히지 않고 이 구간을 쓸어 판정한다.
+            // 콜라이더만 그리면 정작 맞는 자리가 안 보이므로 쓸어 간 선을 남긴다
+            GGizmo.Line(GGizmoChannel.Combat, origin, origin + (_direction * travelLimit),
+                (isBlocked) ? Color.red : new Color(1f, 0.95f, 0.5f, 0.9f), GIZMO_SECONDS);
 
             if (TryApplyHits(origin, travelLimit))
             {
