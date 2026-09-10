@@ -770,7 +770,11 @@ Main.unity
 ```
 06.UI/                     namespace Geumeum.UI
 ├ Combat/    HUD(HP · 스태미나 · 신력 · 패링 게이지), 정밀 조준 상태, 무녀 표식 슬롯, 관전 화면
-│  └ HUDController.cs
+│  └ HUD/
+│     ├ HUDController.cs         [구현완료] HP · 신력 · 스태미나 바를 PlayerStatus.Local에 바인딩
+│     └ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
+│                                BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
+│                                씬 배선 전이라 동작을 관찰하지 못했다
 ├ AI/        보스 HP 바
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
