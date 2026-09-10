@@ -741,6 +741,92 @@ namespace Geumeum.Systems
                 $"중심={center}, 반경={radius:F1}m — 맵 검증을 통과한 배치가 아니다", this);
         }
 
+        // 맵 배선 없이 다음 단계로 '서서히' 줄인다. Force Circle Without Map은 원을 즉시 갈아 끼우고
+        // Force Next Phase는 반경을 아예 건드리지 않아, 둘 다 축소 애니메이션을 볼 수 없다.
+        // 정상 경로(ServerPrepareTarget)는 BarrierMapBinding과 NavMesh를 요구하므로 Dev 씬에서는 진입하지 못한다.
+        // 여기서는 랜드마크 검증과 NavMesh 검증만 건너뛰고, 중심을 고르는 방식과 보간 구간은 정상 경로와 같게 둔다.
+        // 검증을 건너뛰므로 이걸로 확인한 것은 결계 배치의 정합성 근거가 되지 않는다
+        [ContextMenu("Debug: Force Next Phase Animated (Test)")]
+        public void DebugForceNextPhaseAnimated()
+        {
+            if (!NetworkServer.active)
+            {
+                Debug.LogWarning("[BarrierController] 서버(호스트)가 아니라 강제 전환할 수 없다", this);
+                return;
+            }
+
+            if (!GameDB.IsInitialized)
+            {
+                Debug.LogWarning("[BarrierController] GameDB가 아직 초기화되지 않았다", this);
+                return;
+            }
+
+            RunPhase current = IsBarrierPhase(_transitionState.CurrentPhase)
+                ? _transitionState.CurrentPhase
+                : RunPhase.Farming;
+
+            RunPhase next = DebugGetNextPhase(current);
+            if (!IsBarrierPhase(next))
+            {
+                Debug.LogWarning($"[BarrierController] {current} 다음은 결계 단계가 아니라 축소할 것이 없다: {next}", this);
+                return;
+            }
+
+            if (!GameDB.Barrier.TryGetPhase(next, out BarrierPhaseSO.PhaseEntry entry))
+            {
+                Debug.LogError($"[BarrierController] {next} 결계 설정을 찾지 못했다", this);
+                return;
+            }
+
+            double  now        = CurrentFieldTime;
+            Vector3 fromCenter = BarrierJudge.GetCenter(_transitionState, now);
+            float   fromRadius = BarrierJudge.GetRadius(_transitionState, now);
+
+            // 아직 한 번도 원이 서지 않았으면 현재 단계의 원을 출발점으로 삼는다
+            if (fromRadius <= 0f)
+            {
+                if (!GameDB.Barrier.TryGetPhase(current, out BarrierPhaseSO.PhaseEntry currentEntry))
+                {
+                    Debug.LogError($"[BarrierController] {current} 결계 설정을 찾지 못했다", this);
+                    return;
+                }
+
+                fromCenter = DebugResolveFallbackCenter();
+                fromRadius = currentEntry.RadiusRatio * GameDB.Barrier.MaxRadius;
+            }
+
+            float targetRadius = entry.RadiusRatio * GameDB.Barrier.MaxRadius;
+
+            // 정상 경로의 BuildRandomCandidates와 같은 규칙이다. 새 원이 이전 원 안에 온전히 들어간다
+            Vector2 offset       = UnityEngine.Random.insideUnitCircle * Mathf.Max(fromRadius - targetRadius, 0f);
+            Vector3 targetCenter = fromCenter + new Vector3(offset.x, 0f, offset.y);
+
+            double startTime = now + GameDB.Barrier.WarningLeadTime;
+
+            BarrierTransitionState forced = new BarrierTransitionState
+            {
+                FromCenter          = fromCenter,
+                TargetCenter        = targetCenter,
+                FromRadius          = fromRadius,
+                TargetRadius        = targetRadius,
+                WarningGameplayTime = now,
+                StartGameplayTime   = startTime,
+                EndGameplayTime     = startTime + GameDB.Barrier.ShrinkDuration,
+                Revision            = NextRevision(_transitionState.Revision),
+                CurrentPhase        = next,
+                TargetPhase         = next,
+                IsActive            = true,
+            };
+
+            CancelPendingActivation();
+            CommitSnapshot(forced, true);
+
+            Debug.Log($"[BarrierController] 검증을 건너뛰고 축소를 예약했다: {current} -> {next}, " +
+                $"반경 {fromRadius:F1}m -> {targetRadius:F1}m, " +
+                $"예고 {GameDB.Barrier.WarningLeadTime:F0}초 뒤 {GameDB.Barrier.ShrinkDuration:F0}초 동안 줄어든다 " +
+                "- 맵 검증을 통과한 배치가 아니다", this);
+        }
+
         // BarrierCenter 태그가 있으면 그 자리를, 없으면 이 오브젝트 자리를 중심으로 쓴다
         private Vector3 DebugResolveFallbackCenter()
         {
