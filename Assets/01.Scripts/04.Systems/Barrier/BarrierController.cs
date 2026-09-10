@@ -73,22 +73,11 @@ namespace Geumeum.Systems
         private void OnEnable()
         {
             BarrierStateLocator.Register(this);
-
-#if UNITY_EDITOR
-            if (_showPillar && Application.isPlaying)
-            {
-                CreatePillar();
-            }
-#endif
         }
 
         private void OnDisable()
         {
             BarrierStateLocator.Unregister(this);
-
-#if UNITY_EDITOR
-            DestroyPillar();
-#endif
         }
 
         /****************************************
@@ -696,6 +685,69 @@ namespace Geumeum.Systems
             ServerActivatePhase(next, true);
         }
 
+        // 랜드마크 배선·NavMesh 없이 원을 바로 세운다. Dev_Barrier처럼 맵이 갖춰지지 않은 씬에서
+        // 결계 '모양'만 눈으로 볼 때 쓴다 — 정상 경로(ServerInitializeCircle)는 BarrierMapBinding과
+        // 베이크된 NavMesh를 요구하므로, 그것들이 없으면 활성화가 pending으로 남아 반경이 0에 머문다.
+        // 판정 자체는 평소와 같은 SyncVar를 타므로 결계 밖 데미지·치유 제한은 그대로 동작한다.
+        // 검증을 건너뛰는 경로이므로 이걸로 확인한 것은 결계 배치의 정합성 근거가 되지 않는다
+        [ContextMenu("Debug: Force Circle Without Map (Test)")]
+        public void DebugForceCircleWithoutMap()
+        {
+            if (!NetworkServer.active)
+            {
+                Debug.LogWarning("[BarrierController] 서버(호스트)가 아니라 강제 원을 세울 수 없다", this);
+                return;
+            }
+
+            if (!GameDB.IsInitialized)
+            {
+                Debug.LogWarning("[BarrierController] GameDB가 아직 초기화되지 않았다", this);
+                return;
+            }
+
+            RunPhase phase = IsBarrierPhase(_transitionState.CurrentPhase)
+                ? _transitionState.CurrentPhase
+                : RunPhase.Farming;
+
+            if (!GameDB.Barrier.TryGetPhase(phase, out BarrierPhaseSO.PhaseEntry entry))
+            {
+                Debug.LogError($"[BarrierController] {phase} 결계 설정을 찾지 못했다", this);
+                return;
+            }
+
+            Vector3 center = DebugResolveFallbackCenter();
+            float   radius = entry.RadiusRatio * GameDB.Barrier.MaxRadius;
+            double  now    = CurrentFieldTime;
+
+            BarrierTransitionState forced = new BarrierTransitionState
+            {
+                FromCenter          = center,
+                TargetCenter        = center,
+                FromRadius          = radius,
+                TargetRadius        = radius,
+                WarningGameplayTime = now,
+                StartGameplayTime   = now,
+                EndGameplayTime     = now,
+                Revision            = NextRevision(_transitionState.Revision),
+                CurrentPhase        = phase,
+                TargetPhase         = phase,
+                IsActive            = true,
+            };
+
+            CancelPendingActivation();
+            CommitSnapshot(forced, true);
+
+            Debug.Log($"[BarrierController] 검증을 건너뛰고 결계를 세웠다: phase={phase}, " +
+                $"중심={center}, 반경={radius:F1}m — 맵 검증을 통과한 배치가 아니다", this);
+        }
+
+        // BarrierCenter 태그가 있으면 그 자리를, 없으면 이 오브젝트 자리를 중심으로 쓴다
+        private Vector3 DebugResolveFallbackCenter()
+        {
+            GameObject spot = GameObject.FindGameObjectWithTag(Constants.Tag.BARRIER_CENTER);
+            return (spot == null) ? transform.position : spot.transform.position;
+        }
+
         private static RunPhase DebugGetNextPhase(RunPhase current)
         {
             switch (current)
@@ -713,19 +765,9 @@ namespace Geumeum.Systems
         *          Gizmos (Editor Only)
         ****************************************/
 
-        [Header("확인용 시각화 (Editor Only, 정식 아트 아님)")]
-        [SerializeField] private bool       _showPillar      = true;
-        [SerializeField] private float      _pillarHeight    = 60f;
-        [SerializeField] private Material   _pillarMaterial  = null; // 비워두면 반투명 기본 머티리얼을 만든다
-        [SerializeField] private LayerMask  _groundLayerMask = ~0;   // 지형 높이를 찾을 때 쏘는 레이가 맞을 레이어
-
-        private const int   PILLAR_SEGMENTS      = 48;
-        private const float MIN_PILLAR_RADIUS    = 0.01f; // 0 스케일은 Unity가 경고를 뱉으니 최소값으로 클램프(m)
-        private const float GROUND_RAYCAST_ABOVE = 1000f; // 지형보다 확실히 높은 지점에서 아래로 쏜다
-
-        private Transform _pillarTransform;
-        private Mesh      _runtimePillarMesh;
-        private Material  _runtimePillarMaterial;
+        // 결계 벽의 실제 표현은 BarrierVisual(05.Art)이 담당한다. 여기서는 Scene 뷰 확인용
+        // 와이어 원만 그린다 — 예전에는 Game 뷰에도 반투명 기둥을 띄웠으나, 표현 계층이
+        // 생긴 뒤로 같은 자리에 두 개가 겹쳐 그려져서 제거했다
 
         // 런 시계는 플레이 중 RunManager가 공급하므로 에디트 모드에서는 그리지 않는다
         private void OnDrawGizmos()
@@ -751,93 +793,6 @@ namespace Geumeum.Systems
             BarrierGizmoUtility.DrawWireCircleXZ(_transitionState.TargetCenter, _transitionState.TargetRadius);
         }
 
-        // Game 뷰에서도 보이는 반투명 기둥. Gizmos는 Scene 뷰 전용이라 별도로 메쉬를 만든다
-        private void Update()
-        {
-            UpdatePillar();
-        }
-
-        private void CreatePillar()
-        {
-            GameObject pillar = new GameObject("BarrierPillar (Auto)");
-            pillar.hideFlags = HideFlags.DontSave; // 확인용 오브젝트라 씬에 저장되지 않는다
-
-            MeshFilter   meshFilter   = pillar.AddComponent<MeshFilter>();
-            MeshRenderer meshRenderer = pillar.AddComponent<MeshRenderer>();
-
-            _runtimePillarMesh    = BarrierGizmoUtility.BuildOpenCylinderMesh(PILLAR_SEGMENTS);
-            meshFilter.sharedMesh = _runtimePillarMesh;
-
-            if (_pillarMaterial != null)
-            {
-                meshRenderer.sharedMaterial = _pillarMaterial;
-            }
-            else
-            {
-                _runtimePillarMaterial      = BarrierGizmoUtility.BuildFallbackMaterial(new Color(1f, 0.25f, 0.25f, 0.25f));
-                meshRenderer.sharedMaterial = _runtimePillarMaterial;
-            }
-
-            _pillarTransform = pillar.transform;
-        }
-
-        private void DestroyPillar()
-        {
-            if (_pillarTransform != null)
-            {
-                Destroy(_pillarTransform.gameObject);
-                _pillarTransform = null;
-            }
-
-            if (_runtimePillarMesh != null)
-            {
-                Destroy(_runtimePillarMesh);
-                _runtimePillarMesh = null;
-            }
-
-            if (_runtimePillarMaterial != null)
-            {
-                Destroy(_runtimePillarMaterial);
-                _runtimePillarMaterial = null;
-            }
-        }
-
-        private void UpdatePillar()
-        {
-            if (_pillarTransform == null)
-            {
-                return;
-            }
-
-            if (!Application.isPlaying || (Radius <= 0f))
-            {
-                _pillarTransform.gameObject.SetActive(false);
-                return;
-            }
-
-            _pillarTransform.gameObject.SetActive(true);
-
-            Vector3 center = Center;
-            float   radius = Mathf.Max(Radius, MIN_PILLAR_RADIUS);
-            float   groundY = ResolveGroundY(center);
-
-            // 기본 Cylinder 프리미티브는 지름 1m, 높이 2m다. 반경, 원하는 높이에 맞춰 스케일한다
-            _pillarTransform.position   = new Vector3(center.x, groundY + (_pillarHeight * 0.5f), center.z);
-            _pillarTransform.localScale = new Vector3(radius * 2f, _pillarHeight * 0.5f, radius * 2f);
-        }
-
-        // Center.y는 XZ 판정 전용이라 항상 0이다. 실제 지형 높이는 여기서 레이캐스트로 찾는다.
-        // 못 찾으면(콜라이더 없음 등) center.y를 그대로 써서 최소한 예전 동작으로 돌아간다
-        private float ResolveGroundY(Vector3 center)
-        {
-            Vector3 origin = new Vector3(center.x, GROUND_RAYCAST_ABOVE, center.z);
-            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, GROUND_RAYCAST_ABOVE * 2f, _groundLayerMask))
-            {
-                return hit.point.y;
-            }
-
-            return center.y;
-        }
 #endif
     }
 }
