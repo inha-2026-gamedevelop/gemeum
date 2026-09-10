@@ -30,6 +30,12 @@ namespace Geumeum.Combat
         [SyncVar(hook = nameof(OnSpiritChanged))]    private float           _spirit    = 0f;
         [SyncVar(hook = nameof(OnLifeStateChanged))] private PlayerLifeState _lifeState = PlayerLifeState.Alive;
         [SyncVar] private bool            _isInvincible = false; // 일시 무적
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+        // 개발용 무한 자원. SyncVar인 이유는 켠 사람 화면에 상태를 보여 주기 위해서다.
+        // 판정은 전부 서버에서만 본다
+        [SyncVar] private bool            _devInfiniteResources = false;
+#endif
         [SyncVar] private int             _level       = Constants.Combat.START_LEVEL;
         [SyncVar] private int             _experience  = 0;
         [SyncVar] private uint            _growthRevision = 0u;
@@ -823,6 +829,13 @@ namespace Geumeum.Combat
                 return;
             }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+            if (_devInfiniteResources)
+            {
+                return;
+            }
+#endif
+
             if (!IsFinite(damage.Amount) ||
                 (damage.Amount <= Constants.Combat.DAMAGE_EPSILON))
             {
@@ -1201,7 +1214,21 @@ namespace Geumeum.Combat
         [Server]
         public bool TrySpendStamina(float amount)
         {
-            if (IsDead || IsSwallowed || (amount < 0f) || (_stamina < amount))
+            if (IsDead || IsSwallowed || (amount < 0f))
+            {
+                return false;
+            }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+            // 차감하지 않고 통과시킨다. 막대가 줄었다 차는 것이 보이면 무한인지 아닌지 헷갈린다
+            if (_devInfiniteResources)
+            {
+                RestoreStaminaToMax();
+                return true;
+            }
+#endif
+
+            if (_stamina < amount)
             {
                 return false;
             }
@@ -1228,8 +1255,20 @@ namespace Geumeum.Combat
         public bool TrySpendSpirit(float amount)
         {
             ServerEnsureResourceState();
-            if (_resourceTransactionLocked || IsDead || IsSwallowed ||
-                (amount < 0f) || (_serverSpirit < amount))
+            if (_resourceTransactionLocked || IsDead || IsSwallowed || (amount < 0f))
+            {
+                return false;
+            }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+            if (_devInfiniteResources)
+            {
+                DevFillSpirit();
+                return true;
+            }
+#endif
+
+            if (_serverSpirit < amount)
             {
                 return false;
             }
@@ -1244,6 +1283,82 @@ namespace Geumeum.Combat
             _spirit = _serverSpirit;
             return true;
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+
+        /****************************************
+        *                Dev Cheat
+        ****************************************/
+
+        /// <summary> 개발용 무한 자원이 켜져 있는지. 패널이 상태를 그리려고 읽는다 </summary>
+        public bool DevInfiniteResources => _devInfiniteResources;
+
+        /// <summary>
+        /// 개발용 무한 자원을 켜고 끈다. 자기 캐릭터에만 걸리고 남의 판정은 건드리지 않는다.
+        /// 판정은 전부 서버가 하므로 클라이언트가 값을 직접 바꾸지 않고 서버에 부탁한다
+        /// </summary>
+        [Command]
+        public void CmdDevSetInfiniteResources(bool isOn)
+        {
+            _devInfiniteResources = isOn;
+
+            if (!isOn)
+            {
+                return;
+            }
+
+            // 켜는 순간 바닥나 있던 것도 채워 준다. 다음 공격을 기다릴 이유가 없다
+            DevFillAll();
+        }
+
+        /// <summary> 켜져 있는 동안 세 자원을 최대치로 되돌린다 </summary>
+        [Server]
+        private void DevFillAll()
+        {
+            RestoreStaminaToMax();
+            DevFillSpirit();
+            DevFillHealth();
+        }
+
+        [Server]
+        private void DevFillSpirit()
+        {
+            if (!GameDB.IsInitialized || IsDead || IsSwallowed || _resourceTransactionLocked)
+            {
+                return;
+            }
+
+            ServerEnsureResourceState();
+
+            float max = GameDB.Combat.SpiritMax;
+            if (_serverSpirit >= max)
+            {
+                return;
+            }
+
+            _serverSpirit = max;
+            ServerAdvanceResourceRevision();
+            _spirit = _serverSpirit;
+        }
+
+        [Server]
+        private void DevFillHealth()
+        {
+            if (IsDead || IsSwallowed || (_maxHealth <= 0f))
+            {
+                return;
+            }
+
+            float missing = _maxHealth - Health;
+            if (missing <= Constants.Combat.HEALTH_EPSILON)
+            {
+                return;
+            }
+
+            TryRestoreHealth(missing);
+        }
+
+#endif
 
         /// <summary> 신력을 최대치까지만 채운다. 넘치는 분은 버린다 </summary>
         [Server]

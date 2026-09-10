@@ -554,8 +554,10 @@ Main.unity
    ├ CharacterPreviewRig.cs MB [구현완료] 네트워크 없이 캐릭터 3종 × 무기 3종과 애니메이션을 확인하고
    │                           무기 부착 보정을 조정해 Player.prefab에 저장하는 리그.
    │                           Dev_Character 씬 전용. 판정 · 스태미나 · 동기화는 확인할 수 없다
-   └ ParryTestDummy.cs     MB  [구현완료] 패링 검증용 더미. Dev_Combat에 배치.
-                               IParryable 구현이라 #if로 감싸면 계약이 깨진다 — 감싸지 않는다
+   ├ ParryTestDummy.cs     MB  [구현완료] 패링 검증용 더미. Dev_Combat에 배치.
+   │                           IParryable 구현이라 #if로 감싸면 계약이 깨진다 — 감싸지 않는다
+   └ DevCheatPanel.cs      MB  [구현완료] 무한 자원(체력·스태미나·신력) 치트 패널.
+                               내 캐릭터에만 걸고 판정은 서버가 한다 (PlayerStatus의 #if 구간)
 ```
 
 > 🔧 **2026-09-05 정정** — 이 트리에 `02.Combat/Camera/`가 있었고 그 아래 `CameraRig.cs [예정]`과
