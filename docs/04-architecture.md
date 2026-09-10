@@ -264,8 +264,9 @@ Main.unity
 `Assets/01.Scripts/` 아래 전체 구조. **폴더 = 네임스페이스 = 소유권**이 항상 일치해야 한다.
 클래스 옆 표기: `NM` = Mirror NetworkManager, `NB` = NetworkBehaviour, `MB` = MonoBehaviour, `C#` = 순수 C# 클래스, `SO` = ScriptableObject, `enum` = 열거형, `static` = 정적 클래스.
 
-> **`Dev/` 하위폴더 규약 (2026-09-05 신설).** 개발 전용 도구 — 플레이어에게 제공되는 기능이 아니라 개발자가 관찰·조작·측정하기 위해 존재하고, 지워도 게임 규칙이 달라지지 않는 것 — 은 소속 파트의 `Dev/` 아래 둔다.
-> **네임스페이스는 소속 파트를 그대로 따른다**(`Player/`·`Lobby/`가 그렇듯 `Dev/`도 네임스페이스에 반영하지 않는다). 별도 어셈블리가 아니므로 **폴더만으로는 빌드에서 빠지지 않는다** — 출시 빌드에서 빼려면 `#if UNITY_EDITOR || DEVELOPMENT_BUILD`를 쓴다.
+> **`Dev/` 하위폴더 규약 (2026-09-05 신설, 2026-09-10 개정).** 개발 전용 도구 — 플레이어에게 제공되는 기능이 아니라 개발자가 관찰·조작·측정하기 위해 존재하고, 지워도 게임 규칙이 달라지지 않는 것 — 은 소속 파트의 `Dev/` 아래 둔다.
+> **네임스페이스는 소속 파트를 그대로 따른다**(`Player/`·`Lobby/`가 그렇듯 `Dev/`도 네임스페이스에 반영하지 않는다). 별도 어셈블리가 아니므로 **폴더만으로는 빌드에서 빠지지 않는다** — 출시 빌드에서 빼려면 `#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS`를 쓴다.
+> **파트에 속하지 않는 공용 도구는 `99.Dev/`(namespace `Geumeum.Dev`)에 둔다** — 2026-09-10 `00.Common/Dev/`에서 옮겼다(4.7). 공용 도구가 `Geumeum.Common`에 있으면 게임 코드와 도구가 같은 네임스페이스에 섞여, 출시 빌드에서 무엇을 빼야 하는지가 폴더로 드러나지 않았다.
 > **원칙: 프로덕션 코드는 `Dev/`의 타입에 의존하지 않는다.** 현재 예외가 하나 있다 — `GeumeumBootValidator`가 `RequireInScene<FrameRecorder>`로 `Main` 씬에 측정기가 있을 것을 강제한다(의도 여부 미확인). 새 예외를 만들지 않는다.
 
 `[예정]` 항목의 구현 계약은 기능별 상세 설계에 있다 — [PlayerAttack](unity/PLAYER_ATTACK_DESIGN.md) · [보스](unity/BOSS_DESIGN.md) · [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) · [몬스터 패링 연결](unity/MONSTER_PARRY_LINK_DESIGN.md) · [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md).
@@ -384,13 +385,6 @@ Main.unity
 │  └ SoundVolume.cs        static [구현완료] 마스터 · BGM · 효과음 볼륨. 0~1 ↔ dB 로그 변환,
 │                                 PlayerPrefs 저장, 시작 시 자동 적용. 믹서 노출 파라미터로만
 │                                 바꿔 SFX_Remote의 상대 오프셋이 유지된다. UI는 Set만 부른다
-├ Dev/                     개발 전용 도구
-│  ├ WeatherTimeDebugScript.cs MB [구현완료] 시간대 배속(Tab) · 즉시 이동(1~4). 전체 #if 가드됨.
-│  │                          Main · Dev_Barrier에 배치. 날씨 스케줄(Environment/)과는 별개다
-│  └ DevToolHost.cs        C# [구현완료] 개발 도구가 씬 배치 없이 스스로 뜨게 하는 공용 호스트.
-│                              각 도구가 자기 파일에서 RuntimeInitializeOnLoadMethod로 붙는다 -
-│                              씬·프리팹에 심으면 시작 씬이 바뀔 때 통째로 사라진다(2026-09-08).
-│                              릴리스에서는 #if로 컴파일에서 빠진다
 └ Interfaces/              namespace Geumeum.Common — 파트 간 경계 → 8장
    ├ IDamageable.cs        피해를 받을 수 있는 대상 (플레이어 · 잡귀 · 보스)
    ├ IRecoveryTarget.cs    [구현완료] 회복을 받을 수 있는 대상. 무녀 치유(전투)와 회복 물약(시스템)이
@@ -405,6 +399,8 @@ Main.unity
    ├ IPlayerRunLifecycle.cs   런 경계에서 플레이어를 옮기고 상태를 되돌리는 계약
    ├ IPoolable.cs             풀에서 재사용될 때 파티클 · Trail · 코루틴을 되돌리는 계약
    ├ IParryWindowTarget.cs    패링 창을 여닫을 수 있는 대상의 계약
+   ├ IDisplayNamed.cs      [구현완료] 로그·화면에 쓸 사람이 읽는 이름. PlayerNameTag가 구현하고
+   │                          개발 도구(Geumeum.Dev)와 네트워크 계층이 전투 타입을 모른 채 읽는다 → 4.7
    └ IBossTelegraphSource.cs  [구현완료] 보스 예고의 현재 값과 변경 통지 창구. 표현이 AI 구현을
                               참조하지 않고 예고를 읽게 하는 경계 → 4.3
 ```
@@ -793,6 +789,40 @@ Main.unity
 UI는 게임 상태를 **읽기만** 한다. UI에서 상태를 직접 바꾸는 코드(예: 버튼에서 HP 조작)는 금지 — 반드시 해당 시스템의 Command 경유.
 
 **UI 작업은 씬 · 프리팹 작업을 우선한다.** 레이아웃 · 앵커 · 색상 · 폰트 · 계층 구조처럼 Unity 에디터에서 직접 만들고 눈으로 확인할 수 있는 것은 전부 씬/프리팹에서 만든다. 코드로는 **에디터에서 할 수 없는 것만** 작성한다 — 게임 상태를 읽어 텍스트 · 값 · 활성화 여부를 갱신하는 바인딩, 이벤트 구독, 데이터 기반 반복 생성(슬롯 리스트 등) 같은 것들이다. 코드로 UI 계층을 만들거나(`new GameObject`로 패널 구성 등) 인스펙터에서 되는 값을 코드 상수로 박아 넣지 않는다. 상세 패턴은 [Unity 엔지니어링 패턴 9장](unity/UNITY_ENGINEERING_PATTERNS.md).
+
+---
+
+### 4.7 99.Dev — 공용 개발 도구 (소유: 팀장) — 2026-09-10 신설
+
+`00.Common/Dev/`에 있던 파트 무관 도구를 옮긴 곳이다. 네임스페이스는 `Geumeum.Dev`이고,
+전 파트가 `using Geumeum.Dev;`로 가져다 쓴다. 파트에 딸린 도구는 여기가 아니라
+그 파트의 `Dev/`에 그대로 남는다(`01.Network/Dev/`, `02.Combat/Dev/`, `05.Art/Dev/`).
+
+```
+99.Dev/                    namespace Geumeum.Dev
+├ DevAccess.cs             static [구현완료] 개발 도구 잠금. 에디터·개발 빌드는 처음부터 열려 있고,
+│                                 릴리스 빌드는 Home → PageUp → PageDown → End를 차례로 눌러야 열린다.
+│                                 도구는 RunWhenUnlocked · GateComponent로 여기에 매달린다
+├ DevToolHost.cs           static [구현완료] 도구가 씬 배치 없이 스스로 뜨게 하는 공용 호스트.
+│                                 잠겨 있으면 붙이지 않고 기억해 뒀다가 열릴 때 붙인다
+├ DevPanelHost.cs          MB  [구현완료] 브라우저 패널 상태를 만들고 조작을 받는다
+├ DevPanel.cs              C#  [구현완료] 패널 컨트롤 정의(DevPanelBuilder · DevCommand)
+├ DevWebServer.cs          MB  [구현완료] 패널을 브라우저로 내보내는 TcpListener.
+│                                 잠긴 동안에는 포트를 열지 않는다
+├ DevWebPage.cs            static [구현완료] 브라우저가 받는 HTML·JS
+├ GDebug.cs                static [구현완료] 화면 로그. 기본으로 Unity 콘솔(빌드에서는 Player.log)에도 남긴다
+├ GDebugOverlay.cs         MB  [구현완료] GDebug가 쌓은 줄을 로그 패널로 보낸다
+├ GGizmo.cs                static [구현완료] 런타임 기즈모 API
+├ GGizmoRenderer.cs        MB  [구현완료] 기즈모를 GL로 그린다
+├ PlaytestPanel.cs         MB  [구현완료] 배속 · 커서 · 스크린샷
+└ WeatherTimeDebugScript.cs MB [구현완료] 시간대 배속(Tab) · 즉시 이동(1~4).
+                                 Main · Dev_Barrier에 배치. 날씨 스케줄(Environment/)과는 별개다
+```
+
+**빌드에서 빼는 방법.** 도구 전체가 `#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS`로
+묶여 있다. `GEUMEUM_DEVTOOLS`는 현재 `ProjectSettings`의 Standalone 정의에 들어 있어
+릴리스 빌드에도 도구가 포함된다 — 잠겨 있을 뿐이다. 진짜 출시 빌드는 이 정의를 빼고 낸다.
+그러면 `GDebug`·`GGizmo` 호출부까지 `[Conditional]`로 사라진다.
 
 ---
 

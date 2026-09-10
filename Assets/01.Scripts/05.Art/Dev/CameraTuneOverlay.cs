@@ -7,6 +7,7 @@ using UnityEngine;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
+using Geumeum.Dev;
 
 namespace Geumeum.Art
 {
@@ -19,7 +20,7 @@ namespace Geumeum.Art
     /// </summary>
     public class CameraTuneOverlay : PersistentSingleton<CameraTuneOverlay>
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *                Preload
@@ -37,7 +38,7 @@ namespace Geumeum.Art
                 return;
             }
 
-            EnsureCreated(OBJECT_NAME);
+            DevAccess.RunWhenUnlocked(() => EnsureCreated(OBJECT_NAME));
         }
 
         /****************************************

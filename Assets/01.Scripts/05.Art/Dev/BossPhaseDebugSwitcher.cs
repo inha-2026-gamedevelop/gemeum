@@ -4,13 +4,14 @@ using UnityEngine.SceneManagement;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Dev;
 
 namespace Geumeum.Art
 {
     /// <summary> 보스 아레나의 페이즈를 키로 바꾼다. 개발 확인용이고 게임 규칙에 관여하지 않는다 </summary>
     public class BossPhaseDebugSwitcher : MonoBehaviour
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *                Fields

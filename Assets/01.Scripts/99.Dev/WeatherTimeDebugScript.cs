@@ -1,12 +1,12 @@
 using DigitalRuby.WeatherMaker;
 using UnityEngine;
 
-namespace Geumeum.Common.Environment
+namespace Geumeum.Dev
 {
     [RequireComponent(typeof(WeatherMakerDayNightCycleManagerScript))]
     public class WeatherTimeDebugScript : MonoBehaviour
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         // 시간대 즉시 이동이 맞추는 시각
         private const float SECONDS_PER_HOUR = 3600f;

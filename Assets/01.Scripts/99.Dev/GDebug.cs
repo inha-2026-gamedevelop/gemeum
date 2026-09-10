@@ -8,7 +8,10 @@ using UnityEngine;
 // 서드파티
 using Mirror;
 
-namespace Geumeum.Common
+// 프로젝트 내부
+using Geumeum.Common;
+
+namespace Geumeum.Dev
 {
     /// <summary> 화면 로그 한 줄의 성격. 색과 접두어를 정한다 </summary>
     public enum GLogKind
@@ -94,6 +97,14 @@ namespace Geumeum.Common
                 return "#" + netId;
             }
 
+            // 사람이 붙어 있는 오브젝트면 Steam 이름을 쓴다. 프리팹 이름은 셋 다 같아서
+            // 3인 테스트에서 누구 줄인지 구분이 안 된다
+            if ((identity.TryGetComponent(out IDisplayNamed named))
+                && (!string.IsNullOrWhiteSpace(named.DisplayName)))
+            {
+                return named.DisplayName + "#" + netId;
+            }
+
             // 프리팹 이름에 (Clone)이 붙어 화면 한 줄을 잡아먹는다
             string label = identity.gameObject.name.Replace("(Clone)", string.Empty).Trim();
             return label + "#" + netId;
@@ -109,8 +120,13 @@ namespace Geumeum.Common
         /// <summary> 화면 표시를 잠시 끈다. 로그 자체는 계속 쌓인다 </summary>
         public static bool IsVisible { get; set; } = true;
 
-        /// <summary> 같은 내용을 Unity 콘솔에도 남긴다. 기본은 꺼 둔다, 콘솔이 시끄러워지면 진짜 에러를 놓친다 </summary>
-        public static bool MirrorToUnityConsole { get; set; } = false;
+        /// <summary>
+        /// 같은 내용을 Unity 콘솔에도 남긴다. 기본으로 켜 둔다 -
+        /// 빌드에서는 Player.log에 그대로 떨어져야 나중에 로그만 보고 원인을 좁힐 수 있다.
+        /// 화면 로그는 게임을 끄면 사라지고, 3인 테스트에서는 PC마다 따로 남는다.
+        /// 콘솔이 시끄러워 방해되면 개발 패널에서 이 값을 끈다
+        /// </summary>
+        public static bool MirrorToUnityConsole { get; set; } = true;
 
         /****************************************
         *                Methods
@@ -119,6 +135,7 @@ namespace Geumeum.Common
         /// <summary> 화면에 한 줄 띄운다 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Log(string message)
         {
             Write(GLogKind.Info, message);
@@ -127,6 +144,7 @@ namespace Geumeum.Common
         /// <summary> 성격을 정해 한 줄 띄운다 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Log(GLogKind kind, string message)
         {
             Write(kind, message);
@@ -135,6 +153,7 @@ namespace Geumeum.Common
         /// <summary> 성공한 판정 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Success(string message)
         {
             Write(GLogKind.Success, message);
@@ -143,6 +162,7 @@ namespace Geumeum.Common
         /// <summary> 실패하거나 거부된 판정 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Fail(string message)
         {
             Write(GLogKind.Fail, message);
@@ -151,6 +171,7 @@ namespace Geumeum.Common
         /// <summary> 이상하지만 진행은 되는 것 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Warn(string message)
         {
             Write(GLogKind.Warn, message);
@@ -159,6 +180,7 @@ namespace Geumeum.Common
         /// <summary> 서버가 확정한 사실. 3인 테스트에서 누가 정한 값인지 구분한다 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Server(string message)
         {
             Write(GLogKind.Server, message);
@@ -167,6 +189,7 @@ namespace Geumeum.Common
         /// <summary> 보스 흐름. 페이즈 전환, 패턴 시작, 부위 파괴처럼 보스만의 사건 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Boss(string message)
         {
             Write(GLogKind.Boss, message);
@@ -175,6 +198,7 @@ namespace Geumeum.Common
         /// <summary> 화면을 비운다 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Clear()
         {
             _count = 0;
@@ -200,6 +224,9 @@ namespace Geumeum.Common
         {
             _count = 0;
             _head  = 0;
+
+            // 패널에서 껐던 것이 다음 플레이로 넘어오면 왜 로그가 안 남는지 찾게 된다
+            MirrorToUnityConsole = true;
         }
 
         private static void Write(GLogKind kind, string message)
@@ -260,19 +287,11 @@ namespace Geumeum.Common
                 return;
             }
 
-            if (kind == GLogKind.Fail)
-            {
-                UnityEngine.Debug.LogError(message);
-                return;
-            }
-
-            if (kind == GLogKind.Warn)
-            {
-                UnityEngine.Debug.LogWarning(message);
-                return;
-            }
-
-            UnityEngine.Debug.Log(message);
+            // 종류를 심각도로 옮기지 않는다. GDebug의 Fail은 "패링이 빗나갔다"처럼
+            // 게임 안에서 일어난 결과이지 프로그램 오류가 아니다.
+            // 이것을 LogError로 올리면 진짜 에러가 전투 로그에 묻히고,
+            // 테스트도 처리되지 않은 에러 로그로 보고 실패한다
+            UnityEngine.Debug.Log($"[{kind}] {message}");
         }
     }
 }

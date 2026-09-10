@@ -6,7 +6,7 @@ using System.IO;
 // Unity
 using UnityEngine;
 
-namespace Geumeum.Common
+namespace Geumeum.Dev
 {
     /// <summary>
     /// 플레이테스트를 돌릴 때 손이 자주 가는 것들.
@@ -16,7 +16,7 @@ namespace Geumeum.Common
     /// </summary>
     public class PlaytestPanel : MonoBehaviour
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *                Preload

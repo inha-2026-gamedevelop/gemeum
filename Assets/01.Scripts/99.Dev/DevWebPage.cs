@@ -1,4 +1,4 @@
-namespace Geumeum.Common
+namespace Geumeum.Dev
 {
     /// <summary>
     /// 개발 패널 브라우저 화면.
@@ -11,7 +11,7 @@ namespace Geumeum.Common
     /// </summary>
     public static class DevWebPage
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /// <summary> GET / 로 나가는 페이지 전체 </summary>
         public const string HTML = @"<!doctype html>

@@ -5,7 +5,7 @@ using System.Diagnostics;
 // Unity
 using UnityEngine;
 
-namespace Geumeum.Common
+namespace Geumeum.Dev
 {
     /// <summary> 기즈모를 묶는 갈래. 창에서 갈래별로 껐다 켠다 </summary>
     public enum GGizmoChannel
@@ -194,6 +194,7 @@ namespace Geumeum.Common
         /// <summary> 선 하나. duration이 0이면 이 프레임만 보인다 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Line(GGizmoChannel channel, Vector3 from, Vector3 to, Color color, float duration = 0f)
         {
             AddSegment(channel, from, to, color, duration);
@@ -202,6 +203,7 @@ namespace Geumeum.Common
         /// <summary> 방향과 길이를 가진 화살표. 카메라가 보는 방향이나 밀어내는 힘을 볼 때 쓴다 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Arrow(GGizmoChannel channel, Vector3 origin, Vector3 direction, Color color,
                                  float duration = 0f)
         {
@@ -234,6 +236,7 @@ namespace Geumeum.Common
         /// <summary> 위치 하나를 십자로 찍는다 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Point(GGizmoChannel channel, Vector3 position, float size, Color color,
                                  float duration = 0f)
         {
@@ -247,6 +250,7 @@ namespace Geumeum.Common
         /// <summary> 법선이 normal인 평면 위의 원 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Circle(GGizmoChannel channel, Vector3 center, Vector3 normal, float radius, Color color,
                                   float duration = 0f)
         {
@@ -270,6 +274,7 @@ namespace Geumeum.Common
         /// <summary> 세 방향의 원으로 그린 구. 사거리와 감지 범위를 볼 때 쓴다 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Sphere(GGizmoChannel channel, Vector3 center, float radius, Color color,
                                   float duration = 0f)
         {
@@ -281,6 +286,7 @@ namespace Geumeum.Common
         /// <summary> 회전을 가진 상자. 판정 박스를 볼 때 쓴다 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Box(GGizmoChannel channel, Vector3 center, Vector3 size, Quaternion rotation, Color color,
                                float duration = 0f)
         {
@@ -319,6 +325,7 @@ namespace Geumeum.Common
         /// </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Arc(GGizmoChannel channel, Vector3 center, Vector3 forward, float halfAngle, float radius,
                                Color color, float duration = 0f)
         {
@@ -352,6 +359,7 @@ namespace Geumeum.Common
         /// <summary> 월드 좌표에 글자를 붙인다. 값이 어느 물체의 것인지 헷갈리지 않게 한다 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Label3D(GGizmoChannel channel, Vector3 world, string text, Color color,
                                    float duration = 0f)
         {
@@ -388,6 +396,7 @@ namespace Geumeum.Common
         /// <summary> 이름 붙은 값 한 줄을 기즈모 창에 띄운다. 같은 이름은 덮어쓴다 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void Value(GGizmoChannel channel, string key, string value)
         {
             if (string.IsNullOrEmpty(key))
@@ -435,6 +444,7 @@ namespace Geumeum.Common
         /// </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("GEUMEUM_DEVTOOLS")]
         public static void PlotValue(string key, float value)
         {
             if (string.IsNullOrEmpty(key))

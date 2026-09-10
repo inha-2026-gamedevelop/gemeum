@@ -5,7 +5,7 @@
 
 **조작은 게임 창이 아니라 브라우저 창에서 한다.** 게임 화면에는 월드에 붙는 표시만 남는다.
 
-관련 코드는 `Assets/01.Scripts/00.Common/Dev/`와 각 파트의 `Dev/` 폴더에 있다.
+관련 코드는 `Assets/01.Scripts/99.Dev/`(공용, namespace `Geumeum.Dev`)와 각 파트의 `Dev/` 폴더에 있다.
 
 ---
 

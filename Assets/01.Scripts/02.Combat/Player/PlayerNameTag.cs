@@ -5,6 +5,7 @@ using UnityEngine;
 using Mirror;
 
 // 프로젝트 내부
+using Geumeum.Common;
 using Geumeum.Network;
 
 namespace Geumeum.Combat
@@ -13,7 +14,7 @@ namespace Geumeum.Combat
     /// 화면에 띄울 사람 이름. Steam 경로면 Steam 이름이고, KCP 개발 경로면 신원 번호다.
     /// 서버는 남의 Steam 이름을 알 수 없으므로 각자 자기 이름을 한 번 올려 보낸다
     /// </summary>
-    public class PlayerNameTag : NetworkBehaviour
+    public class PlayerNameTag : NetworkBehaviour, IDisplayNamed
     {
         /****************************************
         *                Fields

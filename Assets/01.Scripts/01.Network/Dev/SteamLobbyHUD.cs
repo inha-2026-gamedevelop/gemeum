@@ -6,13 +6,14 @@ using Mirror;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Dev;
 
 namespace Geumeum.Network
 {
     /// <summary> Steam 로비를 손으로 돌려 보기 위한 개발용 오버레이 </summary>
     public class SteamLobbyHUD : MonoBehaviour
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *              Constants
@@ -50,6 +51,13 @@ namespace Geumeum.Network
         /****************************************
         *              Unity Event
         ****************************************/
+
+        private void Awake()
+        {
+            // 이 도구의 단축키(Home / PageDown / End)가 치트 해제 차례와 겹친다.
+            // 잠긴 동안 켜져 있으면 해제 키를 치는 것만으로 로비가 만들어지고 호스트가 열린다
+            DevAccess.GateComponent(this);
+        }
 
         private void Start()
         {
