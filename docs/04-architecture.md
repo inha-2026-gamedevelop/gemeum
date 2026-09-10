@@ -445,6 +445,9 @@ Main.unity
 ├ ReviveController.cs      NB  [구현완료] 실물은 02.Combat/Player/에 있다. 관전 30초와 협동 부활(3m·3초),
 │                              부활 위치 보정. 노잣돈 차감은 재화 시스템 대기(TODO).
 │                              전멸 감지는 여기가 아니라 서버 플레이어 목록을 가진 PlayerStatus가 한다
+├ NetworkPeerLabel.cs      static [구현완료] 서버 로그에 사람을 적는 방법 한 곳.
+│                              IDisplayNamed로 스팀 이름을 찾고 connectionId를 뒤에 남긴다 -
+│                              번호만 적으면 3인 테스트에서 누구였는지 매 판 다시 맞춰야 한다
 ├ Dev/                     개발 전용 도구 (namespace Geumeum.Network 유지)
 │  ├ FrameRecorder.cs      MB  [구현완료] 이름과 달리 영상 녹화가 아니라 **성능 측정기**다.
 │  │                           F9/F10 · 전체 #if 가드. Main · Dev_Combat · Dev_Barrier에 배치.

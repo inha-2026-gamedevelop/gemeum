@@ -203,14 +203,14 @@ namespace Geumeum.Network
 
             if (!Enum.IsDefined(typeof(CharacterKind), character))
             {
-                Debug.LogWarning($"[LobbyController] 정의되지 않은 캐릭터 선택을 무시했다: connectionId={sender.connectionId}, character={character}", this);
+                Debug.LogWarning($"[LobbyController] 정의되지 않은 캐릭터 선택을 무시했다: {NetworkPeerLabel.Describe(sender)}, character={character}", this);
                 return;
             }
 
             LobbyRoster roster = LobbyRoster.ServerInstance;
             if ((roster == null) || (!roster.TryFindSlotIndex(sender.connectionId, out int index)))
             {
-                Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 캐릭터 선택을 무시했다: connectionId={sender.connectionId}", this);
+                Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 캐릭터 선택을 무시했다: {NetworkPeerLabel.Describe(sender)}", this);
                 return;
             }
 
@@ -240,7 +240,7 @@ namespace Geumeum.Network
             LobbyRoster roster = LobbyRoster.ServerInstance;
             if ((roster == null) || (!roster.TryFindSlotIndex(connectionId, out int index)))
             {
-                Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 준비 요청을 무시했다: connectionId={connectionId}", this);
+                Debug.LogWarning($"[LobbyController] 슬롯이 없는 연결의 준비 요청을 무시했다: {NetworkPeerLabel.Describe(connectionId)}", this);
                 return;
             }
 

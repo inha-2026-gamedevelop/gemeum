@@ -298,7 +298,7 @@ namespace Geumeum.Network
 
             if (!GeumeumAuthenticator.ServerInstance.TryGetPlatformId(conn.connectionId, out PlayerPlatformId id))
             {
-                Debug.LogWarning($"[LobbyRoster] connectionId={conn.connectionId}의 신원을 찾지 못했다, 자리 보존이 동작하지 않는다", this);
+                Debug.LogWarning($"[LobbyRoster] {NetworkPeerLabel.Describe(conn)}의 신원을 찾지 못했다, 자리 보존이 동작하지 않는다", this);
                 return 0UL;
             }
 
