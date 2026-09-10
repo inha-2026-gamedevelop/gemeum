@@ -12,7 +12,10 @@ namespace Geumeum.Art
 {
     /// <summary>
     /// 게임을 껐다 켜지 않고 카메라 값을 만지는 개발용 패널.
-    /// 값이 바뀌면 CameraRig가 다음 프레임에 그대로 읽으므로 화면에서 즉시 확인된다
+    /// 값이 바뀌면 CameraRig가 다음 프레임에 그대로 읽으므로 화면에서 즉시 확인된다.
+    ///
+    /// 조작은 브라우저 개발 패널에 있다 - 카메라를 보면서 만져야 하는데
+    /// 게임 화면 위에 슬라이더를 깔면 정작 봐야 할 화면을 덮는다
     /// </summary>
     public class CameraTuneOverlay : PersistentSingleton<CameraTuneOverlay>
     {
@@ -24,12 +27,16 @@ namespace Geumeum.Art
 
         /// <summary>
         /// 씬에 배치하지 않아도 실행 시작에 스스로 뜬다.
-        /// EnsureCreated가 기존 인스턴스와 씬 배치본을 먼저 확인하므로 중복이 생기지 않는다 -
-        /// 중복이면 PersistentSingleton이 GameObject를 통째로 파괴한다
+        /// EnsureCreated가 기존 인스턴스와 씬 배치본을 먼저 확인하므로 중복이 생기지 않는다
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Preload()
         {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
             EnsureCreated(OBJECT_NAME);
         }
 
@@ -39,126 +46,56 @@ namespace Geumeum.Art
 
         private const string OBJECT_NAME = "@CameraTuneOverlay";
 
-        private const int PANEL_WIDTH   = 470;
-        private const int PANEL_MARGIN  = 10;
-        private const int LABEL_WIDTH   = 250;
-        private const int FIELD_WIDTH   = 60;
-        private const int ROW_HEIGHT    = 40; // 설명 줄 + 슬라이더 줄
-        private const int HEADER_HEIGHT = 96; // 제목, 버튼 한 줄, 안내 한 줄
-
-        private const float GROUP_SPACING = 6f; // 그룹 사이 여백
-
-        private const string VALUE_FORMAT = "0.###";
+        private const string PANEL_ID    = "camera";
+        private const string PANEL_TITLE = "카메라 조정";
 
         /****************************************
         *                Fields
         ****************************************/
 
-        [SerializeField] private KeyCode _toggleKey = KeyCode.F11;
+        private string _message = string.Empty;
 
-        private bool    _isOpen  = false;
-        private Vector2 _scroll  = Vector2.zero;
-        private string  _message = string.Empty;
-
-        // 칸에 입력 중인 문자열. null이면 현재 값에서 다시 만든다. 인덱스는 Tunables와 같다
-        private string[] _editing = null;
-
-        // 패널을 처음 연 시점의 값. [처음 값으로]가 여기로 되돌린다
+        // 패널을 처음 만들 때의 값. [처음 값으로]가 여기로 되돌린다
         private float[] _startValue = null;
 
         /****************************************
         *              Unity Event
         ****************************************/
 
-        /// <summary> 씬이나 프리팹에 배치하지 않아도 스스로 생긴다. 씬 파일을 건드리지 않기 위한 것이다 </summary>
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void EnsureExists()
+        protected override void OnSingletonAwake()
         {
-            if ((!Application.isPlaying) || (HasInstance))
-            {
-                return;
-            }
-
-            EnsureCreated(OBJECT_NAME);
+            DevPanelHost.Register(PANEL_ID, PANEL_TITLE, Build, Handle);
         }
 
-        private void Update()
+        protected override void OnSingletonDestroy()
         {
-            if (!Input.GetKeyDown(_toggleKey))
-            {
-                return;
-            }
-
-            _isOpen = !_isOpen;
-
-            if (_isOpen)
-            {
-                CaptureStartValues();
-            }
+            DevPanelHost.Unregister(PANEL_ID);
         }
 
-        private void OnGUI()
-        {
-            if (!_isOpen)
-            {
-                return;
-            }
+        /****************************************
+        *                Panel
+        ****************************************/
 
+        private void Build(DevPanelBuilder builder)
+        {
             CameraConfigSO config = ResolveConfig();
             if (config == null)
             {
+                builder.Label("아직 GameDB가 올라오지 않았다");
                 return;
             }
 
             IReadOnlyList<CameraConfigSO.Tunable> tunables = CameraConfigSO.Tunables;
-            EnsureBuffers(tunables.Count);
 
-            float wanted = HEADER_HEIGHT + (tunables.Count * ROW_HEIGHT);
-            float height = Mathf.Min(Screen.height - (PANEL_MARGIN * 2), wanted);
+            // 처음 값은 패널을 처음 만들 때 잡는다. GameDB가 늦게 올라오므로 Awake에서는 아직 없다
+            CaptureStartValues();
 
-            GUILayout.BeginArea(new Rect(PANEL_MARGIN, PANEL_MARGIN, PANEL_WIDTH, height), GUI.skin.box);
+            builder.Button("reset", "처음 값으로");
+            builder.Button("save",  "파일로 저장");
+            builder.Button("load",  "파일에서 불러오기");
 
-            DrawHeader(config, tunables);
+            builder.Label(string.IsNullOrEmpty(_message) ? CameraTuneFile.FilePath : _message);
 
-            _scroll = GUILayout.BeginScrollView(_scroll);
-            DrawRows(config, tunables);
-            GUILayout.EndScrollView();
-
-            GUILayout.EndArea();
-        }
-
-        /****************************************
-        *                Methods
-        ****************************************/
-
-        private void DrawHeader(CameraConfigSO config, IReadOnlyList<CameraConfigSO.Tunable> tunables)
-        {
-            GUILayout.Label($"카메라 조정 — {_toggleKey}로 닫는다");
-
-            GUILayout.BeginHorizontal();
-
-            if (GUILayout.Button("처음 값으로"))
-            {
-                RestoreStartValues(config, tunables);
-            }
-
-            if (GUILayout.Button("파일로 저장"))
-            {
-                Save(config, tunables);
-            }
-
-            if (GUILayout.Button("파일에서 불러오기"))
-            {
-                Load(config, tunables);
-            }
-
-            GUILayout.EndHorizontal();
-
-            GUILayout.Label(string.IsNullOrEmpty(_message) ? CameraTuneFile.FilePath : _message);
-        }
-
-        private void DrawRows(CameraConfigSO config, IReadOnlyList<CameraConfigSO.Tunable> tunables)
-        {
             string group = null;
 
             for (int i = 0; i < tunables.Count; ++i)
@@ -168,71 +105,78 @@ namespace Geumeum.Art
                 if (tunable.Group != group)
                 {
                     group = tunable.Group;
-                    GUILayout.Space(GROUP_SPACING);
-                    GUILayout.Label("— " + group + " —");
+                    builder.Header(group);
                 }
 
-                DrawRow(config, tunable, i);
+                // 한 줄이 문장 하나가 되게 적는다. 변수 이름을 따로 설명할 필요가 없어야 한다
+                string label = tunable.Before + " __ " + tunable.After;
+
+                builder.Slider("tune." + i, label, tunable.Get(config), tunable.Min, tunable.Max);
             }
         }
 
-        /// <summary> 한 줄이 문장 하나가 되게 그린다. 변수 이름을 따로 설명할 필요가 없어야 한다 </summary>
-        private void DrawRow(CameraConfigSO config, CameraConfigSO.Tunable tunable, int index)
+        private void Handle(DevCommand command)
         {
-            float current = tunable.Get(config);
-
-            if (_editing[index] == null)
+            CameraConfigSO config = ResolveConfig();
+            if (config == null)
             {
-                _editing[index] = current.ToString(VALUE_FORMAT);
+                return;
             }
 
-            GUILayout.BeginHorizontal();
+            IReadOnlyList<CameraConfigSO.Tunable> tunables = CameraConfigSO.Tunables;
 
-            GUILayout.Label(tunable.Before, GUILayout.Width(LABEL_WIDTH));
-
-            string typed = GUILayout.TextField(_editing[index], GUILayout.Width(FIELD_WIDTH));
-            if (typed != _editing[index])
+            switch (command.Control)
             {
-                _editing[index] = typed;
+                case "reset":
+                    RestoreStartValues(config, tunables);
+                    return;
 
-                // 타이핑 도중에는 숫자가 아닐 수 있다. 그때는 값을 건드리지 않고 칸만 둔다
-                if (float.TryParse(typed, out float parsed))
-                {
-                    tunable.Set(config, parsed);
-                    current = parsed;
-                }
+                case "save":
+                    Save(config, tunables);
+                    return;
+
+                case "load":
+                    Load(config, tunables);
+                    return;
             }
 
-            GUILayout.Label(tunable.After);
-
-            GUILayout.EndHorizontal();
-
-            float moved = GUILayout.HorizontalSlider(current, tunable.Min, tunable.Max);
-            if (!Mathf.Approximately(moved, current))
+            if ((string.IsNullOrEmpty(command.Control)) || (!command.Control.StartsWith("tune.")))
             {
-                tunable.Set(config, moved);
-                _editing[index] = moved.ToString(VALUE_FORMAT);
+                return;
             }
+
+            if (!int.TryParse(command.Control.Substring("tune.".Length), out int index))
+            {
+                return;
+            }
+
+            if ((index < 0) || (index >= tunables.Count))
+            {
+                return;
+            }
+
+            if (!command.TryGetFloat(out float value))
+            {
+                return;
+            }
+
+            // 슬라이더 밖의 값이 들어오면 이후 슬라이더 위치와 실제 값이 어긋난다
+            CameraConfigSO.Tunable tunable = tunables[index];
+            tunable.Set(config, Mathf.Clamp(value, tunable.Min, tunable.Max));
         }
+
+        /****************************************
+        *                Methods
+        ****************************************/
 
         private static CameraConfigSO ResolveConfig()
         {
             return GameDB.IsInitialized ? GameDB.Camera : null;
         }
 
-        private void EnsureBuffers(int count)
-        {
-            if ((_editing != null) && (_editing.Length == count))
-            {
-                return;
-            }
-
-            _editing = new string[count];
-        }
-
         private void CaptureStartValues()
         {
-            // 처음 연 시점의 값만 기억한다. 두 번째로 열 때 덮어쓰면 되돌릴 자리를 잃는다
+            // 처음 값만 기억한다. 나중에 덮어쓰면 되돌릴 자리를 잃는다
             if (_startValue != null)
             {
                 return;
@@ -260,13 +204,12 @@ namespace Geumeum.Art
                 return;
             }
 
-            for (int i = 0; i < tunables.Count; ++i)
+            for (int i = 0; (i < tunables.Count) && (i < _startValue.Length); ++i)
             {
                 tunables[i].Set(config, _startValue[i]);
-                _editing[i] = null;
             }
 
-            _message = "패널을 처음 연 시점의 값으로 되돌렸다";
+            _message = "패널을 처음 만든 시점의 값으로 되돌렸다";
         }
 
         private void Save(CameraConfigSO config, IReadOnlyList<CameraConfigSO.Tunable> tunables)
@@ -287,11 +230,6 @@ namespace Geumeum.Art
             {
                 _message = "불러오기 실패: " + error;
                 return;
-            }
-
-            for (int i = 0; i < _editing.Length; ++i)
-            {
-                _editing[i] = null;
             }
 
             _message = $"{applied}개를 불러왔다";

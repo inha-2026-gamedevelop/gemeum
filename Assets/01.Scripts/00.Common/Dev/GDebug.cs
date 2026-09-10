@@ -1,4 +1,5 @@
 // System
+using System;
 using System.Diagnostics;
 
 // Unity
@@ -17,6 +18,7 @@ namespace Geumeum.Common
         Fail    = 2,
         Warn    = 3,
         Server  = 4, // 서버 판정 결과, 3인 테스트에서 누가 정했는지 구분하려고 나눈다
+        Boss    = 5, // 보스 페이즈·패턴·부위. 전투 로그에 묻히면 보스 흐름을 못 따라간다
     }
 
     /// <summary> 화면 오른쪽에 뜨는 개발용 로그. 게임을 멈추지 않고 판정 결과를 본다 </summary>
@@ -26,7 +28,9 @@ namespace Geumeum.Common
         *              Constants
         ****************************************/
 
-        public const int MAX_LINES = 18; // 오른쪽 화면에 겹치지 않고 들어가는 줄 수
+        // 예전에는 화면에 겹치지 않는 줄 수(18)에 묶여 있었다.
+        // 지금은 브라우저 패널에서 스크롤해 보므로 3인 테스트 한 판을 담을 만큼 늘린다
+        public const int MAX_LINES = 200;
 
         private const int MAX_MESSAGE_LENGTH = 120; // 넘으면 잘라서 한 줄을 유지한다
 
@@ -41,6 +45,10 @@ namespace Geumeum.Common
             public string   Message;
             public float    UnscaledTime; // 히트스톱이나 슬로우모션에 로그가 얼어붙지 않게 한다
             public int      Repeat;       // 같은 줄이 연달아 오면 늘린다
+
+            // 3인 테스트에서 서로의 로그를 맞춰 보려면 시계 시각이 있어야 한다.
+            // UnscaledTime은 각 프로세스가 켜진 시점부터라 서로 비교가 안 된다
+            public DateTime WallClock;
         }
 
         /****************************************
@@ -156,6 +164,14 @@ namespace Geumeum.Common
             Write(GLogKind.Server, message);
         }
 
+        /// <summary> 보스 흐름. 페이즈 전환, 패턴 시작, 부위 파괴처럼 보스만의 사건 </summary>
+        [Conditional("UNITY_EDITOR")]
+        [Conditional("DEVELOPMENT_BUILD")]
+        public static void Boss(string message)
+        {
+            Write(GLogKind.Boss, message);
+        }
+
         /// <summary> 화면을 비운다 </summary>
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT_BUILD")]
@@ -210,6 +226,7 @@ namespace Geumeum.Common
                 {
                     _entries[lastIndex].Repeat      += 1;
                     _entries[lastIndex].UnscaledTime = now;
+                    _entries[lastIndex].WallClock    = DateTime.Now;
                     MirrorIfNeeded(kind, message);
                     return;
                 }
@@ -221,6 +238,7 @@ namespace Geumeum.Common
                 Message      = message,
                 UnscaledTime = now,
                 Repeat       = 1,
+                WallClock    = DateTime.Now,
             };
 
             _head = (_head + 1) % MAX_LINES;

@@ -32,6 +32,18 @@ namespace Geumeum.Art
         ****************************************/
 
         [Tooltip("비워 두면 자기 캐릭터가 스폰될 때 자동으로 잡는다. 관전, 미리보기 씬에서는 직접 넣는다")]
+        // 개발용 기즈모 표시 값. 게임 밸런스가 아니라 눈에 보이는 크기와 색이다
+        private const float GIZMO_TARGET_SIZE   = 0.4f; // 목표 피벗 십자 크기(m)
+        private const float GIZMO_SMOOTHED_SIZE = 0.3f; // 따라간 피벗 십자 크기(m)
+        private const float GIZMO_LOCKON_RADIUS = 0.5f; // 락온 대상 원 반지름(m)
+
+        private static readonly Color GIZMO_TARGET_COLOR   = new Color(1f, 0.85f, 0.35f, 0.9f);
+        private static readonly Color GIZMO_SMOOTHED_COLOR = new Color(0.45f, 0.9f, 1f, 0.9f);
+        private static readonly Color GIZMO_LAG_COLOR      = new Color(1f, 1f, 1f, 0.5f);
+        private static readonly Color GIZMO_WANTED_COLOR   = new Color(1f, 1f, 1f, 0.25f);
+        private static readonly Color GIZMO_BOOM_COLOR     = new Color(0.55f, 1f, 0.6f, 0.9f);
+        private static readonly Color GIZMO_LOCKON_COLOR   = new Color(1f, 0.4f, 0.4f, 0.9f);
+
         [SerializeField] private Transform _target = null;
 
         private Camera _camera;
@@ -291,11 +303,51 @@ namespace Geumeum.Art
 
             Vector3 boomDirection = -(rotation * Vector3.forward);
 
+            float distance = ResolveDistance(config, boomDirection);
+
             transform.position = _smoothedPivot
-                + (boomDirection * ResolveDistance(config, boomDirection))
+                + (boomDirection * distance)
                 + ResolveShakeOffset(config);
 
             transform.rotation = rotation;
+
+            DrawGizmos(config, pivot, boomDirection, distance);
+        }
+
+        /// <summary>
+        /// 카메라 로직에 엮인 값들을 눈으로 확인할 수 있게 남긴다.
+        /// 여러 후보 값(목표 피벗과 따라간 피벗, 원하는 거리와 벽에 막힌 거리)을
+        /// 한 프레임에 같이 봐야 어디서 튀는지 알 수 있다 - 브레이크포인트로는 못 본다
+        /// </summary>
+        private void DrawGizmos(CameraConfigSO config, Vector3 pivot, Vector3 boomDirection, float distance)
+        {
+            // 목표 피벗과 실제로 따라간 피벗. 둘이 벌어진 폭이 곧 따라가는 지연이다
+            GGizmo.Point(GGizmoChannel.Camera, pivot, GIZMO_TARGET_SIZE, GIZMO_TARGET_COLOR);
+            GGizmo.Point(GGizmoChannel.Camera, _smoothedPivot, GIZMO_SMOOTHED_SIZE, GIZMO_SMOOTHED_COLOR);
+            GGizmo.Line(GGizmoChannel.Camera, pivot, _smoothedPivot, GIZMO_LAG_COLOR);
+
+            // 붐. 원하는 거리까지 옅은 선, 실제로 놓인 자리까지 진한 선이다
+            Vector3 wanted = _smoothedPivot + (boomDirection * config.Distance);
+
+            GGizmo.Line(GGizmoChannel.Camera, _smoothedPivot, wanted, GIZMO_WANTED_COLOR);
+            GGizmo.Line(GGizmoChannel.Camera, _smoothedPivot, transform.position, GIZMO_BOOM_COLOR);
+
+            if (CameraFrame.LockOnActive)
+            {
+                GGizmo.Line(GGizmoChannel.Camera, _smoothedPivot, CameraFrame.LockOnPoint,
+                    GIZMO_LOCKON_COLOR);
+                GGizmo.Circle(GGizmoChannel.Camera, CameraFrame.LockOnPoint, Vector3.up,
+                    GIZMO_LOCKON_RADIUS, GIZMO_LOCKON_COLOR);
+            }
+
+            GGizmo.Value(GGizmoChannel.Camera, "yaw",      _yaw.ToString("0.###"));
+            GGizmo.Value(GGizmoChannel.Camera, "pitch",    _pitch.ToString("0.###"));
+            GGizmo.Value(GGizmoChannel.Camera, "카메라 거리", distance.ToString("0.###"));
+            GGizmo.Value(GGizmoChannel.Camera, "락온",      CameraFrame.LockOnActive ? "켜짐" : "꺼짐");
+
+            // 흔들리는 모양을 봐야 "느낌이 이상한" 구간을 찾는다
+            GGizmo.PlotValue("yaw", _yaw);
+            GGizmo.PlotValue("카메라 거리", distance);
         }
 
         /// <summary> 살아 있는 셰이크를 합쳐 이번 프레임의 위치 오프셋을 만든다 </summary>

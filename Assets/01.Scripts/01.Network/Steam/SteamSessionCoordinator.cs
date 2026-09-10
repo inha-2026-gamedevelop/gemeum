@@ -31,10 +31,11 @@ namespace Geumeum.Network
         public SteamSessionState State { get; private set; } = SteamSessionState.Offline;
 
         /// <summary>
-        /// 호스트를 열 수 있는가. 소유자이고 정원이 다 찼을 때만.
+        /// 호스트를 열 수 있는가. 소유자이고 필요한 인원이 다 모였을 때만.
         ///
         /// 인원을 낮출 수 있게 열어 두면 호스트 혼자 런이 시작되면서 입장이 잠겨
-        /// 나머지 둘이 거부된다. Steam 경로는 3인 검증 전용이라 정원으로 고정한다
+        /// 나머지 둘이 거부된다. 그래서 기본은 정원 고정이고,
+        /// 개발 패널에서 사람이 직접 고른 인원만 예외로 받는다
         /// </summary>
         public bool CanStartHost
         {
@@ -43,8 +44,25 @@ namespace Geumeum.Network
                 SteamLobbyService lobby = SteamLobbyService.Instance;
                 return (State == SteamSessionState.Gathering)
                     && (lobby != null) && (lobby.IsOwner)
-                    && (lobby.Members.Count >= SteamLobbyService.MAX_MEMBERS);
+                    && (lobby.Members.Count >= ResolveRequiredMembers());
             }
+        }
+
+        /// <summary> 호스트를 열기 위해 로비에 모여 있어야 하는 인원 </summary>
+        private static int ResolveRequiredMembers()
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // 테스트 실행 패널의 인원. 씬 값이나 실행 인자로는 여기까지 내려오지 않는다 -
+            // 사고로 1인이 되면 나머지 둘이 입장을 거부당하므로 사람이 그 화면에서 누른 값만 받는다
+            int chosen = LobbyController.DevRequiredPlayers;
+
+            if ((chosen > 0) && (chosen <= SteamLobbyService.MAX_MEMBERS))
+            {
+                return chosen;
+            }
+#endif
+
+            return SteamLobbyService.MAX_MEMBERS;
         }
 
         /****************************************

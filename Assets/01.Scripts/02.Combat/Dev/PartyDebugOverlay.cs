@@ -42,34 +42,32 @@ namespace Geumeum.Combat
 
         private const string OBJECT_NAME = "@PartyDebugOverlay";
 
-        // 개발용 키 목록. 코드가 아니라 사람이 읽는 안내라 여기 한곳에 모아 둔다.
+        private const string PANEL_ID    = "party";
+        private const string PANEL_TITLE = "파티";
+
+        // 남아 있는 개발용 키 목록. 조작은 브라우저 패널로 옮겼고, 손이 빠른 것만 키로 남겼다.
         // 키를 새로 만들면 이 배열에도 한 줄 더한다 - 안 적으면 아무도 그 키가 있는 줄 모른다
         private static readonly string[] G_KeyHelp =
         {
             "F1  호스트 시작 (KCP HUD)",
             "F2  패링 더미",
             "F3  런 포기",
-            "F4  전체 부활        (호스트만)",
+            "F4  전체 부활          (호스트만)",
             "F5  보스 아레나로 전환 (호스트만)",
             "F6/F7  보스 1페이즈 / 2페이즈",
-            "F8/F9  디버그 로그 토글 / 비우기",
-            "PgUp  Steam 로비 패널   (Steam 경로)",
+            "Ins 프레임 기록 저장",
             "Home  Steam 방 만들기   (Steam 경로)",
             "PgDn  Steam 로비 참가   (클립보드 ID)",
             "End   Steam 호스트 시작 (로비 소유자)",
-            "Ins 프레임 기록 저장",
-            "F10 프레임 오버레이",
-            "F11 카메라 조정",
-            "F12 이 창",
             "ESC 마우스 커서",
         };
 
-        private const int   PANEL_WIDTH     = 240;
-        private const int   PANEL_MARGIN    = 10;
-        private const int   ROW_HEIGHT      = 62; // 이름 줄 + 막대 세 개
-        private const int   BAR_HEIGHT      = 9;
-        private const int   BAR_GAP         = 3;
         private const int   LINE_HEIGHT     = 16;
+        private const float BARS_MARGIN     = 24f; // 화면 가장자리와의 간격(px), 글자가 잘리지 않을 만큼 둔다
+        private const float BAR_WIDTH       = 220f;
+        private const float BAR_HEIGHT      = 9f;
+        private const float BAR_GAP         = 3f;
+        private const float ROW_HEIGHT      = LINE_HEIGHT + ((BAR_HEIGHT + BAR_GAP) * 3f) + 8f;
         private const float REFRESH_SECONDS = 0.2f; // 매 프레임 목록을 다시 만들면 그 자체가 부하다
 
         private const float NAMEPLATE_HEIGHT   = 2.2f; // 발밑에서 이만큼 위에 이름을 띄운다(m)
@@ -80,10 +78,9 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
-        [SerializeField] private KeyCode _toggleKey = KeyCode.F12;
-
-        private bool  _isVisible       = true;
-        private float _nextRefreshTime = 0f;
+        private bool  _isBarsVisible      = true;
+        private bool  _isNameplateVisible = true;
+        private float _nextRefreshTime    = 0f;
 
         // 매 프레임 새로 만들면 GC가 쌓인다. 갱신 주기마다 비우고 다시 채운다
         private readonly List<PlayerStatus> _players = new List<PlayerStatus>(Constants.Player.PARTY_SIZE);
@@ -113,11 +110,6 @@ namespace Geumeum.Combat
 
         private void Update()
         {
-            if (Input.GetKeyDown(_toggleKey))
-            {
-                _isVisible = !_isVisible;
-            }
-
             if (Time.unscaledTime < _nextRefreshTime)
             {
                 return;
@@ -127,16 +119,98 @@ namespace Geumeum.Combat
             RefreshPlayers();
         }
 
+        protected override void OnSingletonAwake()
+        {
+            // 파티창은 브라우저 개발 패널로 옮겼다. 화면 왼쪽을 고정으로 덮어
+            // 로비 UI와 전투 화면을 가렸고, 목록이 길면 화면 밖으로 잘렸다
+            DevPanelHost.Register(PANEL_ID, PANEL_TITLE, Build, Handle);
+        }
+
+        protected override void OnSingletonDestroy()
+        {
+            DevPanelHost.Unregister(PANEL_ID);
+        }
+
         private void OnGUI()
         {
-            if (!_isVisible)
+            EnsureStyles();
+
+            // 체력·스태미나·신력은 게임 화면에 있어야 한다. 3인 테스트에서 서로의 상태를 보며
+            // 치유와 부활을 판단하는데, 브라우저 창을 보고 있을 수는 없다.
+            // 호스트든 클라이언트든 자기 스폰 목록을 읽으므로 세 화면 모두에 뜬다
+            if (_isBarsVisible)
+            {
+                DrawBars();
+            }
+
+            // 머리 위 이름표는 월드에 붙는 표시다
+            if (_isNameplateVisible)
+            {
+                DrawNameplates();
+            }
+        }
+
+        /****************************************
+        *                Bars
+        ****************************************/
+
+        /// <summary> 화면 왼쪽 아래에 파티 상태를 쌓는다 </summary>
+        private void DrawBars()
+        {
+            float top = Screen.height - BARS_MARGIN - (_players.Count * ROW_HEIGHT);
+
+            for (int i = 0; i < _players.Count; ++i)
+            {
+                DrawPlayerBars(_players[i], BARS_MARGIN, top + (i * ROW_HEIGHT));
+            }
+        }
+
+        private void DrawPlayerBars(PlayerStatus status, float left, float top)
+        {
+            if (status == null)
             {
                 return;
             }
 
-            EnsureStyles();
-            DrawParty();
-            DrawNameplates();
+            string label = ResolveName(status) + "  " + ResolveWeapon(status);
+            if (status.IsDead)
+            {
+                label += "  (쓰러짐)";
+            }
+
+            // 내 줄은 앞에 표시를 남긴다. 세 명이 같은 캐릭터를 골라도 구분된다
+            if (status.isOwned)
+            {
+                label = "▶ " + label;
+            }
+
+            GUI.Label(new Rect(left, top, BAR_WIDTH, LINE_HEIGHT), label, _nameStyle);
+
+            // 스태미나 · 신력 상한은 사람마다 같은 값이라 PlayerStatus가 아니라 GameDB가 정본이다
+            float staminaMax = GameDB.IsInitialized ? GameDB.Combat.StaminaMax : 0f;
+            float spiritMax  = GameDB.IsInitialized ? GameDB.Combat.SpiritMax  : 0f;
+
+            float barTop = top + LINE_HEIGHT;
+
+            DrawBar(left, barTop,                                status.Health,  status.MaxHealth, _barHealth);
+            DrawBar(left, barTop + (BAR_HEIGHT + BAR_GAP),        status.Stamina, staminaMax,       _barStamina);
+            DrawBar(left, barTop + ((BAR_HEIGHT + BAR_GAP) * 2f), status.Spirit,  spiritMax,        _barSpirit);
+        }
+
+        private void DrawBar(float left, float top, float value, float max, Texture2D fill)
+        {
+            var rect = new Rect(left, top, BAR_WIDTH, BAR_HEIGHT);
+
+            GUI.DrawTexture(rect, _barBack);
+
+            if (max <= 0f)
+            {
+                return;
+            }
+
+            float ratio = Mathf.Clamp01(value / max);
+
+            GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width * ratio, rect.height), fill);
         }
 
         /****************************************
@@ -170,7 +244,7 @@ namespace Geumeum.Combat
                 }
             }
 
-            // 창마다 순서가 뒤바뀌면 누구 줄인지 눈으로 못 따라간다
+            // 갱신마다 순서가 뒤바뀌면 누구 줄인지 눈으로 못 따라간다
             _players.Sort(CompareByNetId);
         }
 
@@ -179,45 +253,46 @@ namespace Geumeum.Combat
             return left.netId.CompareTo(right.netId);
         }
 
-        private void DrawParty()
-        {
-            int height = (_players.Count * ROW_HEIGHT) + LINE_HEIGHT;
-            int top    = Mathf.Max(PANEL_MARGIN, (Screen.height - height) / 2);
+        /****************************************
+        *                Panel
+        ****************************************/
 
-            GUILayout.BeginArea(new Rect(PANEL_MARGIN, top, PANEL_WIDTH, height), GUI.skin.box);
-            GUILayout.Label($"파티 {_players.Count}명  [{_toggleKey}]", _nameStyle);
+        private void Build(DevPanelBuilder builder)
+        {
+            builder.Toggle("bars",      "인게임 파티 바 (체력·스태미나·신력)", _isBarsVisible);
+            builder.Toggle("nameplate", "머리 위 이름표",                       _isNameplateVisible);
+
+            builder.Header($"파티 {_players.Count}명");
 
             for (int i = 0; i < _players.Count; ++i)
             {
-                DrawPlayerRow(_players[i]);
+                BuildPlayerRow(builder, _players[i]);
             }
 
-            GUILayout.EndArea();
-
-            DrawKeyHelp(top + height + PANEL_MARGIN);
-        }
-
-        /// <summary> 단축키 안내. 화면에 안 적어 두면 만든 사람만 아는 키가 된다 </summary>
-        private void DrawKeyHelp(float top)
-        {
-            float height = (G_KeyHelp.Length + 1) * LINE_HEIGHT;
-            if ((top + height) > Screen.height)
-            {
-                top = Mathf.Max(PANEL_MARGIN, Screen.height - height - PANEL_MARGIN);
-            }
-
-            GUILayout.BeginArea(new Rect(PANEL_MARGIN, top, PANEL_WIDTH, height), GUI.skin.box);
-            GUILayout.Label("단축키", _nameStyle);
+            builder.Header("남은 단축키");
 
             for (int i = 0; i < G_KeyHelp.Length; ++i)
             {
-                GUILayout.Label(G_KeyHelp[i], _nameStyle);
+                builder.Label(G_KeyHelp[i]);
             }
-
-            GUILayout.EndArea();
         }
 
-        private void DrawPlayerRow(PlayerStatus status)
+        private void Handle(DevCommand command)
+        {
+            if (command.Control == "bars")
+            {
+                _isBarsVisible = command.IsOn;
+                return;
+            }
+
+            if (command.Control == "nameplate")
+            {
+                _isNameplateVisible = command.IsOn;
+            }
+        }
+
+        /// <summary> 막대를 그릴 수 없으니 숫자로 적는다. 3인 테스트에서 서로의 상태를 읽는 용도다 </summary>
+        private static void BuildPlayerRow(DevPanelBuilder builder, PlayerStatus status)
         {
             if (status == null)
             {
@@ -230,31 +305,15 @@ namespace Geumeum.Combat
                 label += "  (쓰러짐)";
             }
 
-            GUILayout.Label(label, _nameStyle);
+            builder.Label(label);
 
             // 스태미나 · 신력 상한은 사람마다 같은 값이라 PlayerStatus가 아니라 GameDB가 정본이다
             float staminaMax = GameDB.IsInitialized ? GameDB.Combat.StaminaMax : 0f;
             float spiritMax  = GameDB.IsInitialized ? GameDB.Combat.SpiritMax  : 0f;
 
-            DrawBar(status.Health,  status.MaxHealth, _barHealth);
-            DrawBar(status.Stamina, staminaMax,       _barStamina);
-            DrawBar(status.Spirit,  spiritMax,        _barSpirit);
-        }
-
-        private void DrawBar(float value, float max, Texture2D fill)
-        {
-            Rect rect = GUILayoutUtility.GetRect(PANEL_WIDTH, BAR_HEIGHT + BAR_GAP);
-            rect.height = BAR_HEIGHT;
-
-            GUI.DrawTexture(rect, _barBack);
-
-            if (max <= 0f)
-            {
-                return;
-            }
-
-            float ratio = Mathf.Clamp01(value / max);
-            GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width * ratio, rect.height), fill);
+            builder.Label($"  체력 {status.Health:0}/{status.MaxHealth:0}"
+                        + $"   스태미나 {status.Stamina:0}/{staminaMax:0}"
+                        + $"   신력 {status.Spirit:0}/{spiritMax:0}");
         }
 
         /// <summary> 머리 위 이름표. 카메라 뒤에 있는 사람은 그리지 않는다 </summary>
@@ -326,16 +385,27 @@ namespace Geumeum.Combat
 
         private void EnsureStyles()
         {
-            if (_nameStyle != null)
+            if (_plateStyle != null)
             {
                 return;
             }
 
-            _nameStyle = new GUIStyle(GUI.skin.label);
+            // GUIStyle과 텍스처를 OnGUI마다 새로 만들면 프레임마다 할당이 생긴다
+            _nameStyle = new GUIStyle(GUI.skin.label)
+            {
+                wordWrap = false,
+            };
+
             _nameStyle.normal.textColor = Color.white;
 
-            _plateStyle = new GUIStyle(GUI.skin.label);
-            _plateStyle.alignment        = TextAnchor.MiddleCenter;
+            _plateStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+
+                // 줄바꿈을 끈다. 고정 폭을 넘기면 두 줄로 접히는데 높이는 한 줄이라 아래가 잘린다
+                wordWrap  = false,
+            };
+
             _plateStyle.normal.textColor = Color.white;
 
             _barBack    = MakeTexture(new Color(0f, 0f, 0f, 0.6f));
@@ -346,7 +416,11 @@ namespace Geumeum.Combat
 
         private static Texture2D MakeTexture(Color color)
         {
-            Texture2D texture = new Texture2D(1, 1);
+            var texture = new Texture2D(1, 1)
+            {
+                hideFlags = HideFlags.HideAndDontSave,
+            };
+
             texture.SetPixel(0, 0, color);
             texture.Apply();
 

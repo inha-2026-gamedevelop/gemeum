@@ -3,123 +3,27 @@ using UnityEngine;
 
 namespace Geumeum.Common
 {
-    /// <summary> GDebug가 쌓은 줄을 화면 오른쪽 가운데에 그린다 </summary>
+    /// <summary>
+    /// GDebug가 쌓은 줄을 브라우저 개발 패널로 보낸다.
+    ///
+    /// 태그(성공·실패·주의·서버·보스)별로 켜고 끌 수 있다 -
+    /// 3인 테스트에서는 줄이 빠르게 섞여서, 보스 흐름만 또는 서버 판정만 모아 봐야 따라갈 수 있다.
+    /// 줄마다 시계 시각을 붙인다. 세 화면의 로그를 맞춰 보려면 켜진 시점부터의 시간으로는 안 된다
+    /// </summary>
     public class GDebugOverlay : PersistentSingleton<GDebugOverlay>
     {
-        /****************************************
-        *              Constants
-        ****************************************/
-
-        private const string OBJECT_NAME = "@GDebugOverlay";
-
-        private const float PANEL_WIDTH  = 380f; // 화면 오른쪽에서 차지하는 폭(px)
-        private const float RIGHT_MARGIN = 12f;  // 화면 오른쪽 끝과의 간격(px)
-        private const float LINE_HEIGHT  = 20f;  // 한 줄 높이(px)
-        private const float PADDING      = 8f;   // 배경과 글자 사이(px)
-
-        private const float HOLD_SECONDS = 6f;   // 이 시간 동안은 또렷하게 보인다
-        private const float FADE_SECONDS = 2f;   // 그 뒤 이만큼에 걸쳐 사라진다
-
-        private const int   FONT_SIZE    = 13;
-
-        /****************************************
-        *                Fields
-        ****************************************/
-
-        [Tooltip("화면 표시를 껐다 켜는 키")]
-        [SerializeField] private KeyCode _toggleKey = KeyCode.F8;
-
-        [Tooltip("화면을 비우는 키")]
-        [SerializeField] private KeyCode _clearKey = KeyCode.F9;
-
-        private GUIStyle  _lineStyle;
-        private Texture2D _background;
-
-        /****************************************
-        *              Unity Event
-        ****************************************/
-
-        protected override void OnSingletonAwake()
-        {
-            // 1x1 단색으로 배경을 깐다. 밝은 지형 위에서 흰 글자가 안 읽히는 것을 막는다
-            _background = new Texture2D(1, 1);
-            _background.SetPixel(0, 0, new Color(0f, 0f, 0f, 0.55f));
-            _background.Apply();
-        }
-
-        protected override void OnSingletonDestroy()
-        {
-            if (_background != null)
-            {
-                Destroy(_background);
-                _background = null;
-            }
-        }
-
-        private void Update()
-        {
-            if (Input.GetKeyDown(_toggleKey))
-            {
-                GDebug.IsVisible = !GDebug.IsVisible;
-            }
-
-            if (Input.GetKeyDown(_clearKey))
-            {
-                GDebug.Clear();
-            }
-        }
-
-        private void OnGUI()
-        {
-            if ((!GDebug.IsVisible) || (GDebug.Count == 0))
-            {
-                return;
-            }
-
-            EnsureStyle();
-
-            int   count       = GDebug.Count;
-            float panelHeight = (count * LINE_HEIGHT) + (PADDING * 2f);
-            float left        = Screen.width - PANEL_WIDTH - RIGHT_MARGIN;
-            float top         = (Screen.height - panelHeight) * 0.5f;   // 오른쪽 가운데
-
-            GUI.DrawTexture(new Rect(left, top, PANEL_WIDTH, panelHeight), _background);
-
-            float now = Time.unscaledTime;
-
-            // 오래된 것이 위, 새 것이 아래다. 채팅창처럼 아래에서 올라온다
-            for (int i = 0; i < count; ++i)
-            {
-                GDebug.Entry entry = GDebug.GetEntry(i);
-
-                float alpha = ResolveAlpha(now - entry.UnscaledTime);
-                if (alpha <= 0f)
-                {
-                    continue;
-                }
-
-                Color color = ResolveColor(entry.Kind);
-                color.a     = alpha;
-
-                _lineStyle.normal.textColor = color;
-
-                var rect = new Rect(
-                    left + PADDING,
-                    top + PADDING + (i * LINE_HEIGHT),
-                    PANEL_WIDTH - (PADDING * 2f),
-                    LINE_HEIGHT);
-
-                GUI.Label(rect, BuildLine(entry), _lineStyle);
-            }
-        }
-
         /****************************************
         *                Methods
         ****************************************/
 
-        /// <summary> 씬에 배치하지 않아도 첫 로그에서 스스로 생긴다 </summary>
+        /// <summary>
+        /// 씬에 배치하지 않아도 첫 로그에서 스스로 생긴다.
+        /// GDebug.Log는 릴리스에서 호출부만 사라지고 본문은 컴파일되므로,
+        /// 이 진입점은 빌드 종류와 상관없이 존재해야 한다
+        /// </summary>
         public static void EnsureExists()
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             // 플레이 중이 아니면 만들지 않는다. DontDestroyOnLoad가 에디트 모드에서 예외를 낸다.
             // 로그는 그래도 버퍼에 쌓이므로 에디터 스크립트에서 불러도 안전하다
             if ((!Application.isPlaying) || (HasInstance))
@@ -128,69 +32,238 @@ namespace Geumeum.Common
             }
 
             EnsureCreated(OBJECT_NAME);
+#endif
         }
 
-        private void EnsureStyle()
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+
+        /****************************************
+        *              Constants
+        ****************************************/
+
+        private const string OBJECT_NAME = "@GDebugOverlay";
+
+        private const string PANEL_ID    = "log";
+        private const string PANEL_TITLE = "로그";
+
+        private const int KIND_COUNT = 6; // GLogKind의 개수
+
+        /****************************************
+        *                Preload
+        ****************************************/
+
+        /// <summary> 로그가 한 줄도 없어도 패널은 보여야 한다 </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void Preload()
         {
-            if (_lineStyle != null)
+            EnsureExists();
+        }
+
+        /****************************************
+        *                Fields
+        ****************************************/
+
+        // 스냅샷마다 배열을 새로 만들지 않는다. 걸러진 줄만 앞에서부터 채우고 개수를 따로 센다
+        private readonly string[] _lines = new string[GDebug.MAX_LINES];
+
+        // 태그별로 볼지 말지
+        private readonly bool[] _isKindVisible = CreateVisibleKinds();
+
+        // 태그별 줄 수. 지금 몇 건씩 쌓였는지 알면 무엇을 켜야 할지 바로 안다
+        private readonly int[] _kindCounts = new int[KIND_COUNT];
+
+        /****************************************
+        *              Unity Event
+        ****************************************/
+
+        protected override void OnSingletonAwake()
+        {
+            DevPanelHost.Register(PANEL_ID, PANEL_TITLE, Build, Handle);
+        }
+
+        protected override void OnSingletonDestroy()
+        {
+            DevPanelHost.Unregister(PANEL_ID);
+        }
+
+        /****************************************
+        *                Panel
+        ****************************************/
+
+        private void Build(DevPanelBuilder builder)
+        {
+            int count = GDebug.Count;
+            int shown = 0;
+
+            for (int i = 0; i < KIND_COUNT; ++i)
+            {
+                _kindCounts[i] = 0;
+            }
+
+            // 오래된 것이 위, 새 것이 아래다. 켜 둔 태그만 담는다
+            for (int i = 0; i < count; ++i)
+            {
+                GDebug.Entry entry = GDebug.GetEntry(i);
+
+                int kindIndex = (int) entry.Kind;
+
+                if ((kindIndex >= 0) && (kindIndex < KIND_COUNT))
+                {
+                    ++_kindCounts[kindIndex];
+
+                    if (!_isKindVisible[kindIndex])
+                    {
+                        continue;
+                    }
+                }
+
+                _lines[shown] = BuildLine(entry);
+                ++shown;
+            }
+
+            builder.Label($"{shown}줄 표시 / 전체 {count}줄");
+
+            builder.Header("태그");
+
+            for (int i = 0; i < KIND_COUNT; ++i)
+            {
+                var kind = (GLogKind) i;
+
+                builder.Toggle("kind." + i, $"{ResolveTagName(kind)} ({_kindCounts[i]})",
+                    _isKindVisible[i]);
+            }
+
+            builder.Button("only.server", "서버만 보기");
+            builder.Button("only.boss",   "보스만 보기");
+            builder.Button("all",         "전부 보기");
+
+            builder.Header("줄");
+            builder.Toggle("console", "Unity 콘솔에도 남긴다", GDebug.MirrorToUnityConsole);
+            builder.Button("clear", "비우기");
+
+            builder.Log("lines", _lines, shown);
+        }
+
+        private void Handle(DevCommand command)
+        {
+            switch (command.Control)
+            {
+                case "clear":
+                    GDebug.Clear();
+                    return;
+
+                case "console":
+                    GDebug.MirrorToUnityConsole = command.IsOn;
+                    return;
+
+                case "all":
+                    SetAllVisible(true);
+                    return;
+
+                case "only.server":
+                    ShowOnly(GLogKind.Server);
+                    return;
+
+                case "only.boss":
+                    ShowOnly(GLogKind.Boss);
+                    return;
+            }
+
+            if ((string.IsNullOrEmpty(command.Control)) || (!command.Control.StartsWith("kind.")))
             {
                 return;
             }
 
-            // GUIStyle을 OnGUI마다 새로 만들면 프레임마다 할당이 생긴다
-            _lineStyle = new GUIStyle(GUI.skin.label)
+            if (!int.TryParse(command.Control.Substring("kind.".Length), out int index))
             {
-                fontSize  = FONT_SIZE,
-                alignment = TextAnchor.MiddleLeft,
-                richText  = false,
-            };
+                return;
+            }
+
+            if ((index >= 0) && (index < KIND_COUNT))
+            {
+                _isKindVisible[index] = command.IsOn;
+            }
         }
 
+        /****************************************
+        *                Methods
+        ****************************************/
+
+        /// <summary> 한 줄에 시각과 태그를 붙인다. 앞의 성격 이름은 브라우저가 색을 나누는 데 쓴다 </summary>
         private static string BuildLine(in GDebug.Entry entry)
         {
-            string body = ResolvePrefix(entry.Kind) + entry.Message;
+            string body = entry.Message;
 
-            if (entry.Repeat <= 1)
+            if (entry.Repeat > 1)
             {
-                return body;
+                body += "  x" + entry.Repeat;
             }
 
-            return body + "  x" + entry.Repeat;
+            return ResolveKindName(entry.Kind) + "|"
+                 + entry.WallClock.ToString("HH:mm:ss") + "  "
+                 + ResolveTagPrefix(entry.Kind) + body;
         }
 
-        private static string ResolvePrefix(GLogKind kind)
+        private void SetAllVisible(bool isVisible)
+        {
+            for (int i = 0; i < KIND_COUNT; ++i)
+            {
+                _isKindVisible[i] = isVisible;
+            }
+        }
+
+        private void ShowOnly(GLogKind kind)
+        {
+            SetAllVisible(false);
+            _isKindVisible[(int) kind] = true;
+        }
+
+        private static bool[] CreateVisibleKinds()
+        {
+            var visible = new bool[KIND_COUNT];
+
+            for (int i = 0; i < KIND_COUNT; ++i)
+            {
+                visible[i] = true;
+            }
+
+            return visible;
+        }
+
+        /// <summary> 패널 토글에 뜨는 태그 이름 </summary>
+        private static string ResolveTagName(GLogKind kind)
         {
             switch (kind)
             {
-                case GLogKind.Success: return "[성공] ";
-                case GLogKind.Fail:    return "[실패] ";
-                case GLogKind.Warn:    return "[주의] ";
-                case GLogKind.Server:  return "[서버] ";
-                default:               return "";
+                case GLogKind.Success: return "성공";
+                case GLogKind.Fail:    return "실패";
+                case GLogKind.Warn:    return "주의";
+                case GLogKind.Server:  return "서버";
+                case GLogKind.Boss:    return "보스";
+                default:               return "정보";
             }
         }
 
-        private static Color ResolveColor(GLogKind kind)
+        /// <summary> 줄 앞에 붙는 태그. 섞여 있을 때 눈으로 갈라 보게 한다 </summary>
+        private static string ResolveTagPrefix(GLogKind kind)
+        {
+            return (kind == GLogKind.Info) ? string.Empty : "[" + ResolveTagName(kind) + "] ";
+        }
+
+        /// <summary> 브라우저의 CSS 클래스 이름이 된다 </summary>
+        private static string ResolveKindName(GLogKind kind)
         {
             switch (kind)
             {
-                case GLogKind.Success: return new Color(0.45f, 1f, 0.55f);
-                case GLogKind.Fail:    return new Color(1f, 0.45f, 0.45f);
-                case GLogKind.Warn:    return new Color(1f, 0.85f, 0.35f);
-                case GLogKind.Server:  return new Color(0.55f, 0.8f, 1f);
-                default:               return Color.white;
+                case GLogKind.Success: return "success";
+                case GLogKind.Fail:    return "fail";
+                case GLogKind.Warn:    return "warn";
+                case GLogKind.Server:  return "server";
+                case GLogKind.Boss:    return "boss";
+                default:               return "info";
             }
         }
 
-        /// <summary> 오래된 줄은 서서히 사라진다. 화면을 계속 덮고 있으면 전투가 안 보인다 </summary>
-        private static float ResolveAlpha(float age)
-        {
-            if (age <= HOLD_SECONDS)
-            {
-                return 1f;
-            }
-
-            return Mathf.Clamp01(1f - ((age - HOLD_SECONDS) / FADE_SECONDS));
-        }
+#endif
     }
 }

@@ -18,6 +18,20 @@ namespace Geumeum.Combat
     public class PlayerAttack : NetworkBehaviour, IPlayerAction
     {
         /****************************************
+        *              Constants
+        ****************************************/
+
+        // 개발용 기즈모. 스윙이 지나간 뒤에도 잠깐 남아야 눈으로 확인할 수 있다
+        private const float GIZMO_SECONDS      = 1.5f;
+        private const float GIZMO_LABEL_HEIGHT = 2f; // 발밑에서 이만큼 위에 글자를 띄운다(m)
+
+        // 이번 요청의 조준. 클라이언트가 보내고 서버가 검증해 담는다
+        private Vector2 _requestedAim    = Vector2.zero;
+        private bool    _hasRequestedAim = false;
+
+        private static readonly Color GIZMO_SWEEP_COLOR = new Color(1f, 0.45f, 0.2f, 0.9f);
+
+        /****************************************
         *                Types
         ****************************************/
 
@@ -170,7 +184,18 @@ namespace Geumeum.Combat
                 return;
             }
 
-            CmdRequestAttack(_nextRequestId);
+            // 마우스가 카메라를 돌리므로 카메라 방위각이 곧 조준 방향이다.
+            // 모델이 바라보는 방향은 이동에 따라 늦게 따라오므로 그걸로 판정하면 눈과 어긋난다
+            Vector2 aim = CameraFrame.AimDirection;
+
+            // 내 화면은 로컬 예측값으로 그린다. 서버가 돌려 놓은 방향은 SyncVar로 오지만
+            // 소유 클라이언트는 그걸 안 보므로, 여기서 같이 돌려야 클라에서도 조준 방향을 본다
+            if (_presentation != null)
+            {
+                _presentation.ClientPredictFacing(aim);
+            }
+
+            CmdRequestAttack(_nextRequestId, aim);
             ++_nextRequestId;
         }
 
@@ -179,9 +204,13 @@ namespace Geumeum.Combat
         ****************************************/
 
         [Command]
-        private void CmdRequestAttack(uint requestId)
+        private void CmdRequestAttack(uint requestId, Vector2 aim)
         {
             EnsureRunResumedSubscription();
+
+            // 클라이언트가 보낸 값이므로 그대로 믿지 않는다.
+            // 방향만 받고 사거리·각도·피해는 계속 서버 수치를 쓴다
+            ServerApplyAim(aim);
 
             ActionRejection rejection = PlayerActionPipeline.TryExecute(
                 ref _requestIds, requestId, this, NetworkTime.time);
@@ -483,7 +512,33 @@ namespace Geumeum.Combat
                 profile.StaminaCost);
         }
 
-        /// <summary> 이번 공격이 향하는 평면 방향. PlayerPresentation의 AimDirection을 읽는다 </summary>
+        /// <summary>
+        /// 클라이언트가 보낸 조준을 이번 공격의 방향으로 받는다.
+        /// 값이 이상하면 버리고 기존 방향을 쓴다 - 개발 도구가 아니라 판정 입력이므로 조용히 넘기지 않고 남긴다
+        /// </summary>
+        [Server]
+        private void ServerApplyAim(Vector2 aim)
+        {
+            _hasRequestedAim = false;
+
+            if ((!IsFinite(aim.x)) || (!IsFinite(aim.y)) || (aim.sqrMagnitude <= Mathf.Epsilon))
+            {
+                GDebug.Warn($"조준 방향이 이상해 무시했다: {aim}");
+                return;
+            }
+
+            _requestedAim    = aim.normalized;
+            _hasRequestedAim = true;
+
+            // 모델도 그 방향을 보게 한다. 판정과 보이는 방향이 다르면 맞았는지 눈으로 못 가린다.
+            // 락온 중에는 PlayerPresentation이 락온 방향을 그대로 쓴다
+            if (_presentation != null)
+            {
+                _presentation.ServerSetFacing(_requestedAim);
+            }
+        }
+
+        /// <summary> 이번 공격이 향하는 평면 방향 </summary>
         [Server]
         private Vector3 ResolveAimForward()
         {
@@ -493,7 +548,10 @@ namespace Geumeum.Combat
                 return transform.forward;
             }
 
-            Vector2 facing = _presentation.AimDirection;
+            // 락온이 걸려 있으면 표현이 락온 방향을 준다. 그때는 조준보다 락온이 이긴다
+            Vector2 facing = ((_hasRequestedAim) && (!_presentation.IsLockedOn))
+                ? _requestedAim
+                : _presentation.AimDirection;
 
             if (facing.sqrMagnitude <= Mathf.Epsilon)
             {
@@ -542,6 +600,8 @@ namespace Geumeum.Combat
             ParticipantId markOwner = isBell ? attacker : ParticipantId.None;
 
             _hitTargets.Clear();
+
+            DrawSweepGizmo(origin, forward, angle, range, ignoresFacing);
 
             int count = Physics.OverlapSphereNonAlloc(origin, range, _hitBuffer, _targetMask);
 
@@ -613,9 +673,39 @@ namespace Geumeum.Combat
                 GDebug.Server($"방울 {hitCount}명 적중, 신력 +{spiritGain:F0}");
             }
 
+            // 맞았을 때만, 그리고 한글 없이 남긴다.
+            // 월드 글자는 IMGUI 기본 폰트로 그려서 빌드에서는 한글 글리프가 없어 깨진 사각형이 뜬다
+            if (hitCount > 0)
+            {
+                GGizmo.Label3D(GGizmoChannel.Combat, origin + (Vector3.up * GIZMO_LABEL_HEIGHT),
+                    (isBell ? "bell x" : "hit x") + hitCount, Color.white, GIZMO_SECONDS);
+            }
+
             RpcMeleeResult(_activePresentationActionId, hitCount > 0,
                 (isCritical) && (hitCount > 0),
                 RunTimeLocator.Current.GameplayElapsedSeconds);
+        }
+
+        /// <summary>
+        /// 방금 판정한 범위를 눈에 보이게 남긴다.
+        /// 반경과 각도를 숫자로만 보면 "왜 안 맞았는지"를 찾을 수 없다 - 그림으로 봐야 찾는다.
+        ///
+        /// 판정은 서버에서만 하므로 이 선도 서버(호스트) 화면에만 뜬다.
+        /// 원격 클라이언트에서 같은 범위를 보려면 그쪽에서 따로 그려야 한다
+        /// </summary>
+        private static void DrawSweepGizmo(Vector3 origin, Vector3 forward, float angle, float range,
+                                           bool ignoresFacing)
+        {
+            // 한 프레임만 그리면 스윙이 지나간 뒤에는 못 본다. 잠깐 남긴다
+            if (ignoresFacing)
+            {
+                GGizmo.Circle(GGizmoChannel.Combat, origin, Vector3.up, range,
+                    GIZMO_SWEEP_COLOR, GIZMO_SECONDS);
+                return;
+            }
+
+            GGizmo.Arc(GGizmoChannel.Combat, origin, forward, angle * 0.5f, range,
+                GIZMO_SWEEP_COLOR, GIZMO_SECONDS);
         }
 
         /// <summary> 이 플레이어의 영속 신원. 표식 소유권이 재접속에도 유지되도록 netId가 아니라 이 값을 쓴다 </summary>

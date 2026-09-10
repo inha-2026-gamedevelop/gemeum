@@ -23,15 +23,13 @@ namespace Geumeum.Network
         *                Fields
         ****************************************/
 
-        private const int OVERLAY_MARGIN = 10;
-        private const int OVERLAY_WIDTH  = 320;
-        private const int OVERLAY_HEIGHT = 105;
+        private const string PANEL_ID    = "frame";
+        private const string PANEL_TITLE = "프레임 기록";
 
         [Header("단축키")]
         // F9는 GDebugOverlay의 로그 비우기와, F1은 호스트 시작과 겹친다.
         // F1~F12가 전부 차 있어 F키 밖으로 뺐다
-        [SerializeField] private KeyCode _writeKeyCode   = KeyCode.Insert;
-        [SerializeField] private KeyCode _overlayKeyCode = KeyCode.F10;
+        [SerializeField] private KeyCode _writeKeyCode = KeyCode.Insert;
 
         [Header("측정 조건")]
         [Tooltip("같은 PC에서 여러 인스턴스를 비교하려면 상한을 맞춰야 한다. 0이면 상한 없음")]
@@ -53,9 +51,8 @@ namespace Geumeum.Network
         private string     _instanceKey = null;
 
         private float  _autosaveTimer = 0f;
-        private float  _overlayTimer  = 0f;
-        private string _overlayText   = "";
-        private bool   _showOverlay   = true;
+        private float  _overlayTimer = 0f;
+        private string _overlayText  = "";
 
         /****************************************
         *              Unity Event
@@ -80,6 +77,13 @@ namespace Geumeum.Network
             _phaseOverBudget   = new long[_phaseCount];
 
             ApplyFrameRateCap();
+
+            DevPanelHost.Register(PANEL_ID, PANEL_TITLE, Build, Handle);
+        }
+
+        private void OnDestroy()
+        {
+            DevPanelHost.Unregister(PANEL_ID);
         }
 
         private void Update()
@@ -90,14 +94,23 @@ namespace Geumeum.Network
             HandleKeys();
         }
 
-        private void OnGUI()
+        /// <summary>
+        /// 측정값은 브라우저 개발 패널에서 본다.
+        /// 화면 왼쪽 위에 고정으로 겹쳐 그리던 것을 옮긴 것이다 -
+        /// 로비 UI와 다른 개발 표시가 같은 자리에서 서로를 덮었다
+        /// </summary>
+        private void Build(DevPanelBuilder builder)
         {
-            if (!_showOverlay)
-            {
-                return;
-            }
+            builder.Label(_overlayText);
+            builder.Button("write", $"지금 파일로 저장 ({_writeKeyCode})");
+        }
 
-            GUI.Label(new Rect(OVERLAY_MARGIN, OVERLAY_MARGIN, OVERLAY_WIDTH, OVERLAY_HEIGHT), _overlayText);
+        private void Handle(DevCommand command)
+        {
+            if (command.Control == "write")
+            {
+                Write(true);
+            }
         }
 
         private void OnApplicationQuit()
@@ -188,10 +201,6 @@ namespace Geumeum.Network
                 Write(true);
             }
 
-            if (Input.GetKeyDown(_overlayKeyCode))
-            {
-                _showOverlay = !_showOverlay;
-            }
         }
 
         private void HandleAutosave()
@@ -213,11 +222,6 @@ namespace Geumeum.Network
 
         private void RefreshOverlay()
         {
-            if (!_showOverlay)
-            {
-                return;
-            }
-
             _overlayTimer += Time.unscaledDeltaTime;
             if (_overlayTimer < Constants.Diagnostics.OVERLAY_REFRESH_SECONDS)
             {
@@ -234,7 +238,7 @@ namespace Geumeum.Network
             _overlayText = ResolveRole() + ", " + ResolvePhase()
                 + nl + currentMs.ToString("F1") + " ms  (" + (1000f / Mathf.Max(currentMs, 0.001f)).ToString("F0") + " FPS)"
                 + nl + state + ", " + cap
-                + nl + Screen.width + "x" + Screen.height + "   " + _writeKeyCode + " 저장, " + _overlayKeyCode + " 표시";
+                + nl + Screen.width + "x" + Screen.height + "   " + _writeKeyCode + " 저장";
         }
 
         /// <summary> 지금까지 누적한 통계를 CSV로 남긴다 </summary>
