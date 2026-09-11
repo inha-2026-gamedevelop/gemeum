@@ -7,9 +7,11 @@
   <Project Path="Mirror.Components.csproj" />
   <Project Path="GaiaEditor.csproj" />
   <Project Path="MeshBakerCore.csproj" />
+  <Project Path="com.unity.animations.springbone.editor.csproj" />
   <Project Path="GaiaCore.csproj" />
   <Project Path="Mirror.Editor.csproj" />
   <Project Path="MeshBakerEditor.csproj" />
+  <Project Path="com.unity.animations.springbone.csproj" />
   <Project Path="Mirror.Examples.csproj" />
   <Project Path="kcp2k.csproj" />
   <Project Path="AxelF.Editor.csproj" />
