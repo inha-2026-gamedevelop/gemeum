@@ -782,7 +782,13 @@ Main.unity
 ```
 06.UI/                     namespace Geumeum.UI
 ├ Combat/    HUD(HP · 스태미나 · 신력 · 패링 게이지), 정밀 조준 상태, 무녀 표식 슬롯, 관전 화면
-│  └ HUDController.cs
+│  └ HUD/
+│     ├ HUDController.cs         [구현완료] HP · 신력 · 스태미나 바를 PlayerStatus.Local에 바인딩
+│     ├ MinimapPlayerDots.cs     [현재] 파티원 위치를 점으로 찍는다. 캐릭터별 색.
+│     │                           결계 원은 _barrierCircle 참조를 꽂으면 켜진다. 맵 배경, 회전은 아직 없다
+│     └ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
+│                                BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
+│                                씬 배선 전이라 동작을 관찰하지 못했다
 ├ AI/        보스 HP 바
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
@@ -1026,6 +1032,8 @@ Assets/02.Prefabs/
 │  └ DroppedItem.prefab       필드 드랍 장비 (서버 스폰)
 ├ Managers/
 │  └ @Managers.prefab, @Network.prefab, @AI.prefab …   씬 골격 루트 (3.2장)
+├ UI/
+│  └ MinimapPlayer.prefab     미니맵 점 하나. MinimapPlayerDots가 인원만큼 복제한다
 └ Art/
    └ VFX · 연출 프리팹 (로컬 재생 전용, NetworkIdentity 없음)
 ```
