@@ -16,7 +16,7 @@ namespace Geumeum.AI
     /// Update에서 이동하면 호스트 프레임에 따라 결과가 갈리고 고속 이동 시 터널링도 생긴다
     /// </summary>
     [RequireComponent(typeof(SphereCollider))]
-    public class CurseProjectile : NetworkBehaviour
+    public partial class CurseProjectile : NetworkBehaviour
     {
         /****************************************
         *                Fields
@@ -28,9 +28,6 @@ namespace Geumeum.AI
 
         [SerializeField] private SphereCollider _collider;
 
-        // 클라이언트가 스스로 같은 직선을 그리도록 발사 조건만 보낸다
-        [SyncVar] private Vector3 _direction;
-        [SyncVar] private float   _speed;
         private float   _damage;
         private uint    _attackerNetId;
         private float   _remainingDistance;

@@ -17,13 +17,11 @@ namespace Geumeum.AI
     /// <summary>
     /// 보스 본체 HP와 현재 피해 배율을 관리한다.
     /// </summary>
-    public class BossStatus : NetworkBehaviour, IDamageable
+    public partial class BossStatus : NetworkBehaviour, IDamageable
     {
         /****************************************
         *                Fields
         ****************************************/
-
-        [SyncVar] private float _health;
 
         private float _maxHealth            = 0f;
         private bool  _isDead               = false;

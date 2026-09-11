@@ -16,22 +16,16 @@ namespace Geumeum.Systems
 {
     /// <summary> 한 참가자의 특성 배분과 무료 초기화를 서버에서 소유한다 </summary>
     [DisallowMultipleComponent]
-    public class TalentController : NetworkBehaviour, ITalentAllocationProvider,
+    public partial class TalentController : NetworkBehaviour, ITalentAllocationProvider,
         IRunStateCarrier, IRunResettable
     {
         /****************************************
         *                Fields
         ****************************************/
 
-        // 서버 원본과 공개 SyncList를 분리한다. 장비 거래 원본이 모두 확정되기 전에
+        // 서버 원본과 공개 SyncList(_nodeIds, Net/TalentController.network.cs)를 분리한다. 장비 거래 원본이 모두 확정되기 전에
         // SyncList callback이 실행되어 절반짜리 loadout을 관찰하지 않게 한다.
         private readonly List<int>     _serverNodeIds = new List<int>();
-        private readonly SyncList<int> _nodeIds       = new SyncList<int>();
-
-        [SyncVar] private bool       _hasWeapon;
-        [SyncVar] private WeaponKind _weapon;
-        [SyncVar] private int        _spentPoints;
-        [SyncVar(hook = nameof(OnRevisionChanged))] private uint _revision;
 
         private IEquipmentWeaponTarget      _weaponTarget;
         private ICombatLoadoutRevisionTarget _loadoutRevisionTarget;
@@ -146,22 +140,6 @@ namespace Geumeum.Systems
             allocation = new TalentAllocationSnapshot(_revision, _hasWeapon,
                 _weapon, _spentPoints, nodeIds);
             return allocation.IsValid;
-        }
-
-        /****************************************
-        *              Commands
-        ****************************************/
-
-        [Command]
-        private void CmdAllocate(int nodeId, uint expectedRevision)
-        {
-            TargetAllocationResult(ServerTryAllocate(nodeId, expectedRevision));
-        }
-
-        [Command]
-        private void CmdReset(uint expectedRevision)
-        {
-            TargetAllocationResult(ServerTryReset(expectedRevision));
         }
 
         /****************************************
@@ -400,16 +378,6 @@ namespace Geumeum.Systems
         }
 
         /****************************************
-        *              Target Rpc
-        ****************************************/
-
-        [TargetRpc]
-        private void TargetAllocationResult(TalentAllocationResult result)
-        {
-            AllocationResult?.Invoke(result);
-        }
-
-        /****************************************
         *               Internals
         ****************************************/
 
@@ -508,14 +476,6 @@ namespace Geumeum.Systems
             {
                 // SyncList 원본 변경은 이미 끝난 서버 원본을 되돌리지 않는다.
                 Debug.LogError($"[TalentController] 특성 배분 공개 실패: {e}", this);
-            }
-        }
-
-        private void OnRevisionChanged(uint _, uint next)
-        {
-            if (!isServer)
-            {
-                NotifyRevisionChanged(next);
             }
         }
 

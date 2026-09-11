@@ -645,6 +645,11 @@ Main.unity
                                  예고 만료의 서버 계약을 고정한다
 ```
 
+**`Net/` 하위 폴더 (2026-09-11)** — 위 NB 클래스의 SyncVar · Command · Rpc · 클라 수명 콜백은 같은 폴더 아래
+`Net/{클래스명}.network.cs`(partial)에 있다. 규칙은 [코딩 컨벤션 9장 "네트워크 표면 분리"](coding-convention.md).
+대상: `Boss/Net/` — BossController · BossPartController · BossSoulController · BossStatus,
+`Enemy/Net/` — CurseProjectile · EnemyController · EnemyStatus. `BossSpawner` · `SpawnManager`는 선을 타는 멤버가 없어 해당 없음.
+
 `BossTelegraphCue.cs`(서버→클라 공격 예고 값 타입, struct)는 공용 스키마라 `00.Common/Types/`에 있다 → 4.1절.
 `Boss/`의 서버 실행부(전환 · 취소 · 예고 · 그로기 판정)는 폴더 소유와 별개로 **서버 담당 @AidenKim923이 구현한다.**
 **갱신** — 위 문단은 "아직 파일이 없다"였으나 아래 파일이 생겼다. 다만 **실제 3인 검증은 아직이라
@@ -725,6 +730,13 @@ Main.unity
    │                          매 초 범위 밖 IDamageable에 피해 + 쇠약/회복 봉쇄 플래그
    └ BarrierJudge.cs       C#  ★"반경 밖인가 · 얼마의 피해인가" 계산 전용 순수 C#
 ```
+
+**`Net/` 하위 폴더 (2026-09-11)** — 위 NB 클래스의 SyncVar · Command · Rpc · 클라 수명 콜백은 같은 폴더 아래
+`Net/{클래스명}.network.cs`(partial)에 있다. 규칙은 [코딩 컨벤션 9장 "네트워크 표면 분리"](coding-convention.md).
+대상: `Barrier/Net/` BarrierController · `Economy/Net/` CurrencyManager · ShopTransactionService ·
+`Growth/Net/` GrowthManager · TalentController · `Interaction/Net/` DroppedItem · InteractionController · ShopInteractionPoint ·
+`Inventory/Net/` InventoryController · EquipmentTransferService · `Results/Net/` RunResultRecorder.
+`DropDirector` · `RunStatistics`는 선을 타는 멤버가 없어 해당 없음.
 
 결계는 잡귀 난이도가 아니라 런 진행에 걸린 시스템이라 이 폴더에 둔다. `SpawnManager`(4.3)와 `BarrierVisual`(4.5)은 `BarrierController`의 SyncVar를 **읽기만** 한다.
 

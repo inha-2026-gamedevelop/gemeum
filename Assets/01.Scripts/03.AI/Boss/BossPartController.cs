@@ -15,16 +15,13 @@ using Geumeum.Network;
 namespace Geumeum.AI
 {
     /// <summary> 고정 꼬리 PartId의 HP, 한 그로기 한 파괴, 봉인과 드랍 사실을 소유한다 </summary>
-    public sealed class BossPartController : NetworkBehaviour, IBossPartSource
+    public sealed partial class BossPartController : NetworkBehaviour, IBossPartSource
     {
         private const byte ALL_TAILS_BROKEN_MASK = 0b0000_0111;
 
         [SerializeField] private BossController _boss;
         [SerializeField] private BossStatus     _status;
         [SerializeField] private BossPartHitbox[] _hitboxes = Array.Empty<BossPartHitbox>();
-
-        [SyncVar(hook = nameof(HandlePartSnapshotChanged))]
-        private BossPartSnapshot _snapshot;
 
         private BossPatternSO _data;
 
@@ -50,12 +47,6 @@ namespace Geumeum.AI
         public override void OnStartServer()
         {
             ServerInitialize(GameDB.Boss);
-        }
-
-        public override void OnStartClient()
-        {
-            ApplyHitboxes(_snapshot);
-            NotifyPartChanged(_snapshot);
         }
 
         [Server]
@@ -240,12 +231,6 @@ namespace Geumeum.AI
             RpcPlayPartBreak();
         }
 
-        [ClientRpc]
-        private void RpcPlayPartBreak()
-        {
-            CombatFeedbackLocator.Current.PlayPartBreak();
-        }
-
         private TargetRef CreateTargetRef(byte partId)
         {
             RunManager run = RunManager.ServerInstance;
@@ -317,12 +302,6 @@ namespace Geumeum.AI
         private static bool IsFinitePositive(float value)
         {
             return (!float.IsNaN(value)) && (!float.IsInfinity(value)) && (value > 0f);
-        }
-
-        private void HandlePartSnapshotChanged(BossPartSnapshot previous, BossPartSnapshot current)
-        {
-            ApplyHitboxes(current);
-            NotifyPartChanged(current);
         }
 
         private void NotifyPartChanged(BossPartSnapshot snapshot)
