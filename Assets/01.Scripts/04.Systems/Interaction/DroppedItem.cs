@@ -16,14 +16,11 @@ namespace Geumeum.Systems
     /// 3인이 같은 드랍을 동시에 주워도 소유자가 하나만 남도록, 인벤토리에 넣기 전에 예약을 잡는다
     /// </summary>
     [DisallowMultipleComponent]
-    public class DroppedItem : NetworkBehaviour, IInteractable
+    public partial class DroppedItem : NetworkBehaviour, IInteractable
     {
         /****************************************
         *                Fields
         ****************************************/
-
-        // struct는 통째로 바뀔 때만 동기화된다. 필드 하나만 고치지 않는다
-        [SyncVar] private WeaponCombatSnapshot _equipment;
 
         // 서버 전용. 예약이 잡히면 다른 요청은 실패한다
         private uint _reservedBy = 0u;

@@ -238,6 +238,34 @@ namespace Geumeum.Combat
 }
 ```
 
+### 네트워크 표면 분리 (`03.AI` · `04.Systems`)
+
+> **2026-09-11 도입.** 보스·시스템 컴포넌트는 판정 로직과 동기화 코드가 한 파일에 섞여 천 줄을 넘겼다.
+> 무엇이 선을 타고 오가는지를 파일 하나만 보고 알 수 있게, 네트워크 멤버만 partial 파일로 뺀다.
+
+`NetworkBehaviour` 클래스는 선을 타는 멤버를 같은 폴더 아래 `Net/{클래스명}.network.cs`에 둔다.
+원본 파일은 `partial`만 붙이고 로직을 그대로 가진다. 네임스페이스는 바뀌지 않는다 (1장은 파트 기준이다).
+
+```
+03.AI/Boss/
+├ BossController.cs              public partial class BossController : NetworkBehaviour  (판정 · 서버 로직)
+└ Net/
+  └ BossController.network.cs    public partial class BossController                     (선을 타는 멤버)
+```
+
+| `Net/*.network.cs`로 가는 것 | 원본에 남는 것 |
+|---|---|
+| `[SyncVar]` 필드와 그 hook 메서드 | `[Server]` · `[Client]` 메서드 |
+| `SyncList` · `SyncDictionary` 등 동기화 컬렉션 | `OnStartServer` · `OnStopServer` |
+| `[Command]` · `[ClientRpc]` · `[TargetRpc]` | Unity 이벤트, 프로퍼티(SyncVar를 읽는 것 포함) |
+| `OnStartClient` · `OnStopClient` · `OnStartLocalPlayer` · `OnStartAuthority` 등 클라 수명 콜백 | 헬퍼 메서드(네트워크 멤버에서만 불리더라도) |
+| `OnSerialize` · `OnDeserialize` | 상수 · 이벤트 · 중첩 타입 |
+
+- 새 파일의 배너 순서: `Fields` → `Client Callbacks` → `Commands` → `ClientRpc` → `TargetRpc` → `SyncVar Hooks`. 빈 섹션은 넣지 않는다.
+- partial 선언에는 base 클래스·인터페이스를 반복하지 않고 `///` summary도 달지 않는다(원본에만).
+- 선을 타는 멤버가 하나도 없는 `NetworkBehaviour`(서버 전용 매니저 등)는 `Net/` 파일을 만들지 않는다.
+- 새 네트워크 멤버를 추가할 때도 이 표를 따른다. Mirror weaver는 컴파일된 IL에서 동작하므로 partial 분할은 동기화 결과에 영향이 없다.
+
 ## 10. 참조 타입 매개변수
 
 ```csharp

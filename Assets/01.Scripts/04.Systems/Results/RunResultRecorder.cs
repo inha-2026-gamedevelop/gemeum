@@ -17,7 +17,7 @@ namespace Geumeum.Systems
 {
     /// <summary> 동기화된 결과를 각 클라이언트의 로컬 기록으로 옮기는 재시도 가능한 창구 </summary>
     [RequireComponent(typeof(RunManager))]
-    public sealed class RunResultRecorder : NetworkBehaviour
+    public sealed partial class RunResultRecorder : NetworkBehaviour
     {
         [SerializeField] private string _recordPathOverride = null;
 
@@ -70,26 +70,6 @@ namespace Geumeum.Systems
             }
 
             return false;
-        }
-
-        public override void OnStartClient()
-        {
-            if (_runManager == null)
-            {
-                Debug.LogError("[RunResultRecorder] RunManager가 없어 결과를 기록할 수 없다", this);
-                return;
-            }
-
-            _runManager.ResultChanged += HandleResultChanged;
-            HandleResultChanged(_runManager.Result);
-        }
-
-        public override void OnStopClient()
-        {
-            if (_runManager != null)
-            {
-                _runManager.ResultChanged -= HandleResultChanged;
-            }
         }
 
         public bool TryFlushPending()

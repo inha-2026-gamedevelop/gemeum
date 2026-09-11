@@ -17,10 +17,8 @@ namespace Geumeum.Systems
 {
     /// <summary> 객주의 서버 위치와 상점 UI 진입 상호작용을 소유한다 </summary>
     [DisallowMultipleComponent]
-    public class ShopInteractionPoint : NetworkBehaviour, IInteractable
+    public partial class ShopInteractionPoint : NetworkBehaviour, IInteractable
     {
-        [SyncVar] private bool _isOpen;
-
         private Coroutine _eventBusWaitRoutine;
         private bool      _hasEventSubscription;
 
@@ -125,12 +123,6 @@ namespace Geumeum.Systems
                 RunTimeLocator.Current.GameplayElapsedSeconds,
                 CombatClock.GetLastCombatTime(playerNetId), combat.InteractOutOfCombatSeconds);
             return InteractionRules.Evaluate(request);
-        }
-
-        [TargetRpc]
-        private void TargetOpenShop(NetworkConnection target, uint shopNetId)
-        {
-            OpenRequested?.Invoke(shopNetId);
         }
 
         [Server]

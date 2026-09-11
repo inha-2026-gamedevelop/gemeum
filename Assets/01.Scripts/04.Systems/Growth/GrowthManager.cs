@@ -20,7 +20,7 @@ namespace Geumeum.Systems
     /// 적 사망 이벤트만 구독하므로 AI와 성장 시스템 사이에 직접 참조가 생기지 않는다
     /// </summary>
     [DisallowMultipleComponent]
-    public class GrowthManager : NetworkBehaviour, IGrowthProvider
+    public partial class GrowthManager : NetworkBehaviour, IGrowthProvider
     {
         /****************************************
         *                Fields
@@ -34,13 +34,6 @@ namespace Geumeum.Systems
         private bool       _isRunActive;
         private bool       _hasEventBusSubscription;
         private Coroutine  _eventBusWaitRoutine;
-
-        // 매니저가 네트워크 오브젝트일 때 클라이언트 HUD가 공용 상태를 읽는 값
-        [SyncVar] private int   _networkLevel;
-        [SyncVar] private int   _networkExperience;
-        [SyncVar] private float _networkMaxHealth;
-        [SyncVar] private int   _networkTalentPoints;
-        [SyncVar(hook = nameof(OnNetworkGrowthRevisionChanged))] private uint  _networkRevision;
 
         /****************************************
         *              Properties
@@ -74,19 +67,6 @@ namespace Geumeum.Systems
             ResetState(false);
             SyncRegisteredParticipants();
             TrySubscribeToEventBus();
-        }
-
-        public override void OnStartClient()
-        {
-            GrowthProviderLocator.Register(this);
-        }
-
-        public override void OnStopClient()
-        {
-            if (!isServer)
-            {
-                GrowthProviderLocator.Unregister(this);
-            }
         }
 
         public override void OnStopServer()
@@ -314,14 +294,6 @@ namespace Geumeum.Systems
             _networkMaxHealth    = _state.MaxHealth;
             _networkTalentPoints = _state.TalentPoints;
             _networkRevision     = _state.Revision;
-        }
-
-        private void OnNetworkGrowthRevisionChanged(uint _, uint __)
-        {
-            if (!isServer)
-            {
-                GrowthChanged?.Invoke(State);
-            }
         }
 
         private void SyncRegisteredParticipants()

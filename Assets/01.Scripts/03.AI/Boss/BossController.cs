@@ -22,7 +22,7 @@ namespace Geumeum.AI
     /// 패턴 판정 자체는 BossPatternRunner가 한다.
     /// </summary>
     [RequireComponent(typeof(BossStatus))]
-    public class BossController : NetworkBehaviour, IBossTelegraphSource, IBossPhaseSource,
+    public partial class BossController : NetworkBehaviour, IBossTelegraphSource, IBossPhaseSource,
         IPrecisionInterruptTarget
     {
         /****************************************
@@ -49,18 +49,6 @@ namespace Geumeum.AI
         [SerializeField] private BossStatus _status;
         [SerializeField] private BossPartController _parts;
         [SerializeField] private BossSoulController _souls;
-
-        [SyncVar] private int _currentPhaseIndex = 1;
-        [SyncVar(hook = nameof(HandleTelegraphChanged))]
-        private BossTelegraphCue _telegraphCue;
-        private readonly SyncList<BossTelegraphCue> _telegraphCues =
-            new SyncList<BossTelegraphCue>();
-        [SyncVar(hook = nameof(HandlePhaseSnapshotChanged))]
-        private BossPhaseSnapshot _phaseSnapshot;
-        [SyncVar(hook = nameof(HandleEnrageWarningChanged))]
-        private bool _isEnrageWarning = false;
-        [SyncVar(hook = nameof(HandleEnragedChanged))]
-        private bool _isEnraged = false;
 
         private BossPhaseStateBase  _currentPhaseState;
         private Coroutine           _schedulerWaitRoutine;
@@ -199,18 +187,6 @@ namespace Geumeum.AI
             }
 
             StopServerExecution(terminate: true);
-        }
-
-        public override void OnStartClient()
-        {
-            BossPhaseSourceLocator.Register(this);
-            _telegraphCues.Callback += HandleTelegraphListChanged;
-            for (int i = 0; i < _telegraphCues.Count; ++i)
-            {
-                NotifyTelegraphChanged(_telegraphCues[i]);
-            }
-
-            NotifyPhaseChanged(_phaseSnapshot);
         }
 
         /// <summary>
@@ -1255,18 +1231,6 @@ namespace Geumeum.AI
                 (_souls.SoulSnapshot.State != BossFinalState.Dormant);
         }
 
-        // 판정과 별개로 각 클라이언트가 그로기 진입 피드백을 재생한다.
-        [ClientRpc]
-        private void RpcGroggyEnter()
-        {
-            CombatFeedbackLocator.Current.PlayGroggyEnter();
-        }
-
-        private void HandleTelegraphChanged(BossTelegraphCue previous, BossTelegraphCue current)
-        {
-            NotifyTelegraphChanged(current);
-        }
-
         private void HandleTelegraphListChanged(SyncList<BossTelegraphCue>.Operation operation,
             int index, BossTelegraphCue oldItem, BossTelegraphCue newItem)
         {
@@ -1282,24 +1246,6 @@ namespace Geumeum.AI
             NotifyTelegraphChanged(changed);
         }
 
-        private void HandlePhaseSnapshotChanged(BossPhaseSnapshot previous,
-            BossPhaseSnapshot current)
-        {
-            NotifyPhaseChanged(current);
-        }
-
-        private void HandleEnrageWarningChanged(bool previous, bool current)
-        {
-            ObserverDispatch.Invoke(EnrageWarningChanged, current, this,
-                nameof(BossController), nameof(EnrageWarningChanged));
-        }
-
-        private void HandleEnragedChanged(bool previous, bool current)
-        {
-            ObserverDispatch.Invoke(EnragedChanged, current, this,
-                nameof(BossController), nameof(EnragedChanged));
-        }
-
         private void NotifyTelegraphChanged(BossTelegraphCue cue)
         {
             ObserverDispatch.Invoke(TelegraphChanged, cue, this,
@@ -1310,15 +1256,6 @@ namespace Geumeum.AI
         {
             ObserverDispatch.Invoke(PhaseChanged, snapshot, this,
                 nameof(BossController), nameof(PhaseChanged));
-        }
-
-        public override void OnStopClient()
-        {
-            BossPhaseSourceLocator.Unregister(this);
-            _telegraphCues.Callback -= HandleTelegraphListChanged;
-            BossTelegraphCue cue = _telegraphCue;
-            cue.IsActive = false;
-            NotifyTelegraphChanged(cue);
         }
     }
 }

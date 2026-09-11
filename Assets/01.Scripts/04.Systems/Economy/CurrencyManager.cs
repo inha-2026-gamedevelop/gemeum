@@ -20,7 +20,7 @@ namespace Geumeum.Systems
 {
     /// <summary> 런 하나의 팀 공용 잔액과 적 처치 보상을 서버에서 소유한다 </summary>
     [DisallowMultipleComponent]
-    public class CurrencyManager : NetworkBehaviour, IPartyWallet
+    public partial class CurrencyManager : NetworkBehaviour, IPartyWallet
     {
         /****************************************
         *              Constants
@@ -95,9 +95,6 @@ namespace Geumeum.Systems
         *                Fields
         ****************************************/
 
-        [SyncVar(hook = nameof(OnBalanceChanged))] private int  _balance         = 0;
-        [SyncVar]                                      private uint _balanceRevision = 0u;
-
         // 거래 조정자는 원본을 모두 바꾼 뒤 위 SyncVar 표시값을 한 번에 공개한다
         private int  _serverBalance;
         private uint _serverBalanceRevision;
@@ -133,33 +130,6 @@ namespace Geumeum.Systems
         internal bool IsTransactionLocked => _transactionLocked;
 
         /****************************************
-        *              SyncVar Hooks
-        ****************************************/
-
-        private void OnBalanceChanged(int oldValue, int newValue)
-        {
-            Action<int> handlers = BalanceChanged;
-            if (handlers == null)
-            {
-                return;
-            }
-
-            Delegate[] observers = handlers.GetInvocationList();
-            for (int i = 0; i < observers.Length; ++i)
-            {
-                try
-                {
-                    ((Action<int>) observers[i])(newValue);
-                }
-                catch (Exception e)
-                {
-                    // SyncVar hook 밖으로 예외가 나가면 Mirror hook guard도 복구되지 않는다.
-                    Debug.LogError($"[CurrencyManager] 잔액 observer 실패: {e}", this);
-                }
-            }
-        }
-
-        /****************************************
         *              Server Callbacks
         ****************************************/
 
@@ -187,16 +157,6 @@ namespace Geumeum.Systems
             }
 
             ServerUnsubscribeEvents();
-            PartyWalletLocator.Unregister(this);
-        }
-
-        public override void OnStartClient()
-        {
-            PartyWalletLocator.Register(this);
-        }
-
-        public override void OnStopClient()
-        {
             PartyWalletLocator.Unregister(this);
         }
 

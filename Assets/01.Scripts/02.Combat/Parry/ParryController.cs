@@ -418,7 +418,7 @@ namespace Geumeum.Combat
                 TargetCloseParryWindow(previousKey);
             }
 
-            TargetOpenParryWindow(key);
+            TargetOpenParryWindow(key, windowStart, windowEnd);
             return true;
         }
 
@@ -464,12 +464,13 @@ namespace Geumeum.Combat
         ****************************************/
 
         [TargetRpc]
-        private void TargetOpenParryWindow(ParryWindowKey key)
+        private void TargetOpenParryWindow(ParryWindowKey key, double windowStart, double windowEnd)
         {
             _clientActiveWindow = key;
 
-            // 창이 열린 것을 봐야 "언제 눌러야 했는지"를 판단할 수 있다
-            GDebug.Log("패링 창 열림");
+            // 이 신호는 공격 모션 시작에 온다. 실제 창은 타격 시각에서 역산한 뒤쪽 구간이다.
+            double now = NetworkTime.time;
+            GDebug.Log($"패링 창 예고 +{windowStart - now:F2}~+{windowEnd - now:F2}초");
         }
 
         [TargetRpc]

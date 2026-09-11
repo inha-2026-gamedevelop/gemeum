@@ -18,7 +18,7 @@ using Geumeum.Network;
 namespace Geumeum.Systems
 {
     /// <summary> 현재 원과 경고 때 확정한 목표 원을 동기화하고 결계 밖 피해를 판정한다 </summary>
-    public class BarrierController : NetworkBehaviour, IBarrierTransitionSource
+    public partial class BarrierController : NetworkBehaviour, IBarrierTransitionSource
     {
         /****************************************
         *                Constants
@@ -31,9 +31,6 @@ namespace Geumeum.Systems
         /****************************************
         *                Fields
         ****************************************/
-
-        [SyncVar(hook = nameof(OnTransitionStateChanged))]
-        private BarrierTransitionState _transitionState;
 
         // 결계 밖 피해를 1초에 한 번만 적용한다. 다음 예정 시각을 now+interval로 재예약해
         // 호스트 hitch 뒤에도 밀린 피해를 한 프레임에 몰아넣지 않는다
@@ -558,12 +555,6 @@ namespace Geumeum.Systems
             {
                 GameEventBus.Instance.Publish(new BarrierTransitionPreparedEvent(snapshot));
             }
-        }
-
-        private void OnTransitionStateChanged(BarrierTransitionState oldState,
-            BarrierTransitionState newState)
-        {
-            NotifySnapshot(newState);
         }
 
         private void NotifySnapshot(in BarrierTransitionState snapshot)

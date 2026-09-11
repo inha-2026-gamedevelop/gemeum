@@ -24,7 +24,7 @@ namespace Geumeum.AI
     /// </summary>
     [RequireComponent(typeof(EnemyStatus))]
     [RequireComponent(typeof(NavMeshAgent))]
-    public class EnemyController : NetworkBehaviour, IPrecisionInterruptTarget
+    public partial class EnemyController : NetworkBehaviour, IPrecisionInterruptTarget
     {
         /****************************************
         *                Fields
@@ -42,12 +42,6 @@ namespace Geumeum.AI
         [SerializeField] private EnemyStatus     _status;
         [SerializeField] private NavMeshAgent    _agent;
         [SerializeField] private CurseProjectile _projectilePrefab; // 원거리형만 배정, 근접형은 비워둔다
-
-        [SyncVar(hook = nameof(OnVisualStateChanged))]
-        private EnemyVisualState _visualState = EnemyVisualState.Idle;
-
-        [SyncVar(hook = nameof(OnAttackVariantChanged))]
-        private int _attackVariant = 0;
 
         private EnemyBrainBase _brain;
         private float          _scanTimer       = 0f;
@@ -222,18 +216,6 @@ namespace Geumeum.AI
             ApplyBrainDecision();
             _visualState   = _brain.VisualState;
             _attackVariant = _brain.AttackVariant;
-        }
-
-        /// <summary> _visualState 동기화 훅, 서버 · 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
-        private void OnVisualStateChanged(EnemyVisualState oldState, EnemyVisualState newState)
-        {
-            VisualStateChanged?.Invoke(newState);
-        }
-
-        /// <summary> _attackVariant 동기화 훅, 서버 · 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
-        private void OnAttackVariantChanged(int oldVariant, int newVariant)
-        {
-            AttackVariantChanged?.Invoke(newVariant);
         }
 
         /****************************************

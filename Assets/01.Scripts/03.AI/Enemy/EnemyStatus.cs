@@ -17,15 +17,13 @@ namespace Geumeum.AI
     /// <summary>
     /// 잡귀 HP와 결계 단계별 강화 배수를 관리한다. IDamageable 구현
     /// </summary>
-    public class EnemyStatus : NetworkBehaviour, IDamageable
+    public partial class EnemyStatus : NetworkBehaviour, IDamageable
     {
         /****************************************
         *                Fields
         ****************************************/
 
         [SerializeField] private EnemyKind _kind;
-
-        [SyncVar] private float _health;
 
         private float _maxHealth           = 0f;
         private float _attackPower         = 0f;

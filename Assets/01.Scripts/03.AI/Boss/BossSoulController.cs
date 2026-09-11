@@ -16,15 +16,12 @@ using Geumeum.Network;
 namespace Geumeum.AI
 {
     /// <summary> 원혼 셋의 독립 HP, 누적 제거, 실패 공격과 처치 가능 전이를 소유한다 </summary>
-    public sealed class BossSoulController : NetworkBehaviour, IBossSoulSource
+    public sealed partial class BossSoulController : NetworkBehaviour, IBossSoulSource
     {
         private const byte ALL_SOULS_REMOVED_MASK = 0b0000_0111;
 
         [SerializeField] private BossController _boss;
         [SerializeField] private BossSoulHitbox[] _hitboxes = Array.Empty<BossSoulHitbox>();
-
-        [SyncVar(hook = nameof(HandleSoulSnapshotChanged))]
-        private BossSoulSnapshot _snapshot;
 
         private readonly List<ParticipantId> _markOwners =
             new List<ParticipantId>(Constants.Network.MAX_PLAYERS);
@@ -44,12 +41,6 @@ namespace Geumeum.AI
         public override void OnStartServer()
         {
             ServerInitialize(GameDB.Boss);
-        }
-
-        public override void OnStartClient()
-        {
-            ApplyHitboxes(_snapshot);
-            NotifySoulChanged(_snapshot);
         }
 
         [Server]
@@ -354,12 +345,6 @@ namespace Geumeum.AI
         private static bool IsFinitePositive(float value)
         {
             return (!float.IsNaN(value)) && (!float.IsInfinity(value)) && (value > 0f);
-        }
-
-        private void HandleSoulSnapshotChanged(BossSoulSnapshot previous, BossSoulSnapshot current)
-        {
-            ApplyHitboxes(current);
-            NotifySoulChanged(current);
         }
 
         private void NotifySoulChanged(BossSoulSnapshot snapshot)
