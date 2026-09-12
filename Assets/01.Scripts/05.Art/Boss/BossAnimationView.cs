@@ -16,10 +16,11 @@ namespace Geumeum.Art
         *                Fields
         ****************************************/
 
-        private static readonly int G_AttackKind = Animator.StringToHash("AttackKind");
-        private static readonly int G_Attack     = Animator.StringToHash("Attack");
-        private static readonly int G_IsGroggy   = Animator.StringToHash("IsGroggy");
-        private static readonly int G_Dead       = Animator.StringToHash("Dead");
+        private static readonly int G_AttackKind  = Animator.StringToHash("AttackKind");
+        private static readonly int G_RepeatIndex = Animator.StringToHash("RepeatIndex");
+        private static readonly int G_Attack      = Animator.StringToHash("Attack");
+        private static readonly int G_IsGroggy    = Animator.StringToHash("IsGroggy");
+        private static readonly int G_Dead        = Animator.StringToHash("Dead");
 
         private Animator              _animator;
         private IBossTelegraphSource  _telegraphSource;
@@ -27,6 +28,7 @@ namespace Geumeum.Art
         private BossStatus            _status;
 
         private uint _lastAttackInstanceId;
+        private int  _lastRepeatIndex = -1;
         private bool _isSubscribed;
 
         /****************************************
@@ -81,17 +83,23 @@ namespace Geumeum.Art
             _isSubscribed = false;
         }
 
-        // 같은 공격의 반복 타격마다 다시 오는 통지는 걸러내고, 새 공격 시작에서만 트리거한다
+        // BossController가 내보내는 "현재" 예고는 활성 예고들 중 impact가 가장 이른 것 하나뿐이다
+        // (RefreshLegacyTelegraph). 그래서 반복 타격 패턴은 1타 impact에서 그 예고가 취소되는
+        // 순간 자연히 2타 예고로 넘어와 이 핸들러가 다시 불린다 - 타이밍을 따로 재구현할 필요 없이
+        // (AttackInstanceId, RepeatIndex) 쌍이 바뀔 때마다 그대로 트리거하면 된다
         private void HandleTelegraphChanged(BossTelegraphCue cue)
         {
-            if ((!cue.IsActive) || (cue.RepeatIndex != 0) || (cue.AttackInstanceId == _lastAttackInstanceId) ||
+            if ((!cue.IsActive) || (cue.AttackInstanceId == 0u) ||
+                ((cue.AttackInstanceId == _lastAttackInstanceId) && (cue.RepeatIndex == _lastRepeatIndex)) ||
                 (!GameDB.Boss.TryGetPattern(cue.PatternId, out BossPatternSO.PatternEntry pattern)))
             {
                 return;
             }
 
             _lastAttackInstanceId = cue.AttackInstanceId;
+            _lastRepeatIndex      = cue.RepeatIndex;
             _animator.SetInteger(G_AttackKind, (int) pattern.Template - 1);
+            _animator.SetInteger(G_RepeatIndex, cue.RepeatIndex);
             _animator.SetTrigger(G_Attack);
         }
 
