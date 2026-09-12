@@ -74,7 +74,11 @@ namespace Geumeum.Network
                 return;
             }
 
-            roster.ServerRestoreVacatedSeat(conn);
+            // 복구에 실패해 연결을 끊었을 때만 멈춘다. 되돌릴 자리가 없는 신규 접속은 그대로 진행한다
+            if (!roster.ServerRestoreVacatedSeat(conn))
+            {
+                return;
+            }
 
             if (TryResumePausedRun(conn))
             {
@@ -147,6 +151,12 @@ namespace Geumeum.Network
         [Server]
         public void ServerResetForNewRun()
         {
+            LobbyRoster roster = LobbyRoster.ServerInstance;
+            if (roster != null)
+            {
+                roster.ServerClearRecovery();
+            }
+
             LobbyRoleCoordinator coordinator = LobbyRoleCoordinator.ServerInstance;
             if (coordinator != null)
             {
@@ -392,14 +402,20 @@ namespace Geumeum.Network
             LobbyRoster roster          = LobbyRoster.ServerInstance;
             int         requiredPlayers = ResolveRequiredPlayers();
 
-            if ((roster == null) || (roster.SlotCount < requiredPlayers))
+            if ((roster == null) || (roster.SlotCount < requiredPlayers) || roster.HasPendingRecovery)
             {
                 int missing = (roster != null) ? (requiredPlayers - roster.SlotCount) : requiredPlayers;
-                Debug.Log($"[LobbyController] 아직 {missing}명을 더 기다린다");
+                Debug.Log($"[LobbyController] 참가자 복구 대기: 미접속={Math.Max(0, missing)}명");
                 return true;
             }
 
             LockAdmission();
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            if ((director != null) && RunSceneDirector.IsServerTransitioning)
+            {
+                return true;
+            }
+
             run.ResumeRun();
             return true;
         }
@@ -407,7 +423,7 @@ namespace Geumeum.Network
         /// <summary> 씬 값과 테스트 실행 창의 설정을 합쳐 자동 준비 여부를 정한다 </summary>
         private bool IsAutoReadyEnabled()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
             if (DevForceAutoReady)
             {
                 return true;
@@ -417,10 +433,10 @@ namespace Geumeum.Network
             return _devAutoReady;
         }
 
-        /// <summary> 런을 어떤 모드로 시작할지. 릴리스에서는 언제나 정식 런이다 </summary>
+        /// <summary> 개발 도구를 포함하지 않은 빌드는 정식 런으로 시작한다 </summary>
         private static RunMode ResolveRunMode()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
             return DevRunMode;
 #else
             return RunMode.Standard;
@@ -429,7 +445,7 @@ namespace Geumeum.Network
 
         private int ResolveRequiredPlayers()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
             // 테스트 실행 창에서 사람이 직접 고른 값. 씬 값·실행 인자와 달리 사고로 들어올 수 없어
             // Steam 경로에서도 통한다. 대신 나머지 둘은 못 들어오므로 3인 검증에는 쓸 수 없다
             if (IsDevRequiredPlayersValid())
@@ -462,7 +478,7 @@ namespace Geumeum.Network
             return required;
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
         /****************************************
         *              Dev Override

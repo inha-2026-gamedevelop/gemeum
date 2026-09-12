@@ -653,7 +653,9 @@ namespace Geumeum.Network
                 return director.ServerStopSessionAfterFailedTransition();
             }
 
-            if (hasTransitionFailure && (!director.ServerArmTerminalExit()))
+            bool needsTerminalExit = hasTransitionFailure ||
+                ((director != null) && director.IsWaitingForRecovery);
+            if (needsTerminalExit && (!director.ServerArmTerminalExit()))
             {
                 return false;
             }
