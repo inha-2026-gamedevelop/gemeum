@@ -455,6 +455,7 @@ namespace Geumeum.AI
             direction   = (direction.sqrMagnitude > 0.0001f) ? direction.normalized : Self.forward;
 
             _lockedForward = direction; // 방향 완전 잠금 - 예고 중 대상이 움직여도 안 따라간다
+            Self.rotation  = Quaternion.LookRotation(_lockedForward); // 공격마다 대상 방향으로 즉시 회전
 
             if (_activeKind == PatternKind.TargetedDash)
             {
