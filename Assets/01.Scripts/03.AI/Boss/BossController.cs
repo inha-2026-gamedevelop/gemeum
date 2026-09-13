@@ -57,6 +57,7 @@ namespace Geumeum.AI
         private BossPatternSO       _bossData;
         private GameEventBus        _eventBus;
         private float               _targetScanTimer         = 0f;
+        private IDamageable         _targetDamageable; // 현재 Target의 생존을 매 틱 값싸게 확인하기 위한 캐시
         private uint                _nextAttackInstanceId    = 0u;
         private uint                _nextParryWindowId       = 0u;
         private float               _transitionLockRemaining = 0f;
@@ -329,11 +330,22 @@ namespace Geumeum.AI
 
             TickEnrageState();
 
-            _targetScanTimer += deltaTime;
-            if (_targetScanTimer >= TARGET_SCAN_INTERVAL)
+            // 대상이 죽거나 삼켜지면 12초 주기를 기다리지 않고 그 프레임에 바로 재평가한다
+            if ((_targetDamageable != null) &&
+                (_targetDamageable.IsDead || ((_targetDamageable is IBossSwallowTarget swallowedTarget) &&
+                    swallowedTarget.IsSwallowed)))
             {
                 _targetScanTimer = 0f;
                 RefreshTarget();
+            }
+            else
+            {
+                _targetScanTimer += deltaTime;
+                if (_targetScanTimer >= TARGET_SCAN_INTERVAL)
+                {
+                    _targetScanTimer = 0f;
+                    RefreshTarget();
+                }
             }
 
             if (_groggyPhase == GroggyPhase.Groggy)
@@ -435,12 +447,14 @@ namespace Geumeum.AI
         {
             int count = Physics.OverlapSphereNonAlloc(transform.position, TARGET_SCAN_RADIUS, _targetScanBuffer, _playerLayerMask);
 
-            Transform nearest         = null;
-            float     nearestDistance = float.MaxValue;
+            Transform    nearest           = null;
+            IDamageable  nearestDamageable = null;
+            float        nearestDistance   = float.MaxValue;
 
             for (int i = 0; i < count; ++i)
             {
-                if (_targetScanBuffer[i].TryGetComponent(out IDamageable damageable) &&
+                _targetScanBuffer[i].TryGetComponent(out IDamageable damageable);
+                if ((damageable != null) &&
                     (damageable.IsDead || ((damageable is IBossSwallowTarget swallowed) &&
                         swallowed.IsSwallowed)))
                 {
@@ -450,12 +464,14 @@ namespace Geumeum.AI
                 float distance = Vector3.Distance(transform.position, _targetScanBuffer[i].transform.position);
                 if (distance < nearestDistance)
                 {
-                    nearestDistance = distance;
-                    nearest         = _targetScanBuffer[i].transform;
+                    nearestDistance   = distance;
+                    nearest           = _targetScanBuffer[i].transform;
+                    nearestDamageable = damageable;
                 }
             }
 
             _currentPhaseState.Target = nearest;
+            _targetDamageable         = nearestDamageable;
         }
 
         [Server]

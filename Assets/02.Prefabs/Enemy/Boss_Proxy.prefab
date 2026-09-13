@@ -4531,6 +4531,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1697755371863476500, guid: 7f47355d17a03c84ab68cefe5874e1a9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 866097036235459858}
+    - targetCorrespondingSourceObject: {fileID: 1697755371863476500, guid: 7f47355d17a03c84ab68cefe5874e1a9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 123378466292285151}
     - targetCorrespondingSourceObject: {fileID: 8200569880960051972, guid: 7f47355d17a03c84ab68cefe5874e1a9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5584930382753306275}
@@ -6759,6 +6762,18 @@ MonoBehaviour:
   collisionColor: {r: 1, g: 0, b: 0, a: 1}
   groundCollisionColor: {r: 0, g: 1, b: 0, a: 1}
   angleLimitDrawScale: 0.05
+--- !u!114 &123378466292285151
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7167676214267514467}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae45d70be6e2cf142a68c7715d837572, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.BossTelegraphView
 --- !u!1 &7187776358481672234 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1672819575504355165, guid: 7f47355d17a03c84ab68cefe5874e1a9, type: 3}

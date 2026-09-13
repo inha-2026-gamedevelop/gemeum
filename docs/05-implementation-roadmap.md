@@ -274,7 +274,7 @@ Unity에서 확인한 사실: **필드가 YAML에 없어도 0이 되지 않고 C
 
 ### U18 보스 · 창귀 텔레그래프 Begin/Cancel 표현
 
-- 현재 코드(2026-09-08): 보스는 현재 `BossTelegraphCue`를 SyncVar로 전달하고 `IBossTelegraphSource`로 조회/변경을 공개한다. 공격 ID별 취소는 멱등이며 `IsPendingAt`으로 만료를 검사한다. **단일 예고 상태의 서버 기반만 구현됨.** 보스/창귀 전용 view, 반복별·대상별 다중 cue, 일시정지 시각 보정은 남아 있다.
+- 현재 코드(2026-09-12): 보스는 `BossTelegraphCue`를 SyncVar+SyncList(`TelegraphCues`, 최대 8개 동시)로 전달하고 `IBossTelegraphSource`로 조회/변경을 공개한다. 공격 ID별 취소는 멱등이며 `IsPendingAt`으로 만료를 검사한다. **보스 전용 view(`BossTelegraphView.cs`)를 구현해 4템플릿(부채꼴·원·레인) 전부 확인함(1인 로컬 테스트).** 반복별·대상별 다중 cue는 뷰가 키(공격ID·반복순서·대상)별로 각자 그려 지원한다. **남은 것: 창귀 전용 view, 일시정지 시각 보정, 3인 접속에서 원격 클라이언트 동기화 검증.**
 - 권위: 도형/대상/발동 시각 서버 / 데칼·사운드·UI는 각 클라 재생
 - 권장 접근: 기존 `BossTelegraphCue`와 공격 ID를 확장하되 **취소 멱등 · 늦은 수신 만료** 처리. 4템플릿 view가 서버 절대시각으로 진행률만 계산. 창귀는 최소 cue부터
 - 대안: `BossArenaPhaseView`가 공격 cue까지 읽음 — 아레나 연출과 개별 공격 표시의 수명이 섞인다

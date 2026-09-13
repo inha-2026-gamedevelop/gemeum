@@ -754,9 +754,12 @@ Main.unity
 ├ Boss/                    [구현완료] 보스 아레나 연출 · 애니메이션
 │  ├ BossArenaPhaseView.cs MB  페이즈 루트 · 안개 · 하늘 · 바닥 머티리얼 · 달 원반을 한 번에 교체.
 │  │                           판정에 관여하지 않는다. 서버 페이즈 신호에 연결하는 것은 미착수
-│  └ BossAnimationView.cs  MB  IBossTelegraphSource · IBossPartSource · BossStatus.Died를 구독해
-│                              BossLocomotion.controller(05.Animator/)의 파라미터로 옮긴다.
-│                              예고 장판(BossTelegraphView)은 아직 미착수 — 이 파일은 애니메이션만 다룬다
+│  ├ BossAnimationView.cs  MB  IBossTelegraphSource · IBossPartSource · BossStatus.Died를 구독해
+│  │                           BossLocomotion.controller(05.Animator/)의 파라미터로 옮긴다
+│  └ BossTelegraphView.cs  MB  [구현완료] IBossTelegraphSource.TelegraphCues(최대 8개 동시)를
+│                              읽어 바닥 장판(부채꼴·원·레인)을 그린다. BossPatternExecutionSpec으로
+│                              판정과 같은 반경·각도 값을 써서 눈에 보이는 범위와 실제 판정이 어긋나지
+│                              않는다. 전용 셰이더는 BossTelegraph.shader(같은 폴더)
 ├ Camera/                  [구현완료] → 카메라와 락온 사양
 │  ├ CameraRig.cs          MB  추적 · 충돌 · 셰이크 · 줌. LateUpdate.
 │  │                           Target이 바뀔 수 있어야 한다 — 관전 카메라가 같은 물건이다.
