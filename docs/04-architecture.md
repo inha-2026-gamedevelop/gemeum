@@ -800,11 +800,12 @@ Main.unity
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
 │     │                           씬 배선 전이라 동작을 관찰하지 못했다
-│     ├ PartyHudController.cs    [미검증] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
+│     ├ PartyHudController.cs    [현재] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
 │     │                           스폰 목록만 주기로 훑고 값은 PlayerStatus 이벤트로 받는다.
-│     │                           Dev_HUD에 배선했으나 2인 이상에서 관찰하지 못했다
-│     ├ PartyMemberPlate.cs      [미검증] 파티 한 줄의 뷰. 이름 · 직업 아이콘 · 자원 바 3개.
-│     │                           값만 받고 PlayerStatus도 네트워크도 참조하지 않는다
+│     │                           2인 접속에서 줄 수와 값이 원본과 일치하는 것을 확인했다. 3인은 아직이다
+│     ├ PartyMemberPlate.cs      [현재] 파티 한 줄의 뷰. 이름 · 직업 아이콘 · 자원 바 3개.
+│     │                           값만 받고 PlayerStatus도 네트워크도 참조하지 않는다.
+│     │                           2인 접속에서 이름과 자원 바가 원격 플레이어를 따라가는 것을 확인했다
 │     └ Dev/
 │        └ HudResourceDecayTester.cs  [현재] 개발 전용. 서버가 모든 플레이어의 자원을
 │                                     주기마다 조금씩 깎아 HUD가 값을 따라가는지 보게 한다.
