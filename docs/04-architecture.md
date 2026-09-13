@@ -795,20 +795,23 @@ Main.unity
 ├ Combat/    HUD(HP · 스태미나 · 신력 · 패링 게이지), 정밀 조준 상태, 무녀 표식 슬롯, 관전 화면
 │  └ HUD/
 │     ├ HUDController.cs         [구현완료] HP · 신력 · 스태미나 바를 PlayerStatus.Local에 바인딩
-│     ├ MinimapPlayerDots.cs     [현재] 파티원 위치를 점으로 찍는다. 캐릭터별 색.
-│     │                           결계 원은 _barrierCircle 참조를 꽂으면 켜진다. 맵 배경, 회전은 아직 없다
+│     ├ MinimapPlayerDots.cs     [구현완료] 파티원 위치를 점으로 찍는다. 캐릭터별 색.
+│     │                           결계 원은 반경 400에서 지름 180으로 미니맵을 꽉 채우는 것을 확인했다.
+│     │                           _rangeMeters는 BarrierPhaseSO의 최대 반경과 같아야 한다. 맵 배경, 회전은 아직 없다
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
 │     │                           씬 배선 전이라 동작을 관찰하지 못했다
-│     ├ HudTimerController.cs    [현재] 우상단 시간 슬롯에 런 경과 시간을 mm:ss로 적는다.
+│     ├ HudTimerController.cs    [구현완료] 우상단 시간 슬롯에 런 경과 시간을 mm:ss로 적는다.
 │     │                           RunTimeLocator만 읽는다 - 서버가 보낸 시계 하나에서 클라이언트가 계산한다.
-│     │                           남은 시간과 단계별 색 전환은 아직 없다. 런을 돌린 상태에서 관찰하지 못했다
-│     ├ PartyHudController.cs    [현재] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
+│     │                           런을 돌린 상태에서 숫자가 흐르고 서버 경과 시간과 일치하는 것을 확인했다.
+│     │                           남은 시간과 단계별 색 전환은 아직 없다 - 결계 축소 시각과 보스 종료 시각이 창구에 없다
+│     ├ PartyHudController.cs    [구현완료] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
 │     │                           스폰 목록만 주기로 훑고 값은 PlayerStatus 이벤트로 받는다.
-│     │                           2인 접속에서 줄 수와 값이 원본과 일치하는 것을 확인했다. 3인은 아직이다
-│     ├ PartyMemberPlate.cs      [현재] 파티 한 줄의 뷰. 이름 · 직업 아이콘 · 자원 바 3개.
+│     │                           3인 접속에서 본인을 뺀 2줄이 뜨고, 한 명이 나가면 그 줄이 사라지는 것을 확인했다.
+│     │                           파티창에 본인을 넣을지는 아직 정해지지 않아 _includeLocalPlayer로 빼 두었다
+│     ├ PartyMemberPlate.cs      [구현완료] 파티 한 줄의 뷰. 이름 · 직업 아이콘 · 자원 바 3개.
 │     │                           값만 받고 PlayerStatus도 네트워크도 참조하지 않는다.
-│     │                           2인 접속에서 이름과 자원 바가 원격 플레이어를 따라가는 것을 확인했다
+│     │                           이름과 자원 바가 원격 플레이어의 값을 따라가는 것을 확인했다
 │     └ Dev/
 │        └ HudResourceDecayTester.cs  [현재] 개발 전용. 서버가 모든 플레이어의 자원을
 │                                     주기마다 조금씩 깎아 HUD가 값을 따라가는지 보게 한다.
