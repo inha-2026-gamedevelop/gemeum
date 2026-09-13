@@ -794,9 +794,19 @@ Main.unity
 │     ├ HUDController.cs         [구현완료] HP · 신력 · 스태미나 바를 PlayerStatus.Local에 바인딩
 │     ├ MinimapPlayerDots.cs     [현재] 파티원 위치를 점으로 찍는다. 캐릭터별 색.
 │     │                           결계 원은 _barrierCircle 참조를 꽂으면 켜진다. 맵 배경, 회전은 아직 없다
-│     └ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
-│                                BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
-│                                씬 배선 전이라 동작을 관찰하지 못했다
+│     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
+│     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
+│     │                           씬 배선 전이라 동작을 관찰하지 못했다
+│     ├ PartyHudController.cs    [미검증] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
+│     │                           스폰 목록만 주기로 훑고 값은 PlayerStatus 이벤트로 받는다.
+│     │                           Dev_HUD에 배선했으나 2인 이상에서 관찰하지 못했다
+│     ├ PartyMemberPlate.cs      [미검증] 파티 한 줄의 뷰. 이름 · 직업 아이콘 · 자원 바 3개.
+│     │                           값만 받고 PlayerStatus도 네트워크도 참조하지 않는다
+│     └ Dev/
+│        └ HudResourceDecayTester.cs  [현재] 개발 전용. 서버가 모든 플레이어의 자원을
+│                                     주기마다 조금씩 깎아 HUD가 값을 따라가는지 보게 한다.
+│                                     DevToolHost에 스스로 붙고 기본은 꺼짐.
+│                                     좌하단 개인 바가 움직이는 것까지 관찰했다
 ├ AI/        보스 HP 바
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
