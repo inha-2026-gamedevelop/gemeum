@@ -402,7 +402,7 @@ namespace Geumeum.Network
             LobbyRoster roster          = LobbyRoster.ServerInstance;
             int         requiredPlayers = ResolveRequiredPlayers();
 
-            if ((roster == null) || (roster.SlotCount < requiredPlayers) || roster.HasPendingRecovery)
+            if ((roster == null) || (roster.SlotCount < requiredPlayers) || (roster.HasPendingRecovery))
             {
                 int missing = (roster != null) ? (requiredPlayers - roster.SlotCount) : requiredPlayers;
                 Debug.Log($"[LobbyController] 참가자 복구 대기: 미접속={Math.Max(0, missing)}명");
@@ -410,8 +410,7 @@ namespace Geumeum.Network
             }
 
             LockAdmission();
-            RunSceneDirector director = RunSceneDirector.ServerInstance;
-            if ((director != null) && RunSceneDirector.IsServerTransitioning)
+            if (RunSceneDirector.IsServerTransitioning)
             {
                 return true;
             }

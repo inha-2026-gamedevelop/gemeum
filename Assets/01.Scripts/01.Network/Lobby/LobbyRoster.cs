@@ -89,6 +89,8 @@ namespace Geumeum.Network
 
         public override void OnStopServer()
         {
+            _vacatedSeats.Clear();
+            _failedRecoveryConnections.Clear();
             if (ServerInstance == this)
             {
                 ServerInstance = null;
@@ -213,7 +215,7 @@ namespace Geumeum.Network
 
             ParticipantId participant = new ParticipantId(platformId);
             RunSceneDirector director = RunSceneDirector.ServerInstance;
-            if ((director != null) && director.OwnsParticipantSnapshot(participant))
+            if ((director != null) && (director.OwnsParticipantSnapshot(participant)))
             {
                 return true;
             }
@@ -227,6 +229,7 @@ namespace Geumeum.Network
                 {
                     run.PauseRun("참가자 상태 복구 실패, 재접속 대기");
                 }
+
                 Debug.LogError($"[LobbyRoster] platformId={platformId}의 복구에 실패해 상태를 보존하고 연결을 끊는다", this);
                 conn.Disconnect();
                 return false;
@@ -356,7 +359,7 @@ namespace Geumeum.Network
         {
             RunManager run = RunManager.ServerInstance;
             if ((run == null) || (run.Phase == RunPhase.Lobby) || (run.Phase == RunPhase.Result) ||
-                (slot.PlatformId == 0UL) || _failedRecoveryConnections.Contains(conn.connectionId))
+                (slot.PlatformId == 0UL) || (_failedRecoveryConnections.Contains(conn.connectionId)))
             {
                 return;
             }
