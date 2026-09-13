@@ -12,9 +12,11 @@
 
 **2026-09-05 갱신.** 재생 계층(6장 1·2번)과 팀장 파트 호출부 배선이 끝났다. **클립은 여전히 0개다.**
 
+**2026-09-13 갱신.** SFX 29키에 `99.ThirdParty/Sounds/NaPH - RPG & Fantasy Sounds Bundle` 클립을 연결했다. 엔트리가 없는 키는 `StaminaEmpty` · `FootstepWet` · `BossHurt` · `BossGroggyEnd`이고 BGM 4트랙은 여전히 비어 있다. 보스 예고 4종은 각 windup보다 짧은 클립을 서로 다른 음색 계열(쇠사슬 · 불 휘두름 · 낮은 울음 · 나무 딱)로 골랐다. **패링 결과음은 가장 짧은 후보가 0.64초라 2.2의 ≤0.3초 기준에 못 미친다.** 음색 구분과 볼륨은 아직 귀로 확인하지 않았다. `99.ThirdParty`는 git 밖이라 드라이브 동기화가 없으면 이 참조가 비어 보인다.
+
 ```
 Assets/07.Sounds/GeumeumMixer.mixer                  믹서 · 그룹 8개 · 노출 파라미터 2개
-Assets/09.Data/Sound/SoundCatalogSO.asset            SFX 10 · BGM 4 — 클립은 전부 비어 있음
+Assets/09.Data/Sound/SoundCatalogSO.asset            SFX 29 · BGM 4 — SFX는 전부 클립 연결, BGM은 비어 있음
 Assets/01.Scripts/00.Common/Types/                   SoundKey · SoundChannel · BgmTrack
 Assets/01.Scripts/00.Common/Constants/Constants.sound.cs
 Assets/01.Scripts/00.Common/Data/SoundCatalogSO.cs   GameDB.Sound로 물림
@@ -24,13 +26,12 @@ Assets/01.Scripts/00.Common/Sound/SoundVolume.cs     0~1 ↔ dB, 믹서 노출 �
 
 호출부 (배선됨)   ParryController(성공·실패) · PlayerAttack(적중·헛스윙) · PlayerStatus(피격)
 호출부 (미배선)   보스 예고 4종 · 그로기 진입 — @oname36-creator 파트
-개발용 클립      Assets/07.Sounds/Dev/ — 3개 (절차 생성. 실제 소리가 오면 지운다)
-실제 클립 파일    0개
-docs/licenses/   비어 있음
+개발용 클립      없음 (Assets/07.Sounds/Dev/ 3개는 2026-09-13 실제 클립 연결 후 삭제)
+실제 클립 파일    NaPH 효과음 (99.ThirdParty, 드라이브 배포)
+docs/licenses/   THIRD_PARTY_ASSETS.md에 NaPH 기록 (미확인)
 ```
 
-> **개발용 클립은 사운드 디자인이 아니라 시스템 검증용이다.** 좋은 소리가 아니라 **구별되는 소리**면 된다 —
-> 지금 패링 성공(높은 삑) · 실패(낮은 삑) 두 키에만 물려 있고, 그것만으로 거리 감쇠 · 내 소리/남의 소리 · 중복 제거가 귀로 확인된다.
+> 개발용 클립(절차 생성 삑 3개)은 시스템 검증용이었다. 2026-09-13 패링 두 키를 NaPH 클립으로 교체해 참조가 0이 된 뒤 지웠다.
 
 > **클립을 카탈로그에 꽂는 순간 위 다섯 소리는 코드 수정 없이 난다.**
 

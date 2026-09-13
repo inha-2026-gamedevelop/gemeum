@@ -63,6 +63,7 @@ namespace Geumeum.Network
         private readonly SyncList<LobbySlot> _slots = new SyncList<LobbySlot>();
 
         private readonly Dictionary<ulong, VacatedSeat> _vacatedSeats = new Dictionary<ulong, VacatedSeat>();
+        private readonly HashSet<int> _failedRecoveryConnections = new HashSet<int>();
 
         /****************************************
         *              Properties
@@ -72,6 +73,7 @@ namespace Geumeum.Network
         public static LobbyRoster ServerInstance { get; private set; }
 
         public int SlotCount => _slots.Count;
+        public bool HasPendingRecovery => (_vacatedSeats.Count > 0) || (_failedRecoveryConnections.Count > 0);
 
         /****************************************
         *              Server Callbacks
@@ -82,10 +84,13 @@ namespace Geumeum.Network
             ServerInstance = this;
             _slots.Clear();
             _vacatedSeats.Clear();
+            _failedRecoveryConnections.Clear();
         }
 
         public override void OnStopServer()
         {
+            _vacatedSeats.Clear();
+            _failedRecoveryConnections.Clear();
             if (ServerInstance == this)
             {
                 ServerInstance = null;
@@ -131,6 +136,7 @@ namespace Geumeum.Network
             }
 
             RememberVacatedSeat(conn, _slots[index]);
+            _failedRecoveryConnections.Remove(conn.connectionId);
             _slots.RemoveAt(index);
         }
 
@@ -179,22 +185,26 @@ namespace Geumeum.Network
             return (platformId != 0UL) && (_vacatedSeats.ContainsKey(platformId));
         }
 
-        /// <summary> 돌아온 사람에게 두고 간 자리와 역할을 돌려준다. 처음 오는 사람이면 아무것도 하지 않는다 </summary>
+        /// <summary> 돌아온 사람의 상태를 복구한다. 복구에 실패해 연결을 끊었을 때만 false다 </summary>
         [Server]
         public bool ServerRestoreVacatedSeat(NetworkConnectionToClient conn)
         {
             if ((conn == null) || (conn.identity == null) || (!TryFindSlotIndex(conn.connectionId, out int index)))
             {
-                return false;
+                return true;
             }
 
+            // 신원을 모르면 자리 보존만 못 한다. 접속 처리 자체는 그대로 이어간다
             ulong platformId = _slots[index].PlatformId;
-            if ((platformId == 0UL) || (!_vacatedSeats.TryGetValue(platformId, out VacatedSeat seat)))
+            if (platformId == 0UL)
             {
-                return false;
+                return true;
             }
 
-            _vacatedSeats.Remove(platformId);
+            if (!_vacatedSeats.TryGetValue(platformId, out VacatedSeat seat))
+            {
+                return true;
+            }
 
             LobbySlot slot     = _slots[index];
             slot.HasWeapon     = seat.HasWeapon;
@@ -203,15 +213,53 @@ namespace Geumeum.Network
             slot.Character    = seat.Character;
             _slots[index]      = slot;
 
-            if (conn.identity.TryGetComponent(out IPlayerRunLifecycle lifecycle))
+            ParticipantId participant = new ParticipantId(platformId);
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            if ((director != null) && (director.OwnsParticipantSnapshot(participant)))
             {
-                lifecycle.Teleport(seat.Position);
-
-                RestoreRunState(lifecycle, platformId);
+                return true;
             }
 
+            if ((!conn.identity.TryGetComponent(out IPlayerRunLifecycle lifecycle)) ||
+                (!RestoreRunState(lifecycle, platformId)))
+            {
+                _failedRecoveryConnections.Add(conn.connectionId);
+                RunManager run = RunManager.ServerInstance;
+                if (run != null)
+                {
+                    run.PauseRun("참가자 상태 복구 실패, 재접속 대기");
+                }
+
+                Debug.LogError($"[LobbyRoster] platformId={platformId}의 복구에 실패해 상태를 보존하고 연결을 끊는다", this);
+                conn.Disconnect();
+                return false;
+            }
+
+            lifecycle.Teleport(seat.Position);
+            ServerCompleteRecovery(participant);
             Debug.Log($"[LobbyRoster] platformId={platformId}에 이탈 직전 자리와 역할을 돌려줬다: {seat.Position}, {seat.Weapon}");
             return true;
+        }
+
+        /// <summary> 해당 연결의 복구 실패가 처리되기 전에는 런 재개에 포함하지 않는다 </summary>
+        public bool HasFailedRecovery(int connectionId)
+        {
+            return _failedRecoveryConnections.Contains(connectionId);
+        }
+
+        /// <summary> 상태 복구가 확정된 참가자의 이전 자리를 정리한다 </summary>
+        [Server]
+        public void ServerCompleteRecovery(ParticipantId participant)
+        {
+            _vacatedSeats.Remove(participant.Value);
+        }
+
+        /// <summary> 새 런에서는 이전 참가자의 복구 권한과 실패 상태를 이어받지 않는다 </summary>
+        [Server]
+        public void ServerClearRecovery()
+        {
+            _vacatedSeats.Clear();
+            _failedRecoveryConnections.Clear();
         }
 
         /// <summary> 연결의 플레이어 오브젝트에서 컴포넌트를 찾는다. 로비 쪽 조회가 모두 여기를 지난다 </summary>
@@ -265,27 +313,28 @@ namespace Geumeum.Network
         }
 
         [Server]
-        private void RestoreRunState(IPlayerRunLifecycle lifecycle, ulong platformId)
+        private bool RestoreRunState(IPlayerRunLifecycle lifecycle, ulong platformId)
         {
             RunManager run = RunManager.ServerInstance;
-            if (run == null)
+            if ((run == null) || (run.Phase == RunPhase.Lobby) || (run.Phase == RunPhase.Result))
             {
-                return;
+                return true;
             }
 
             ParticipantId participant = new ParticipantId(platformId);
-            if (!RunParticipantRegistry.TryTake(run.RunId, participant, out RunParticipantSnapshot snapshot))
+            if (!RunParticipantRegistry.TryPeek(run.RunId, participant, out RunParticipantSnapshot snapshot))
             {
-                return;
+                return false;
             }
 
             if (!lifecycle.RestoreRunState(snapshot))
             {
-                Debug.LogError($"[LobbyRoster] platformId={platformId}의 런 상태를 되붓지 못했다, 시작 상태로 둔다", this);
-                return;
+                return false;
             }
 
+            RunParticipantRegistry.ServerCompleteRestore(snapshot);
             Debug.Log($"[LobbyRoster] platformId={platformId}의 런 상태를 되돌렸다: HP={snapshot.Health:F1}, 관전 잔여={snapshot.SpectateRemainingSeconds:F1}초");
+            return true;
         }
 
         [Server]
@@ -308,7 +357,26 @@ namespace Geumeum.Network
         [Server]
         private void RememberVacatedSeat(NetworkConnectionToClient conn, in LobbySlot slot)
         {
-            if ((conn.identity == null) || (slot.PlatformId == 0UL))
+            RunManager run = RunManager.ServerInstance;
+            if ((run == null) || (run.Phase == RunPhase.Lobby) || (run.Phase == RunPhase.Result) ||
+                (slot.PlatformId == 0UL) || (_failedRecoveryConnections.Contains(conn.connectionId)))
+            {
+                return;
+            }
+
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            ParticipantId participant = new ParticipantId(slot.PlatformId);
+            if ((director != null) && director.OwnsParticipantSnapshot(participant))
+            {
+                if (RunParticipantRegistry.TryPeek(run.RunId, participant,
+                        out RunParticipantSnapshot snapshot))
+                {
+                    _vacatedSeats[slot.PlatformId] = new VacatedSeat(snapshot.Position, slot);
+                }
+                return;
+            }
+
+            if (conn.identity == null)
             {
                 return;
             }

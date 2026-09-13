@@ -48,6 +48,34 @@ namespace Geumeum.Network
             return ((participant.IsValid) && (_snapshots.ContainsKey(participant.Value)));
         }
 
+        /// <summary> 복구가 성공하기 전까지 보관 상태를 소비하지 않고 읽는다 </summary>
+        public static bool TryPeek(RunId runId, ParticipantId participant, out RunParticipantSnapshot snapshot)
+        {
+            snapshot = null;
+            if ((!participant.IsValid) ||
+                (!_snapshots.TryGetValue(participant.Value, out RunParticipantSnapshot stored)) ||
+                (!stored.Matches(runId, participant)))
+            {
+                return false;
+            }
+
+            snapshot = stored;
+            return true;
+        }
+
+        /// <summary> 복구에 사용한 상태가 여전히 원본일 때만 보관을 끝낸다 </summary>
+        public static bool ServerCompleteRestore(RunParticipantSnapshot snapshot)
+        {
+            if ((snapshot == null) ||
+                (!_snapshots.TryGetValue(snapshot.Participant.Value, out RunParticipantSnapshot stored)) ||
+                (!ReferenceEquals(stored, snapshot)))
+            {
+                return false;
+            }
+
+            return _snapshots.Remove(snapshot.Participant.Value);
+        }
+
         /// <summary> 맡아 둔 상태를 꺼낸다 </summary>
         public static bool TryTake(RunId runId, ParticipantId participant, out RunParticipantSnapshot snapshot)
         {

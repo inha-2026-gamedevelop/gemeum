@@ -3,27 +3,85 @@
 > [에셋·데이터 취급 정책](../ai/12_ASSET_AND_DATA_POLICY.md) 3장 양식에 따른 기록.
 > 2027년 인디게임 출품전 제출 대비, 상업 이용 가능 여부와 출처를 남긴다.
 
-| 에셋명 | 출처 | 라이선스 |
-|---|---|---|
-| 검 (무기) | [Sketchfab](https://skfb.ly/p9yx6) | 미확인 |
-| 활 | [Sketchfab](https://skfb.ly/p9zBC) | 미확인 |
-| 화살 | [Sketchfab](https://skfb.ly/p9zBJ) | 미확인 |
-| 방울 | [Sketchfab](https://skfb.ly/p9zWJ) | 미확인 |
-| Omni Animation - Core Locomotion (로코모션 클립) | [omnianimation.ai](https://omnianimation.ai) (Opsive) | 미확인 |
-| Stand To Roll (구르기 클립) | Mixamo (Adobe) | 미확인 |
-| Kitsune Yuna (보스 캐릭터) | [Unity Asset Store](https://assetstore.unity.com/packages/3d/characters/humanoids/fantasy/kitsune-yuna-265718) | 미확인 |
-| Gaia (지형 생성 툴) | Unity Asset Store (Procedural Worlds) | 미확인 |
-| Book of The Dead (환경 에셋, Synty Studios 샘플 포함) | Unity Asset Store (Procedural Worlds) | 미확인 |
-| WeatherMaker (날씨 시스템) | Unity Asset Store | 미확인 |
-| Console Pro | Unity Asset Store | 미확인 |
-| Hierarchy Designer | Unity Asset Store | 미확인 |
-| Wingman | Unity Asset Store | 미확인 |
-| Mirror (네트워킹) | [GitHub](https://github.com/MirrorNetworking/Mirror) | 미확인 |
-| MCP for Unity (에디터 플러그인) | [GitHub](https://github.com/CoplayDev/unity-mcp) | 미확인 |
-| 명원체 / 한글재민체4.0 (UI 폰트) | [국민대학교 전용서체](https://www.kookmin.ac.kr/comm/menu/user/0a4f7cf187cc3164678352bc3f4575b3/content/index.do) | OFL — 상업 이용 · 게임 임베딩 · 수정 허용, 폰트 파일 유료 판매 금지 |
+> **2026-09-13 전수 조사.** 설치된 에셋을 아래 방법으로 확인했다. 라이선스 유형을 확인한 것과 증빙 요건(아래 7항목)을 채운 것은 다르다. **증빙 열이 `미확인`이면 출품·배포 빌드에 넣지 않는다.**
+>
+> - 식별: `.meta`의 `AssetOrigin`(상품 ID · 패키지명 · 버전), git 패키지는 `packages-lock.json` 해시
+> - 제작자 · 라이선스 유형: Asset Store 상품 페이지, 저장소에 있는 LICENSE 원문, GitHub API, Sketchfab API
+> - 실제 사용: 커밋된 텍스트 에셋(씬 · 프리팹 · 머티리얼 · 애니메이터 등)이 패키지 GUID를 참조하는지 대조. 바이너리 직렬화 에셋 21개(`Boss_Arena.unity`, 지형 · NavMesh 등)는 대조하지 못했다
+
+### 1. Unity Asset Store
+
+스토어 페이지 기준 **여기 있는 에셋은 전부 Standard Unity Asset Store EULA이고, 라이선스 유형은 `Extension Asset`으로 표시**된다.
+
+| 에셋 (버전) | 제작자 | 상품 ID | 설치 위치 | 실제 사용 | 상업 이용 | 취득일 | 증빙 |
+|---|---|---|---|---|---|---|---|
+| CombatGirls_SwordCharacterPack (1.3.1) | BIPER | 345454 | `99.ThirdParty/Animation/CombatGirlsCharacterPack` | 로코모션 애니메이터 4개 | EULA 기준 가능 | 미확인 | 미확인 |
+| Omni Animation - Core Locomotion Pack (1.0.1) | Opsive | 286945 | `99.ThirdParty/Animation/OmniAnimation` | `PlayerLocomotion.controller` | EULA 기준 가능 | 미확인 | 미확인 |
+| Succubus Anim Set (1.21) | wemakethegame | 179271 | `99.ThirdParty/Animation/Succubus_Anim_Set` | `BossLocomotion.controller` | EULA 기준 가능 | 미확인 | 미확인 |
+| Kitsune Yuna (1.0) | Ida Faber | 265718 | `99.ThirdParty/Model/Ida Faber` | `Boss_Proxy.prefab` | EULA 기준 가능 | 미확인 | 미확인 |
+| Gaia for Unity 6 (4.2.5) | Procedural Worlds Inc | 264629 | `99.ThirdParty/Background/Gaia` | 텍스트 에셋 참조 0 (지형은 바이너리라 미대조) | EULA 기준 가능 | 미확인 | 미확인 |
+| Book Of The Dead Environment (1.1) | Unity Technologies | 121175 | `99.ThirdParty/Background/Procedural Worlds` | `Main.unity` 등 13개 | EULA 기준 가능. **단 3D 텍스처 · 후처리 · Shader Graph · Render Pipeline Core는 Unity Companion License** (`ThirdPartyNotices.txt`) | 미확인 | 미확인 |
+| Weather Maker (8.1.0) | Digital Ruby (Jeff Johnson) | 60955 | `99.ThirdParty/Background/WeatherMaker` | 씬 17개 | EULA 기준 가능 | 미확인 | 미확인 |
+| RPG & Fantasy Sounds Bundle (1.0) | PlaceHolder Inc (폴더명 NaPH) | 379678 | `99.ThirdParty/Sounds/NaPH - RPG & Fantasy Sounds Bundle` | `SoundCatalogSO.asset` | EULA 기준 가능 | 미확인 | 미확인 |
+| Realistic Spirit Blossom Spells VFX (1.0) | Piloto Studio | 399376 | `99.ThirdParty/VFX/Piloto Studio` | 무녀 VFX 프리팹 5개 | EULA 기준 가능 | 미확인 | 미확인 |
+| Stylized Elemental Shield VFX (1.0) | TvitchiVFX | 346144 | `99.ThirdParty/VFX/VFX SHields` | `M_BarrierWall.mat` | EULA 기준 가능. 일부 텍스처는 CC0 (`license.txt`) | 미확인 | 미확인 |
+| Human Archer Animations FREE (1.0) | Kevin Iglesias | 335880 | `98.FreeAssets/Human Archer Animations` (커밋) | 로코모션 애니메이터 4개 | EULA 기준 가능 | 미확인 | 미확인 |
+| Editor Console Pro (3.983) | FlyingWorm | 11889 | `99.ThirdParty/Tools/ConsolePro` | 에디터 전용 | EULA 기준 가능 | 미확인 | 미확인 |
+| Easy Effect/UI Viewer (1.1.4) | Yu-Rin-Chi GameStudio | 348954 | `99.ThirdParty/Tools/EasyProjectViewer` | 에디터 전용 | EULA 기준 가능. 동봉 고지: WuHuan (2018) | 미확인 | 미확인 |
+| Hierarchy Designer (3.2.2) | Pedro Verpha | 273928 | `99.ThirdParty/Tools/Hierarchy Designer` | 에디터 전용 | EULA 기준 가능 | 미확인 | 미확인 |
+| PhysioBrush (1.6.7) | Rip Vertices Studio | 375898 | `99.ThirdParty/Tools/PhysioBrush` | 갓 · 너울 물리 프리팹 2개 · 설정 1개 (2026-09-13 작업 중, 미커밋) | EULA 기준 가능 | 미확인 | 미확인 |
+| Wingman (1.1.0) | Kyle Rhoads | 303181 | `99.ThirdParty/Tools/Wingman` | 에디터 전용 | EULA 기준 가능 | 미확인 | 미확인 |
+| Mesh Baker (3.39.0, 유료판) | Ian Deane | 5017 (`.meta`에 출처가 없어 판본은 사용자 확인) | `99.ThirdParty/Tools/MeshBaker` | 참조 0 | EULA 기준 가능 | 미확인 | 미확인 |
+
+### 2. 오픈소스 · 무료 라이선스
+
+| 에셋 | 제작자 | 출처 | 라이선스 | 설치 위치 | 근거 |
+|---|---|---|---|---|---|
+| Mirror (96.0.1) | Mirror Networking | [GitHub](https://github.com/MirrorNetworking/Mirror) · Asset Store 129321 | MIT | `Assets/Mirror` | `Assets/Mirror/LICENSE`, GitHub API. 예제 `BenchmarkStinkySteak`(MIT, StinkySteak) · `Hosting/Edgegap`(MIT, Edgegap) 동봉 |
+| FizzySteamworks | Fizz Cube Ltd | [GitHub](https://github.com/Chykary/FizzySteamworks) (lock `2339a4a474`) | MIT | `Packages` | 패키지 캐시 `LICENSE` |
+| Steamworks.NET | Riley Labrecque | [GitHub](https://github.com/rlabrecque/Steamworks.NET) (lock `ba71581f1e`) | MIT | `Packages` | `LICENSE.md`, GitHub API |
+| Steamworks SDK 재배포 파일 (`steam_api`) | Valve | Steamworks.NET 동봉 | **Valve Steamworks 약관 (MIT 아님)** | `Packages/.../Plugins` | 저장소 루트 `steam_appid.txt`가 `480`(Valve 테스트 앱)이다 |
+| MCP for Unity | CoplayDev | [GitHub](https://github.com/CoplayDev/unity-mcp) (lock `30d2207509`) | MIT | `Packages` (에디터 전용) | GitHub API |
+| UnityChanSpringBone | Unity Technologies ApS | [GitHub](https://github.com/unity3d-jp/UnityChanSpringBone) | MIT | `98.FreeAssets/UnityChanSpringBone` (커밋) | `LICENSE`, GitHub API. `Boss_Proxy.prefab`에서 사용 |
+| Remotion (티저 조립, 도입 예정) | Remotion | [remotion.dev](https://www.remotion.dev/docs/license/pricing) | 무료 라이선스: 개인 · **3인 이하** 조직. 초과 시 Company License. 협업 조직 인원 합산 조항 있음 | 미설치 | 공식 라이선스 문서 (2026-09-13 조회). 팀이 3인 경계선이다 |
+| Unity 공식 패키지 (URP · Timeline · TextMesh Pro · Newtonsoft Json 등) | Unity Technologies | Unity Registry | 패키지별 (Unity Companion License 등) | `Packages`, `Assets/TextMesh Pro` | 각 패키지 `LICENSE.md` |
+| 명원체 / 한글재민체4.0 (UI 폰트) | 국민대학교 | [국민대학교 전용서체](https://www.kookmin.ac.kr/comm/menu/user/0a4f7cf187cc3164678352bc3f4575b3/content/index.do) | OFL — 상업 이용 · 게임 임베딩 · 수정 허용, 폰트 파일 유료 판매 금지 | `13.UI/00.UI_Resource/Fonts` | 배포 페이지 |
+
+### 3. 외부 사이트 모델 · 애니메이션
+
+| 에셋 | 제작자 | 출처 | 라이선스 | 설치 위치 | 비고 |
+|---|---|---|---|---|---|
+| 검 (Four Tiger Sword) | KOREA HERITAGE SERVICE [KHS] | [Sketchfab](https://skfb.ly/p9yx6) | **CC Attribution. 저작자 표기 필수, 상업 이용 가능** | `06.Model/Weapon/Sword/SM_GB_FourTigerSword.fbx` | Sketchfab API로 확인 |
+| 활 | KOREA HERITAGE SERVICE [KHS] | [Sketchfab](https://skfb.ly/p9zBC) | **CC Attribution. 저작자 표기 필수, 상업 이용 가능** | `06.Model/Weapon/Bow/SM_Bow.fbx` | 사용자 확인 (2026-09-13, 검과 같은 제작자 · 라이선스) |
+| 화살 | KOREA HERITAGE SERVICE [KHS] | [Sketchfab](https://skfb.ly/p9zBJ) | **CC Attribution. 저작자 표기 필수, 상업 이용 가능** | `06.Model/Weapon/Arrow/SM_Arrow01a.fbx` | 사용자 확인 (2026-09-13, 검과 같은 제작자 · 라이선스) |
+| 방울 | KOREA HERITAGE SERVICE [KHS] | [Sketchfab](https://skfb.ly/p9zWJ) | **CC Attribution. 저작자 표기 필수, 상업 이용 가능** | `06.Model/Weapon/Bell/SM_24RE0039_Low.fbx` | 사용자 확인 (2026-09-13, 검과 같은 제작자 · 라이선스) |
+| Stand To Roll | Mixamo (Adobe) | Mixamo | 미확인 | `04.Animations/Cilp/Stand To Roll.fbx` | |
+| Sprinting Forward Roll | Mixamo (Adobe) | Mixamo | 미확인 | `04.Animations/Cilp/Sprinting Forward Roll.fbx` | 구르기에 실제 사용 중(2026-08-31 기록). 출처는 사용자 확인 |
+
+### 4. AI 생성물
+
+생성 시점의 플랜에 따라 권리가 달라지므로 **생성일과 플랜을 함께 남긴다**([구현 로드맵](../05-implementation-roadmap.md) 조달 절).
+
+| 자산 | 도구 | 위치 | 권리 조건 | 상태 |
+|---|---|---|---|---|
+| 플레이어 3종(차사 · 신궁 · 무녀) · 잡귀 3종(창귀 · 액귀 · 허깨비) 모델과 텍스처 | Meshy AI (일부 Blender 재작업) | `06.Model/Player`, `06.Model/Monster`, `03.Image` | **유료 플랜이라 생성자 소유** (무료 플랜 생성물이었다면 CC BY 4.0) | 플랜은 사용자 확인. **생성일 미기록** |
+| 보스 1페이즈 · 객주 갓과 너울 | Meshy AI 초안 → **미채택**, Blender에서 새 메시로 재작성 | `06.Model/Monster/GatNeoul` (작업 중) | 최종 메시는 팀 제작물. 초안 생성은 위 Meshy 조건 | 착용 확인용 파일에만 구매 보스 모델을 넣었고 최종 FBX · GLB에는 없다. 구매 에셋을 Meshy에 올리지 않았다 (`.claude/docs/2026-09-13/boss-gat-neoul.md`) |
+| HUD 이미지 17장 | ChatGPT (OpenAI) | `13.UI/00.UI_Resource/HUD` | [OpenAI 이용약관](https://openai.com/policies/terms-of-use)에 따름. 원문 캡처 미보관 | 도구는 사용자 확인. 반입 2026-09-07 (`666d63e`), 프롬프트는 `docs/unity/HUD_DESIGN.md` |
+| BGM | Suno (예정) | 없음 | 아래 "AI 생성 음원" 절 | 아직 사용 안 함 (`SoundCatalogSO` BGM 비어 있음) |
 
 **출처만 기록된 항목은 라이선스·상업 이용 가능 여부가 확정되기 전까지 출품·배포용 빌드에 포함하지 않는다.**
 각 출처 페이지에서 제작자명과 라이선스(CC-BY, Asset Store EULA 등 정확한 종류)를 확인해 채워 넣는다.
+
+## 배포 전 조치 (2026-09-13 조사 기준)
+
+| 우선 | 할 일 | 이유 |
+|---|---|---|
+| 1 | **`steam_appid.txt`의 `480`을 자체 App ID로 교체** | `480`은 Valve 테스트 앱이다. 배포 빌드에 쓸 수 없다 |
+| 2 | **Extension Asset 좌석 조건 확인** | 스토어가 1장의 에셋 전부를 `Extension Asset`으로 표시한다. 좌석(사용자)별 라이선스 조항이 있다면, 구매본 하나를 드라이브로 3인이 공유하는 지금 방식이 EULA에 맞는지 확인해야 한다 |
+| 3 | 사용자 확인으로 채운 항목의 증빙 확보 | Sketchfab 활 · 화살 · 방울, `Sprinting Forward Roll`, HUD 이미지 도구, Meshy 플랜, Mesh Baker 판본은 2026-09-13 사용자 답변으로 채웠다. 페이지 · 구매 내역 캡처는 아직 없다 |
+| 4 | 크레딧 화면 항목 확정 | 무기 4종 검 · 활 · 화살 · 방울 (KHS, CC BY 저작자 표기) · 명원체 (OFL 고지) |
+| 5 | 전 항목 증빙 7항목 채우기 | 취득일 · 취득 계정 · EULA/라이선스 원문 캡처 보관 위치가 아직 전부 비어 있다 |
+| 6 | 쓰지 않는 에셋 정리 판단 | 참조 0: Mesh Baker (에디터 전용 도구 제외). 제거하면 대장에서도 뺀다 |
 
 ## 폰트
 

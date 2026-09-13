@@ -1,0 +1,783 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5de3e41e4bd97b04ca533eda7479da96, type: 3}
+  m_Name: GatNeoul_PhysioSettings
+  m_EditorClassIdentifier: Assembly-CSharp::PhysioBrush.Core.PhysioBrushSettings
+  brushSize: 0.07
+  brushHardness: 0.5
+  brushPower: 1
+  paintMode: 0
+  maskRegion: 0
+  maskSharpEdges: 0
+  maskBoundaryAngle: 60
+  maskNormalAngle: 45
+  paintUnassignedOnly: 0
+  showWeightCoverage: 1
+  interpolateIsolatedGaps: 1
+  maxInterpolatedGapSize: 0.1
+  islandBlendWidth: 0.05
+  useSymmetry: 0
+  selectedIslandIndex: -1
+  authoringRevision: 0
+  proxyLayerName: PhysioBrush_Internal
+  proxyLayerIndex: -1
+  colliderSizeMultiplier: 1
+  weightSensitivity: 0.3
+  dynamicExclusionThreshold: 0.5
+  autoBake: 0
+  islands:
+  - name: CordLoop_L
+    islandColor: {r: 1, g: 0.19999999, b: 0.19999999, a: 1}
+    type: 0
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/CordLoop_L_00
+    rootPosition: {x: 0, y: -0.10199994, z: -0.234}
+    tipPosition: {x: 0.026000002, y: -0.10549994, z: -0.23200001}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: 0, y: -0.10199994, z: -0.234}
+    - {x: 0.026000002, y: -0.10549994, z: -0.23200001}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 2
+    stiffness: 0
+    damping: 0.1
+    rootStiffness: 0
+    weightBlending: 0.5
+    angularLimit: 40
+    stability: 0
+    boneCurvature: 1
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: CordLoop_R
+    islandColor: {r: 1, g: 0.5, b: 0.19999999, a: 1}
+    type: 0
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/CordLoop_R_00
+    rootPosition: {x: 0, y: -0.10199994, z: -0.234}
+    tipPosition: {x: -0.026000002, y: -0.10549994, z: -0.23200001}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: 0, y: -0.10199994, z: -0.234}
+    - {x: -0.026000002, y: -0.10549994, z: -0.23200001}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 2
+    stiffness: 0
+    damping: 0.1
+    rootStiffness: 0
+    weightBlending: 0.5
+    angularLimit: 40
+    stability: 0
+    boneCurvature: 1
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: CordTip_L
+    islandColor: {r: 1, g: 0.8, b: 0.19999999, a: 1}
+    type: 0
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/CordTip_L_00
+    rootPosition: {x: 0.004, y: -0.099999964, z: -0.23699999}
+    tipPosition: {x: 0.025, y: -0.10499993, z: -0.2849999}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: 0.004, y: -0.099999964, z: -0.23699999}
+    - {x: 0.01400001, y: -0.102999955, z: -0.26099998}
+    - {x: 0.025, y: -0.10499993, z: -0.2849999}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 3
+    stiffness: 0
+    damping: 0.1
+    rootStiffness: 0
+    weightBlending: 0.5
+    angularLimit: 40
+    stability: 0
+    boneCurvature: 1
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: CordTip_R
+    islandColor: {r: 0.9, g: 1, b: 0.19999999, a: 1}
+    type: 0
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/CordTip_R_00
+    rootPosition: {x: -0.004, y: -0.099999964, z: -0.23699999}
+    tipPosition: {x: -0.025, y: -0.10499993, z: -0.2849999}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: -0.004, y: -0.099999964, z: -0.23699999}
+    - {x: -0.01400001, y: -0.102999955, z: -0.26099998}
+    - {x: -0.025, y: -0.10499993, z: -0.2849999}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 3
+    stiffness: 0
+    damping: 0.1
+    rootStiffness: 0
+    weightBlending: 0.5
+    angularLimit: 40
+    stability: 0
+    boneCurvature: 1
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: Veil_00
+    islandColor: {r: 0.6, g: 1, b: 0.19999999, a: 1}
+    type: 3
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/Veil_00_00
+    rootPosition: {x: -0.30225807, y: 0.000000007450581, z: -0.054999992}
+    tipPosition: {x: -0.28804982, y: 0.000000059604645, z: -0.33999997}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: -0.30225807, y: 0.000000007450581, z: -0.054999992}
+    - {x: -0.29752198, y: 0.000000029802322, z: -0.15}
+    - {x: -0.29278588, y: 0.000000044703484, z: -0.24500003}
+    - {x: -0.28804982, y: 0.000000059604645, z: -0.33999997}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 4
+    stiffness: 0
+    damping: 0.08
+    rootStiffness: 0
+    weightBlending: 0
+    angularLimit: 25
+    stability: 0
+    boneCurvature: 0
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: Veil_01
+    islandColor: {r: 0.29999998, g: 1, b: 0.19999999, a: 1}
+    type: 3
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/Veil_01_00
+    rootPosition: {x: -0.26176316, y: 0.15112899, z: -0.054999977}
+    tipPosition: {x: -0.24945845, y: 0.14402491, z: -0.3399999}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: -0.26176316, y: 0.15112899, z: -0.054999977}
+    - {x: -0.25766158, y: 0.14876096, z: -0.14999996}
+    - {x: -0.25356, y: 0.14639294, z: -0.24499992}
+    - {x: -0.24945845, y: 0.14402491, z: -0.3399999}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 4
+    stiffness: 0
+    damping: 0.08
+    rootStiffness: 0
+    weightBlending: 0
+    angularLimit: 25
+    stability: 0
+    boneCurvature: 0
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: Veil_02
+    islandColor: {r: 0.19999999, g: 1, b: 0.39999998, a: 1}
+    type: 3
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/Veil_02_00
+    rootPosition: {x: -0.15112904, y: 0.26176307, z: -0.054999977}
+    tipPosition: {x: -0.14402492, y: 0.24945843, z: -0.33999985}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: -0.15112904, y: 0.26176307, z: -0.054999977}
+    - {x: -0.148761, y: 0.25766158, z: -0.14999993}
+    - {x: -0.14639296, y: 0.25355995, z: -0.24499993}
+    - {x: -0.14402492, y: 0.24945843, z: -0.33999985}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 4
+    stiffness: 0
+    damping: 0.08
+    rootStiffness: 0
+    weightBlending: 0
+    angularLimit: 25
+    stability: 0
+    boneCurvature: 0
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: Veil_03
+    islandColor: {r: 0.19999999, g: 1, b: 0.7, a: 1}
+    type: 3
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/Veil_03_00
+    rootPosition: {x: -1.850797e-17, y: 0.30225798, z: -0.054999977}
+    tipPosition: {x: -1.7637966e-17, y: 0.28804982, z: -0.3399999}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: -1.850797e-17, y: 0.30225798, z: -0.054999977}
+    - {x: -1.8217968e-17, y: 0.29752195, z: -0.14999993}
+    - {x: -1.7927965e-17, y: 0.2927859, z: -0.24499999}
+    - {x: -1.7637966e-17, y: 0.28804982, z: -0.3399999}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 4
+    stiffness: 0
+    damping: 0.08
+    rootStiffness: 0
+    weightBlending: 0
+    angularLimit: 25
+    stability: 0
+    boneCurvature: 0
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: Veil_04
+    islandColor: {r: 0.19999999, g: 1, b: 1, a: 1}
+    type: 3
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/Veil_04_00
+    rootPosition: {x: 0.15112904, y: 0.26176307, z: -0.054999977}
+    tipPosition: {x: 0.14402492, y: 0.24945843, z: -0.33999985}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: 0.15112904, y: 0.26176307, z: -0.054999977}
+    - {x: 0.148761, y: 0.25766158, z: -0.14999993}
+    - {x: 0.14639296, y: 0.25355995, z: -0.24499993}
+    - {x: 0.14402492, y: 0.24945843, z: -0.33999985}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 4
+    stiffness: 0
+    damping: 0.08
+    rootStiffness: 0
+    weightBlending: 0
+    angularLimit: 25
+    stability: 0
+    boneCurvature: 0
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: Veil_05
+    islandColor: {r: 0.19999999, g: 0.7, b: 1, a: 1}
+    type: 3
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/Veil_05_00
+    rootPosition: {x: 0.26176316, y: 0.15112899, z: -0.054999977}
+    tipPosition: {x: 0.24945845, y: 0.14402491, z: -0.3399999}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: 0.26176316, y: 0.15112899, z: -0.054999977}
+    - {x: 0.25766158, y: 0.14876096, z: -0.14999996}
+    - {x: 0.25356, y: 0.14639294, z: -0.24499992}
+    - {x: 0.24945845, y: 0.14402491, z: -0.3399999}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 4
+    stiffness: 0
+    damping: 0.08
+    rootStiffness: 0
+    weightBlending: 0
+    angularLimit: 25
+    stability: 0
+    boneCurvature: 0
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: Veil_06
+    islandColor: {r: 0.19999999, g: 0.39999998, b: 1, a: 1}
+    type: 3
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/Veil_06_00
+    rootPosition: {x: 0.30225807, y: 0.000000007450581, z: -0.054999992}
+    tipPosition: {x: 0.28804982, y: 0.000000059604645, z: -0.33999997}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: 0.30225807, y: 0.000000007450581, z: -0.054999992}
+    - {x: 0.29752198, y: 0.000000029802322, z: -0.15}
+    - {x: 0.29278588, y: 0.000000044703484, z: -0.24500003}
+    - {x: 0.28804982, y: 0.000000059604645, z: -0.33999997}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 4
+    stiffness: 0
+    damping: 0.08
+    rootStiffness: 0
+    weightBlending: 0
+    angularLimit: 25
+    stability: 0
+    boneCurvature: 0
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: Veil_07
+    islandColor: {r: 0.29999998, g: 0.19999999, b: 1, a: 1}
+    type: 3
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/Veil_07_00
+    rootPosition: {x: 0.26176316, y: -0.15112898, z: -0.055000007}
+    tipPosition: {x: 0.24945845, y: -0.1440249, z: -0.34}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: 0.26176316, y: -0.15112898, z: -0.055000007}
+    - {x: 0.25766158, y: -0.14876097, z: -0.15000004}
+    - {x: 0.25356, y: -0.14639291, z: -0.24500005}
+    - {x: 0.24945845, y: -0.1440249, z: -0.34}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 4
+    stiffness: 0
+    damping: 0.08
+    rootStiffness: 0
+    weightBlending: 0
+    angularLimit: 25
+    stability: 0
+    boneCurvature: 0
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: Veil_08
+    islandColor: {r: 0.6, g: 0.19999999, b: 1, a: 1}
+    type: 3
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/Veil_08_00
+    rootPosition: {x: 0.15112904, y: -0.26176307, z: -0.055000037}
+    tipPosition: {x: 0.14402492, y: -0.24945839, z: -0.3399999}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: 0.15112904, y: -0.26176307, z: -0.055000037}
+    - {x: 0.14876099, y: -0.25766152, z: -0.15}
+    - {x: 0.14639296, y: -0.2535599, z: -0.245}
+    - {x: 0.14402492, y: -0.24945839, z: -0.3399999}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 4
+    stiffness: 0
+    damping: 0.08
+    rootStiffness: 0
+    weightBlending: 0
+    angularLimit: 25
+    stability: 0
+    boneCurvature: 0
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: Veil_09
+    islandColor: {r: 0.9, g: 0.19999999, b: 1, a: 1}
+    type: 3
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/Veil_09_00
+    rootPosition: {x: 5.55239e-17, y: -0.30225798, z: -0.055000037}
+    tipPosition: {x: 5.2913897e-17, y: -0.28804976, z: -0.33999997}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: 5.55239e-17, y: -0.30225798, z: -0.055000037}
+    - {x: 5.46539e-17, y: -0.2975219, z: -0.15}
+    - {x: 5.3783902e-17, y: -0.29278582, z: -0.245}
+    - {x: 5.2913897e-17, y: -0.28804976, z: -0.33999997}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 4
+    stiffness: 0
+    damping: 0.08
+    rootStiffness: 0
+    weightBlending: 0
+    angularLimit: 25
+    stability: 0
+    boneCurvature: 0
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: Veil_10
+    islandColor: {r: 1, g: 0.19999999, b: 0.8, a: 1}
+    type: 3
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/Veil_10_00
+    rootPosition: {x: -0.15112904, y: -0.26176307, z: -0.055000037}
+    tipPosition: {x: -0.14402492, y: -0.24945839, z: -0.3399999}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: -0.15112904, y: -0.26176307, z: -0.055000037}
+    - {x: -0.14876099, y: -0.25766152, z: -0.15}
+    - {x: -0.14639296, y: -0.2535599, z: -0.245}
+    - {x: -0.14402492, y: -0.24945839, z: -0.3399999}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 4
+    stiffness: 0
+    damping: 0.08
+    rootStiffness: 0
+    weightBlending: 0
+    angularLimit: 25
+    stability: 0
+    boneCurvature: 0
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15
+  - name: Veil_11
+    islandColor: {r: 1, g: 0.19999999, b: 0.5, a: 1}
+    type: 3
+    useOriginalBoneChain: 1
+    originalBoneRootPath: GatNeoul_WindRig/GatNeoul_Rig/Gat_Attachment/Veil_11_00
+    rootPosition: {x: -0.26176316, y: -0.15112898, z: -0.055000007}
+    tipPosition: {x: -0.24945845, y: -0.1440249, z: -0.34}
+    parentBoneName: 
+    parentBoneLocked: 0
+    markersLocked: 0
+    autoFitToMesh: 0
+    invertRootTip: 0
+    bonePositions:
+    - {x: -0.26176316, y: -0.15112898, z: -0.055000007}
+    - {x: -0.25766158, y: -0.14876097, z: -0.15000004}
+    - {x: -0.25356, y: -0.14639291, z: -0.24500005}
+    - {x: -0.24945845, y: -0.1440249, z: -0.34}
+    interpolation: 1
+    intensity: 1
+    colliderScale: 0
+    colliderRadius: 0
+    hasBeenPainted: 0
+    boneCount: 4
+    stiffness: 0
+    damping: 0.08
+    rootStiffness: 0
+    weightBlending: 0
+    angularLimit: 25
+    stability: 0
+    boneCurvature: 0
+    clothMass: 0.25
+    clothDrag: 0.15
+    clothGravity: 1
+    maxDistance: 0.2
+    friction: 0.4
+    vertexIndices: 
+    hairMass: 0.12
+    hairDrag: 0
+    hairMomentum: 0.05
+    tailMass: 0.5
+    tailDrag: 0.05
+    tailMomentum: 2
+    jiggleMass: 0.157
+    jiggleBouncing: 0.25
+    jiggleSpeed: 1
+    jiggleDamping: 0.1
+    jiggleDepth: 0.15

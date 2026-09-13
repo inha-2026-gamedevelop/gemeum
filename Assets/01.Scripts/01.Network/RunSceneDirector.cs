@@ -39,15 +39,19 @@ namespace Geumeum.Network
 
         // 트랜잭션을 시작할 때 확정한 연결. 중간에 한 명이 사라져도 성공 조건이 줄어들지 않는다
         private readonly HashSet<int> _expectedConnections = new HashSet<int>();
-        private readonly HashSet<int> _arrivedConnections  = new HashSet<int>();
+        private readonly HashSet<NetworkConnectionToClient> _arrivedConnections = new HashSet<NetworkConnectionToClient>();
         private readonly HashSet<int> _faultedConnections  = new HashSet<int>();
+        // 연결 번호는 재사용될 수 있다. 거절한 연결 자체만 다음 복구 시도에서 제외한다.
+        private readonly HashSet<NetworkConnectionToClient> _rejectedConnections = new HashSet<NetworkConnectionToClient>();
         private readonly Dictionary<int, ParticipantId> _participants = new Dictionary<int, ParticipantId>();
+        private readonly Dictionary<ParticipantId, NetworkIdentity> _restoredPlayers = new Dictionary<ParticipantId, NetworkIdentity>();
 
         private SceneTransitionSnapshot _transition;
         private Coroutine               _routine;
         private WaitForSeconds          _waitArrivalPoll;
         private bool                    _terminalExitArmed;
         private bool                    _isTerminalTransition;
+        private bool                    _waitingForRecovery;
 
         /****************************************
         *              Properties
@@ -58,6 +62,7 @@ namespace Geumeum.Network
         public SceneRevision      Revision       => new SceneRevision(_revisionValue);
         public string             FailureMessage => _failureMessage;
         public RunSceneId         TransitionTarget => _transition.ToScene;
+        public bool IsWaitingForRecovery => _waitingForRecovery;
 
         /// <summary> 지금 씬을 옮기는 중이거나 실패 뒤 개입을 기다리는가 </summary>
         public static bool IsServerTransitioning
@@ -90,6 +95,20 @@ namespace Geumeum.Network
         private void OnDisable()
         {
             SceneManager.sceneLoaded -= OnClientSceneLoaded;
+            if (_routine == null)
+            {
+                return;
+            }
+
+            StopCoroutine(_routine);
+            _routine = null;
+
+            // 서버가 이미 내려간 뒤의 정상 종료까지 전환 실패로 남기지 않는다
+            if ((NetworkServer.active) && (ServerInstance == this) &&
+                (_state != RunTransitionState.Idle))
+            {
+                ServerFailTransition("씬 전환 중 관리자가 비활성화되었습니다");
+            }
         }
 
         public override void OnStartServer()
@@ -109,6 +128,10 @@ namespace Geumeum.Network
             }
 
             ClearTransactionCollections();
+            _state = RunTransitionState.Idle;
+            _failureMessage = string.Empty;
+            _terminalExitArmed = false;
+            _isTerminalTransition = false;
 
             if (ServerInstance == this)
             {
@@ -227,17 +250,25 @@ namespace Geumeum.Network
         [Server]
         public bool ServerArmTerminalExit()
         {
-            if (_state != RunTransitionState.Failed)
+            if ((_state != RunTransitionState.Failed) && (!_waitingForRecovery))
             {
                 return false;
             }
 
             _terminalExitArmed = true;
+            if (_routine != null)
+            {
+                StopCoroutine(_routine);
+                _routine = null;
+            }
+            _state = RunTransitionState.Failed;
+            _waitingForRecovery = false;
 
-            foreach (int connectionId in _faultedConnections)
+            foreach (NetworkConnectionToClient connection in _rejectedConnections)
             {
                 if (!NetworkServer.connections.TryGetValue(
-                        connectionId, out NetworkConnectionToClient connection) || (connection == null))
+                        connection.connectionId, out NetworkConnectionToClient current) ||
+                    (!ReferenceEquals(connection, current)))
                 {
                     continue;
                 }
@@ -357,13 +388,46 @@ namespace Geumeum.Network
             if (!ServerHasEveryoneArrived())
             {
                 ServerFailArrivalTimeout();
-                yield break;
+                if (!_waitingForRecovery)
+                {
+                    yield break;
+                }
             }
 
-            _state = RunTransitionState.Restoring;
-            if (_transition.RestoreParticipants && (!ServerRestoreParticipants()))
+            if (_transition.RestoreParticipants)
             {
-                yield break;
+                while (true)
+                {
+                    // 복구 대기 중에는 ServerWaitForRecovery가 세운 상태를 폴링마다 덮지 않는다
+                    if (!_waitingForRecovery)
+                    {
+                        _state = RunTransitionState.Restoring;
+                    }
+
+                    if (ServerRestoreParticipants())
+                    {
+                        // 복구 결과를 다시 확인해야 하므로 아래 일반 경로와 달리 Bind 전에 한 프레임 쉬지 않는다.
+                        // 다음 프레임에 끊긴 연결이나 바뀐 플레이어가 있으면 복구부터 다시 한다.
+                        _state = RunTransitionState.Binding;
+                        for (int i = 0; i < G_Bindings.Count; ++i)
+                        {
+                            G_Bindings[i].Bind(in _transition);
+                        }
+                        yield return null;
+                        if (ServerHasRestoredParticipants())
+                        {
+                            ServerCompleteTransition(run);
+                            yield break;
+                        }
+                    }
+
+                    if (_state == RunTransitionState.Failed)
+                    {
+                        yield break;
+                    }
+
+                    yield return _waitArrivalPoll;
+                }
             }
             yield return null;
 
@@ -470,20 +534,29 @@ namespace Geumeum.Network
                 ParticipantId capturedParticipant = pair.Value;
                 if (!TryFindCurrentConnection(capturedParticipant, out NetworkConnectionToClient connection))
                 {
-                    return ServerFailParticipant(originalConnectionId, "복구할 참가자 연결이 없습니다");
+                    ServerWaitForRecovery(originalConnectionId, "복구할 참가자의 재접속을 기다립니다");
+                    continue;
                 }
 
                 int connectionId = connection.connectionId;
 
-                if (connection.identity == null)
+                if (_rejectedConnections.Contains(connection))
                 {
-                    return ServerFailParticipant(connectionId, "도착한 플레이어 오브젝트가 없습니다");
+                    ServerWaitForRecovery(connectionId, "복구할 참가자의 재접속을 기다립니다");
+                    continue;
                 }
 
-                IPlayerRunLifecycle lifecycle = connection.identity.GetComponent<IPlayerRunLifecycle>();
-                if (lifecycle == null)
+                if (!ServerHasConnectionArrived(connectionId))
                 {
-                    return ServerFailParticipant(connectionId, "도착한 lifecycle이 없습니다");
+                    ServerWaitForRecovery(connectionId, "재접속한 참가자의 도착을 기다립니다");
+                    continue;
+                }
+
+                if ((_restoredPlayers.TryGetValue(capturedParticipant, out NetworkIdentity restoredPlayer)) &&
+                    (restoredPlayer == connection.identity))
+                {
+                    ++restoredCount;
+                    continue;
                 }
 
                 if ((!TryGetParticipant(connection, out ParticipantId currentParticipant)) ||
@@ -492,21 +565,76 @@ namespace Geumeum.Network
                     return ServerFailParticipant(connectionId, "도착한 참가자 신원이 캡처와 다릅니다");
                 }
 
-                if (!RunParticipantRegistry.TryTake(
+                if (!RunParticipantRegistry.TryPeek(
                         _transition.RunId, capturedParticipant, out RunParticipantSnapshot snapshot))
                 {
                     return ServerFailParticipant(connectionId, "복구할 snapshot이 없습니다");
                 }
 
-                if (!lifecycle.RestoreRunState(snapshot))
+                if ((!connection.identity.TryGetComponent(out IPlayerRunLifecycle lifecycle)) ||
+                    (!lifecycle.RestoreRunState(snapshot)))
                 {
-                    return ServerFailParticipant(connectionId, "참가자 상태를 복구하지 못했습니다");
+                    if (ReferenceEquals(connection, NetworkServer.localConnection))
+                    {
+                        return ServerFailParticipant(connectionId, "호스트 상태를 복구하지 못했습니다");
+                    }
+
+                    ServerWaitForRecovery(connectionId, "참가자 상태를 복구하지 못해 재접속을 기다립니다");
+                    _faultedConnections.Add(connectionId);
+                    _rejectedConnections.Add(connection);
+                    connection.Disconnect();
+                    continue;
                 }
 
+                _restoredPlayers[capturedParticipant] = connection.identity;
                 ++restoredCount;
             }
 
             return (restoredCount == _expectedConnections.Count);
+        }
+
+        /// <summary> 전환에서 맡긴 상태는 재접속 로스터가 덮어쓰거나 먼저 소비하지 않는다 </summary>
+        public bool OwnsParticipantSnapshot(ParticipantId participant)
+        {
+            return (_state != RunTransitionState.Idle) && (_transition.RestoreParticipants) &&
+                (_participants.ContainsValue(participant));
+        }
+
+        [Server]
+        private bool ServerHasRestoredParticipants()
+        {
+            foreach (ParticipantId participant in _participants.Values)
+            {
+                if ((!TryFindCurrentConnection(participant, out NetworkConnectionToClient connection)) ||
+                    (!ServerHasConnectionArrived(connection.connectionId)) ||
+                    (!_restoredPlayers.TryGetValue(participant, out NetworkIdentity restoredPlayer)) ||
+                    (restoredPlayer != connection.identity))
+                {
+                    return false;
+                }
+            }
+
+            return (_restoredPlayers.Count == _expectedConnections.Count);
+        }
+
+        [Server]
+        private void ServerWaitForRecovery(int connectionId, string reason)
+        {
+            _state = RunTransitionState.WaitingForParticipant;
+            if (_waitingForRecovery)
+            {
+                return;
+            }
+
+            string message = $"참가자 복구 대기({NetworkPeerLabel.Describe(connectionId)}): {reason}";
+            Debug.LogWarning($"[RunSceneDirector] {message}", this);
+            _failureMessage = message;
+            _waitingForRecovery = true;
+            RunManager run = RunManager.ServerInstance;
+            if (run != null)
+            {
+                run.PauseRun(message);
+            }
         }
 
         /// <summary> 재접속으로 connectionId가 바뀌어도 같은 인증 참가자의 현재 연결을 찾는다 </summary>
@@ -618,38 +746,43 @@ namespace Geumeum.Network
                 return false;
             }
 
-            return (connection.isReady || _arrivedConnections.Contains(connectionId));
+            return (!_rejectedConnections.Contains(connection)) &&
+                ((connection.isReady) || (_arrivedConnections.Contains(connection)));
         }
 
         [Server]
         private void ServerFailArrivalTimeout()
         {
-            if (_transition.RestoreParticipants)
+            // 호스트가 도착했고 전환 상태가 보관돼 있으면 원격만 다시 접속시킨다.
+            // 정원과 참가자 신원은 줄이지 않으며 호스트는 기존 대기 포기로 런을 끝낼 수 있다.
+            NetworkConnectionToClient host = NetworkServer.localConnection;
+            bool hostArrived = (host == null) ||
+                ((TryGetParticipant(host, out ParticipantId hostParticipant)) &&
+                    (_participants.ContainsValue(hostParticipant)) &&
+                    (ServerHasConnectionArrived(host.connectionId)));
+            bool canRecover = (_transition.RestoreParticipants) &&
+                (_participants.Count == _expectedConnections.Count) && (hostArrived);
+            if (canRecover)
             {
                 foreach (KeyValuePair<int, ParticipantId> pair in _participants)
                 {
-                    if (TryFindCurrentConnection(pair.Value, out NetworkConnectionToClient connection))
+                    if (!TryFindCurrentConnection(pair.Value, out NetworkConnectionToClient connection))
                     {
-                        if (!ServerHasConnectionArrived(connection.connectionId))
-                        {
-                            _faultedConnections.Add(connection.connectionId);
-                        }
+                        // 이전 번호를 쓰는 다른 참가자는 실패 대상으로 취급하지 않는다.
+                        ServerWaitForRecovery(pair.Key, "씬 도착 제한 시간을 넘겨 참가자의 재접속을 기다립니다");
+                        continue;
                     }
-                    else
+                    if (ServerHasConnectionArrived(connection.connectionId))
                     {
-                        _faultedConnections.Add(pair.Key);
+                        continue;
                     }
+
+                    ServerWaitForRecovery(connection.connectionId, "씬 도착 제한 시간을 넘겨 재접속을 기다립니다");
+                    _faultedConnections.Add(connection.connectionId);
+                    _rejectedConnections.Add(connection);
+                    connection.Disconnect();
                 }
-            }
-            else
-            {
-                foreach (int connectionId in _expectedConnections)
-                {
-                    if (!ServerHasConnectionArrived(connectionId))
-                    {
-                        _faultedConnections.Add(connectionId);
-                    }
-                }
+                return;
             }
 
             ServerFailTransition(
@@ -660,6 +793,11 @@ namespace Geumeum.Network
         private bool ServerFailParticipant(int connectionId, string reason)
         {
             _faultedConnections.Add(connectionId);
+            if (NetworkServer.connections.TryGetValue(
+                    connectionId, out NetworkConnectionToClient connection) && (connection != null))
+            {
+                _rejectedConnections.Add(connection);
+            }
             ServerFailTransition($"참가자 전환 실패({NetworkPeerLabel.Describe(connectionId)}): {reason}");
             return false;
         }
@@ -667,7 +805,6 @@ namespace Geumeum.Network
         [Server]
         private void ServerFailTransition(string message)
         {
-            RunParticipantRegistry.ServerClear();
             _failureMessage = message;
             _state          = RunTransitionState.Failed;
             _routine        = null;
@@ -679,6 +816,25 @@ namespace Geumeum.Network
         private void ServerCompleteTransition(RunManager run)
         {
             _state = RunTransitionState.Committing;
+            LobbyRoster roster = LobbyRoster.ServerInstance;
+            foreach (ParticipantId participant in _participants.Values)
+            {
+                if (RunParticipantRegistry.TryPeek(_transition.RunId, participant,
+                        out RunParticipantSnapshot snapshot))
+                {
+                    RunParticipantRegistry.ServerCompleteRestore(snapshot);
+                }
+
+                if (roster != null)
+                {
+                    roster.ServerCompleteRecovery(participant);
+                }
+            }
+
+            if (_transition.RestoreParticipants)
+            {
+                run.ResumeRun();
+            }
             run.ServerClearPauseReason(RunPauseReason.SceneTransition);
 
             _state                = RunTransitionState.Idle;
@@ -698,14 +854,19 @@ namespace Geumeum.Network
             _expectedConnections.Clear();
             _arrivedConnections.Clear();
             _faultedConnections.Clear();
+            _rejectedConnections.Clear();
             _participants.Clear();
+            _restoredPlayers.Clear();
+            _waitingForRecovery = false;
         }
 
         /// <summary> 클라이언트가 새 씬에 도착했다고 알린다 </summary>
         [Command(requiresAuthority = false)]
         private void CmdReportArrived(uint revisionValue, NetworkConnectionToClient sender = null)
         {
-            if ((sender == null) || (revisionValue != _revisionValue))
+            if ((sender == null) || (revisionValue != _revisionValue) ||
+                (!NetworkServer.connections.TryGetValue(sender.connectionId, out NetworkConnectionToClient current)) ||
+                (!ReferenceEquals(sender, current)) || (_rejectedConnections.Contains(sender)))
             {
                 return;
             }
@@ -730,7 +891,7 @@ namespace Geumeum.Network
                 return;
             }
 
-            _arrivedConnections.Add(sender.connectionId);
+            _arrivedConnections.Add(sender);
         }
 
         /// <summary>

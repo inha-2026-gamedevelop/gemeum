@@ -770,6 +770,14 @@ Main.unity
 │  │                           씬 배치 없이 RuntimeInitializeOnLoadMethod로 스스로 생긴다
 │  └ CameraTuneFile.cs     static 조정값 camera-tune.json 저장 · 불러오기. 빌드에서 만진 값을
 │                              에디터가 읽어 SO 정본에 반영하는 통로 → 그믐/카메라 메뉴
+├ Editor/                  에디터 전용
+│  ├ ArtProductionWiringHelper.cs  static 표현 에셋 생성 · 열린 씬 배선 메뉴 (Geumeum/Production/Art)
+│  ├ ArtPresentationTests.cs       표현 계층 EditMode 테스트
+│  ├ TeaserPreparationWindow.cs    [현재] 티저 준비 창 (Geumeum/Art/Teaser Preparation). 샷과 프레임별 편집 지시를 보여 주고,
+│  │                               같은 씬 카메라의 시작/종료 포즈를 JSON에만 저장한다. 녹화 · 카메라 적용은 없다
+│  ├ TeaserPlanDocument.cs         [현재] teaser-shots.json 읽기 · 구간 검증 · 포즈 저장. 다른 곳에서 바뀐 파일은 덮어쓰지 않는다
+│  └ TeaserPlanDocumentTests.cs    포즈 왕복 · 외부 변경 거부 · 씬 불일치 · 전투 샷 배속 검증.
+│                                  조립 · 편집 그래픽 · 음량 마감은 저장소 루트 tools/teaser(Remotion) → 티저 제작 설계
 └ Shaders/, VFX/           셰이더 · 파티클 에셋
 ```
 
@@ -986,6 +994,9 @@ Assets/09.Data/
 ├ DayCycle/DayCycleSO.asset
 ├ Sound/SoundCatalogSO.asset
 ├ Camera/CameraConfigSO.asset ← 위 셋이 네트워크와 무관한 순수 로컬 리소스다
+├ Presentation/PresentationConfigSO.asset     전투와 아레나 표현 조정값 (판정 범위 · 서버 규칙 제외)
+├ Presentation/GatNeoul_PhysioSettings.asset  갓 · 너울 PhysioBrush 설정 → 갓·너울 PhysioBrush 사용
+├ Teaser/teaser-shots.json     티저 샷 · 편집 · 소리 지시의 단일 원천. GameDB가 아니다 (Unity 준비 창과 tools/teaser가 같이 읽는다)
 └ Weather/                   보스 아레나 연출 프로파일. GameDB가 아니라 렌더링 리소스다
    ├ WM_Profile_Shrine.asset       1페이즈 안개 (WeatherMaker)
    ├ WM_Profile_Underworld.asset   2페이즈 안개

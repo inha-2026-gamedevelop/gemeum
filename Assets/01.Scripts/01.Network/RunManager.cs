@@ -320,6 +320,8 @@ namespace Geumeum.Network
 
         public override void OnStopServer()
         {
+            // Mirror는 연결 해제를 먼저 알린다. 그 과정에서 남긴 재접속 상태도 여기서 버린다.
+            RunParticipantRegistry.ServerClear();
             IRunResultFactsProvider factsProvider = RunResultFactsProviderLocator.Current;
             if (factsProvider != null)
             {
@@ -653,7 +655,9 @@ namespace Geumeum.Network
                 return director.ServerStopSessionAfterFailedTransition();
             }
 
-            if (hasTransitionFailure && (!director.ServerArmTerminalExit()))
+            bool needsTerminalExit = (hasTransitionFailure) ||
+                ((director != null) && (director.IsWaitingForRecovery));
+            if (needsTerminalExit && (!director.ServerArmTerminalExit()))
             {
                 return false;
             }

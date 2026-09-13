@@ -103,4 +103,41 @@ public class RunParticipantRegistryTests
 
         Assert.AreEqual(0, RunParticipantRegistry.Count);
     }
+
+    [Test]
+    public void PeekPreservesStateForFailedRestoreRetry()
+    {
+        RunParticipantSnapshot stored = MakeSnapshot(1u, 100UL, 17f);
+        RunParticipantRegistry.ServerStore(stored);
+
+        Assert.IsTrue(RunParticipantRegistry.TryPeek(new RunId(1u), new ParticipantId(100UL), out var first));
+        Assert.IsTrue(RunParticipantRegistry.TryPeek(new RunId(1u), new ParticipantId(100UL), out var retry));
+        Assert.AreSame(stored, first);
+        Assert.AreSame(stored, retry);
+        Assert.AreEqual(1, RunParticipantRegistry.Count);
+        Assert.IsTrue(RunParticipantRegistry.ServerCompleteRestore(retry));
+        Assert.IsFalse(RunParticipantRegistry.ServerCompleteRestore(retry));
+    }
+
+    [Test]
+    public void CompletingOldRestoreDoesNotRemoveNewerSnapshot()
+    {
+        RunParticipantSnapshot first = MakeSnapshot(1u, 100UL, 17f);
+        RunParticipantSnapshot newer = MakeSnapshot(1u, 100UL, 9f);
+        RunParticipantRegistry.ServerStore(first);
+        RunParticipantRegistry.ServerStore(newer);
+
+        Assert.IsFalse(RunParticipantRegistry.ServerCompleteRestore(first));
+        Assert.IsTrue(RunParticipantRegistry.TryPeek(new RunId(1u), new ParticipantId(100UL), out var remaining));
+        Assert.AreSame(newer, remaining);
+    }
+
+    [Test]
+    public void StaleRunCannotReadOrConsumeCurrentRecovery()
+    {
+        RunParticipantRegistry.ServerStore(MakeSnapshot(2u, 100UL, 17f));
+
+        Assert.IsFalse(RunParticipantRegistry.TryPeek(new RunId(1u), new ParticipantId(100UL), out _));
+        Assert.AreEqual(1, RunParticipantRegistry.Count);
+    }
 }

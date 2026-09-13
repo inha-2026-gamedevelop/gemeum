@@ -377,24 +377,86 @@ namespace Geumeum.Network.EditorTests
         }
 
         [Test]
-        public void RestoreFailureStopsTransitionBeforeBindingCanCommit()
+        public void RestoreFailureIsolatesRemoteAndPreservesSnapshotUntilReconnect()
         {
+            TrackingConnection original = new TrackingConnection(12);
             RunEntryLifecycleStub lifecycle = AddParticipant(
-                new NetworkConnectionToClient(12), 112UL, true);
+                original, 112UL, true);
             PrepareParticipantTransition(12);
 
             Assert.IsTrue((bool) Invoke(_director, "ServerCaptureParticipants"));
             lifecycle.RestoreSucceeds = false;
 
-            LogAssert.Expect(LogType.Error,
-                "[RunSceneDirector] 참가자 전환 실패(연결 12): 참가자 상태를 복구하지 못했습니다");
             bool restored = (bool) Invoke(_director, "ServerRestoreParticipants");
 
             Assert.IsFalse(restored);
             Assert.AreEqual(1, lifecycle.RestoreCount);
-            Assert.AreEqual(RunTransitionState.Failed, _director.State);
-            Assert.AreEqual(RunPauseReason.None, _run.PauseReasons,
-                "직접 호출 fixture에서는 정지를 걸지 않았으며 실패 경로가 임의로 재개해서도 안 된다");
+            Assert.AreEqual(RunTransitionState.WaitingForParticipant, _director.State);
+            Assert.IsTrue(original.WasDisconnected);
+            Assert.IsTrue(_director.IsWaitingForRecovery);
+            Assert.IsTrue((_run.PauseReasons & RunPauseReason.ParticipantMissing) != 0);
+            Assert.IsTrue(RunParticipantRegistry.TryPeek(new RunId(1u), new ParticipantId(112UL), out _));
+            Assert.IsFalse((bool) Invoke(_director, "ServerRestoreParticipants"));
+            Assert.AreEqual(1, lifecycle.RestoreCount, "같은 실패 연결에 복구를 반복하지 않는다");
+
+            NetworkServer.connections.Remove(12);
+            AcceptedIds().Remove(12);
+            RunEntryLifecycleStub reconnected = AddParticipant(new TrackingConnection(22), 112UL, true);
+            Assert.IsTrue((bool) Invoke(_director, "ServerRestoreParticipants"));
+            Assert.AreEqual(1, reconnected.RestoreCount);
+            Assert.IsTrue((bool) Invoke(_director, "ServerHasRestoredParticipants"));
+            Assert.AreEqual(1, RunParticipantRegistry.Count, "전체 바인딩 확정 전에는 상태를 보관한다");
+        }
+
+        [TestCase(false, 112UL)]
+        [TestCase(false, 212UL)]
+        [TestCase(true, 112UL)]
+        [TestCase(true, 212UL)]
+        public void TerminalExitDoesNotDisconnectReplacementOfFailedConnection(
+            bool captureFails, ulong replacementParticipant)
+        {
+            TrackingConnection original = new TrackingConnection(12);
+            RunEntryLifecycleStub lifecycle = AddParticipant(original, 112UL, true);
+            PrepareParticipantTransition(12);
+
+            if (captureFails)
+            {
+                lifecycle.CaptureSucceeds = false;
+                LogAssert.Expect(LogType.Error,
+                    "[RunSceneDirector] 참가자 전환 실패(연결 12): 런 상태를 저장하지 못했습니다");
+                Assert.IsFalse((bool) Invoke(_director, "ServerCaptureParticipants"));
+            }
+            else
+            {
+                Assert.IsTrue((bool) Invoke(_director, "ServerCaptureParticipants"));
+                lifecycle.RestoreSucceeds = false;
+                Assert.IsFalse((bool) Invoke(_director, "ServerRestoreParticipants"));
+            }
+
+            NetworkServer.connections.Remove(12);
+            AcceptedIds().Remove(12);
+            TrackingConnection replacement = new TrackingConnection(12);
+            AddParticipant(replacement, replacementParticipant, true);
+
+            Assert.IsTrue(_director.ServerArmTerminalExit());
+            Assert.IsFalse(replacement.WasDisconnected,
+                "대기 포기는 과거 실패 연결의 번호를 재사용한 새 연결을 끊지 않는다");
+        }
+
+        [Test]
+        public void TerminalExitDisconnectsCurrentCaptureFailure()
+        {
+            TrackingConnection failed = new TrackingConnection(12);
+            RunEntryLifecycleStub lifecycle = AddParticipant(failed, 112UL, true);
+            lifecycle.CaptureSucceeds = false;
+            PrepareParticipantTransition(12);
+            LogAssert.Expect(LogType.Error,
+                "[RunSceneDirector] 참가자 전환 실패(연결 12): 런 상태를 저장하지 못했습니다");
+
+            Assert.IsFalse((bool) Invoke(_director, "ServerCaptureParticipants"));
+            Assert.IsFalse(failed.WasDisconnected);
+            Assert.IsTrue(_director.ServerArmTerminalExit());
+            Assert.IsTrue(failed.WasDisconnected);
         }
 
         [Test]
@@ -416,7 +478,7 @@ namespace Geumeum.Network.EditorTests
             Assert.IsTrue(restored);
             Assert.AreEqual(1, reconnected.RestoreCount);
             Assert.AreNotEqual(RunTransitionState.Failed, _director.State);
-            Assert.AreEqual(0, RunParticipantRegistry.Count);
+            Assert.AreEqual(1, RunParticipantRegistry.Count);
         }
 
         [Test]
@@ -440,18 +502,16 @@ namespace Geumeum.Network.EditorTests
             Set(_director, "_currentScene", RunSceneId.BossEntrance);
             Set(_run, "_pauseReasons", RunPauseReason.SceneTransition);
 
-            LogAssert.Expect(LogType.Error,
-                "[RunSceneDirector] 참가자 도착을 30초 안에 확인하지 못했습니다");
             Invoke(_director, "ServerFailArrivalTimeout");
 
-            Assert.AreEqual(RunTransitionState.Failed, _director.State);
-            Assert.IsFalse(remote.WasDisconnected);
+            Assert.AreEqual(RunTransitionState.WaitingForParticipant, _director.State);
+            Assert.IsTrue(remote.WasDisconnected);
 
             bool remoteAccepted = (bool) Invoke(
                 _run, "ServerTryAbandonParticipantWait", remote);
             Assert.IsFalse(remoteAccepted);
             Assert.AreEqual(RunPhase.Shrink3, _run.Phase);
-            Assert.IsFalse(remote.WasDisconnected);
+            Assert.IsTrue(remote.WasDisconnected);
 
             bool hostAccepted = (bool) Invoke(
                 _run, "ServerTryAbandonParticipantWait", host);
@@ -463,6 +523,246 @@ namespace Geumeum.Network.EditorTests
             Assert.AreEqual(RunSceneId.Result, GetTransition().ToScene);
             Assert.IsTrue((bool) Get(_director, "_isTerminalTransition"),
                 "Result 예외 전환은 같은 ready 대기를 다시 사용하면 안 된다");
+        }
+
+        [TestCase(702UL, true, false)]
+        [TestCase(702UL, false, true)]
+        [TestCase(799UL, true, false)]
+        public void ArrivalTimeoutDoesNotBlameReusedConnectionNumber(
+            ulong currentParticipant, bool arrived, bool shouldDisconnect)
+        {
+            AddParticipant(new TrackingConnection(71), 701UL, true);
+            AddParticipant(new TrackingConnection(72), 702UL, true);
+            PrepareParticipantTransition(71);
+            GetSet<int>(_director, "_expectedConnections").Add(72);
+            Assert.IsTrue((bool) Invoke(_director, "ServerCaptureParticipants"));
+
+            NetworkServer.connections.Remove(71);
+            AcceptedIds().Remove(71);
+            if (currentParticipant == 702UL)
+            {
+                NetworkServer.connections.Remove(72);
+                AcceptedIds().Remove(72);
+            }
+
+            TrackingConnection reused = new TrackingConnection(71);
+            AddParticipant(reused, currentParticipant, arrived);
+            Invoke(_director, "ServerFailArrivalTimeout");
+
+            Assert.AreEqual(shouldDisconnect, reused.WasDisconnected);
+            Assert.AreEqual(RunTransitionState.WaitingForParticipant, _director.State);
+            Assert.AreEqual(2, RunParticipantRegistry.Count);
+        }
+
+        [Test]
+        public void FailedConnectionNumberCanBeReusedBySameParticipant()
+        {
+            TrackingConnection failed = new TrackingConnection(73);
+            RunEntryLifecycleStub lifecycle = AddParticipant(failed, 703UL, true);
+            PrepareParticipantTransition(73);
+            Assert.IsTrue((bool) Invoke(_director, "ServerCaptureParticipants"));
+            lifecycle.RestoreSucceeds = false;
+            Assert.IsFalse((bool) Invoke(_director, "ServerRestoreParticipants"));
+            Assert.IsTrue(failed.WasDisconnected);
+
+            RunEntryLifecycleStub replacement = AddParticipant(
+                new TrackingConnection(73), 703UL, true);
+            Assert.IsTrue((bool) Invoke(_director, "ServerRestoreParticipants"));
+            Assert.AreEqual(1, replacement.RestoreCount);
+            Assert.AreEqual(1, RunParticipantRegistry.Count);
+        }
+
+        [Test]
+        public void ArrivalReportDoesNotTransferToReplacementConnection()
+        {
+            TrackingConnection original = new TrackingConnection(74);
+            AddParticipant(original, 704UL, false);
+            PrepareParticipantTransition(74);
+            Assert.IsTrue((bool) Invoke(_director, "ServerCaptureParticipants"));
+            Set(_director, "_state", RunTransitionState.WaitingForParticipant);
+            GetSet<NetworkConnectionToClient>(_director, "_arrivedConnections").Add(original);
+            Assert.IsTrue((bool) Invoke(_director, "ServerHasEveryoneArrived"));
+
+            AddParticipant(new TrackingConnection(74), 704UL, false);
+            Assert.IsFalse((bool) Invoke(_director, "ServerHasEveryoneArrived"),
+                "이전 연결의 도착 보고를 새 연결이 물려받으면 안 된다");
+        }
+
+        [TestCase(0UL)]
+        [TestCase(705UL)]
+        public void NewSlotWithoutSavedSeatDoesNotBlockAdmission(ulong platformId)
+        {
+            WithRoster(roster =>
+            {
+                TrackingConnection connection = new TrackingConnection(75);
+                AddParticipant(connection, platformId, true);
+                Assert.IsTrue(roster.ServerAddSlot(connection));
+                Assert.IsTrue(roster.ServerRestoreVacatedSeat(connection));
+                Assert.IsFalse(connection.WasDisconnected);
+                Assert.IsFalse(roster.HasFailedRecovery(connection.connectionId));
+            });
+        }
+
+        [Test]
+        public void ServerStopDiscardsSnapshotsAndSeatsCapturedDuringDisconnect()
+        {
+            WithRoster(roster =>
+            {
+                TrackingConnection connection = new TrackingConnection(76);
+                AddParticipant(connection, 706UL, true);
+                Assert.IsTrue(roster.ServerAddSlot(connection));
+                roster.ServerRemoveSlot(connection);
+                Assert.AreEqual(1, RunParticipantRegistry.Count);
+                Assert.IsTrue(roster.HasPendingRecovery);
+
+                _run.OnStopServer();
+                roster.OnStopServer();
+
+                Assert.AreEqual(0, RunParticipantRegistry.Count);
+                Assert.IsFalse(roster.HasPendingRecovery);
+            });
+        }
+
+        [Test]
+        public void OneFailedRemoteDoesNotReapplyHealthyPlayersOrAcceptAnotherIdentity()
+        {
+            RunEntryLifecycleStub healthy = AddParticipant(new TrackingConnection(31), 301UL, true);
+            RunEntryLifecycleStub failed = AddParticipant(new TrackingConnection(32), 302UL, true);
+            RunEntryLifecycleStub other = AddParticipant(new TrackingConnection(33), 303UL, true);
+            PrepareParticipantTransition(31);
+            GetSet<int>(_director, "_expectedConnections").UnionWith(new[] { 32, 33 });
+            Assert.IsTrue((bool) Invoke(_director, "ServerCaptureParticipants"));
+            failed.RestoreSucceeds = false;
+
+            Assert.IsFalse((bool) Invoke(_director, "ServerRestoreParticipants"));
+            Assert.AreEqual(1, healthy.RestoreCount);
+            Assert.AreEqual(1, other.RestoreCount);
+            Assert.AreEqual(3, RunParticipantRegistry.Count);
+
+            NetworkServer.connections.Remove(32);
+            AcceptedIds().Remove(32);
+            RunEntryLifecycleStub stranger = AddParticipant(new TrackingConnection(42), 999UL, true);
+            Assert.IsFalse((bool) Invoke(_director, "ServerRestoreParticipants"));
+            Assert.AreEqual(0, stranger.RestoreCount);
+            Assert.AreEqual(1, healthy.RestoreCount);
+            Assert.AreEqual(1, other.RestoreCount);
+
+            RunEntryLifecycleStub returned = AddParticipant(new TrackingConnection(43), 302UL, true);
+            Assert.IsTrue((bool) Invoke(_director, "ServerRestoreParticipants"));
+            Assert.AreEqual(1, returned.RestoreCount);
+
+            NetworkServer.connections.Remove(31);
+            AcceptedIds().Remove(31);
+            Assert.IsFalse((bool) Invoke(_director, "ServerHasRestoredParticipants"));
+            RunEntryLifecycleStub returnedHealthy = AddParticipant(new TrackingConnection(44), 301UL, true);
+            Assert.IsFalse((bool) Invoke(_director, "ServerHasRestoredParticipants"));
+            Assert.IsTrue((bool) Invoke(_director, "ServerRestoreParticipants"));
+            Assert.AreEqual(1, returnedHealthy.RestoreCount);
+        }
+
+        [Test]
+        public void HostRestoreFailureKeepsSnapshotsAndUsesExplicitTerminalExit()
+        {
+            LocalConnectionToClient host = new LocalConnectionToClient();
+            SetStaticProperty(typeof(NetworkServer), nameof(NetworkServer.localConnection), host);
+            RunEntryLifecycleStub lifecycle = AddParticipant(host, 401UL, true);
+            PrepareParticipantTransition(host.connectionId);
+            Assert.IsTrue((bool) Invoke(_director, "ServerCaptureParticipants"));
+            lifecycle.RestoreSucceeds = false;
+
+            LogAssert.Expect(LogType.Error,
+                "[RunSceneDirector] 참가자 전환 실패(연결 0): 호스트 상태를 복구하지 못했습니다");
+            Assert.IsFalse((bool) Invoke(_director, "ServerRestoreParticipants"));
+            Assert.AreEqual(RunTransitionState.Failed, _director.State);
+            Assert.AreEqual(1, RunParticipantRegistry.Count);
+        }
+
+        [Test]
+        public void ReconnectFailureCannotOverwriteOriginalStateOrConsumeItsSeat()
+        {
+            WithRoster(roster =>
+            {
+                TrackingConnection original = new TrackingConnection(51);
+                RunEntryLifecycleStub lifecycle = AddParticipant(original, 501UL, true);
+                Assert.IsTrue(roster.ServerAddSlot(original));
+                roster.ServerRemoveSlot(original);
+                NetworkServer.connections.Remove(51);
+                AcceptedIds().Remove(51);
+                Assert.IsTrue(RunParticipantRegistry.TryPeek(new RunId(1u), new ParticipantId(501UL), out var saved));
+
+                TrackingConnection failedConnection = new TrackingConnection(52);
+                RunEntryLifecycleStub failed = AddParticipant(failedConnection, 501UL, true);
+                failed.RestoreSucceeds = false;
+                Assert.IsTrue(roster.ServerAddSlot(failedConnection));
+                LogAssert.Expect(LogType.Error,
+                    "[LobbyRoster] platformId=501의 복구에 실패해 상태를 보존하고 연결을 끊는다");
+                Assert.IsFalse(roster.ServerRestoreVacatedSeat(failedConnection));
+                Assert.IsTrue(failedConnection.WasDisconnected);
+                Assert.IsTrue(roster.HasVacatedSeat(501UL));
+                roster.ServerRemoveSlot(failedConnection);
+                Assert.AreEqual(0, failed.CaptureCount);
+                Assert.IsTrue(RunParticipantRegistry.TryPeek(new RunId(1u), new ParticipantId(501UL), out var retry));
+                Assert.AreSame(saved, retry);
+
+                NetworkServer.connections.Remove(52);
+                AcceptedIds().Remove(52);
+                TrackingConnection recoveredConnection = new TrackingConnection(53);
+                RunEntryLifecycleStub recovered = AddParticipant(recoveredConnection, 501UL, true);
+                Assert.IsTrue(roster.ServerAddSlot(recoveredConnection));
+                Assert.IsTrue(roster.ServerRestoreVacatedSeat(recoveredConnection));
+                Assert.AreEqual(1, recovered.RestoreCount);
+                Assert.IsFalse(roster.HasVacatedSeat(501UL));
+                Assert.AreEqual(0, RunParticipantRegistry.Count);
+            });
+        }
+
+        [Test]
+        public void RosterLeavesTransitionSnapshotToDirectorAcrossDisconnectAndReconnect()
+        {
+            WithRoster(roster =>
+            {
+                TrackingConnection original = new TrackingConnection(61);
+                RunEntryLifecycleStub lifecycle = AddParticipant(original, 601UL, true);
+                Assert.IsTrue(roster.ServerAddSlot(original));
+                PrepareParticipantTransition(61);
+                Assert.IsTrue((bool) Invoke(_director, "ServerCaptureParticipants"));
+                Set(_director, "_state", RunTransitionState.Restoring);
+                Assert.IsTrue(RunParticipantRegistry.TryPeek(new RunId(1u), new ParticipantId(601UL), out var saved));
+                roster.ServerRemoveSlot(original);
+                Assert.AreEqual(1, lifecycle.CaptureCount, "분리 중인 새 플레이어 상태로 원본을 덮어쓰지 않는다");
+
+                NetworkServer.connections.Remove(61);
+                AcceptedIds().Remove(61);
+                TrackingConnection reconnected = new TrackingConnection(62);
+                RunEntryLifecycleStub returned = AddParticipant(reconnected, 601UL, true);
+                Assert.IsTrue(roster.ServerAddSlot(reconnected));
+                Assert.IsTrue(roster.ServerRestoreVacatedSeat(reconnected));
+                Assert.AreEqual(0, returned.RestoreCount);
+                Assert.IsTrue(RunParticipantRegistry.TryPeek(new RunId(1u), new ParticipantId(601UL), out var pending));
+                Assert.AreSame(saved, pending);
+                Assert.IsTrue((bool) Invoke(_director, "ServerRestoreParticipants"));
+                Assert.AreEqual(1, returned.RestoreCount);
+
+                roster.ServerClearRecovery();
+                Assert.IsFalse(roster.HasVacatedSeat(601UL));
+            });
+        }
+
+        [Test]
+        public void ServerRestartClearsFailedTransitionAndRecoveryState()
+        {
+            Set(_director, "_state", RunTransitionState.Failed);
+            Set(_director, "_waitingForRecovery", true);
+            Set(_director, "_terminalExitArmed", true);
+            Set(_director, "_failureMessage", "이전 세션 오류");
+
+            _director.OnStopServer();
+            _director.OnStartServer();
+
+            Assert.AreEqual(RunTransitionState.Idle, _director.State);
+            Assert.IsFalse(_director.IsWaitingForRecovery);
+            Assert.IsEmpty(_director.FailureMessage);
+            Assert.IsFalse((bool) Get(_director, "_terminalExitArmed"));
         }
 
         [Test]
@@ -524,6 +824,7 @@ namespace Geumeum.Network.EditorTests
             Set(_director, "_transition", SceneTransitionSnapshot.Create(
                 new RunId(1u), new SceneRevision(2u), RunSceneId.Boss, RunSceneId.Result, false));
             GetSet<int>(_director, "_faultedConnections").Add(remote.connectionId);
+            GetSet<NetworkConnectionToClient>(_director, "_rejectedConnections").Add(remote);
 
             Assert.IsFalse((bool) Invoke(
                 _run, "ServerTryAbandonParticipantWait", remote));
@@ -578,6 +879,27 @@ namespace Geumeum.Network.EditorTests
         private SceneTransitionSnapshot GetTransition()
         {
             return (SceneTransitionSnapshot) Get(_director, "_transition");
+        }
+
+        private void WithRoster(System.Action<LobbyRoster> action)
+        {
+            LobbyRoster previousRoster = LobbyRoster.ServerInstance;
+            GeumeumAuthenticator previousAuthenticator = GeumeumAuthenticator.ServerInstance;
+            GameObject rosterObject = new GameObject("RecoveryTestRoster", typeof(NetworkIdentity), typeof(LobbyRoster));
+            LobbyRoster roster = rosterObject.GetComponent<LobbyRoster>();
+            Invoke(rosterObject.GetComponent<NetworkIdentity>(), "InitializeNetworkBehaviours");
+            SetStaticProperty(typeof(LobbyRoster), nameof(LobbyRoster.ServerInstance), roster);
+            SetStaticProperty(typeof(GeumeumAuthenticator), nameof(GeumeumAuthenticator.ServerInstance), _authenticator);
+            try
+            {
+                action(roster);
+            }
+            finally
+            {
+                SetStaticProperty(typeof(LobbyRoster), nameof(LobbyRoster.ServerInstance), previousRoster);
+                SetStaticProperty(typeof(GeumeumAuthenticator), nameof(GeumeumAuthenticator.ServerInstance), previousAuthenticator);
+                Object.DestroyImmediate(rosterObject);
+            }
         }
 
         private void SimulateCompletedTransition(RunSceneId sceneId)
