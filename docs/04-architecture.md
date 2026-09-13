@@ -795,8 +795,10 @@ Main.unity
 ├ Combat/    HUD(HP · 스태미나 · 신력 · 패링 게이지), 정밀 조준 상태, 무녀 표식 슬롯, 관전 화면
 │  └ HUD/
 │     ├ HUDController.cs         [구현완료] HP · 신력 · 스태미나 바를 PlayerStatus.Local에 바인딩
-│     ├ MinimapPlayerDots.cs     [구현완료] 파티원 위치를 점으로 찍는다. 캐릭터별 색.
-│     │                           결계 원은 반경 400에서 지름 180으로 미니맵을 꽉 채우는 것을 확인했다.
+│     ├ MinimapPlayerDots.cs     [구현완료] 파티원 위치를 점으로, 결계를 판과 원으로 그린다. 캐릭터별 색.
+│     │                           결계 밖을 위험 색으로 덮는다 - UI에 역마스크가 없어 판 하나를 칠하고
+│     │                           결계 자리만 비운다. 원이 움직인 만큼만 다시 칠한다.
+│     │                           다음 축소의 목표 원은 경고 시점부터 축소가 끝날 때까지 보인다.
 │     │                           _rangeMeters는 BarrierPhaseSO의 최대 반경과 같아야 한다. 맵 배경, 회전은 아직 없다
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
