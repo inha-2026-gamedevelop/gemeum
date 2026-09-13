@@ -40007,6 +40007,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 910000046}
+  - component: {fileID: 920000007}
   m_Layer: 5
   m_Name: PartyPanel
   m_TagString: Untagged
@@ -40047,6 +40048,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 910000048}
+  - component: {fileID: 920000001}
+  - component: {fileID: 920000002}
   m_Layer: 5
   m_Name: PartyMember_1
   m_TagString: Untagged
@@ -40234,8 +40237,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.2989, y: -0.023}
-  m_SizeDelta: {x: 28.8276, y: 28.8276}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 29, y: 29}
   m_Pivot: {x: 0.5, y: 0.5}
 
 --- !u!1 &910000063
@@ -40834,6 +40837,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 910000116}
+  - component: {fileID: 920000003}
+  - component: {fileID: 920000004}
   m_Layer: 5
   m_Name: PartyMember_2
   m_TagString: Untagged
@@ -41021,8 +41026,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.1525, y: 0.0218}
-  m_SizeDelta: {x: 27.3103, y: 27.3103}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 29, y: 29}
   m_Pivot: {x: 0.5, y: 0.5}
 
 --- !u!1 &910000131
@@ -41621,6 +41626,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 910000184}
+  - component: {fileID: 920000005}
+  - component: {fileID: 920000006}
   m_Layer: 5
   m_Name: PartyMember_3
   m_TagString: Untagged
@@ -41808,8 +41815,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.0841, y: -0.012}
-  m_SizeDelta: {x: 30.1261, y: 30.1261}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 29, y: 29}
   m_Pivot: {x: 0.5, y: 0.5}
 
 --- !u!1 &910000199
@@ -44624,3 +44631,130 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+
+--- !u!225 &920000001
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910000047}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 0
+  m_IgnoreParentGroups: 0
+
+--- !u!114 &920000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910000047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8723449f09b34e5ea107f0aa30bb8254, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.PartyMemberPlate
+  _group: {fileID: 920000001}
+  _nameLabel: {fileID: 910000066}
+  _icon: {fileID: 910000062}
+  _healthFill: {fileID: 910000082}
+  _staminaFill: {fileID: 910000096}
+  _spiritFill: {fileID: 910000110}
+  _chasaIcon: {fileID: 21300000, guid: 312fc41de8dd4cb4f9abed9c494f1014, type: 3}
+  _singungIcon: {fileID: 21300000, guid: b90a2a5a07f53b24f836410731458d31, type: 3}
+  _munyeoIcon: {fileID: 21300000, guid: 58fa8eaa54c6ef94da4026dde2380eb6, type: 3}
+  _downedAlpha: 0.45
+
+--- !u!225 &920000003
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910000115}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 0
+  m_IgnoreParentGroups: 0
+
+--- !u!114 &920000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910000115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8723449f09b34e5ea107f0aa30bb8254, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.PartyMemberPlate
+  _group: {fileID: 920000003}
+  _nameLabel: {fileID: 910000134}
+  _icon: {fileID: 910000130}
+  _healthFill: {fileID: 910000150}
+  _staminaFill: {fileID: 910000164}
+  _spiritFill: {fileID: 910000178}
+  _chasaIcon: {fileID: 21300000, guid: 312fc41de8dd4cb4f9abed9c494f1014, type: 3}
+  _singungIcon: {fileID: 21300000, guid: b90a2a5a07f53b24f836410731458d31, type: 3}
+  _munyeoIcon: {fileID: 21300000, guid: 58fa8eaa54c6ef94da4026dde2380eb6, type: 3}
+  _downedAlpha: 0.45
+
+--- !u!225 &920000005
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910000183}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 0
+  m_IgnoreParentGroups: 0
+
+--- !u!114 &920000006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910000183}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8723449f09b34e5ea107f0aa30bb8254, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.PartyMemberPlate
+  _group: {fileID: 920000005}
+  _nameLabel: {fileID: 910000202}
+  _icon: {fileID: 910000198}
+  _healthFill: {fileID: 910000218}
+  _staminaFill: {fileID: 910000232}
+  _spiritFill: {fileID: 910000246}
+  _chasaIcon: {fileID: 21300000, guid: 312fc41de8dd4cb4f9abed9c494f1014, type: 3}
+  _singungIcon: {fileID: 21300000, guid: b90a2a5a07f53b24f836410731458d31, type: 3}
+  _munyeoIcon: {fileID: 21300000, guid: 58fa8eaa54c6ef94da4026dde2380eb6, type: 3}
+  _downedAlpha: 0.45
+
+--- !u!114 &920000007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910000045}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 818daaaca50c4a4faa77273b36edc7b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.PartyHudController
+  _plates:
+  - {fileID: 920000002}
+  - {fileID: 920000004}
+  - {fileID: 920000006}
+  _includeLocalPlayer: 0
+  _unknownName: 참가자
