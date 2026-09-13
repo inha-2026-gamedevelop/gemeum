@@ -800,6 +800,9 @@ Main.unity
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
 │     │                           씬 배선 전이라 동작을 관찰하지 못했다
+│     ├ HudTimerController.cs    [현재] 우상단 시간 슬롯에 런 경과 시간을 mm:ss로 적는다.
+│     │                           RunTimeLocator만 읽는다 - 서버가 보낸 시계 하나에서 클라이언트가 계산한다.
+│     │                           남은 시간과 단계별 색 전환은 아직 없다. 런을 돌린 상태에서 관찰하지 못했다
 │     ├ PartyHudController.cs    [현재] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
 │     │                           스폰 목록만 주기로 훑고 값은 PlayerStatus 이벤트로 받는다.
 │     │                           2인 접속에서 줄 수와 값이 원본과 일치하는 것을 확인했다. 3인은 아직이다
