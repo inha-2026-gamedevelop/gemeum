@@ -1,0 +1,31 @@
+{
+  "name": "geumeum-teaser-preparation",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "validate:media": "node scripts/validate.mjs --media",
+    "register-media": "node scripts/register-media.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:media": "node scripts/verify-media.mjs",
+    "export:graphics": "node scripts/export-graphics.mjs",
+    "test:graphics": "node scripts/verify-graphics.mjs",
+    "master:audio": "node scripts/master-audio.mjs",
+    "inspect:master": "node scripts/inspect-master.mjs",
+    "test:master": "node scripts/verify-master.mjs",
+    "studio": "npm run validate:media && remotion studio src/index.jsx",
+    "bundle": "npm run validate:media && remotion bundle src/index.jsx build",
+    "still": "npm run validate && remotion still src/index.jsx TeaserPlan out/plan.png --frame=3240"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.524",
+    "@remotion/cli": "4.0.524",
+    "@remotion/renderer": "4.0.524",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.524"
+  }
+}
