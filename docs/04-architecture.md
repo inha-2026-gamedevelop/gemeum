@@ -792,8 +792,13 @@ Main.unity
 │     ├ PartyHudController.cs    [미검증] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
 │     │                           스폰 목록만 주기로 훑고 값은 PlayerStatus 이벤트로 받는다.
 │     │                           Dev_HUD에 배선했으나 2인 이상에서 관찰하지 못했다
-│     └ PartyMemberPlate.cs      [미검증] 파티 한 줄의 뷰. 이름 · 직업 아이콘 · 자원 바 3개.
-│                                값만 받고 PlayerStatus도 네트워크도 참조하지 않는다
+│     ├ PartyMemberPlate.cs      [미검증] 파티 한 줄의 뷰. 이름 · 직업 아이콘 · 자원 바 3개.
+│     │                           값만 받고 PlayerStatus도 네트워크도 참조하지 않는다
+│     └ Dev/
+│        └ HudResourceDecayTester.cs  [현재] 개발 전용. 서버가 모든 플레이어의 자원을
+│                                     주기마다 조금씩 깎아 HUD가 값을 따라가는지 보게 한다.
+│                                     DevToolHost에 스스로 붙고 기본은 꺼짐.
+│                                     좌하단 개인 바가 움직이는 것까지 관찰했다
 ├ AI/        보스 HP 바
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
