@@ -16,12 +16,12 @@ namespace Geumeum.UI
     /// 서버가 보낸 시계 하나에서 각 클라이언트가 계산한다 - 매 초 값을 받지도, 로컬로 세지도 않는다.
     /// 그래서 런 도중 들어온 사람도 같은 숫자를 본다.
     ///
-    /// 적는 것은 런 전체의 남은 시간이다. 축소까지 남은 시간이 아니다 -
+    /// 적는 것은 필드에 남은 시간이다. 축소까지 남은 시간이 아니다 -
     /// 그 숫자는 생존만 다루고 "거점 하나 더 칠 시간이 있나"에 답하지 못한다.
     /// 파밍이 길어질수록 점수의 시간 보너스가 줄어드는데, 그 비용이 보이는 곳은 여기뿐이다.
     ///
-    /// 기준 시간을 넘기면 00:00에서 멈춘다. 보너스가 사라졌다는 뜻이라 고장이 아니다.
-    /// 단계별 색 전환은 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
+    /// 보스 시계는 아직 세지 않는다. 보스 씬이 붙으면 점수 기준(필드 + 보스)과 맞춰야 한다.
+    /// 단계별 색 전환도 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
     /// </summary>
     public class HudTimerController : MonoBehaviour
     {
@@ -76,24 +76,24 @@ namespace Geumeum.UI
         ****************************************/
 
         /// <summary>
-        /// 기준 시간에서 게임 진행 시간을 뺀다. 기준은 필드 상한과 보스 시계 상한의 합이고,
-        /// RunManager가 정산 때 쓰는 조합과 같다 - 한쪽 수치를 고치면 여기도 따라간다
+        /// 필드 상한에서 필드 경과를 뺀다. 상한은 GameDB가 갖고 있어 밸런스에서 고치면 여기도 따라간다.
+        ///
+        /// 보스 경과는 더하지 않는다. 보스 씬이 아직 붙지 않아 셀 것이 없고,
+        /// 지금 합쳐 세면 필드에서만 도는 런에서 숫자가 14분 크게 시작한다
         /// </summary>
         private bool TryResolveRemainingSeconds(out int seconds)
         {
             seconds = 0;
 
-            // 기준 시간은 GameDB에 있다. 부트 전에 읽으면 예외가 난다.
-            // 이때 00:00을 적으면 "보너스가 사라졌다"로 읽히므로 아무것도 적지 않는다
+            // 상한은 GameDB에 있다. 부트 전에 읽으면 예외가 난다.
+            // 이때 00:00을 적으면 시간이 다 됐다는 뜻으로 읽히므로 아무것도 적지 않는다
             if (!GameDB.IsInitialized)
             {
                 return false;
             }
 
-            double limit = GameDB.Barrier.FieldTimeLimitSeconds + GameDB.Boss.BossTimeLimitSeconds;
-
-            // 필드와 보스를 합한 시간이다. 보스 씬으로 넘어가도 같은 숫자가 이어서 줄어든다
-            double elapsed = RunTimeLocator.Current.GameplayElapsedSeconds;
+            double limit   = GameDB.Barrier.FieldTimeLimitSeconds;
+            double elapsed = RunTimeLocator.Current.FieldElapsedSeconds;
 
             seconds = ToRemainingSeconds(limit - elapsed);
             return true;
