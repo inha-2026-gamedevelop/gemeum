@@ -619,6 +619,9 @@ namespace Geumeum.AI
 
             if (_activeKind == PatternKind.ConeBurst)
             {
+                // 러프 VFX 연결(이슈 검증용) — ConeBurst만 먼저 붙여본다, 나머지 템플릿은 느낌 보고 결정
+                _controller.ServerPlayMeleeArcImpact(Self.position, _lockedForward);
+
                 BossPatternRunner.ExecuteMeleeArc(
                     Self.position,
                     _lockedForward,

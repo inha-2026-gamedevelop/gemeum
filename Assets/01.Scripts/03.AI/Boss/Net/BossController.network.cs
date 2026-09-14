@@ -1,3 +1,6 @@
+// Unity
+using UnityEngine;
+
 // 서드파티
 using Mirror;
 
@@ -58,6 +61,13 @@ namespace Geumeum.AI
         private void RpcGroggyEnter()
         {
             CombatFeedbackLocator.Current.PlayGroggyEnter();
+        }
+
+        // 근접 부채꼴 패턴 임팩트 VFX 신호(러프, 이슈 검증용) — 표현 전용 컴포넌트가 구독한다
+        [ClientRpc]
+        private void RpcMeleeArcImpact(Vector3 origin, Vector3 forward)
+        {
+            MeleeArcImpact?.Invoke(origin, forward);
         }
 
         /****************************************

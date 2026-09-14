@@ -90,6 +90,9 @@ namespace Geumeum.AI
         public event Action<bool> EnrageWarningChanged;
         public event Action<bool> EnragedChanged;
 
+        /// <summary> 근접 부채꼴 패턴이 판정을 실행하는 순간마다 발생한다, 표현 전용(임시 러프 VFX) </summary>
+        public event Action<Vector3, Vector3> MeleeArcImpact;
+
         /****************************************
         *              Unity Event
         ****************************************/
@@ -987,6 +990,13 @@ namespace Geumeum.AI
             }
 
             target.TakeDamage(damage);
+        }
+
+        /// <summary> 근접 부채꼴 판정과 같은 프레임에 호출해 모든 클라이언트에 임팩트 VFX 신호를 보낸다(러프, 이슈 검증용) </summary>
+        [Server]
+        internal void ServerPlayMeleeArcImpact(Vector3 origin, Vector3 forward)
+        {
+            RpcMeleeArcImpact(origin, forward);
         }
 
         /// <summary> Combat의 실제 구조 성공 뒤 통계 사실을 한 번 발행한다 </summary>
