@@ -602,6 +602,7 @@ Main.unity
 03.AI/                     namespace Geumeum.AI
 ├ Enemy/
 │  ├ EnemyAnimationController.cs MB [구현완료] 잡귀 애니메이션 파라미터 갱신 (로컬 전용)
+│  ├ EnemyParryWindowFlash.cs MB [구현완료] 실제 패링 판정 구간(근사치) 동안 렌더러 강조색 표시 (로컬 전용, 이슈 #52)
 │  ├ EnemyController.cs    NB  잡귀 공통: 추적 · 공격 실행 · 사망 → 드랍/경험치 이벤트 발행.
 │  │                           EnemySO의 종류 필드로 구동 (종류별 상속 대신 데이터 구동)
 │  ├ EnemyStatus.cs        NB  HP SyncVar + 강화 배수 적용. IDamageable 구현.

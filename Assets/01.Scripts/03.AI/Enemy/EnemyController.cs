@@ -75,6 +75,9 @@ namespace Geumeum.AI
         /// <summary> 공격 모션 인덱스가 바뀔 때마다 발생한다, VisualStateChanged와 같은 틱에 함께 갱신된다 </summary>
         public event Action<int> AttackVariantChanged;
 
+        /// <summary> 실제 패링 판정 구간(근사치) 진입 · 이탈마다 발생한다, 표현 전용 </summary>
+        public event Action<bool> ParryWindowVisuallyOpenChanged;
+
         public bool IsHerding => (_brain != null) && _brain.IsHerding;
         public bool HerdingPathFailed => _herdingPathFailed;
         public TargetRef PrecisionTargetRef => CreateBodyTargetRef();
@@ -214,8 +217,9 @@ namespace Geumeum.AI
 
             _brain.Tick(deltaTime);
             ApplyBrainDecision();
-            _visualState   = _brain.VisualState;
-            _attackVariant = _brain.AttackVariant;
+            _visualState                = _brain.VisualState;
+            _attackVariant              = _brain.AttackVariant;
+            _isParryWindowVisuallyOpen  = _brain.IsParryWindowVisuallyOpen;
         }
 
         /****************************************
