@@ -803,11 +803,11 @@ Main.unity
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
 │     │                           씬 배선 전이라 동작을 관찰하지 못했다
-│     ├ HudTimerController.cs    [현재] 우상단 시간 슬롯의 숫자를 mm:ss로 적는다.
-│     │                           축소 중이면 축소가 끝날 때까지, 아니면 다음 축소가 시작할 때까지 남은 시간이다.
-│     │                           둘 다 없으면 경과 시간으로 돌아간다. 일정은 GameDB.Barrier.Phases에서 읽고
-│     │                           시각은 RunTimeLocator만 본다 - 새로 주고받는 값은 없다.
-│     │                           경과 시간 표시는 3인에서 확인했으나 남은 시간 표시는 화면에서 보지 못했다.
+│     ├ HudTimerController.cs    [현재] 우상단 시간 슬롯에 런 전체의 남은 시간을 mm:ss로 적는다.
+│     │                           기준 44:00은 GameDB의 필드 상한과 보스 시계 상한의 합이고
+│     │                           RunManager가 정산에 쓰는 조합과 같다. 코드에 박은 수치가 아니다.
+│     │                           필드와 보스를 합쳐 세므로 보스 씬에서도 같은 숫자가 이어진다.
+│     │                           축소까지 남은 시간이 아니다 - 그 경고는 배너와 부적이 맡는다(HUD_DESIGN 2.2).
 │     │                           단계별 색 전환은 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
 │     ├ PartyHudController.cs    [구현완료] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
 │     │                           스폰 목록만 주기로 훑고 값은 PlayerStatus 이벤트로 받는다.

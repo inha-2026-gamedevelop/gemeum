@@ -1,6 +1,3 @@
-// System
-using System.Collections.Generic;
-
 // Unity
 using UnityEngine;
 
@@ -19,11 +16,12 @@ namespace Geumeum.UI
     /// 서버가 보낸 시계 하나에서 각 클라이언트가 계산한다 - 매 초 값을 받지도, 로컬로 세지도 않는다.
     /// 그래서 런 도중 들어온 사람도 같은 숫자를 본다.
     ///
-    /// 적는 것은 세 가지 중 하나다.
-    /// 축소가 진행 중이면 축소가 끝날 때까지, 아니면 다음 축소가 시작할 때까지 남은 시간이다.
-    /// 둘 다 없으면(런 시작 전, 마지막 단계, 보스전) 경과 시간으로 돌아간다.
+    /// 적는 것은 런 전체의 남은 시간이다. 축소까지 남은 시간이 아니다 -
+    /// 그 숫자는 생존만 다루고 "거점 하나 더 칠 시간이 있나"에 답하지 못한다.
+    /// 파밍이 길어질수록 점수의 시간 보너스가 줄어드는데, 그 비용이 보이는 곳은 여기뿐이다.
     ///
-    /// 단계별 색 전환은 아직 없다. 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
+    /// 기준 시간을 넘기면 00:00에서 멈춘다. 보너스가 사라졌다는 뜻이라 고장이 아니다.
+    /// 단계별 색 전환은 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
     /// </summary>
     public class HudTimerController : MonoBehaviour
     {
@@ -58,7 +56,11 @@ namespace Geumeum.UI
                 return;
             }
 
-            int seconds = ResolveDisplaySeconds();
+            if (!TryResolveRemainingSeconds(out int seconds))
+            {
+                return;
+            }
+
             if (seconds == _shownSeconds)
             {
                 return;
@@ -73,73 +75,28 @@ namespace Geumeum.UI
         *                Methods
         ****************************************/
 
-        private int ResolveDisplaySeconds()
-        {
-            if (TryResolveRemaining(out int remaining))
-            {
-                return remaining;
-            }
-
-            // 결계 일정이 없는 구간이다. 숫자를 비우면 슬롯이 빈 액자로 남으므로 경과 시간을 적는다
-            return Mathf.Max(0, Mathf.FloorToInt((float) RunTimeLocator.Current.GameplayElapsedSeconds));
-        }
-
         /// <summary>
-        /// 다음 위험까지 남은 시간. 축소가 진행 중이면 그것이 먼저다 -
-        /// 지금 좁혀지고 있는 원이 나중에 올 축소보다 급하다
+        /// 기준 시간에서 게임 진행 시간을 뺀다. 기준은 필드 상한과 보스 시계 상한의 합이고,
+        /// RunManager가 정산 때 쓰는 조합과 같다 - 한쪽 수치를 고치면 여기도 따라간다
         /// </summary>
-        private bool TryResolveRemaining(out int seconds)
+        private bool TryResolveRemainingSeconds(out int seconds)
         {
             seconds = 0;
 
-            // 결계 일정은 GameDB에 있다. 부트 전에 읽으면 예외가 난다
+            // 기준 시간은 GameDB에 있다. 부트 전에 읽으면 예외가 난다.
+            // 이때 00:00을 적으면 "보너스가 사라졌다"로 읽히므로 아무것도 적지 않는다
             if (!GameDB.IsInitialized)
             {
                 return false;
             }
 
-            // 결계 판정이 쓰는 시계와 같은 것을 본다. 보스전에서는 이 시계가 더 이상 늘지 않는다
-            double now = RunTimeLocator.Current.FieldElapsedSeconds;
+            double limit = GameDB.Barrier.FieldTimeLimitSeconds + GameDB.Boss.BossTimeLimitSeconds;
 
-            BarrierTransitionState snapshot = BarrierStateLocator.TransitionSource.Snapshot;
-            if ((now >= snapshot.StartGameplayTime) && (now < snapshot.EndGameplayTime))
-            {
-                seconds = ToRemainingSeconds(snapshot.EndGameplayTime - now);
-                return true;
-            }
+            // 필드와 보스를 합한 시간이다. 보스 씬으로 넘어가도 같은 숫자가 이어서 줄어든다
+            double elapsed = RunTimeLocator.Current.GameplayElapsedSeconds;
 
-            if (!TryFindNextShrinkTime(now, out double nextShrinkTime))
-            {
-                return false;
-            }
-
-            seconds = ToRemainingSeconds(nextShrinkTime - now);
+            seconds = ToRemainingSeconds(limit - elapsed);
             return true;
-        }
-
-        /// <summary> 아직 오지 않은 첫 단계의 시작 시각. 단계는 시간순으로 정의되어 있다 </summary>
-        private static bool TryFindNextShrinkTime(double now, out double startSeconds)
-        {
-            startSeconds = 0.0;
-
-            IReadOnlyList<BarrierPhaseSO.PhaseEntry> phases = GameDB.Barrier.Phases;
-            if (phases == null)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < phases.Count; ++i)
-            {
-                if (phases[i].StartSeconds <= now)
-                {
-                    continue;
-                }
-
-                startSeconds = phases[i].StartSeconds;
-                return true;
-            }
-
-            return false;
         }
 
         // 카운트다운은 올림이다. 0.4초 남았는데 00:00으로 보이면 이미 끝난 것으로 읽힌다
