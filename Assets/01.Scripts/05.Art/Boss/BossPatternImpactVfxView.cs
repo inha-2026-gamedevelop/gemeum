@@ -23,6 +23,9 @@ namespace Geumeum.Art
         {
             public BossPatternSO.PatternTemplate Template;
             public GameObject                    Prefab;
+
+            [Tooltip("프리팹 원본 크기에 곱할 배율, 0 이하면 1배(원본 그대로)로 취급한다")]
+            public float Scale;
         }
 
         [SerializeField] private VfxEntry[] _vfxByTemplate;
@@ -50,42 +53,49 @@ namespace Geumeum.Art
 
         private void HandlePatternImpact(BossPatternSO.PatternTemplate template, Vector3 origin, Vector3 forward)
         {
-            SpawnVfx(ResolvePrefab(_vfxByTemplate, template), origin, forward);
+            SpawnVfx(ResolveEntry(_vfxByTemplate, template), origin, forward);
         }
 
         private void HandlePatternTelegraphVfx(BossPatternSO.PatternTemplate template, Vector3 origin, Vector3 forward)
         {
-            SpawnVfx(ResolvePrefab(_vfxByTemplateOnTelegraph, template), origin, forward);
+            SpawnVfx(ResolveEntry(_vfxByTemplateOnTelegraph, template), origin, forward);
         }
 
-        private void SpawnVfx(GameObject prefab, Vector3 origin, Vector3 forward)
+        private void SpawnVfx(VfxEntry entry, Vector3 origin, Vector3 forward)
         {
-            if (prefab == null)
+            if (entry.Prefab == null)
             {
                 return;
             }
 
             // 소스 VFX(Piloto SB_* 계열)의 정면 축이 반대라, forward를 그대로 쓰면 반대로 나간다
-            GameObject instance = Instantiate(prefab, origin, Quaternion.LookRotation(-forward));
+            GameObject instance = Instantiate(entry.Prefab, origin, Quaternion.LookRotation(-forward));
+
+            float scale = (entry.Scale > 0f) ? entry.Scale : 1f;
+            if (scale != 1f)
+            {
+                instance.transform.localScale *= scale;
+            }
+
             Destroy(instance, _vfxLifetimeSeconds);
         }
 
-        private static GameObject ResolvePrefab(VfxEntry[] table, BossPatternSO.PatternTemplate template)
+        private static VfxEntry ResolveEntry(VfxEntry[] table, BossPatternSO.PatternTemplate template)
         {
             if (table == null)
             {
-                return null;
+                return default;
             }
 
             for (int i = 0; i < table.Length; ++i)
             {
                 if (table[i].Template == template)
                 {
-                    return table[i].Prefab;
+                    return table[i];
                 }
             }
 
-            return null;
+            return default;
         }
     }
 }
