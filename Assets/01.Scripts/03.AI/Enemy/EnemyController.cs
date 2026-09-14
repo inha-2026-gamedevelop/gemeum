@@ -33,6 +33,7 @@ namespace Geumeum.AI
         private const float TARGET_SCAN_INTERVAL    = 0.5f; // 매 프레임 탐색 대신 주기 탐색
         private const float TARGET_SCAN_RADIUS      = 20f;  // Brain의 AggroRange보다 넉넉히 잡고, 실제 인지 여부는 Brain이 판단
         private const float PROJECTILE_RANGE_MARGIN = 1.5f; // 시전 사거리보다 이만큼 더 날아갈 여유를 준다
+        private const float PROJECTILE_SPAWN_HEIGHT = 1.2f; // 바닥에 붙어 날아가지 않도록 몬스터 루트 기준으로 띄우는 높이(m)
 
         // 타격 순간 사거리를 그대로 쓰면 몬스터가 멈춰 선 자리에서 한 걸음만 밀려도 전부 빗나간다.
         // 투사체와 같은 방식으로 여유를 준다
@@ -613,7 +614,9 @@ namespace Geumeum.AI
             direction.y = 0f;
             direction   = (direction.sqrMagnitude > 0.0001f) ? direction.normalized : transform.forward;
 
-            CurseProjectile projectile = Instantiate(_projectilePrefab, transform.position, Quaternion.LookRotation(direction));
+            Vector3 spawnPosition = transform.position + (Vector3.up * PROJECTILE_SPAWN_HEIGHT);
+
+            CurseProjectile projectile = Instantiate(_projectilePrefab, spawnPosition, Quaternion.LookRotation(direction));
             projectile.Initialize(direction, _status.ProjectileSpeed, _status.AttackPower, netId, _status.AttackRange * PROJECTILE_RANGE_MARGIN);
             NetworkServer.Spawn(projectile.gameObject);
         }
