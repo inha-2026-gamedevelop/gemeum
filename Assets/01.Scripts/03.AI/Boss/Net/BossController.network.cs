@@ -6,6 +6,7 @@ using Mirror;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Data;
 
 namespace Geumeum.AI
 {
@@ -63,11 +64,18 @@ namespace Geumeum.AI
             CombatFeedbackLocator.Current.PlayGroggyEnter();
         }
 
-        // 근접 부채꼴 패턴 임팩트 VFX 신호(러프, 이슈 검증용) — 표현 전용 컴포넌트가 구독한다
+        // 패턴 임팩트 VFX 신호(러프, 이슈 검증용) — 표현 전용 컴포넌트가 구독한다
         [ClientRpc]
-        private void RpcMeleeArcImpact(Vector3 origin, Vector3 forward)
+        private void RpcPatternImpact(BossPatternSO.PatternTemplate template, Vector3 origin, Vector3 forward)
         {
-            MeleeArcImpact?.Invoke(origin, forward);
+            PatternImpact?.Invoke(template, origin, forward);
+        }
+
+        // 패턴 예고 VFX 신호(러프, 이슈 검증용) — 표현 전용 컴포넌트가 구독한다
+        [ClientRpc]
+        private void RpcPatternTelegraphVfx(BossPatternSO.PatternTemplate template, Vector3 origin, Vector3 forward)
+        {
+            PatternTelegraphVfx?.Invoke(template, origin, forward);
         }
 
         /****************************************

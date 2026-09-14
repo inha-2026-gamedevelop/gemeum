@@ -761,10 +761,12 @@ Main.unity
 │  │                           읽어 바닥 장판(부채꼴·원·레인)을 그린다. BossPatternExecutionSpec으로
 │  │                           판정과 같은 반경·각도 값을 써서 눈에 보이는 범위와 실제 판정이 어긋나지
 │  │                           않는다. 전용 셰이더는 BossTelegraph.shader(같은 폴더)
-│  └ BossMeleeArcVfxView.cs MB  [러프] BossController.MeleeArcImpact 신호로 ConeBurst 패턴 타격
-│                              순간에 VFX(ThirdParty SB_Shockwave_Cone)를 Instantiate+Destroy.
-│                              정식 프로덕션 파이프라인(PresentationConfigSO·풀링) 미적용,
-│                              템플릿 4개 중 ConeBurst 하나만 연결 — 나머지는 느낌 보고 결정 예정
+│  └ BossPatternImpactVfxView.cs MB  [러프] BossController.PatternImpact(타격)·
+│                              PatternTelegraphVfx(예고) 신호로 패턴별 VFX(ThirdParty SB_* 계열)를
+│                              Instantiate+Destroy. 템플릿→프리팹 매핑은 인스펙터 배열 2개
+│                              (_vfxByTemplate·_vfxByTemplateOnTelegraph)로 관리, 낙인(MarkedCircle)만
+│                              예고·타격 둘 다 씀. 정식 프로덕션 파이프라인(PresentationConfigSO·풀링)
+│                              미적용 — 느낌 보며 계속 교체 중
 ├ Camera/                  [구현완료] → 카메라와 락온 사양
 │  ├ CameraRig.cs          MB  추적 · 충돌 · 셰이크 · 줌. LateUpdate.
 │  │                           Target이 바뀔 수 있어야 한다 — 관전 카메라가 같은 물건이다.
