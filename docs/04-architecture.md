@@ -706,6 +706,12 @@ BossController·BossPartController·BossSoulController·BossStatus·BossSpawner�
 │  ├ EquipmentTransferService.cs NB 파티원 간 장비 양도. 제안 · 수락 · 거절 · 취소를
 │  │                           무권한 Command로 받고 서버가 호출자와 양쪽 revision을 검증
 │  │                           [구현완료]
+│  ├ Dev/InventoryTestSetup.cs  [구현완료] 개발 전용. 호스트 화면에서 참가자별로 장비를
+│  │                           지급하거나 칸을 비운다. 양도 규칙을 보려면 받을 사람과
+│  │                           가득 찬 사람이 필요한데 드랍이 15퍼센트라 손으로 모으기 어렵다.
+│  │                           단일 씬은 SceneRevision이 0에 머물러 거래 헤더가 무효가 되므로
+│  │                           서버 시작 시 1로 올린다. 이 때문에 개발 씬에는
+│  │                           RunSceneDirector가 함께 있어야 한다
 │  └ Editor/InventoryRulesTests.cs · InventoryControllerTests.cs · EquipmentSwapRulesTests.cs
 ├ Interaction/             [구현완료]
 │  ├ InteractionController.cs NB 상호작용 입력과 줍기 · 장착 요청. 판정은 전부 서버
