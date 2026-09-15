@@ -14,25 +14,5 @@ namespace Geumeum.AI
 
         [SyncVar(hook = nameof(HandleSoulSnapshotChanged))]
         private BossSoulSnapshot _snapshot;
-
-        /****************************************
-        *           Client Callbacks
-        ****************************************/
-
-        public override void OnStartClient()
-        {
-            ApplyHitboxes(_snapshot);
-            NotifySoulChanged(_snapshot);
-        }
-
-        /****************************************
-        *             SyncVar Hooks
-        ****************************************/
-
-        private void HandleSoulSnapshotChanged(BossSoulSnapshot previous, BossSoulSnapshot current)
-        {
-            ApplyHitboxes(current);
-            NotifySoulChanged(current);
-        }
     }
 }

@@ -5,8 +5,8 @@
 #
 # 팀 구성 (3인)
 #   @AidenKim923      김민성(표시 이름 aurenixs) — 팀장 · 네트워크 · 전투 · 테크니컬 아트 · 통합
-#   @oname36-creator  몬스터 · 보스
-#   @kjw1237          게임플레이 시스템 · 결계
+#   @oname36-creator  몬스터 · 보스 (AI · 패턴 판정 포함)
+#   @kjw1237          게임플레이 시스템 · 결계 · UI (판정 규칙 포함)
 #
 # CODEOWNERS에는 표시 이름이 아니라 GitHub 로그인을 적어야 한다.
 # 잘못 적어도 GitHub은 경고 없이 그 줄을 무시한다 — Settings의 CODEOWNERS 오류 표시로 확인할 것.
@@ -48,7 +48,7 @@
 # /Assets/00.Scenes/Dev_Art.unity                @AidenKim923
 
 # ---------------------------------------------------------------
-# 스크립트 — 폴더 = 네임스페이스 = 소유권
+# 스크립트 — 파트 폴더는 파트 담당(판정·AI 포함), 네트워크 코드(Net/ · 98.Servers/)는 팀장
 # ---------------------------------------------------------------
 /Assets/01.Scripts/00.Common/       @AidenKim923
 /Assets/01.Scripts/01.Network/      @AidenKim923
@@ -63,6 +63,13 @@
 # 공용 개발 도구 — 2026-09-10 00.Common/Dev 에서 옮겨 왔다 (04-architecture.md 4.7).
 # 전 파트가 GDebug · GGizmo · 개발 패널을 여기서 가져다 쓰므로 팀장이 본다
 /Assets/01.Scripts/99.Dev/           @AidenKim923
+
+# 네트워크 코드 — 2026-09-15부터 파트와 무관하게 팀장이 맡는다 (coding-convention.md 9장).
+# **/Net/는 서버 통신 계약(SyncVar 선언·Command), 98.Servers/{03.AI|04.Systems}/{기능}/는 *.server.cs partial(서버 수명·[Server] 메서드·요청 검증)이다.
+# 파트 폴더 안에 생겨도 팀장 소유다. 마지막으로 매칭된 줄이 이긴다 — 파트 규칙보다 뒤에 둔다.
+/Assets/01.Scripts/**/Net/           @AidenKim923
+/Assets/01.Scripts/98.Servers/         @AidenKim923
+/Assets/01.Scripts/98.Servers.meta     @AidenKim923
 
 # ---------------------------------------------------------------
 # 프리팹 — 스크립트 소유권과 같은 파트

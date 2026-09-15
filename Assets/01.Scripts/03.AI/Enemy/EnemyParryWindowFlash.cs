@@ -4,6 +4,9 @@ using System.Collections.Generic;
 // Unity
 using UnityEngine;
 
+// 프로젝트 내부
+using Geumeum.Common;
+
 namespace Geumeum.AI
 {
     /// <summary>
@@ -27,7 +30,7 @@ namespace Geumeum.AI
 
         private readonly List<RendererState> _states = new List<RendererState>();
 
-        private EnemyController _controller;
+        private IEnemyPresentationSource _controller;
 
         private void Awake()
         {
@@ -37,6 +40,7 @@ namespace Geumeum.AI
         private void OnEnable()
         {
             _controller.ParryWindowVisuallyOpenChanged += HandleParryWindowVisuallyOpenChanged;
+            HandleParryWindowVisuallyOpenChanged(_controller.IsParryWindowVisuallyOpen);
         }
 
         private void OnDisable()

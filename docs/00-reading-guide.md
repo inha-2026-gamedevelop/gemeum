@@ -48,9 +48,9 @@
 
 | 파트 | 추가 필독 |
 |---|---|
-| 네트워크 · 전투 | [네트워크 권위](unity/NETWORK_AUTHORITY.md) |
-| 몬스터 · 보스 | [네트워크 권위](unity/NETWORK_AUTHORITY.md) · [게임 디자인 5·9절](02-game-design.md) |
-| 게임플레이 시스템 · 결계 | [밸런스 데이터 작업](unity/BALANCE_DATA_WORKFLOW.md) · [게임 디자인 2·6~8·11절](02-game-design.md) |
+| 네트워크 · 전투 | [네트워크 권위](unity/NETWORK_AUTHORITY.md) · [서버·클라이언트 협업](unity/SERVER_CLIENT_WORKFLOW.md) |
+| 몬스터 · 보스 | [네트워크 권위](unity/NETWORK_AUTHORITY.md) · [서버·클라이언트 협업](unity/SERVER_CLIENT_WORKFLOW.md) · [게임 디자인 5·9절](02-game-design.md) |
+| 게임플레이 시스템 · 결계 | [밸런스 데이터 작업](unity/BALANCE_DATA_WORKFLOW.md) · [클라이언트 API 안내](unity/CLIENT_API_REFERENCE.md) · [게임 디자인 2·6~8·11절](02-game-design.md) |
 | 테크니컬 아트 (팀장 겸임) | [씬 · 에셋 안전](unity/SCENE_AND_ASSET_SAFETY.md) · [기술 설계 4.4](03-technical-design.md) |
 
 ---
@@ -62,6 +62,8 @@
 | 이럴 때 | 이 문서 |
 |---|---|
 | 서버가 판정할지 클라가 할지 모르겠다 | [네트워크 권위](unity/NETWORK_AUTHORITY.md) |
+| `Net/` · `98.Servers/` 파일을 건드리거나 누가 작성할지 헷갈린다 | [서버·클라이언트 협업](unity/SERVER_CLIENT_WORKFLOW.md) |
+| UI · 표현에서 서버에 요청하거나 상태를 읽는다 | [클라이언트 API 안내](unity/CLIENT_API_REFERENCE.md) |
 | 씬 · 프리팹 · `.meta`를 건드린다 | [씬 · 에셋 안전](unity/SCENE_AND_ASSET_SAFETY.md) |
 | 수치를 만들거나 바꾼다 | [밸런스 데이터 작업](unity/BALANCE_DATA_WORKFLOW.md) |
 | 3인 접속 테스트를 해야 한다 | [멀티플레이 테스트](ai/04_MULTIPLAYER_TEST_PROTOCOL.md) |

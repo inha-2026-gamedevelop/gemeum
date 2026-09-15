@@ -10,15 +10,5 @@ namespace Geumeum.Systems
         ****************************************/
 
         [SyncVar] private bool _isOpen;
-
-        /****************************************
-        *               TargetRpc
-        ****************************************/
-
-        [TargetRpc]
-        private void TargetOpenShop(NetworkConnection target, uint shopNetId)
-        {
-            OpenRequested?.Invoke(shopNetId);
-        }
     }
 }

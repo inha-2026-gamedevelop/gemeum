@@ -105,6 +105,7 @@ namespace Geumeum.Network
             public int activeOverlayCanvasCount;
             public BossVerificationSnapshot[] bosses;
             public uint localPlayerNetId;
+            public string interactionPromptText;
             public int localPlayerLifeState;
             public float localPlayerHealth;
             public float localPlayerMaxHealth;
@@ -397,6 +398,16 @@ namespace Geumeum.Network
         private static bool ExecuteKnownVerb(FunctionalManagementPanel panel,
             VerificationCommand command, out string message)
         {
+            if (string.Equals(command.verb, "interaction_request", StringComparison.Ordinal))
+            {
+                NetworkIdentity player = NetworkClient.localPlayer;
+                IInteractionRequestSource requests = (player == null)
+                    ? null : player.GetComponent<InteractionController>();
+                bool sent = (requests != null) && (requests.RequestInteract(command.uintValue));
+                message = sent ? "상호작용 요청을 전송했다. 서버 승인은 별도 상태로 확인한다"
+                    : "상호작용 요청을 전송하지 못했다";
+                return sent;
+            }
             if (string.Equals(command.verb, "capture", StringComparison.Ordinal) ||
                 string.Equals(command.verb, "capture_world",
                     StringComparison.Ordinal))
@@ -977,6 +988,8 @@ namespace Geumeum.Network
             VerificationSnapshot snapshot)
         {
             snapshot.localPlayerNetId = localPlayer.netId;
+            InteractionController interaction = localPlayer.GetComponent<InteractionController>();
+            snapshot.interactionPromptText = (interaction == null) ? null : interaction.PromptText;
             PlayerStatus status = localPlayer.GetComponent<PlayerStatus>();
             if (status != null)
             {

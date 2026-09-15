@@ -14,15 +14,5 @@ namespace Geumeum.Systems
 
         [SyncVar(hook = nameof(OnTransitionStateChanged))]
         private BarrierTransitionState _transitionState;
-
-        /****************************************
-        *             SyncVar Hooks
-        ****************************************/
-
-        private void OnTransitionStateChanged(BarrierTransitionState oldState,
-            BarrierTransitionState newState)
-        {
-            NotifySnapshot(newState);
-        }
     }
 }

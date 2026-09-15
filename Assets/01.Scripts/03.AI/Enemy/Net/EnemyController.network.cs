@@ -20,27 +20,5 @@ namespace Geumeum.AI
 
         [SyncVar(hook = nameof(OnParryWindowVisuallyOpenChanged))]
         private bool _isParryWindowVisuallyOpen = false;
-
-        /****************************************
-        *             SyncVar Hooks
-        ****************************************/
-
-        /// <summary> _visualState 동기화 훅, 서버 · 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
-        private void OnVisualStateChanged(EnemyVisualState oldState, EnemyVisualState newState)
-        {
-            VisualStateChanged?.Invoke(newState);
-        }
-
-        /// <summary> _attackVariant 동기화 훅, 서버 · 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
-        private void OnAttackVariantChanged(int oldVariant, int newVariant)
-        {
-            AttackVariantChanged?.Invoke(newVariant);
-        }
-
-        /// <summary> _isParryWindowVisuallyOpen 동기화 훅, 서버 · 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
-        private void OnParryWindowVisuallyOpenChanged(bool oldValue, bool newValue)
-        {
-            ParryWindowVisuallyOpenChanged?.Invoke(newValue);
-        }
     }
 }

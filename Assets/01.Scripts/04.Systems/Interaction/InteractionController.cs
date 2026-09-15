@@ -6,7 +6,6 @@ using Mirror;
 
 // 프로젝트 내부
 using Geumeum.Common;
-using Geumeum.Data;
 
 namespace Geumeum.Systems
 {
@@ -16,7 +15,7 @@ namespace Geumeum.Systems
     /// 클라이언트가 보낸 후보는 "무엇을 하려 했는가"일 뿐 승인 근거가 아니다
     /// </summary>
     [DisallowMultipleComponent]
-    public partial class InteractionController : NetworkBehaviour
+    public partial class InteractionController : NetworkBehaviour, IInteractionRequestSource
     {
         /****************************************
         *                Fields
@@ -28,23 +27,11 @@ namespace Geumeum.Systems
         [Tooltip("후보를 다시 찾는 주기(초). 매 프레임 물리 질의를 돌리지 않는다")]
         [SerializeField] private float _scanInterval = 0.15f;
 
-        // 로컬 표시용. 서버 판정과는 무관하다
-        private IInteractable _localCandidate;
-        private uint          _localCandidateNetId;
-        private float         _nextScanTime;
+        private InteractionClient _client;
 
-        private static readonly Collider[] _scanBuffer = new Collider[16];
-
-        /****************************************
-        *              Properties
-        ****************************************/
-
-        /// <summary> 지금 띄울 안내 문구. 후보가 없으면 null이다. UI가 읽는다 </summary>
-        public string PromptText => (_localCandidate != null) ? _localCandidate.PromptText : null;
-
-        /****************************************
-        *              Unity Event
-        ****************************************/
+        public uint ActorNetId => netId;
+        public Vector3 ActorPosition => transform.position;
+        public string PromptText => (_client != null) ? _client.PromptText : null;
 
         private void Update()
         {
@@ -53,74 +40,36 @@ namespace Geumeum.Systems
                 return;
             }
 
-            if (Time.time >= _nextScanTime)
+            if (_client == null)
             {
-                _nextScanTime = (Time.time + _scanInterval);
-                RefreshCandidate();
+                _client = new InteractionClient(this);
             }
 
-            if (LocalGameplayInputGate.AllowsGameplayInput &&
-                (Input.GetKeyDown(_interactKey)) && (_localCandidateNetId != 0u))
+            _client.Tick(_interactKey, _scanInterval);
+        }
+
+        /// <summary> true는 요청 전송이며 서버 승인 결과가 아니다 </summary>
+        public bool RequestInteract(uint targetNetId)
+        {
+            if ((!isLocalPlayer) || (!NetworkClient.active) ||
+                (!LocalGameplayInputGate.AllowsGameplayInput) ||
+                (targetNetId == 0u) || (targetNetId == netId))
             {
-                CmdInteract(_localCandidateNetId);
+                return false;
             }
+
+            CmdInteract(targetNetId);
+            return true;
         }
 
         /****************************************
-        *              Client Local
+        *           Client Callbacks
         ****************************************/
 
-        /// <summary> 가장 가까운 후보를 찾는다. 표시용이며 서버는 이 결과를 신뢰하지 않는다 </summary>
-        private void RefreshCandidate()
+        public override void OnStopLocalPlayer()
         {
-            _localCandidate      = null;
-            _localCandidateNetId = 0u;
-
-            if (!GameDB.IsInitialized)
-            {
-                return;
-            }
-
-            float range = GameDB.Combat.InteractRange;
-            int count = Physics.OverlapSphereNonAlloc(transform.position, range, _scanBuffer,
-                ~0, QueryTriggerInteraction.Collide);
-
-            float nearestSquared = float.MaxValue;
-            for (int i = 0; i < count; ++i)
-            {
-                Collider hit = _scanBuffer[i];
-                if (hit == null)
-                {
-                    continue;
-                }
-
-                var interactable = hit.GetComponentInParent<IInteractable>();
-                if (interactable == null)
-                {
-                    continue;
-                }
-
-                var identity = hit.GetComponentInParent<NetworkIdentity>();
-                if ((identity == null) || (identity.netId == 0u) || (identity == netIdentity))
-                {
-                    continue;
-                }
-
-                if (!interactable.CanInteract(netId))
-                {
-                    continue;
-                }
-
-                float distanceSquared = (identity.transform.position - transform.position).sqrMagnitude;
-                if (distanceSquared >= nearestSquared)
-                {
-                    continue;
-                }
-
-                nearestSquared       = distanceSquared;
-                _localCandidate      = interactable;
-                _localCandidateNetId = identity.netId;
-            }
+            _client = null;
+            base.OnStopLocalPlayer();
         }
     }
 }

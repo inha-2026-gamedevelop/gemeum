@@ -33,7 +33,7 @@ namespace Geumeum.AI
 
         [SerializeField] private Animator _animator;
 
-        private EnemyController _controller;
+        private IEnemyPresentationSource _controller;
         private Transform       _artTransform;
         private Vector3         _artBaseLocalPosition;
         private float           _lastHop;
@@ -93,6 +93,8 @@ namespace Geumeum.AI
         {
             _controller.VisualStateChanged   += HandleVisualStateChanged;
             _controller.AttackVariantChanged += HandleAttackVariantChanged;
+            HandleVisualStateChanged(_controller.VisualState);
+            HandleAttackVariantChanged(_controller.AttackVariant);
         }
 
         private void OnDisable()

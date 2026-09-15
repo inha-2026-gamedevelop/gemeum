@@ -3,6 +3,8 @@
 이 문서는 3명이 5주 안에 게임을 완성하기 위한 최소한의 규칙이다.
 규칙이 많으면 지켜지지 않으므로, 사고가 실제로 나는 지점만 정했다.
 
+네트워크 코드(도메인 폴더의 `Net/`, 중앙 `Assets/01.Scripts/98.Servers/`의 `.server.cs`)는 @AidenKim923이 전담한다. 몬스터·보스 AI와 게임플레이 판정 규칙은 서버에서만 실행되지만 작성은 각 파트 담당이 원래 도메인 폴더에서 한다. 위치·역할·기능 진행 순서는 [서버·클라이언트 협업](docs/unity/SERVER_CLIENT_WORKFLOW.md)을 따른다.
+
 ---
 
 ## 1. 브랜치
@@ -12,9 +14,9 @@
 ```
 main                      항상 실행 가능한 상태. 직접 푸시 금지
  └ develop                통합 브랜치. PR로만 병합
-    ├ feature/Minsung     @AidenKim923 — 네트워크 · 전투 · 테크니컬 아트 · 통합
-    ├ feature/{이름}      @oname36-creator — 몬스터 · 보스
-    └ feature/{이름}      @kjw1237 — 게임플레이 시스템 · 결계
+    ├ feature/Minsung     @AidenKim923 — 네트워크 코드 · 전투 · 테크니컬 아트 · 통합
+    ├ feature/{이름}      @oname36-creator — 몬스터 · 보스 (AI · 패턴 판정 포함)
+    └ feature/{이름}      @kjw1237 — 게임플레이 시스템 · 결계 · UI (판정 규칙 포함)
 ```
 
 테크니컬 아트는 팀장이 겸임하므로 아트용 브랜치를 따로 만들지 않는다. 브랜치는 사람 단위다.
@@ -111,6 +113,14 @@ git lfs pull
 ---
 
 ## 6. 서버와 클라이언트
+
+**실행 위치와 작성 담당은 다르다.** 몬스터 AI·보스 패턴·스폰·결계 판정은 서버에서만 실행되지만, 작성은 원래 파트 담당이 도메인 폴더에서 한다.
+@AidenKim923은 네트워크 코드(`Net/`의 SyncVar·SyncList 선언과 `[Command]`, 중앙 `98.Servers/`의 `.server.cs`)를 맡는다. 판정·AI 코드는 `[Server]` 메서드와 `98.Servers/` partial 같은 서버 경로에서만 호출한다.
+새 `[SyncVar]`·`[Command]`·Rpc나 `.server.cs` 변경이 필요하면 직접 고치지 않고 팀장에게 요청한다. 원본과 `.server.cs`는 private 필드를 공유하므로, 원본의 서버 상태 필드나 서버 partial이 쓰는 멤버 이름을 바꿀 때는 팀장 리뷰를 받는다.
+클라이언트·UI는 판정 코드를 직접 호출하지 않고 공개 요청 API와 복제된 상태를 쓴다.
+
+작업 범위·API 선행 전달·기능별 PR 순서는 [서버·클라이언트 협업](docs/unity/SERVER_CLIENT_WORKFLOW.md),
+실제 호출 창구는 [클라이언트 API 안내](docs/unity/CLIENT_API_REFERENCE.md)를 따른다.
 
 무언가를 만들기 전에 한 번 자문한다.
 

@@ -14,16 +14,16 @@
 
 ## 1. 네임스페이스 (파트 기준)
 
-루트 네임스페이스는 `Geumeum`, 그 아래 담당 파트로 나눈다. `Assets/01.Scripts/` 하위 폴더 구조와 [CODEOWNERS](../.github/CODEOWNERS)의 파트 구분을 그대로 따른다.
+루트 네임스페이스는 `Geumeum`, 그 아래 기능 도메인으로 나눈다. `Assets/01.Scripts/` 하위 폴더 구조를 따르며, 구현 소유는 [CODEOWNERS](../.github/CODEOWNERS)의 파트 구분(`Net/` · `98.Servers/`는 팀장)을 따른다. 하위 폴더를 만들어도 기존 도메인 네임스페이스는 유지한다.
 
 ```csharp
 namespace Geumeum.Network      // 세션, 동기화 — 네트워크·전투 파트
 namespace Geumeum.Combat       // 플레이어, 패링, 화살 — 네트워크·전투 파트
-namespace Geumeum.AI           // 잡귀, 보스, 스폰 — 몬스터·보스 파트
-namespace Geumeum.Systems      // 장비, 경제, 특성, 점수, 결계 — 게임플레이 시스템 파트
-namespace Geumeum.UI           // 각 파트가 자기 UI를 여기에
+namespace Geumeum.AI           // 잡귀, 보스, 스폰 — 몬스터·보스 파트 (AI·패턴 판정 포함)
+namespace Geumeum.Systems      // 장비, 경제, 특성, 점수, 결계 — 게임플레이 시스템 파트 (판정 규칙 포함)
+namespace Geumeum.UI           // 시스템 담당의 UI
 namespace Geumeum.Data         // ScriptableObject 정의
-// 폴더 구조와 일치시킨다 — namespace가 Assets/01.Scripts/ 하위 경로와 어긋나면 잘못된 것
+// 도메인과 일치시킨다. 중앙 98.Servers/의 .server.cs partial은 같은 도메인 namespace를 유지한다 (9장).
 ```
 
 ---
@@ -238,33 +238,48 @@ namespace Geumeum.Combat
 }
 ```
 
-### 네트워크 표면 분리 (`03.AI` · `04.Systems`)
+### 네트워크 표면 · 서버 로직 분리 (`03.AI` · `04.Systems`)
 
-> **2026-09-11 도입.** 보스·시스템 컴포넌트는 판정 로직과 동기화 코드가 한 파일에 섞여 천 줄을 넘겼다.
-> 무엇이 선을 타고 오가는지를 파일 하나만 보고 알 수 있게, 네트워크 멤버만 partial 파일로 뺀다.
+> **2026-09-11 도입, 2026-09-15 서버 로직까지 확장하고 `Net/` 범위를 서버 통신 계약으로 좁혔다.** 보스·시스템 컴포넌트는 판정 로직과 동기화 코드가 한 파일에 섞여 천 줄을 넘겼다.
+> 서버가 소유하는 통신 계약(SyncVar 선언 · Command)은 `Net/`, 서버 판정은 중앙 `98.Servers/`의 partial 파일로 뺀다. 클라이언트에서 실행되는 코드는 원본에 둔다.
+> 클라이언트에서 실행되는 코드를 원본과 `Net/`에 나눠 두면 같은 표현 흐름을 두 파일에서 읽어야 하기 때문이다.
 
-`NetworkBehaviour` 클래스는 선을 타는 멤버를 같은 폴더 아래 `Net/{클래스명}.network.cs`에 둔다.
-원본 파일은 `partial`만 붙이고 로직을 그대로 가진다. 네임스페이스는 바뀌지 않는다 (1장은 파트 기준이다).
+**2026-09-15 결정 — 실행 위치와 작성 담당을 분리한다.** `Net/*.network.cs`와 `98.Servers/*.server.cs`는 팀장(@AidenKim923)이 맡는다. 원본 컴포넌트 파일과 도메인 폴더의 판정 · AI 클래스(보스 페이즈 상태 · 패턴 선택 · 잡귀 AI · 규칙 클래스 등)는 파트 담당이 작성한다. 판정 · AI 코드는 서버에서만 실행되며 `[Server]` 메서드와 `98.Servers/` partial 같은 서버 경로에서만 호출한다.
+새 네트워크 멤버(`[SyncVar]` · `[Command]` · Rpc)나 `.server.cs` 변경이 필요하면 파트 담당이 팀장에게 요청한다. partial은 하나의 클래스라 private 필드도 공유하므로, 원본에서 서버 상태 필드를 바꾸거나 서버 partial이 쓰는 멤버 이름을 바꿀 때는 팀장 리뷰를 받는다.
+클라이언트 · UI는 판정 코드를 직접 호출하지 않고 [클라이언트 API 안내](unity/CLIENT_API_REFERENCE.md)의 요청 · 프로퍼티 · 이벤트를 사용한다. 구체적인 작업 흐름은 [서버·클라이언트 협업](unity/SERVER_CLIENT_WORKFLOW.md)을 따른다.
+
+`NetworkBehaviour` 클래스는 도메인 폴더의 `Net/{클래스명}.network.cs`와 중앙 `98.Servers/{03.AI|04.Systems}/{기능}/{클래스명}.server.cs`로 나눈다.
+원본 파일은 `partial`만 붙인다. 네임스페이스는 바뀌지 않는다 (1장은 기능 도메인 기준이다). `98.Servers/`는 번호 없는 공통 폴더로 `.server.cs` partial만 두고, 하위 경로는 기존 `Assets/01.Scripts/{03.AI|04.Systems}/{기능}/`을 그대로 비춘다. 물리 경로와 네임스페이스 대응의 명시적 예외다. 기존 partial과 같은 어셈블리를 사용해야 하므로 이 폴더에 독립 asmdef를 추가하지 않는다.
 
 ```
-03.AI/Boss/
-├ BossController.cs              public partial class BossController : NetworkBehaviour  (판정 · 서버 로직)
-└ Net/
-  └ BossController.network.cs    public partial class BossController                     (선을 타는 멤버)
+Assets/01.Scripts/
+├ 03.AI/Boss/BossController.cs                연결 컴포넌트·공개 상태·클라 실행 코드 (원본 GUID 유지)
+├ 03.AI/Boss/Net/BossController.network.cs    서버 통신 계약 (SyncVar 선언·Command)
+└ 98.Servers/03.AI/Boss/BossController.server.cs 서버 판정·서버 수명
 ```
 
-| `Net/*.network.cs`로 가는 것 | 원본에 남는 것 |
-|---|---|
-| `[SyncVar]` 필드와 그 hook 메서드 | `[Server]` · `[Client]` 메서드 |
-| `SyncList` · `SyncDictionary` 등 동기화 컬렉션 | `OnStartServer` · `OnStopServer` |
-| `[Command]` · `[ClientRpc]` · `[TargetRpc]` | Unity 이벤트, 프로퍼티(SyncVar를 읽는 것 포함) |
-| `OnStartClient` · `OnStopClient` · `OnStartLocalPlayer` · `OnStartAuthority` 등 클라 수명 콜백 | 헬퍼 메서드(네트워크 멤버에서만 불리더라도) |
-| `OnSerialize` · `OnDeserialize` | 상수 · 이벤트 · 중첩 타입 |
+| 원본 `{클래스명}.cs` | `Net/*.network.cs` | `98.Servers/{03.AI\|04.Systems}/{기능}/*.server.cs` |
+|---|---|---|
+| 필드(동기화 필드 제외) · 상수 · 이벤트 · 중첩 타입 | `[SyncVar]` 필드 선언 | `[Server]` · `[ServerCallback]` 메서드(Unity 메시지 포함) |
+| 프로퍼티(SyncVar를 읽는 것 포함) | `SyncList` · `SyncDictionary` 등 동기화 컬렉션 필드 선언 | `OnStartServer` · `OnStopServer` |
+| 어트리뷰트 없는 Unity 메시지(`Awake` · `Update` 등). 안에 서버 분기가 있어도 원본에 둔다 | `[Command]` 메서드 | 어트리뷰트가 없어도 `Server` 접두사가 붙은 메서드 |
+| `public` 메서드 중 서버 전용이 아닌 것 | `[Command]`에서만 불리는 헬퍼 | 서버 멤버에서만 불리는 `private` 헬퍼 |
+| `OnStartClient` · `OnStopClient` · `OnStartLocalPlayer` · `OnStopLocalPlayer` · `OnStartAuthority` 등 클라 수명 콜백 | `OnSerialize` · `OnDeserialize` | |
+| `[ClientRpc]` · `[TargetRpc]` | | |
+| SyncVar hook 메서드, 동기화 컬렉션 변경 핸들러 | | |
+| `[Client]` 메서드, 클라 실행 코드(hook · Rpc · 클라 수명 콜백)에서만 불리는 헬퍼 | | |
+| 서버와 클라 양쪽에서 불리는 헬퍼 | | |
 
-- 새 파일의 배너 순서: `Fields` → `Client Callbacks` → `Commands` → `ClientRpc` → `TargetRpc` → `SyncVar Hooks`. 빈 섹션은 넣지 않는다.
-- partial 선언에는 base 클래스·인터페이스를 반복하지 않고 `///` summary도 달지 않는다(원본에만).
-- 선을 타는 멤버가 하나도 없는 `NetworkBehaviour`(서버 전용 매니저 등)는 `Net/` 파일을 만들지 않는다.
-- 새 네트워크 멤버를 추가할 때도 이 표를 따른다. Mirror weaver는 컴파일된 IL에서 동작하므로 partial 분할은 동기화 결과에 영향이 없다.
+- `Net/` 배너 순서: `Fields` → `Commands` → `Serialization`(`OnSerialize` · `OnDeserialize`가 있을 때). 빈 섹션은 넣지 않는다.
+- 원본의 클라 실행 코드 배너 순서: `Client Callbacks` → `ClientRpc` → `TargetRpc` → `SyncVar Hooks`. 빈 섹션은 넣지 않는다.
+- `98.Servers/`는 원본에서 쓰던 배너 이름을 그대로 가져가고, 서버 수명 콜백 → 서버 메서드 → 헬퍼 순으로 둔다. 빈 섹션은 넣지 않는다.
+- partial 선언에는 base 클래스 · 인터페이스 · `sealed`를 반복하지 않고 `///` summary도 달지 않는다(원본에만). 옮기는 메서드의 `///` summary는 메서드와 함께 간다.
+- `Net/`에 남을 멤버(동기화 필드 선언 · Command · 직렬화)가 없으면 `Net/` 파일을, 서버 멤버가 없으면 `98.Servers/` 파일을 만들지 않는다. hook · Rpc · 클라 수명 콜백만 있는 클래스는 `Net/` 파일 없이 원본에 둔다 (`RunResultRecorder`).
+- 기존 `NetworkBehaviour` 원본은 같은 위치에 두고 서버 멤버를 분리한다. 서버에서만 실행되는 순수 판정 · AI 클래스는 `98.Servers/`가 아니라 원래 도메인 폴더(예: `03.AI/Boss/Phase1State.cs`, `04.Systems/Equipment/EquipmentGenerator.cs`)에 둔다. 기존 파일을 옮길 때는 `.meta`도 함께 이동한다. 원본 `.cs.meta`의 GUID가 프리팹 · 씬의 컴포넌트 참조를 붙들고 있다.
+- 새 멤버를 추가할 때도 이 표를 따른다. partial은 파일 정리 수단이며 API 접근 제한이나 서버 전용 빌드 경계가 아니다. 이동 결과의 컴파일·동기화는 실제 검증으로 확인한다.
+- 이 표는 기존 partial 정리 기준이다. 원본에 남은 서버 상태 필드와 서버 partial이 쓰는 멤버는 파트 담당이 바꿀 수 있지만 팀장 리뷰를 받는다. `[Server]`가 없는 AI·패턴·순수 판정 클래스도 서버 경로에서만 호출한다.
+- 클라이언트 · UI 코드를 서버 클래스의 새 partial로 만들지 않는다. 별도 `MonoBehaviour` 또는 표시용 클래스로 작성하고 공개 요청·읽기 API만 사용한다.
+- 비직렬화 서버 필드·버퍼는 서버 실행부와 함께 이동할 수 있다. 직렬화 필드와 컴포넌트 원본 GUID는 유지한다. 기존 컴포넌트가 구동하는 독립 C# 소비자도 허용한다 (`InteractionClient`). 소비자에 서버 구현 인터페이스를 전달하지 않고 전용 요청·조회 계약을 전달한다.
 
 ## 10. 참조 타입 매개변수
 

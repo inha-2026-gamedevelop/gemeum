@@ -138,16 +138,5 @@ namespace Geumeum.Systems
             SendResult(sender, result);
             SendCounterpartyResult(requester.netId, result);
         }
-
-        /****************************************
-        *               TargetRpc
-        ****************************************/
-
-        [TargetRpc]
-        private void TargetTransferResult(NetworkConnection target,
-            EquipmentTransferResult result)
-        {
-            TransferChanged?.Invoke(result);
-        }
     }
 }

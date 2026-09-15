@@ -34,27 +34,5 @@ namespace Geumeum.Systems
         {
             TargetAllocationResult(ServerTryReset(expectedRevision));
         }
-
-        /****************************************
-        *               TargetRpc
-        ****************************************/
-
-        [TargetRpc]
-        private void TargetAllocationResult(TalentAllocationResult result)
-        {
-            AllocationResult?.Invoke(result);
-        }
-
-        /****************************************
-        *             SyncVar Hooks
-        ****************************************/
-
-        private void OnRevisionChanged(uint _, uint next)
-        {
-            if (!isServer)
-            {
-                NotifyRevisionChanged(next);
-            }
-        }
     }
 }

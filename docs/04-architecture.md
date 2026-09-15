@@ -33,12 +33,12 @@
 
 | 파트 | 담당자 | 네임스페이스 | 폴더 (`Assets/01.Scripts/`) | 작업 씬 |
 |---|---|---|---|---|
-| 네트워크 · 전투 (팀장) | @AidenKim923 | `Geumeum.Network` `Geumeum.Combat` | `01.Network/` `02.Combat/` | `Dev_Combat.unity` |
-| 몬스터 · 보스 | @oname36-creator | `Geumeum.AI` | `03.AI/` | `Dev_AI.unity` |
-| 게임플레이 시스템 | @kjw1237 | `Geumeum.Systems` | `04.Systems/` | `Dev_System/` **(씬 셋 → 3.1)** |
+| 네트워크 코드 · 전투 · 통합 (팀장) | @AidenKim923 | `Geumeum.Network` `Geumeum.Combat` (네트워크 partial은 `Geumeum.AI` `Geumeum.Systems` 유지) | `01.Network/` `02.Combat/` `99.Dev/`, `03.AI/` · `04.Systems/`의 `Net/`, 중앙 `98.Servers/`(`.server.cs`) | `Dev_Combat.unity` |
+| 몬스터 · 보스 | @oname36-creator | `Geumeum.AI` | `03.AI/` (AI·패턴 판정 포함, `Net/`·`98.Servers/` 제외) | `Dev_AI.unity` |
+| 게임플레이 시스템 | @kjw1237 | `Geumeum.Systems` | `04.Systems/` (판정 규칙 포함, `Net/`·`98.Servers/` 제외) | `Dev_System/` **(씬 셋 → 3.1)** |
 | 테크니컬 아트 | @AidenKim923 (겸임) | `Geumeum.Art` | `05.Art/` | `Dev_Art.unity` **(미생성 → 3.1)** |
 | UI (전담) | @kjw1237 (게임플레이 시스템 겸임) | `Geumeum.UI` | `06.UI/` | `Dev_System/` **(씬 셋 → 3.1)** |
-| (공용) | `Geumeum.Data` `Geumeum.Common` | `00.Common/` | — |
+| (공용) | @AidenKim923 | `Geumeum.Data` `Geumeum.Common` | `00.Common/` | — |
 
 ---
 
@@ -261,7 +261,9 @@ Main.unity
 
 ## 4. 스크립트 폴더 · 클래스 배치
 
-`Assets/01.Scripts/` 아래 전체 구조. **폴더 = 네임스페이스 = 소유권**이 항상 일치해야 한다.
+**서버 partial의 중앙 위치는 `Assets/01.Scripts/98.Servers/`다.** AI·Systems의 `.server.cs` 20개만 두며, 판정·AI 클래스와 요청·조회 창구·표현은 아래 도메인 폴더에 있다. [전체 목록과 담당 규칙](unity/SERVER_CLIENT_WORKFLOW.md#5-현재-적용-범위).
+
+`Assets/01.Scripts/` 아래 전체 구조. 폴더와 네임스페이스는 기능 기준으로 유지한다. **구현 소유는 파트 담당과 `CODEOWNERS`를 따른다.** `03.AI`는 몬스터·보스 담당, `04.Systems`는 게임플레이 시스템 담당이 판정·AI 코드까지 소유하고, `Net/`·`98.Servers/`의 네트워크 코드는 팀장이 맡는다 → [협업 경계](unity/SERVER_CLIENT_WORKFLOW.md).
 클래스 옆 표기: `NM` = Mirror NetworkManager, `NB` = NetworkBehaviour, `MB` = MonoBehaviour, `C#` = 순수 C# 클래스, `SO` = ScriptableObject, `enum` = 열거형, `static` = 정적 클래스.
 
 > **`Dev/` 하위폴더 규약 (2026-09-05 신설, 2026-09-10 개정).** 개발 전용 도구 — 플레이어에게 제공되는 기능이 아니라 개발자가 관찰·조작·측정하기 위해 존재하고, 지워도 게임 규칙이 달라지지 않는 것 — 은 소속 파트의 `Dev/` 아래 둔다.
@@ -596,7 +598,7 @@ Main.unity
 그 외 상태에서는 애초에 교체 요청 자체가 게이트에서 거부되므로 진행 중 능력을 취소하는
 로직은 따로 두지 않는다. `EquipmentInstance`(4.4)의 직렬화 필드 확정은 4.4절 참조.
 
-### 4.3 03.AI — 잡귀 · 보스 · 스폰 (소유: 몬스터·보스 파트 @oname36-creator)
+### 4.3 03.AI — 잡귀 · 보스 · 스폰 (소유: 몬스터·보스 파트 @oname36-creator, 네트워크 코드: @AidenKim923)
 
 ```
 03.AI/                     namespace Geumeum.AI
@@ -612,7 +614,8 @@ Main.unity
 │  ├ HeokkaebiBrain.cs     C#  허깨비: 근접 추적, 무리 행동, 긴 선딜
 │  ├ ChanggwiBrain.cs      C#  창귀: 돌진 → 경직. 선딜이 읽히는 패링 교보재 — IParryable
 │  ├ AekgwiBrain.cs        C#  액귀: 사거리 유지 · 후퇴, 저주 투사체 시전
-│  └ CurseProjectile.cs    NB  액귀 투사체. 서버 스폰 · 서버 판정 (표현만 클라)
+│  ├ CurseProjectile.cs    NB  액귀 투사체. 서버 스폰 · 서버 판정 (표현만 클라)
+│  └ Editor/EnemyPresentationBindingTests.cs  표현 컴포넌트가 IEnemyPresentationSource 현재값을 구독·재활성화 때 복원하는지 EditMode 검증
 ├ Spawn/
 │  ├ SpawnManager.cs       NB  RunPhase별 동시 존재 수 · 리스폰 타이머 · 구성 비율 관리.
 │  │                           결계 축소 시 범위 밖 클러스터 비활성화
@@ -646,13 +649,17 @@ Main.unity
                                  예고 만료의 서버 계약을 고정한다
 ```
 
-**`Net/` 하위 폴더 (2026-09-11)** — 위 NB 클래스의 SyncVar · Command · Rpc · 클라 수명 콜백은 같은 폴더 아래
-`Net/{클래스명}.network.cs`(partial)에 있다. 규칙은 [코딩 컨벤션 9장 "네트워크 표면 분리"](coding-convention.md).
+**`Net/` 하위 폴더 (2026-09-11, 2026-09-15 범위 축소)** — 위 NB 클래스의 서버 통신 계약(SyncVar · 동기화 컬렉션 선언, Command, 직렬화)은 같은 폴더 아래
+`Net/{클래스명}.network.cs`(partial)에 있다. hook · Rpc · 클라 수명 콜백은 원본 `{클래스명}.cs`에 둔다. 규칙은 [코딩 컨벤션 9장 "네트워크 표면 분리"](coding-convention.md).
 대상: `Boss/Net/` — BossController · BossPartController · BossSoulController · BossStatus,
-`Enemy/Net/` — CurseProjectile · EnemyController · EnemyStatus. `BossSpawner` · `SpawnManager`는 선을 타는 멤버가 없어 해당 없음.
+`Enemy/Net/` — CurseProjectile · EnemyController · EnemyStatus. `BossSpawner` · `SpawnManager`는 `Net/`에 남을 멤버가 없어 해당 없음.
+
+**중앙 `98.Servers/03.AI/` (2026-09-15)** — 서버 수명 콜백·`[Server]` 메서드·요청 검증·동기화 연결은 `98.Servers/03.AI/{Boss|Enemy|Spawn}/{클래스명}.server.cs`(partial)에 있다.
+BossController·BossPartController·BossSoulController·BossStatus·BossSpawner·EnemyController·EnemyStatus·CurseProjectile·SpawnManager의 9개 partial만 둔다. 서버 경로에서 호출되는 AI·패턴·스폰 규칙 14개는 위 도메인 트리 위치에 있다(같은 날 중앙으로 옮겼다가 되돌렸다). 파일별 현재 위치는 [협업 문서의 목록](unity/SERVER_CLIENT_WORKFLOW.md#5-현재-적용-범위)을 따른다.
+원본 컴포넌트의 GUID·직렬화 필드는 유지한다. **`Net/`·중앙 `98.Servers/`는 팀장(@AidenKim923), AI·패턴 판정 클래스와 원본 컴포넌트·표현은 몬스터·보스 담당(@oname36-creator) 소유다.** 원본과 `.server.cs`는 private 필드를 공유하므로 서버 상태 필드나 서버 partial이 쓰는 멤버 이름을 바꿀 때는 팀장 리뷰를 받는다. 표현 컴포넌트는 `IEnemyPresentationSource`를 읽는다.
 
 `BossTelegraphCue.cs`(서버→클라 공격 예고 값 타입, struct)는 공용 스키마라 `00.Common/Types/`에 있다 → 4.1절.
-`Boss/`의 서버 실행부(전환 · 취소 · 예고 · 그로기 판정)는 폴더 소유와 별개로 **서버 담당 @AidenKim923이 구현한다.**
+`Boss/`의 서버 실행부(전환 · 취소 · 예고 · 그로기 판정)는 서버에서만 실행되며, 판정 로직은 **몬스터·보스 담당 @oname36-creator가, `Net/`·`.server.cs` 연결은 @AidenKim923이 작성한다.**
 **갱신** — 위 문단은 "아직 파일이 없다"였으나 아래 파일이 생겼다. 다만 **실제 3인 검증은 아직이라
 [구현완료]로 올리지 않았다.** EditMode와 코드 존재만 확인한 상태다.
 
@@ -672,7 +679,7 @@ Main.unity
 `02.Combat/Player/PrecisionShotController.cs`·`PrecisionShotRules.cs`(신궁 정밀 사격)와
 `SupportBuffController.cs`·`ReviveResolutionRules.cs`도 추가됐다. 같은 이유로 미검증이다.
 
-### 4.4 04.Systems — 장비 · 경제 · 성장 · 결과 · 상호작용 · 결계 (소유: 게임플레이 시스템 파트 @kjw1237)
+### 4.4 04.Systems — 장비 · 경제 · 성장 · 결과 · 상호작용 · 결계 (소유: 게임플레이 시스템 파트 @kjw1237, 네트워크 코드: @AidenKim923)
 
 ```
 04.Systems/                namespace Geumeum.Systems
@@ -704,7 +711,9 @@ Main.unity
 │  ├ InteractionController.cs NB 상호작용 입력과 줍기 · 장착 요청. 판정은 전부 서버
 │  ├ InteractionRules.cs   C#  ★거리 · 생사 · 씬 · 비전투 유예 판정 전용 순수 C#
 │  ├ DroppedItem.cs        NB  필드에 떨어진 장비. IInteractable, 습득은 [Command] → 서버 확정
-│  └ ShopInteractionPoint.cs NB 객주 지점. 서버가 개방 상태와 거리를 검사한다
+│  ├ ShopInteractionPoint.cs NB 객주 지점. 서버가 개방 상태와 거리를 검사한다
+│  ├ Client/InteractionClient.cs C# 로컬 후보 탐색 · G키 입력. IInteractionRequestSource로 요청만 보낸다
+│  └ Editor/InteractionClientBoundaryTests.cs  원격 줍기 후보가 서버 판정을 호출하지 않는지 EditMode 검증
 ├ Economy/                 [구현완료]
 │  ├ CurrencyManager.cs    NB  팀 공용 노잣돈 단일 SyncVar. 구매 · 부활 차감 요청을
 │  │                           서버 큐로 순차 처리 — 잔액 음수 방지
@@ -732,12 +741,16 @@ Main.unity
    └ BarrierJudge.cs       C#  ★"반경 밖인가 · 얼마의 피해인가" 계산 전용 순수 C#
 ```
 
-**`Net/` 하위 폴더 (2026-09-11)** — 위 NB 클래스의 SyncVar · Command · Rpc · 클라 수명 콜백은 같은 폴더 아래
-`Net/{클래스명}.network.cs`(partial)에 있다. 규칙은 [코딩 컨벤션 9장 "네트워크 표면 분리"](coding-convention.md).
+**`Net/` 하위 폴더 (2026-09-11, 2026-09-15 범위 축소)** — 위 NB 클래스의 서버 통신 계약(SyncVar · 동기화 컬렉션 선언, Command, 직렬화)은 같은 폴더 아래
+`Net/{클래스명}.network.cs`(partial)에 있다. hook · Rpc · 클라 수명 콜백은 원본 `{클래스명}.cs`에 둔다. 규칙은 [코딩 컨벤션 9장 "네트워크 표면 분리"](coding-convention.md).
 대상: `Barrier/Net/` BarrierController · `Economy/Net/` CurrencyManager · ShopTransactionService ·
 `Growth/Net/` GrowthManager · TalentController · `Interaction/Net/` DroppedItem · InteractionController · ShopInteractionPoint ·
-`Inventory/Net/` InventoryController · EquipmentTransferService · `Results/Net/` RunResultRecorder.
-`DropDirector` · `RunStatistics`는 선을 타는 멤버가 없어 해당 없음.
+`Inventory/Net/` InventoryController · EquipmentTransferService.
+`DropDirector` · `RunStatistics`는 `Net/`에 남을 멤버가 없어 해당 없음. `RunResultRecorder`는 클라 수명 콜백만 있어 2026-09-15에 `Results/Net/` 파일을 없애고 원본에 합쳤다.
+
+**중앙 `98.Servers/04.Systems/` (2026-09-15)** — 서버 수명 콜백·`[Server]` 메서드·요청 검증·동기화 연결은 `98.Servers/04.Systems/{기능}/{클래스명}.server.cs`(partial)에 있다.
+BarrierController·CurrencyManager·ShopTransactionService·DropDirector·GrowthManager·TalentController·DroppedItem·ShopInteractionPoint·InventoryController·EquipmentTransferService·RunStatistics의 11개 partial만 둔다. 서버 경로에서 호출되는 규칙·생성기 8개는 위 도메인 트리 위치에 있다(같은 날 중앙으로 옮겼다가 되돌렸다). 파일별 현재 위치는 [협업 문서의 목록](unity/SERVER_CLIENT_WORKFLOW.md#5-현재-적용-범위)을 따른다.
+**`Net/`·중앙 `98.Servers/`는 팀장(@AidenKim923), 판정 규칙·생성기와 원본 컴포넌트·`Client/`·`Presentation/` 소비자·`06.UI/`는 게임플레이 시스템 담당(@kjw1237) 소유다.** 원본과 `.server.cs`는 private 필드를 공유하므로 서버 상태 필드나 서버 partial이 쓰는 멤버 이름을 바꿀 때는 팀장 리뷰를 받는다. 상호작용의 입력·후보 탐색은 `Interaction/Client/InteractionClient.cs`로 추출했고, 기존 컴포넌트가 로컬에서 구동한다. 요청 계약 `IInteractionRequestSource`는 `00.Common/Interfaces/`에 있다.
 
 결계는 잡귀 난이도가 아니라 런 진행에 걸린 시스템이라 이 폴더에 둔다. `SpawnManager`(4.3)와 `BarrierVisual`(4.5)은 `BarrierController`의 SyncVar를 **읽기만** 한다.
 
@@ -1275,3 +1288,8 @@ Mirror의 `StartHost`/`StartServer` 호출을 가로챌 수 없어, 서버가 �
 ### 13.6 데이터 명칭과 HP 단일 원본
 
 문서의 오래된 `*Data` 명칭을 실제 클래스·에셋명인 `*SO`로 통일했다. **최대 HP의 단일 원본은 `LevelCurveSO`이며 `CombatConfigSO`에는 HP를 두지 않는다.** 두 SO가 같은 값을 가지면 어느 쪽이 적용됐는지 런타임에 구분할 수 없다.
+
+### 13.7 중앙 서버 partial 폴더 (2026-09-15)
+
+`Assets/01.Scripts/98.Servers/`는 팀장이 맡는 네트워크 코드 중 서버 partial(`.server.cs`)의 위치다. 기존 요청·조회 컴포넌트, 판정·AI 클래스, Mirror `Net/`는 도메인 폴더에 유지하고, 서버 partial 20개만 중앙에 모았다(판정·AI 22개는 같은 날 도메인 폴더로 되돌렸다). 하위 경로는 기존 도메인 폴더를 그대로 비춘다(`98.Servers/{03.AI|04.Systems}/{기능}/`). 새 `.server.cs`는 이 규칙대로 기능별로 작성하고, 새 판정·AI 코드는 도메인 폴더에 파트 담당이 작성한다.
+기존 partial과 호환되도록 `Geumeum.AI`·`Geumeum.Systems` 네임스페이스와 어셈블리는 유지한다. 클라이언트 소비자는 [클라이언트 API](unity/CLIENT_API_REFERENCE.md)를 사용한다. 공용 계산과 `01.Network`·`02.Combat`의 기존 혼합 컴포넌트는 이번 물리 이동에서 제외했다. `01.Network`·`02.Combat` 담당은 팀장이다. 전체 서버 코드를 클라이언트 빌드에서 제외하는 구조는 아니다.

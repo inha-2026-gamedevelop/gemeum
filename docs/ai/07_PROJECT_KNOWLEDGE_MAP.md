@@ -35,6 +35,8 @@
 | 사망, 부활, 전멸 | [게임 디자인 10절](../02-game-design.md) | `PlayerStatus` · `ReviveController` · `RunOutcomeArbiter` · `RunManager` | L3 동시 구조·전환 중 전멸 방지·재접속 | @AidenKim923 |
 | 점수, 리더보드 | [게임 디자인 11절](../02-game-design.md) | `ScoreRuleSO` · `IRunResultProvider` · `RunResultProviderLocator`; 실제 정산·저장은 미구현(Null provider는 0점) | 향후 L3 1회 정산·전원 같은 결과·트라이 제외 | @kjw1237 |
 | 서버냐 클라냐 | [네트워크 권위](../unity/NETWORK_AUTHORITY.md) | [서버 API](../unity/SERVER_API_REFERENCE.md) | 코드 검토 + 네트워크 변경은 L3 | @AidenKim923 |
+| `Net/` · `98.Servers/` 분리, 누가 작성하나 | [서버·클라이언트 협업](../unity/SERVER_CLIENT_WORKFLOW.md) · [분리 검증 기록](../unity/SERVER_CLIENT_REFACTOR_VALIDATION.md) | `{도메인}/Net/*.network.cs` · `98.Servers/{03.AI\|04.Systems}/{기능}/*.server.cs` | L1 + 네트워크 멤버 변경은 L3 | `Net/`·`98.Servers/` @AidenKim923, 판정·AI는 도메인 담당 |
+| UI · 표현이 서버에 요청 · 조회 | [클라이언트 API 안내](../unity/CLIENT_API_REFERENCE.md) | `Request*` 메서드 · `IEnemyPresentationSource` · `IInteractionRequestSource` | L3 승인 · 거절 · 각자 표시 | @kjw1237 · @oname36-creator |
 | 씬 충돌, .meta, LFS | [씬·에셋 안전](../unity/SCENE_AND_ASSET_SAFETY.md) | `.gitattributes` · `.github/`는 실제 저장소에서 확인 | 발췌본에는 CI·meta가 없어 통과 여부 미확인 | @AidenKim923 |
 | 밸런스 수치 변경 | [밸런스 데이터](../unity/BALANCE_DATA_WORKFLOW.md) | `Assets/09.Data/` · `GameDBBootstrap` · `GameDatabaseSO` | L1 데이터 + L2 반영 + 판정 관련은 L3 | CODEOWNERS상 @AidenKim923, 도메인 담당 협의 |
 | 조명, 시간대 연출 | [WeatherMaker](../unity/WEATHER_MAKER_GUIDE.md) · [보스 연출](../unity/BOSS_STAGING_DESIGN.md) | `BossArenaPhaseView` · `WeatherRainScheduleScript`; `DayCycleSO` 데이터는 있으나 런 시계 연결은 확인 필요 | 표현은 로컬. 런 시간은 서버 값; 외부 WeatherMaker 네트워크 연결은 실제 프로젝트에서 검증 | @AidenKim923 |

@@ -16,7 +16,7 @@ using Geumeum.Data;
 namespace Geumeum.Systems
 {
     /// <summary> 런 동안 서버 적용 사실을 모으고 결과를 한 번 동결한다 </summary>
-    public sealed class RunStatistics : NetworkBehaviour, IRunStatisticsSink,
+    public sealed partial class RunStatistics : NetworkBehaviour, IRunStatisticsSink,
         IRunResultFactsProvider, IRunResultProvider
     {
         private enum CollectionState
@@ -185,28 +185,6 @@ namespace Geumeum.Systems
                 ScoreRuleSO scoreRule = ResolveScoreRule();
                 return (scoreRule == null) ? 0 : scoreRule.ScoreRuleVersion;
             }
-        }
-
-        /****************************************
-        *           Network Callbacks
-        ****************************************/
-
-        public override void OnStartServer()
-        {
-            ResolveScoreRule();
-            RunStatisticsSinkLocator.Register(this);
-            RunResultFactsProviderLocator.Register(this);
-            RunResultProviderLocator.Register(this);
-            SubscribeEnemyDied();
-        }
-
-        public override void OnStopServer()
-        {
-            UnsubscribeEnemyDied();
-            RunStatisticsSinkLocator.Unregister(this);
-            RunResultFactsProviderLocator.Unregister(this);
-            RunResultProviderLocator.Unregister(this);
-            ClearRunState();
         }
 
         /****************************************
@@ -452,11 +430,6 @@ namespace Geumeum.Systems
         *                Methods
         ****************************************/
 
-        private void HandleEnemyDied(EnemyDiedEvent fact)
-        {
-            RecordEnemyDeath(fact);
-        }
-
         private ParticipantTotals GetOrCreate(ParticipantId participant)
         {
             if (!_participants.TryGetValue(participant.Value, out ParticipantTotals totals))
@@ -557,48 +530,6 @@ namespace Geumeum.Systems
             _activeRun  = default;
             _frozenFacts = default;
             _state      = CollectionState.Idle;
-        }
-
-        private void SubscribeEnemyDied()
-        {
-            if (GameEventBus.HasInstance)
-            {
-                GameEventBus.Instance.Subscribe<EnemyDiedEvent>(HandleEnemyDied);
-                _hasEnemyDiedSubscription = true;
-                return;
-            }
-
-            _eventBusWaitRoutine = StartCoroutine(CoWaitForEventBus());
-        }
-
-        private IEnumerator CoWaitForEventBus()
-        {
-            while (!GameEventBus.HasInstance)
-            {
-                yield return null;
-            }
-
-            GameEventBus.Instance.Subscribe<EnemyDiedEvent>(HandleEnemyDied);
-            _hasEnemyDiedSubscription = true;
-            _eventBusWaitRoutine      = null;
-        }
-
-        private void UnsubscribeEnemyDied()
-        {
-            if (_eventBusWaitRoutine != null)
-            {
-                StopCoroutine(_eventBusWaitRoutine);
-                _eventBusWaitRoutine = null;
-            }
-
-            if ((!_hasEnemyDiedSubscription) || (!GameEventBus.HasInstance))
-            {
-                _hasEnemyDiedSubscription = false;
-                return;
-            }
-
-            GameEventBus.Instance.Unsubscribe<EnemyDiedEvent>(HandleEnemyDied);
-            _hasEnemyDiedSubscription = false;
         }
     }
 }

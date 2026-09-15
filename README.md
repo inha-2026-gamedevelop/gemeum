@@ -85,6 +85,8 @@ git checkout feature/{자기이름}
 | [협업 규칙](CONTRIBUTING.md) | 브랜치, 씬 규칙, PR, 주간 통합 |
 | [코딩 컨벤션](docs/coding-convention.md) | 네이밍, 스타일, GameDB/Constants 데이터 관리 |
 | [네트워크 권위](docs/unity/NETWORK_AUTHORITY.md) | 서버냐 클라냐 판단 기준 |
+| [서버·클라이언트 협업](docs/unity/SERVER_CLIENT_WORKFLOW.md) | `Net/` · `98.Servers/` 네트워크 코드 담당, 판정 · AI 작성 흐름 |
+| [클라이언트 API 안내](docs/unity/CLIENT_API_REFERENCE.md) | 입력 · UI · 표현이 쓰는 요청 · 조회 창구 |
 | [씬 · 에셋 안전](docs/unity/SCENE_AND_ASSET_SAFETY.md) | 씬 충돌, `.meta`, LFS |
 | [밸런스 데이터 작업](docs/unity/BALANCE_DATA_WORKFLOW.md) | ScriptableObject 운용 |
 | [엔지니어링 패턴](docs/unity/UNITY_ENGINEERING_PATTERNS.md) | Tick 수명, 캐싱, 코루틴 |

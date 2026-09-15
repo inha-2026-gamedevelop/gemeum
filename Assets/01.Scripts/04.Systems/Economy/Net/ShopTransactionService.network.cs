@@ -184,16 +184,5 @@ namespace Geumeum.Systems
 
             SendResult(sender, result);
         }
-
-        /****************************************
-        *               TargetRpc
-        ****************************************/
-
-        [TargetRpc]
-        private void TargetTransactionResult(NetworkConnection target,
-            ShopTransactionResult result)
-        {
-            TransactionCompleted?.Invoke(result);
-        }
     }
 }

@@ -16,7 +16,7 @@
 | 언어 | C# |
 | 네트워크 | **Mirror** · 호스트 권위 리슨 서버 (데디케이티드 전환 여지 유지) |
 | 트랜스포트 | **KCP(로컬 개발) · FizzySteamworks + Steamworks.NET(Steam 경로) 병행** — 둘 다 도입 완료, 3PC 통과 |
-| 팀 | 3인 전원 프로그래머 — @AidenKim923(네트워크·전투·아트·통합) · @oname36-creator(몬스터·보스) · @kjw1237(게임플레이 시스템·결계) |
+| 팀 | 3인 전원 프로그래머 — @AidenKim923(네트워크 코드·서버 연결·전투·아트·통합) · @oname36-creator(몬스터·보스 — AI·패턴 판정 포함) · @kjw1237(게임플레이 시스템·결계·UI — 판정 규칙 포함) |
 | 기간 | 2026.08.30 – 2026.11.16 |
 | 보호 브랜치 | `main`, `develop` |
 | 작업 브랜치 | `feature/{팀원이름}` — 기능별이 아니라 담당자별 |
@@ -55,7 +55,7 @@
 
 ### 승인 없이 수정 가능
 
-- `Assets/01.Scripts/` 아래 자기 파트 폴더
+- `Assets/01.Scripts/` 아래 자기 파트 폴더 (단 `Net/`·중앙 `98.Servers/` 제외)
 - `Assets/09.Data/` 의 ScriptableObject 값 (밸런스 수치)
 - `docs/` 문서
 
@@ -63,6 +63,7 @@
 
 - `Assets/00.Scenes/Main.unity` — 통합 담당자만
 - 다른 파트의 `Assets/01.Scripts/` 폴더
+- `Assets/01.Scripts/**/Net/`·중앙 `98.Servers/`와 공용 API 계약 — 팀장 소유 네트워크 코드. 판정·AI는 파트 담당이 작성하되 서버 경로에서만 호출한다 → [서버·클라이언트 협업](docs/unity/SERVER_CLIENT_WORKFLOW.md)
 - `.gitattributes`, `.gitignore`, `.github/`
 - 네트워크 권위 경계를 바꾸는 변경
 - 외부 에셋 원본 (`Assets/98.FreeAssets/` 무료 · 커밋 대상, `Assets/99.ThirdParty/` 구매 · 커밋 제외)
@@ -190,6 +191,8 @@
 | C# 코딩 컨벤션 | [코딩 컨벤션](docs/coding-convention.md) |
 | 디자인 패턴 지도 · 선택 규칙 | [디자인 패턴](docs/unity/DESIGN_PATTERNS.md) |
 | 파트 간 서버 API 창구 | [서버 API 레퍼런스](docs/unity/SERVER_API_REFERENCE.md) |
+| 네트워크 코드(`Net/` · `98.Servers/`) 담당 · 판정 작성 흐름 | [서버·클라이언트 협업](docs/unity/SERVER_CLIENT_WORKFLOW.md) · 실행 기록은 [분리 검증 기록](docs/unity/SERVER_CLIENT_REFACTOR_VALIDATION.md) |
+| 입력 · UI · 표현이 쓰는 요청 창구 | [클라이언트 API 안내](docs/unity/CLIENT_API_REFERENCE.md) |
 | AI 작업 문서 전체 | [docs/ai/README.md](docs/ai/README.md) |
 
 문서와 코드가 다르면 **코드를 우선**하고, 차이를 보고한다.

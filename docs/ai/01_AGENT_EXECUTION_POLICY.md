@@ -19,7 +19,7 @@
 
 ### 승인 없이 진행
 
-- `Assets/01.Scripts/` 자기 파트 폴더의 코드 작성 · 수정
+- `Assets/01.Scripts/` 자기 파트 폴더의 코드 작성 · 수정 (판정 · AI 포함, `CODEOWNERS` 기준). `Net/`·중앙 `98.Servers/`는 제외한다
 - `Assets/09.Data/` 자기 파트 소유 ScriptableObject 값 조정 (밸런스 수치)
 - `docs/` 문서 작성 · 수정
 - 자기 담당 `Dev_*.unity` 씬 수정
@@ -31,6 +31,7 @@
 |---|---|
 | `Assets/00.Scenes/Main.unity` | 통합 씬. 충돌 시 복구 불가 |
 | 다른 파트의 `Assets/01.Scripts/` 폴더 | 병행 작업과 충돌 |
+| `Net/`·중앙 `98.Servers/` 네트워크 코드와 공용 API 계약 | 팀장 소유. 판정·AI는 파트 담당이 작성하되 서버 경로에서만 호출하고, 새 네트워크 멤버는 팀장에게 요청한다 ([협업 경계](../unity/SERVER_CLIENT_WORKFLOW.md)) |
 | 네트워크 권위 경계 변경 | 여러 시스템에 파급 |
 | `.gitattributes` LFS 대상 추가 | 소급 적용 안 됨, 팀 전체 영향 |
 | `Assets/98.FreeAssets/` · `Assets/99.ThirdParty/` 외부 에셋 원본 | 업데이트 시 변경분 소실 |

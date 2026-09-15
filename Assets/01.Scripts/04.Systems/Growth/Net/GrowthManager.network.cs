@@ -1,9 +1,6 @@
 // 서드파티
 using Mirror;
 
-// 프로젝트 내부
-using Geumeum.Common;
-
 namespace Geumeum.Systems
 {
     public partial class GrowthManager
@@ -18,34 +15,5 @@ namespace Geumeum.Systems
         [SyncVar] private float _networkMaxHealth;
         [SyncVar] private int   _networkTalentPoints;
         [SyncVar(hook = nameof(OnNetworkGrowthRevisionChanged))] private uint  _networkRevision;
-
-        /****************************************
-        *           Client Callbacks
-        ****************************************/
-
-        public override void OnStartClient()
-        {
-            GrowthProviderLocator.Register(this);
-        }
-
-        public override void OnStopClient()
-        {
-            if (!isServer)
-            {
-                GrowthProviderLocator.Unregister(this);
-            }
-        }
-
-        /****************************************
-        *             SyncVar Hooks
-        ****************************************/
-
-        private void OnNetworkGrowthRevisionChanged(uint _, uint __)
-        {
-            if (!isServer)
-            {
-                GrowthChanged?.Invoke(State);
-            }
-        }
     }
 }

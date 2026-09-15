@@ -13,7 +13,7 @@
 |---|---|
 | AI에게 작업을 시킬 때 | [작업 브리프](02_TASK_BRIEF_TEMPLATE.md) |
 | AI가 "다 됐다"고 했을 때 | [검증 플레이북](03_VERIFICATION_PLAYBOOK.md) |
-| 네트워크 코드를 만질 때 | [네트워크 권위](../unity/NETWORK_AUTHORITY.md) |
+| 네트워크 코드를 만질 때 | [네트워크 권위](../unity/NETWORK_AUTHORITY.md) · `Net/` · `98.Servers/` 담당은 [서버·클라이언트 협업](../unity/SERVER_CLIENT_WORKFLOW.md) |
 | 3인 테스트를 해야 할 때 | [멀티플레이 테스트](04_MULTIPLAYER_TEST_PROTOCOL.md) |
 | 작업을 중단할 때 | [세션 인수인계](05_SESSION_HANDOFF.md) 양식으로 `.claude/docs/{YYYY-MM-DD}/{항목}.md`를 쓰고 `HANDOFF_CURRENT.md` 포인터를 갱신 |
 | 기획서를 구현으로 옮길 때 | [기획 문서 → 구현](09_DOCUMENT_ANALYSIS_WORKFLOW.md) |
@@ -47,6 +47,9 @@
 |---|---|
 | [처음 프로젝트를 열 때](../unity/UNITY_START_HERE.md) | 클론 후 첫 실행까지 |
 | [네트워크 권위](../unity/NETWORK_AUTHORITY.md) | 서버냐 클라냐 판단할 때 |
+| [서버·클라이언트 협업](../unity/SERVER_CLIENT_WORKFLOW.md) | `Net/` · `98.Servers/` 담당과 판정 · AI 작성 흐름을 확인할 때 |
+| [클라이언트 API 안내](../unity/CLIENT_API_REFERENCE.md) | UI · 표현 코드가 서버에 요청 · 조회할 때 |
+| [서버·클라이언트 분리 검증 기록](../unity/SERVER_CLIENT_REFACTOR_VALIDATION.md) | 분리 작업에서 무엇을 검증했고 무엇이 남았는지 볼 때 |
 | [씬 · 에셋 안전](../unity/SCENE_AND_ASSET_SAFETY.md) | 씬 · `.meta` · LFS를 다룰 때 |
 | [밸런스 데이터 작업](../unity/BALANCE_DATA_WORKFLOW.md) | 수치를 만들거나 바꿀 때 |
 | [엔지니어링 패턴](../unity/UNITY_ENGINEERING_PATTERNS.md) | 성능 · 수명 문제가 실제로 생겼을 때 |

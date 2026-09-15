@@ -1,9 +1,3 @@
-// System
-using System;
-
-// Unity
-using UnityEngine;
-
 // 서드파티
 using Mirror;
 
@@ -58,44 +52,6 @@ namespace Geumeum.Systems
             InventoryResult result = ServerTryUnequip(netId, expectedRevision, requestId,
                 out WeaponCombatSnapshot removedWeapon);
             TargetEquipResult(connectionToClient, requestId, result, _revision, removedWeapon);
-        }
-
-        /****************************************
-        *               TargetRpc
-        ****************************************/
-
-        [TargetRpc]
-        private void TargetEquipResult(NetworkConnection target, uint requestId, InventoryResult result,
-            uint revision, WeaponCombatSnapshot previousWeapon)
-        {
-            EquipResult?.Invoke(requestId, result, revision);
-        }
-
-        /****************************************
-        *             SyncVar Hooks
-        ****************************************/
-
-        private void OnEquippedWeaponChanged(WeaponCombatSnapshot oldWeapon,
-            WeaponCombatSnapshot newWeapon)
-        {
-            Action<WeaponCombatSnapshot> handlers = EquippedWeaponChanged;
-            if (handlers == null)
-            {
-                return;
-            }
-
-            Delegate[] observers = handlers.GetInvocationList();
-            for (int i = 0; i < observers.Length; ++i)
-            {
-                try
-                {
-                    ((Action<WeaponCombatSnapshot>) observers[i])(newWeapon);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"[InventoryController] 장착 장비 observer 실패: {e}", this);
-                }
-            }
         }
     }
 }
