@@ -27,6 +27,12 @@ namespace Geumeum.UI
         // 매 프레임 스폰 목록을 다시 훑으면 그 자체가 부하다. 점 위치는 매 프레임 갱신하되 목록만 주기로 만든다
         private const float REFRESH_SECONDS = 0.2f;
 
+        // 결계 밖을 덮는 판의 해상도. 미니맵이 180px라 이보다 크게 잡을 이유가 없다
+        private const int DANGER_TEXTURE_SIZE = 256;
+
+        // 원이 이만큼도 안 움직였으면 판을 다시 칠하지 않는다. 축소 30초 동안 매 프레임 칠하면 그것만으로 부하다
+        private const float DANGER_REDRAW_EPSILON = 0.5f;
+
         // 중심 기준으로 anchoredPosition을 계산하므로 프리팹이 무엇이든 앵커를 중앙으로 맞춘다
         private static readonly Vector2 DOT_ANCHOR = new Vector2(0.5f, 0.5f);
 
@@ -35,8 +41,14 @@ namespace Geumeum.UI
         [SerializeField] private RectTransform _dotPrefab = null;
 
         [Header("결계")]
-        [Tooltip("결계 원을 그릴 Image. 비워두면 결계를 그리지 않는다")]
-        [SerializeField] private RectTransform _barrierCircle = null;
+        [Tooltip("결계 밖을 덮을 판. 미니맵 전체에 맞춰 늘려 둔다. 비워두면 결계를 그리지 않는다")]
+        [SerializeField] private RawImage _dangerOverlay = null;
+
+        [Tooltip("결계 밖 색. 밖이 위험한 구역이라 여기를 칠한다")]
+        [SerializeField] private Color _dangerColor = new Color(0.45f, 0.16f, 0.66f, 0.35f);
+
+        [Tooltip("다음 축소의 목표 원. 비워두면 그리지 않는다")]
+        [SerializeField] private RectTransform _targetCircle = null;
 
         [Header("범위")]
         [Tooltip("미니맵 가장자리가 몇 m를 뜻하는지")]
@@ -58,6 +70,13 @@ namespace Geumeum.UI
 
         private RectTransform _rect;
         private float         _nextRefreshTime = 0f;
+
+        // 판은 한 번 만들어 두고 구멍 위치만 다시 칠한다
+        private Texture2D _dangerTexture = null;
+        private Color32[] _dangerPixels  = null;
+        private Vector2   _dangerHoleCenter = Vector2.zero;
+        private float     _dangerHoleRadius = -1f;
+        private Color32   _dangerPainted;
 
         /****************************************
         *              Unity Event
@@ -90,9 +109,25 @@ namespace Geumeum.UI
             _nextRefreshTime = 0f;
             HideDotsFrom(0);
 
-            if (_barrierCircle != null)
+            if (_dangerOverlay != null)
             {
-                _barrierCircle.gameObject.SetActive(false);
+                _dangerOverlay.gameObject.SetActive(false);
+            }
+
+            if (_targetCircle != null)
+            {
+                _targetCircle.gameObject.SetActive(false);
+            }
+
+            _dangerHoleRadius = -1f; // 다시 켜졌을 때 한 번은 칠하게 한다
+        }
+
+        private void OnDestroy()
+        {
+            if (_dangerTexture != null)
+            {
+                Destroy(_dangerTexture);
+                _dangerTexture = null;
             }
         }
 
@@ -199,18 +234,29 @@ namespace Geumeum.UI
         // 결계는 서버가 확정한 값을 그대로 읽는다. 판정도 보간도 여기서 하지 않는다
         private void DrawBarrier(Vector3 localPosition)
         {
-            if (_barrierCircle == null)
+            IBarrierState state = BarrierStateLocator.Current;
+
+            DrawDanger(state.Center, state.Radius, localPosition);
+            DrawTargetCircle(localPosition);
+        }
+
+        /// <summary>
+        /// 결계 밖을 덮는다. 안쪽이 아니라 바깥이 위험한 구역이라 칠하는 쪽이 반대다.
+        ///
+        /// UI에는 역마스크가 없어서 판 하나를 칠하고 결계 자리만 비운다.
+        /// 원이 움직인 만큼만 다시 칠하므로 축소 중에도 매 프레임 칠하지 않는다
+        /// </summary>
+        private void DrawDanger(Vector3 worldCenter, float radius, Vector3 localPosition)
+        {
+            if (_dangerOverlay == null)
             {
                 return;
             }
 
-            IBarrierState state  = BarrierStateLocator.Current;
-            float         radius = state.Radius;
-
-            // 결계가 없는 단계에서는 반경이 0으로 수렴하므로 이것만으로 가시성 판정이 된다
+            // 결계가 없는 단계에서는 반경이 0으로 수렴한다. 이때 판을 깔면 화면 전체가 위험으로 보인다
             if (radius <= 0f)
             {
-                _barrierCircle.gameObject.SetActive(false);
+                _dangerOverlay.gameObject.SetActive(false);
                 return;
             }
 
@@ -218,13 +264,136 @@ namespace Geumeum.UI
             float range = Mathf.Max(_rangeMeters, 0.01f);
             float scale = half / range;
 
-            Vector3 offset = state.Center - localPosition;
+            Vector3 offset = worldCenter - localPosition;
 
-            _barrierCircle.gameObject.SetActive(true);
-            _barrierCircle.anchoredPosition = new Vector2(offset.x, offset.z) * scale;
+            Vector2 holeCenter = new Vector2(offset.x, offset.z) * scale;
+            float   holeRadius = radius * scale;
+
+            _dangerOverlay.gameObject.SetActive(true);
+
+            EnsureDangerTexture();
+
+            bool moved = (Vector2.Distance(holeCenter, _dangerHoleCenter) > DANGER_REDRAW_EPSILON)
+                      || (Mathf.Abs(holeRadius - _dangerHoleRadius) > DANGER_REDRAW_EPSILON)
+                      || (!_dangerPainted.Equals((Color32) _dangerColor));
+
+            if (!moved)
+            {
+                return;
+            }
+
+            _dangerHoleCenter = holeCenter;
+            _dangerHoleRadius = holeRadius;
+            _dangerPainted    = _dangerColor;
+
+            PaintDanger(holeCenter, holeRadius, half);
+        }
+
+        private void EnsureDangerTexture()
+        {
+            if (_dangerTexture != null)
+            {
+                return;
+            }
+
+            _dangerTexture = new Texture2D(DANGER_TEXTURE_SIZE, DANGER_TEXTURE_SIZE,
+                                           TextureFormat.RGBA32, false)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+            };
+
+            _dangerPixels        = new Color32[DANGER_TEXTURE_SIZE * DANGER_TEXTURE_SIZE];
+            _dangerOverlay.texture = _dangerTexture;
+
+            // 색은 판이 정하고 RawImage는 그대로 내보낸다. 둘 다 곱해지면 알파가 두 번 먹는다
+            _dangerOverlay.color = Color.white;
+        }
+
+        /// <summary> 판 전체를 위험 색으로 칠하고 결계 안쪽만 비운다 </summary>
+        private void PaintDanger(Vector2 holeCenter, float holeRadius, float half)
+        {
+            Color32 danger = _dangerColor;
+            Color32 clear  = new Color32(danger.r, danger.g, danger.b, 0);
+
+            // 판 한 칸이 미니맵에서 몇 px인지. 구멍 반경을 판 좌표로 옮길 때 쓴다
+            float pixelsPerUnit = DANGER_TEXTURE_SIZE / (half * 2f);
+
+            float centerX = (holeCenter.x + half) * pixelsPerUnit;
+            float centerY = (holeCenter.y + half) * pixelsPerUnit;
+            float radius  = holeRadius * pixelsPerUnit;
+
+            float sqrRadius = radius * radius;
+
+            for (int y = 0; y < DANGER_TEXTURE_SIZE; ++y)
+            {
+                float dy    = (y + 0.5f) - centerY;
+                int   rowTop = y * DANGER_TEXTURE_SIZE;
+
+                for (int x = 0; x < DANGER_TEXTURE_SIZE; ++x)
+                {
+                    float dx = (x + 0.5f) - centerX;
+
+                    _dangerPixels[rowTop + x] = (((dx * dx) + (dy * dy)) <= sqrRadius) ? clear : danger;
+                }
+            }
+
+            _dangerTexture.SetPixels32(_dangerPixels);
+            _dangerTexture.Apply(false);
+        }
+
+        /// <summary>
+        /// 다음 축소가 어디로 갈지 미리 보여 준다.
+        /// 목표 원은 서버가 경고 시점에 확정하므로 그 전에는 그릴 것이 없고,
+        /// 축소가 끝나면 현재 원과 겹치므로 지운다
+        /// </summary>
+        private void DrawTargetCircle(Vector3 localPosition)
+        {
+            if (_targetCircle == null)
+            {
+                return;
+            }
+
+            BarrierTransitionState snapshot = BarrierStateLocator.TransitionSource.Snapshot;
+
+            // 결계 판정이 쓰는 시계와 같은 것을 본다. 다른 시계를 쓰면 그려진 원과 때리는 원이 어긋난다
+            double now = RunTimeLocator.Current.FieldElapsedSeconds;
+
+            if ((now < snapshot.WarningGameplayTime) || (now >= snapshot.EndGameplayTime))
+            {
+                _targetCircle.gameObject.SetActive(false);
+                return;
+            }
+
+            DrawCircle(_targetCircle, snapshot.TargetCenter, snapshot.TargetRadius, localPosition);
+        }
+
+        private void DrawCircle(RectTransform circle, Vector3 worldCenter, float radius,
+                                Vector3 localPosition)
+        {
+            if (circle == null)
+            {
+                return;
+            }
+
+            // 결계가 없는 단계에서는 반경이 0으로 수렴하므로 이것만으로 가시성 판정이 된다
+            if (radius <= 0f)
+            {
+                circle.gameObject.SetActive(false);
+                return;
+            }
+
+            float half  = Mathf.Min(_rect.rect.width, _rect.rect.height) * 0.5f;
+            float range = Mathf.Max(_rangeMeters, 0.01f);
+            float scale = half / range;
+
+            Vector3 offset = worldCenter - localPosition;
+
+            circle.gameObject.SetActive(true);
+            circle.anchoredPosition = new Vector2(offset.x, offset.z) * scale;
 
             float diameter = radius * 2f * scale;
-            _barrierCircle.sizeDelta = new Vector2(diameter, diameter);
+            circle.sizeDelta = new Vector2(diameter, diameter);
         }
 
         private void HideDotsFrom(int startIndex)

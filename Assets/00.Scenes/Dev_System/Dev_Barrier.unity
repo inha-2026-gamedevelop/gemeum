@@ -25107,7 +25107,7 @@ MonoBehaviour:
   _autoFitWidth: 1
   _patchWidth: 14
   _patchThickness: 6
-  _groundEffectAsset: {fileID: 8926484042661614526, guid: 016a2e7933b5fc347b3121cf053e5d49, type: 3}
+  _groundEffectAsset: {fileID: 8926484042661614526, guid: 7a1e5839a1c1a2244953e52040052ee7, type: 3}
   _showGroundLayer: 1
   _groundLayerHeight: 34
   _bodyEffectAsset: {fileID: 0}

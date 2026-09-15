@@ -195,7 +195,9 @@ namespace Geumeum.UI
 
             public void Rebind(PlayerStatus status)
             {
-                if (_status == status)
+                // 접속이 끊기면 오브젝트가 파괴된다. ==로 비교하면 파괴된 대상이 null과 같아져
+                // 줄을 숨기지 못한 채 나간 사람의 값이 남는다
+                if (ReferenceEquals(_status, status))
                 {
                     return;
                 }

@@ -104,7 +104,7 @@ Assets/
 | `Dev_Character.unity` | **현재** | 캐릭터·무기 부착 확인용. 네트워크 없음. 빌드 설정 미포함 |
 | `Dev_WeatherMakerIsolation.unity` | **현재** | WeatherMaker 격리 확인용(임시). 빌드 설정 미포함 |
 | `SampleScene.unity` | **현재** | Unity 기본 생성물. 사용하지 않는다 |
-| **`Dev_System/` (폴더)** | **현재** | 게임플레이 시스템 작업 씬 **셋**. 소유자 @kjw1237 — `Dev_Barrier` · `Dev_Lobby` · `Dev_Title` |
+| **`Dev_System/` (폴더)** | **현재** | 게임플레이 시스템 작업 씬 **넷**. 소유자 @kjw1237 — `Dev_Barrier` · `Dev_Lobby` · `Dev_Title` · `Dev_HUD` |
 | `Dev_Art.unity` | **미생성** | 테크니컬 아트 작업 씬. 소유자 @AidenKim923 |
 
 **런타임 씬은 일곱 개다 (2026-09-06 신설).** `Assets/00.Scenes/Release/`에 **빈 껍데기로 만들어 빌드 목록에 등록했다.** 내용물은 아직 비어 있고, 전환 골격을 먼저 검증한 뒤 채운다. `Main.unity`와 `Dev_System/`의 기존 씬을 어디에 흡수할지는 내용물을 채울 때 정한다.
@@ -802,16 +802,27 @@ Main.unity
 ├ Combat/    HUD(HP · 스태미나 · 신력 · 패링 게이지), 정밀 조준 상태, 무녀 표식 슬롯, 관전 화면
 │  └ HUD/
 │     ├ HUDController.cs         [구현완료] HP · 신력 · 스태미나 바를 PlayerStatus.Local에 바인딩
-│     ├ MinimapPlayerDots.cs     [현재] 파티원 위치를 점으로 찍는다. 캐릭터별 색.
-│     │                           결계 원은 _barrierCircle 참조를 꽂으면 켜진다. 맵 배경, 회전은 아직 없다
+│     ├ MinimapPlayerDots.cs     [구현완료] 파티원 위치를 점으로, 결계를 판과 원으로 그린다. 캐릭터별 색.
+│     │                           결계 밖을 위험 색으로 덮는다 - UI에 역마스크가 없어 판 하나를 칠하고
+│     │                           결계 자리만 비운다. 원이 움직인 만큼만 다시 칠한다.
+│     │                           다음 축소의 목표 원은 경고 시점부터 축소가 끝날 때까지 보인다.
+│     │                           _rangeMeters는 BarrierPhaseSO의 최대 반경과 같아야 한다. 맵 배경, 회전은 아직 없다
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
 │     │                           씬 배선 전이라 동작을 관찰하지 못했다
-│     ├ PartyHudController.cs    [미검증] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
+│     ├ HudTimerController.cs    [구현완료] 우상단 시간 슬롯에 필드에 남은 시간을 mm:ss로 적는다.
+│     │                           상한 30:00은 GameDB.Barrier가 갖고 있어 코드에 박은 수치가 아니다.
+│     │                           런 시작 시 30:00에서 내려가는 것을 화면에서 확인했다.
+│     │                           축소까지 남은 시간이 아니다 - 그 경고는 배너와 부적이 맡는다(HUD_DESIGN 2.2).
+│     │                           보스 시계는 아직 세지 않는다. 보스 씬이 붙으면 점수 기준(44:00)과 맞춰야 한다.
+│     │                           단계별 색 전환은 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
+│     ├ PartyHudController.cs    [구현완료] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
 │     │                           스폰 목록만 주기로 훑고 값은 PlayerStatus 이벤트로 받는다.
-│     │                           Dev_HUD에 배선했으나 2인 이상에서 관찰하지 못했다
-│     ├ PartyMemberPlate.cs      [미검증] 파티 한 줄의 뷰. 이름 · 직업 아이콘 · 자원 바 3개.
-│     │                           값만 받고 PlayerStatus도 네트워크도 참조하지 않는다
+│     │                           3인 접속에서 본인을 뺀 2줄이 뜨고, 한 명이 나가면 그 줄이 사라지는 것을 확인했다.
+│     │                           파티창에 본인을 넣을지는 아직 정해지지 않아 _includeLocalPlayer로 빼 두었다
+│     ├ PartyMemberPlate.cs      [구현완료] 파티 한 줄의 뷰. 이름 · 직업 아이콘 · 자원 바 3개.
+│     │                           값만 받고 PlayerStatus도 네트워크도 참조하지 않는다.
+│     │                           이름과 자원 바가 원격 플레이어의 값을 따라가는 것을 확인했다
 │     └ Dev/
 │        └ HudResourceDecayTester.cs  [현재] 개발 전용. 서버가 모든 플레이어의 자원을
 │                                     주기마다 조금씩 깎아 HUD가 값을 따라가는지 보게 한다.
@@ -1051,7 +1062,12 @@ Assets/02.Prefabs/
 │  ├ SessionNetwork.prefab    @Network. NetworkManager · 트랜스포트 · 인증기 · Steam
 │  ├ SessionManagers.prefab   @Managers. NetworkIdentity 하나에 GameDBBootstrap · GameEventBus ·
 │  │                          LobbyController · RunManager · AuthorityTickScheduler · LobbyRoster ·
-│  │                          LobbyRoleCoordinator · RunSceneDirector · SessionPersistence
+│  │                          LobbyRoleCoordinator · RunSceneDirector · SessionPersistence ·
+│  │                          DropDirector · CurrencyManager · GrowthManager ·
+│  │                          ShopTransactionService · EquipmentTransferService ·
+│  │                          RunStatistics · RunResultRecorder.
+│  │                          자식으로 인벤토리·특성·객주 화면(FunctionalManagementUI)과
+│  │                          런 상태·결과 화면을 품는다. Boot · Dev_HUD가 씬 인스턴스로 쓴다
 │  └ SessionDiagnostics.prefab @Diagnostics. FrameRecorder · SessionPersistence
 ├ Enemy/
 │  ├ Heokkaebi / Changgwi / Aekgwi.prefab    잡귀 3종 (서버 스폰)

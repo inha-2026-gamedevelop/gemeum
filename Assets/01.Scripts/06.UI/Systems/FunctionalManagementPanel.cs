@@ -1,4 +1,5 @@
 // System
+using System;
 using System.Collections.Generic;
 
 // Unity
@@ -114,6 +115,9 @@ namespace Geumeum.UI
         private float _nextNetworkScanTime;
 
         public static FunctionalManagementPanel Instance { get; private set; }
+
+        /// <summary> 관리 창이 열리고 닫힐 때. HUD처럼 같이 숨겨야 하는 화면이 듣는다 </summary>
+        public static event Action<bool> VisibilityChanged;
 
         public bool IsVisible => _isVisible;
 
@@ -602,6 +606,8 @@ namespace Geumeum.UI
 
         private void SetVisible(bool visible)
         {
+            bool changed = (_isVisible != visible);
+
             _isVisible = visible;
             if (_canvasGroup != null)
             {
@@ -614,6 +620,11 @@ namespace Geumeum.UI
             {
                 ReleaseInputToken();
                 _activeShopPoint = null;
+            }
+
+            if (changed)
+            {
+                VisibilityChanged?.Invoke(visible);
             }
         }
 
