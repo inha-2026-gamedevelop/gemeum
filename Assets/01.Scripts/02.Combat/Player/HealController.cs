@@ -79,6 +79,7 @@ namespace Geumeum.Combat
                 return;
             }
 
+            GDebug.Log("[우클릭] 방울: 치유 요청");
             CmdRequestHeal(_nextRequestId);
             ++_nextRequestId;
         }

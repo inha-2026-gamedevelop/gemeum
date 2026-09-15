@@ -1,4 +1,5 @@
 // System
+using System.Collections;
 using System.Collections.Generic;
 
 // Unity
@@ -29,7 +30,11 @@ namespace Geumeum.Common
         // 같은 인스턴스를 두 번 반납하면 풀에 중복이 생겨 두 곳에서 동시에 쓰이게 된다
         private readonly HashSet<GameObject> _rented = new HashSet<GameObject>();
 
+        // 부모가 활성 전환 중이면 SetParent가 거부된다. 그대로 풀에 넣으면 부모와 함께 파괴된 인스턴스가 다음 대여에 나온다
+        private readonly List<GameObject> _deferredReturns = new List<GameObject>();
+
         private Transform _poolRoot;
+        private Coroutine _deferredReturnRoutine;
 
         /****************************************
         *              Unity Event
@@ -53,6 +58,8 @@ namespace Geumeum.Common
             _prefabOf.Clear();
             _poolableOf.Clear();
             _rented.Clear();
+            _deferredReturns.Clear();
+            _deferredReturnRoutine = null;
         }
 
         /****************************************
@@ -124,6 +131,14 @@ namespace Geumeum.Common
 
             GameObject instance = pool.Get();
 
+            // 풀 밖에서 파괴된 인스턴스가 남아 있으면 버리고 다시 꺼낸다. 비면 새로 만들어 준다
+            while (instance == null)
+            {
+                Debug.LogWarning($"[LocalObjectPoolService] {prefab.name} 풀에서 파괴된 인스턴스를 버렸다", this);
+                ForgetInstance(instance);
+                instance = pool.Get();
+            }
+
             instance.transform.SetParent(null, false);
             instance.transform.SetPositionAndRotation(position, rotation);
             instance.SetActive(true);
@@ -166,7 +181,17 @@ namespace Geumeum.Common
             }
 
             instance.SetActive(false);
-            instance.transform.SetParent(_poolRoot, false);
+            if (!TryMoveToPoolRoot(instance))
+            {
+                // 씬 전환으로 붙어 있던 플레이어가 꺼지는 중이다. 다음 프레임에 옮기거나, 함께 파괴됐으면 버린다
+                _deferredReturns.Add(instance);
+                if (_deferredReturnRoutine == null)
+                {
+                    _deferredReturnRoutine = StartCoroutine(CoFlushDeferredReturns());
+                }
+
+                return true;
+            }
 
             _pools[prefab].Release(instance);
             return true;
@@ -218,12 +243,52 @@ namespace Geumeum.Common
             return instance;
         }
 
-        private void DestroyInstance(GameObject instance)
+        private bool TryMoveToPoolRoot(GameObject instance)
+        {
+            instance.transform.SetParent(_poolRoot, false);
+            return (instance.transform.parent == _poolRoot);
+        }
+
+        private IEnumerator CoFlushDeferredReturns()
+        {
+            while (_deferredReturns.Count > 0)
+            {
+                yield return null;
+
+                for (int i = _deferredReturns.Count - 1; i >= 0; --i)
+                {
+                    GameObject instance = _deferredReturns[i];
+                    if (instance == null)
+                    {
+                        // 붙어 있던 부모와 함께 파괴됐다. 풀에 넣지 않는다
+                        ForgetInstance(instance);
+                        _deferredReturns.RemoveAt(i);
+                        continue;
+                    }
+
+                    if (!TryMoveToPoolRoot(instance))
+                    {
+                        continue;
+                    }
+
+                    _deferredReturns.RemoveAt(i);
+                    _pools[_prefabOf[instance]].Release(instance);
+                }
+            }
+
+            _deferredReturnRoutine = null;
+        }
+
+        private void ForgetInstance(GameObject instance)
         {
             _prefabOf.Remove(instance);
             _poolableOf.Remove(instance);
             _rented.Remove(instance);
+        }
 
+        private void DestroyInstance(GameObject instance)
+        {
+            ForgetInstance(instance);
             Destroy(instance);
         }
     }

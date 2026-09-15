@@ -10,6 +10,9 @@ using UnityEngine;
 using Steamworks;
 #endif
 
+// 프로젝트 내부
+using Geumeum.Common;
+
 namespace Geumeum.Network
 {
     /// <summary> Steamworks 로비 API와 콜백의 유일한 창구 </summary>
@@ -27,6 +30,8 @@ namespace Geumeum.Network
         ****************************************/
 
         private readonly List<ulong> _members = new List<ulong>();
+        private ulong                _preferenceLobbyId;
+        private WeaponKind           _localWeaponPreference;
 
         /****************************************
         *              Properties
@@ -89,6 +94,45 @@ namespace Geumeum.Network
 
         /// <summary> 초대 수락이나 친구 목록에서 참가 요청이 왔다. 인자는 로비 SteamID </summary>
         public event Action<ulong> JoinRequested;
+
+        /****************************************
+        *              Public API
+        ****************************************/
+
+        /// <summary> 접속 전 선호를 보관하고 자기 Steam 멤버 데이터로 표시한다. 역할 확정은 아니다. </summary>
+        public bool RequestWeaponPreference(WeaponKind weapon)
+        {
+            if ((!IsInLobby) || (!Enum.IsDefined(typeof(WeaponKind), weapon))
+                || (SteamSessionCoordinator.Instance == null)
+                || (SteamSessionCoordinator.Instance.State != SteamSessionState.Gathering))
+            {
+                return false;
+            }
+
+            _preferenceLobbyId = LobbyId;
+            _localWeaponPreference = weapon;
+            SetMemberData(SteamLobbyKeys.MEMBER_WEAPON_PREFERENCE, ((int)weapon).ToString());
+            return true;
+        }
+
+        public bool TryGetLocalWeaponPreference(out WeaponKind weapon)
+        {
+            weapon = _localWeaponPreference;
+            return (IsInLobby) && (_preferenceLobbyId == LobbyId);
+        }
+
+        public bool TryGetMemberWeaponPreference(ulong memberId, out WeaponKind weapon)
+        {
+            weapon = default;
+            if ((!IsMember(memberId))
+                || (!int.TryParse(GetMemberData(memberId, SteamLobbyKeys.MEMBER_WEAPON_PREFERENCE), out int value))
+                || (!Enum.IsDefined(typeof(WeaponKind), value)))
+            {
+                return false;
+            }
+            weapon = (WeaponKind)value;
+            return true;
+        }
 
 #if !DISABLESTEAMWORKS
 
@@ -430,6 +474,8 @@ namespace Geumeum.Network
             }
 
             LobbyId = lobbyId;
+            _preferenceLobbyId = 0UL;
+            SetMemberData(SteamLobbyKeys.MEMBER_WEAPON_PREFERENCE, string.Empty);
 
             RefreshOwner();
             RefreshMembers();
@@ -441,6 +487,7 @@ namespace Geumeum.Network
         private void ClearLobby(string reason)
         {
             LobbyId = 0UL;
+            _preferenceLobbyId = 0UL;
             OwnerId = 0UL;
             _members.Clear();
 

@@ -1,5 +1,7 @@
 # 클라이언트 API 안내
 
+로비 무기 선호·준비 요청과 기본 공격 조준 API는 [로비·전투 조작 안내](LOBBY_COMBAT_CONTROLS.md)를 참고한다.
+
 서버 partial(`.server.cs`)은 `Assets/01.Scripts/98.Servers/`에 모으고, 판정·AI 클래스와 공개 요청·조회 창구는 기존 도메인 위치를 유지한다. 클라이언트·UI 코드는 판정 코드를 직접 호출하지 않고 이 계약을 사용한다. 실제 범위와 위치는 [서버·클라이언트 협업](SERVER_CLIENT_WORKFLOW.md#5-현재-적용-범위)을 따른다.
 
 대상: 몬스터·보스 담당과 게임플레이 시스템·UI 담당이 작성하는 표현·입력·UI 코드. 구현 소유는 [협업 경계](SERVER_CLIENT_WORKFLOW.md)를 따른다.

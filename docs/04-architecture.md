@@ -361,7 +361,9 @@ Main.unity
 │  └ SceneTransitionSnapshot.cs struct 전환 한 번의 내용. 참가자 복구 여부를 여기서 정한다
 ├ Pooling/                 namespace Geumeum.Common — 로컬 표현 오브젝트 풀
 │  ├ LocalObjectPoolService.cs MB [구현완료] 프리팹별 ObjectPool<GameObject>.
-│  │                              PersistentSingleton을 상속한다. 호출부는 아직 없다
+│  │                              PersistentSingleton을 상속한다. 플레이어 공격 연출(PlayerCombatPresentation)이 쓴다.
+│  │                              부모가 꺼지는 중 반납이 거부되면 다음 프레임에 옮기고, 파괴된 인스턴스는 대여에서 버린다
+│  │                              (2026-09-16, 보스 입장 후 호스트 연결 끊김 수정. 회귀: 00.Common/Editor/LocalObjectPoolServiceTests)
 │  └ LocalPoolRoot.cs      MB  [구현완료] 풀에 넣어도 되는 프리팹임을 선언하는 표식.
 │                              네트워크 개체를 걸러내는 화이트리스트다
 ├ CameraFrame.cs           static [구현완료] 카메라 yaw · 입력 허용 플래그 · 락온 상태 셋.
@@ -547,6 +549,9 @@ Main.unity
 │  ├ ArrowProjectile.cs    NB  [구현완료] 서버 물리 틱마다 SphereCast로 훑는 궤적 · 명중 · 관통.
 │  │                           netId로 대상 중복을 막는다. [구현완료] 장애물 판정 · 락온 유도
 │  │                           (TryFindWorldBlock · UpdateGuidance; 활성 WorldMask는 ArrowConfigSO.asset에서 확인)
+│  ├ ArrowAimGeometry.cs   static [구현완료] 활 조준 수렴 계산. 카메라 중심 ray에서 총구보다 가까운 충돌은
+│  │                           조준점에서 빼고, 조준점을 못 구하면 카메라 방향 폴백을 정한다.
+│  │                           PlayerAttack 기본 공격과 정밀 사격이 공유 (회귀: 02.Combat/Player/Editor/ArrowAimGeometryTests)
 │  ├ ArrowLauncher.cs      NB  [예정] 별도 스폰 실행기. 지금은 PlayerAttack이 직접 띄운다
 │  └ ArrowGuidance         [구현완료] 독립 클래스는 없고 ArrowProjectile.UpdateGuidance에 구현되어 있다.
 │                              별도 클래스가 아니라 ArrowProjectile의 서버 틱 안에서 처리한다.
@@ -822,7 +827,7 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           _rangeMeters는 BarrierPhaseSO의 최대 반경과 같아야 한다. 맵 배경, 회전은 아직 없다
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
-│     │                           씬 배선 전이라 동작을 관찰하지 못했다
+│     │                           RunHUD.prefab(SessionManagers 안)에 배선했다. 화면 동작은 아직 관찰하지 못했다
 │     ├ HudTimerController.cs    [구현완료] 우상단 시간 슬롯에 필드에 남은 시간을 mm:ss로 적는다.
 │     │                           상한 30:00은 GameDB.Barrier가 갖고 있어 코드에 박은 수치가 아니다.
 │     │                           런 시작 시 30:00에서 내려가는 것을 화면에서 확인했다.
@@ -836,6 +841,7 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     ├ PartyMemberPlate.cs      [구현완료] 파티 한 줄의 뷰. 이름 · 직업 아이콘 · 자원 바 3개.
 │     │                           값만 받고 PlayerStatus도 네트워크도 참조하지 않는다.
 │     │                           이름과 자원 바가 원격 플레이어의 값을 따라가는 것을 확인했다
+│     ├ Editor/RunHudProductionWiringHelper.cs  Dev_HUD의 HUD · 관리 창 · 결계 벽을 SessionManagers · Field로 옮기는 도구
 │     └ Dev/
 │        └ HudResourceDecayTester.cs  [현재] 개발 전용. 서버가 모든 플레이어의 자원을
 │                                     주기마다 조금씩 깎아 HUD가 값을 따라가는지 보게 한다.
@@ -845,7 +851,8 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
 │  ├ SteamLobbyPanel.cs    MB  Steam 로비 화면. 방 만들기 · 로비 ID 참가 · 정원이 차면 시작.
-│  │                           런이 시작되면 접히고, 열려 있는 동안 커서 소유권을 가진다
+│  │                           런이 시작되면 접히고, 열려 있는 동안 커서 소유권을 가진다. 대기방에서 무기 선호를 고른다
+│  ├ LobbyWeaponPanel.cs   MB  3인 로비 무기 선호 · 준비 UI. 서버 로스터만 표시하고 LobbyController 요청 API를 부른다
 │  └ Editor/SteamLobbyUiBuilder.cs  위 화면을 SessionNetwork 프리팹 안에 짓는 에디터 도구
 ├ Systems/   [구현완료] 인벤토리, 특성 트리, 객주 상점, 정산 · 리더보드
 │  ├ FunctionalManagementPanel.cs · RunStatusPanel.cs · RunResultPanel.cs ·

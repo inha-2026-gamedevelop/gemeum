@@ -1,5 +1,6 @@
 // System
 using System;
+using System.Collections;
 
 // Unity
 using UnityEngine;
@@ -19,13 +20,17 @@ namespace Geumeum.Network
         *                Fields
         ****************************************/
 
-        [Tooltip("접속하거나 새 런의 LobbyIdle에 도착하면 자동으로 준비 상태로 만든다. 로비 준비 UI가 없는 현재 기본 흐름에서 사용한다")]
+        private const float PREFERENCE_POLL_SECONDS         = 0.25f; // Steam 대기방 선호 전달 조건 확인 주기, 초
+        private const float PREFERENCE_SLOT_TIMEOUT_SECONDS = 10f;   // 로비 씬 대기 상태에서 본인 슬롯을 기다리는 상한, 초
+
+        [Tooltip("접속하거나 새 런의 LobbyIdle에 도착하면 자동으로 준비 상태로 만든다. 로비 준비 UI를 거치지 않는 개발 자동화나 1인 실행에서만 켠다")]
         [SerializeField] private bool _devAutoReady = false;
 
         [Tooltip("런을 시작하는 데 필요한 인원. 혼자 이동, 모션을 확인하려고 낮추는 Dev 씬 전용 값이고, Main.unity에서는 반드시 3으로 둔다")]
         [SerializeField] private int _devMinPlayers = Constants.Network.MAX_PLAYERS;
 
         private bool _autoReadyForLobbyPending = false;
+        private Coroutine _preferenceTransfer;
 
         /****************************************
         *              Properties
@@ -52,6 +57,87 @@ namespace Geumeum.Network
             {
                 ServerInstance = null;
             }
+        }
+
+        /****************************************
+        *              Client Callbacks
+        ****************************************/
+
+        public override void OnStartClient()
+        {
+            if (!SteamTransportSelector.IsSteamTransport(Transport.active))
+            {
+                return;
+            }
+
+            if (_preferenceTransfer != null)
+            {
+                StopCoroutine(_preferenceTransfer);
+            }
+
+            _preferenceTransfer = StartCoroutine(TransferSteamPreference());
+        }
+
+        public override void OnStopClient()
+        {
+            if (_preferenceTransfer != null)
+            {
+                StopCoroutine(_preferenceTransfer);
+            }
+
+            _preferenceTransfer = null;
+        }
+
+        // Steam 대기방에서는 Mirror가 아직 없다. 씬 전환과 본인 슬롯 동기화가 끝난 뒤 요청한다.
+        private IEnumerator TransferSteamPreference()
+        {
+            var roster = GetComponent<LobbyRoster>();
+            var director = GetComponent<RunSceneDirector>();
+            var run = GetComponent<RunManager>();
+            var steamLobby = SteamLobbyService.Instance;
+            var wait = new WaitForSecondsRealtime(PREFERENCE_POLL_SECONDS);
+            float slotWaitSeconds = 0f;
+            while ((isClient) && (NetworkClient.active) && (roster != null) && (director != null) && (run != null))
+            {
+                if (run.Phase != RunPhase.Lobby)
+                {
+                    break;
+                }
+
+                if ((director.CurrentScene == RunSceneId.Lobby) && (director.State == RunTransitionState.Idle) &&
+                    (NetworkClient.localPlayer != null))
+                {
+                    for (int i = 0; i < roster.SlotCount; ++i)
+                    {
+                        LobbySlot slot = roster.GetSlot(i);
+                        if (slot.PlayerNetId != NetworkClient.localPlayer.netId)
+                        {
+                            continue;
+                        }
+
+                        // 이미 준비했으면 보내지 않는다. 늦게 도착한 선호 요청은 서버에서 준비를 무른다
+                        if ((!slot.HasPreference) && (!slot.IsReady) && (steamLobby != null) &&
+                            (steamLobby.TryGetLocalWeaponPreference(out WeaponKind weapon)))
+                        {
+                            RequestWeaponPreference(weapon);
+                        }
+
+                        _preferenceTransfer = null;
+                        yield break;
+                    }
+
+                    slotWaitSeconds += PREFERENCE_POLL_SECONDS;
+                    if (slotWaitSeconds >= PREFERENCE_SLOT_TIMEOUT_SECONDS)
+                    {
+                        Debug.LogWarning($"[LobbyController] {PREFERENCE_SLOT_TIMEOUT_SECONDS}초 동안 본인 슬롯을 찾지 못해 Steam 대기방 무기 선호를 전달하지 않는다", this);
+                        break;
+                    }
+                }
+
+                yield return wait;
+            }
+
+            _preferenceTransfer = null;
         }
 
         /****************************************
@@ -171,6 +257,12 @@ namespace Geumeum.Network
         [Server]
         public void ServerHandleLobbyIdle()
         {
+            LobbyRoster roster = LobbyRoster.ServerInstance;
+            if (roster != null)
+            {
+                roster.ServerRefreshPlayerBindings();
+            }
+
             TryApplyAutoReadyForLobby();
         }
 
@@ -188,13 +280,43 @@ namespace Geumeum.Network
         }
 
         /****************************************
+        *              Public API
+        ****************************************/
+
+        /// <summary> 무기 선호 요청. true는 전송 성공이며 확정은 로스터를 읽는다. </summary>
+        public bool RequestWeaponPreference(WeaponKind weapon)
+        {
+            if ((!isClient) || (!NetworkClient.active) || (!Enum.IsDefined(typeof(WeaponKind), weapon)))
+            {
+                return false;
+            }
+
+            CharacterKind character = weapon == WeaponKind.Sword ? CharacterKind.Chasa
+                : weapon == WeaponKind.Bow ? CharacterKind.Singung : CharacterKind.Munyeo;
+            CmdSelectCharacter(character);
+            return true;
+        }
+
+        /// <summary> 준비 상태 변경 요청. 실제 준비 상태는 로스터의 서버 결과를 사용한다. </summary>
+        public bool RequestReady(bool ready)
+        {
+            if ((!isClient) || (!NetworkClient.active))
+            {
+                return false;
+            }
+
+            CmdSetReady(ready);
+            return true;
+        }
+
+        /****************************************
         *              Commands
         ****************************************/
 
         [Command(requiresAuthority = false)]
         public void CmdSetReady(bool isReady, NetworkConnectionToClient sender = null)
         {
-            if ((sender == null) || (IsAdmissionLocked()))
+            if ((sender == null) || (IsAdmissionLocked()) || (!IsLobbyIdle()))
             {
                 return;
             }
@@ -206,7 +328,7 @@ namespace Geumeum.Network
         [Command(requiresAuthority = false)]
         public void CmdSelectCharacter(CharacterKind character, NetworkConnectionToClient sender = null)
         {
-            if ((sender == null) || (IsAdmissionLocked()))
+            if ((sender == null) || (IsAdmissionLocked()) || (!IsLobbyIdle()))
             {
                 return;
             }

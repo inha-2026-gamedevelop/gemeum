@@ -23,8 +23,10 @@
 > `BossLocomotion.controller`(`Assets/05.Animator/`) + `BossAnimationView.cs`
 > (`Assets/01.Scripts/05.Art/Boss/`)로 서버 텔레그래프·파츠 스냅샷·사망 이벤트를
 > Animator 파라미터에 연결했다. Play(Host) 1인 세션에서 공격 트리거·상태 전환·복귀까지 확인함.
-> 다만 **셰이더가 Built-in 전용이라 URP에서 핑크로 표시**되고(`URP_KitsuneYuna.unitypackage`
-> 임포트로 해결 예정, 팀 드라이브 재공유 필요해 별도 협의 중), **L3(3인 접속)는 여전히 미검증.**
+> 다만 **셰이더가 Built-in 전용이라 URP에서 핑크로 표시**되고, **L3(3인 접속)는 여전히 미검증.**
+> **2026-09-15 갱신 — 핑크 해결.** 같은 폴더의 `Shaders/URP_KitsuneYuna.unitypackage`를 임포트하면 같은 GUID의
+> 머티리얼 45개가 제자리에서 URP Lit으로 바뀐다. `99.ThirdParty`는 커밋되지 않으므로 **각 PC에서 한 번씩 임포트해야 한다.**
+> 공격 예고 셰이더 `Geumeum/BossTelegraph`는 `Shader.Find`로 찾기 때문에 빌드에서 빠져 있었고, Graphics 설정의 Always Included에 추가했다.
 
 > 상태: 구현 제안. 코드·씬·프리팹은 수정하지 않았다.
 >

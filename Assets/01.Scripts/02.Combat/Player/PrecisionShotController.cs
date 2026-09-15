@@ -8,6 +8,7 @@ using Mirror;
 using Geumeum.Common;
 using Geumeum.Data;
 using Geumeum.Network;
+using Geumeum.Dev;
 
 namespace Geumeum.Combat
 {
@@ -131,6 +132,7 @@ namespace Geumeum.Combat
                 return;
             }
 
+            GDebug.Log("[우클릭] 활: 정밀 사격 홀드 요청");
             CmdBeginPrecisionShot(runIdValue, sceneRevisionValue, requestId, generation);
         }
 
@@ -569,17 +571,7 @@ namespace Geumeum.Combat
 
         private static PrecisionAimRay BuildLocalAimRay()
         {
-            Camera view = Camera.main;
-            if (view == null)
-            {
-                return default;
-            }
-
-            return new PrecisionAimRay
-            {
-                Origin    = view.transform.position,
-                Direction = view.transform.forward.normalized,
-            };
+            return ArrowAimGeometry.BuildCameraRay(Camera.main);
         }
 
         private bool TryBuildBeginContext(double gameTime, out PlayerActionContext context)
