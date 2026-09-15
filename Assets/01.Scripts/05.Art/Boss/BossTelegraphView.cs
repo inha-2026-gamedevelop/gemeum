@@ -214,8 +214,11 @@ namespace Geumeum.Art
 
             ApplyTransform(go.transform, cue, spec);
 
+            bool isParryable = GameDB.Boss.TryGetPattern(cue.PatternId, out BossPatternSO.PatternEntry pattern)
+                && spec.IsRepeatParryable(pattern, cue.RepeatIndex);
+
             var block = new MaterialPropertyBlock();
-            block.SetColor("_Color", ColorFor(spec.Template, MIN_ALPHA));
+            block.SetColor("_Color", ColorFor(isParryable, MIN_ALPHA));
             renderer.SetPropertyBlock(block);
 
             return new Shape { GameObject = go, Renderer = renderer, Mesh = mesh, Cue = cue };
@@ -323,19 +326,12 @@ namespace Geumeum.Art
             shape.Renderer.SetPropertyBlock(block);
         }
 
-        private static Color ColorFor(BossPatternSO.PatternTemplate template, float alpha)
+        // 카운터(패링) 가능한 반복만 파란색, 나머지는 전부 빨간색으로 통일한다 - 템플릿별 구분 색상 폐기
+        private static Color ColorFor(bool isParryable, float alpha)
         {
-            switch (template)
-            {
-                case BossPatternSO.PatternTemplate.TargetedDash:
-                    return new Color(1f, 0.85f, 0.2f, alpha);
-                case BossPatternSO.PatternTemplate.MarkedCircle:
-                    return new Color(0.75f, 0.25f, 1f, alpha);
-                case BossPatternSO.PatternTemplate.ConeBurst:
-                    return new Color(1f, 0.5f, 0.1f, alpha);
-                default: // MeleeArc
-                    return new Color(1f, 0.2f, 0.2f, alpha);
-            }
+            return isParryable
+                ? new Color(0.2f, 0.55f, 1f, alpha)
+                : new Color(1f, 0.2f, 0.2f, alpha);
         }
 
         private void RemoveShape(in CueKey key)
