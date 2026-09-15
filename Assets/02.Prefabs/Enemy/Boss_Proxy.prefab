@@ -3147,6 +3147,7 @@ GameObject:
   - component: {fileID: 6766455199486732937}
   - component: {fileID: 7927930797516821988}
   - component: {fileID: 1104674171312154249}
+  - component: {fileID: 5981324098204463020}
   m_Layer: 11
   m_Name: Boss_Proxy
   m_TagString: Untagged
@@ -3316,6 +3317,33 @@ MonoBehaviour:
   - {fileID: 141229344240022523}
   - {fileID: 8989331599993884712}
   - {fileID: 2997980347505309927}
+--- !u!114 &5981324098204463020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6072234761862628928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b708deacdcfc7fe45b1b91a8c47666b9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.BossMeleeArcVfxView
+  _vfxByTemplate:
+  - Template: 2
+    Prefab: {fileID: 112763172322455047, guid: 322495e55eacd604c954f35679c0ce2c, type: 3}
+    Scale: 1
+  - Template: 3
+    Prefab: {fileID: 8358425798578516274, guid: 192e89d4123b7ab4a8d01c405888e989, type: 3}
+    Scale: 1
+  - Template: 4
+    Prefab: {fileID: 1002450061218148058, guid: 9f9418f80f9618a4abe28220bde2f26b, type: 3}
+    Scale: 3.6
+  _vfxByTemplateOnTelegraph:
+  - Template: 3
+    Prefab: {fileID: 9019151081271120452, guid: 561d7c59b513c554787af9b144a55230, type: 3}
+    Scale: 0
+  _vfxLifetimeSeconds: 2
 --- !u!1 &6247343239872191571
 GameObject:
   m_ObjectHideFlags: 0

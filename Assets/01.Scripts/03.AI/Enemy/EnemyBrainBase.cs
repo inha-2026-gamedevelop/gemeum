@@ -71,6 +71,13 @@ namespace Geumeum.AI
         /// <summary> 여러 공격 모션 중 이번 공격에 쓸 인덱스, 몬스터별로 다른 공격이 없으면 항상 0. 애니메이션 표현 전용, 판정에는 영향 없다 </summary>
         public virtual int AttackVariant => 0;
 
+        /// <summary>
+        /// 지금 이 순간이 대상의 실제 패링 판정 구간(windowStart~windowEnd) 안이면 true, 표현 전용.
+        /// 공격 모션 시작과 실제 패링 판정 구간 사이에 시간차가 있는 몬스터가 이 시그널로 플레이어에게
+        /// "지금이 진짜 패링 타이밍"을 알려준다 — 패링 창을 열지 않는 몬스터는 항상 false
+        /// </summary>
+        public virtual bool IsParryWindowVisuallyOpen => false;
+
         /// <summary> 목표 결계 안으로 이동 중인지 </summary>
         public bool IsHerding => _isHerding;
 

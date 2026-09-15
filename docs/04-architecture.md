@@ -602,6 +602,7 @@ Main.unity
 03.AI/                     namespace Geumeum.AI
 ├ Enemy/
 │  ├ EnemyAnimationController.cs MB [구현완료] 잡귀 애니메이션 파라미터 갱신 (로컬 전용)
+│  ├ EnemyParryWindowFlash.cs MB [구현완료] 실제 패링 판정 구간(근사치) 동안 렌더러 강조색 표시 (로컬 전용, 이슈 #52)
 │  ├ EnemyController.cs    NB  잡귀 공통: 추적 · 공격 실행 · 사망 → 드랍/경험치 이벤트 발행.
 │  │                           EnemySO의 종류 필드로 구동 (종류별 상속 대신 데이터 구동)
 │  ├ EnemyStatus.cs        NB  HP SyncVar + 강화 배수 적용. IDamageable 구현.
@@ -756,10 +757,16 @@ Main.unity
 │  │                           판정에 관여하지 않는다. 서버 페이즈 신호에 연결하는 것은 미착수
 │  ├ BossAnimationView.cs  MB  IBossTelegraphSource · IBossPartSource · BossStatus.Died를 구독해
 │  │                           BossLocomotion.controller(05.Animator/)의 파라미터로 옮긴다
-│  └ BossTelegraphView.cs  MB  [구현완료] IBossTelegraphSource.TelegraphCues(최대 8개 동시)를
-│                              읽어 바닥 장판(부채꼴·원·레인)을 그린다. BossPatternExecutionSpec으로
-│                              판정과 같은 반경·각도 값을 써서 눈에 보이는 범위와 실제 판정이 어긋나지
-│                              않는다. 전용 셰이더는 BossTelegraph.shader(같은 폴더)
+│  ├ BossTelegraphView.cs  MB  [구현완료] IBossTelegraphSource.TelegraphCues(최대 8개 동시)를
+│  │                           읽어 바닥 장판(부채꼴·원·레인)을 그린다. BossPatternExecutionSpec으로
+│  │                           판정과 같은 반경·각도 값을 써서 눈에 보이는 범위와 실제 판정이 어긋나지
+│  │                           않는다. 전용 셰이더는 BossTelegraph.shader(같은 폴더)
+│  └ BossPatternImpactVfxView.cs MB  [러프] BossController.PatternImpact(타격)·
+│                              PatternTelegraphVfx(예고) 신호로 패턴별 VFX(ThirdParty SB_* 계열)를
+│                              Instantiate+Destroy. 템플릿→프리팹 매핑은 인스펙터 배열 2개
+│                              (_vfxByTemplate·_vfxByTemplateOnTelegraph)로 관리, 낙인(MarkedCircle)만
+│                              예고·타격 둘 다 씀. 정식 프로덕션 파이프라인(PresentationConfigSO·풀링)
+│                              미적용 — 느낌 보며 계속 교체 중
 ├ Camera/                  [구현완료] → 카메라와 락온 사양
 │  ├ CameraRig.cs          MB  추적 · 충돌 · 셰이크 · 줌. LateUpdate.
 │  │                           Target이 바뀔 수 있어야 한다 — 관전 카메라가 같은 물건이다.

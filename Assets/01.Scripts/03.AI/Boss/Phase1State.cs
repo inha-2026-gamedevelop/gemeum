@@ -466,6 +466,9 @@ namespace Geumeum.AI
             {
                 // 위치 확정 후 잠금 - 예고 중 대상이 움직여도 낙인 중심은 안 따라간다
                 _markedCenter = _activeTarget.position;
+
+                // 러프 VFX 연결(이슈 검증용) — 낙인은 예고 시작 시점에도 신호를 쏜다
+                _controller.ServerPlayPatternTelegraphVfx(BossPatternSO.PatternTemplate.MarkedCircle, _markedCenter, Vector3.forward);
             }
 
             _activeTargetNetId = _activeTarget.TryGetComponent(out NetworkIdentity targetIdentity)
@@ -589,6 +592,9 @@ namespace Geumeum.AI
 
             if (_activeKind == PatternKind.TargetedDash)
             {
+                // 러프 VFX 연결(이슈 검증용)
+                _controller.ServerPlayPatternImpact(BossPatternSO.PatternTemplate.TargetedDash, Self.position, Self.forward);
+
                 // 도착 지점 기준 전방위 판정이라 각도 제한이 필요 없어 360도로 둔다
                 BossPatternRunner.ExecuteMeleeArc(
                     Self.position,
@@ -604,6 +610,9 @@ namespace Geumeum.AI
 
             if (_activeKind == PatternKind.MarkedCircle)
             {
+                // 러프 VFX 연결(이슈 검증용)
+                _controller.ServerPlayPatternImpact(BossPatternSO.PatternTemplate.MarkedCircle, _markedCenter, Vector3.forward);
+
                 // 원점이 보스가 아니라 예고 시작 시점에 고정한 낙인 중심이다, 각도 제한도 없다
                 BossPatternRunner.ExecuteMeleeArc(
                     _markedCenter,
@@ -619,6 +628,9 @@ namespace Geumeum.AI
 
             if (_activeKind == PatternKind.ConeBurst)
             {
+                // 러프 VFX 연결(이슈 검증용)
+                _controller.ServerPlayPatternImpact(BossPatternSO.PatternTemplate.ConeBurst, Self.position, _lockedForward);
+
                 BossPatternRunner.ExecuteMeleeArc(
                     Self.position,
                     _lockedForward,
@@ -632,6 +644,9 @@ namespace Geumeum.AI
             }
 
             // MeleeArc. 방향은 예고 시작 시점에 잠근 값을 쓴다(방향 완전 잠금)
+            // 러프 VFX 연결(이슈 검증용) — 반월 베기(파생 패턴)도 여기로 들어와 같은 VFX를 쓴다
+            _controller.ServerPlayPatternImpact(BossPatternSO.PatternTemplate.MeleeArc, Self.position, _lockedForward);
+
             BossPatternRunner.ExecuteMeleeArc(
                 Self.position,
                 _lockedForward,

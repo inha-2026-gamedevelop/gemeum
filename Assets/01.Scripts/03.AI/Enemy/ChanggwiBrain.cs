@@ -63,6 +63,8 @@ namespace Geumeum.AI
         private ChanggwiAttackExecution  _activeExecution; // 지금 열려 있는 창을 낸 실행, 없으면 null
         private IParryWindowTarget       _openParryTarget; // 위 실행이 연 창의 대상, 없으면 null
         private ParryWindowKey           _openParryKey;
+        private double                   _parryVisualOpenTime;  // 표현 전용, 서버 판정 구간(windowStart)과 같은 공식으로 근사 계산
+        private double                   _parryVisualCloseTime; // 표현 전용, windowEnd 근사치
 
         /****************************************
         *              Properties
@@ -86,6 +88,16 @@ namespace Geumeum.AI
         public override bool IsAttackCommitted => (_state == BrainState.Telegraph) || (_state == BrainState.Charge) || (_state == BrainState.Attack);
 
         public override EnemyVisualState VisualState => ToVisualState(_state);
+
+        /// <summary>
+        /// 실제 서버 패링 판정 구간(windowStart~windowEnd)을 같은 공식으로 근사 계산해 반영한다.
+        /// 로드아웃 보너스(ParryWindowBonus)는 여기서 모르므로 반영하지 않는다 — 표현 전용이라 오차 허용
+        /// </summary>
+        public override bool IsParryWindowVisuallyOpen =>
+            (_state == BrainState.Telegraph) &&
+            (_parryVisualCloseTime > _parryVisualOpenTime) &&
+            (NetworkTime.time >= _parryVisualOpenTime) &&
+            (NetworkTime.time <= _parryVisualCloseTime);
 
         public override bool AllowsHerdingMovement =>
             (_state == BrainState.PatrolIdle) || (_state == BrainState.PatrolWalk) ||
@@ -399,6 +411,9 @@ namespace Geumeum.AI
         /// <summary> 대상이 IParryWindowTarget을 구현하면 이번 공격 전용 실행을 만들어 창을 연다 </summary>
         private void TryOpenParryWindow()
         {
+            _parryVisualOpenTime  = 0d;
+            _parryVisualCloseTime = 0d;
+
             if ((Target == null) || (_selfIdentity == null))
             {
                 return;
@@ -416,6 +431,11 @@ namespace Geumeum.AI
             double now                = NetworkTime.time;
             double telegraphStartTime = now;
             double impactTime         = now + Status.WindupDuration;
+
+            // 서버 ParryController.OpenParryWindow와 같은 역산 공식 — 표현 전용 근사치라 로드아웃
+            // 보너스는 반영하지 않는다(3절 참고)
+            _parryVisualCloseTime = impactTime - Constants.Network.PARRY_RESOLUTION_LEAD;
+            _parryVisualOpenTime  = _parryVisualCloseTime - Status.ParryWindowDuration;
 
             ChanggwiAttackExecution execution = new ChanggwiAttackExecution(this, Status.ParryWindowDuration);
 
