@@ -236,6 +236,19 @@ namespace Geumeum.AI
                 return;
             }
 
+            // 순간 접근(3) 직후엔 쿨다운·거리 추첨을 전부 건너뛰고 여우불 봉 3연격(1)을 강제로
+            // 붙인다 - 팀장 요청(2026-09-15). 순간접근 자체엔 전용 2타·3타 애니메이션이 없어
+            // 반복 판정을 못 주고, 대신 이미 반복 애니메이션이 갖춰진 패턴1로 이어 붙인다.
+            // BOSS_PATTERN_CONTRACT.md 9.3절의 "오프닝 세 개만 고정" 원칙에서 벗어나는 예외다
+            if (_previousPatternId == TARGETED_DASH_PATTERN_ID)
+            {
+                if (GameDB.Boss.TryGetPattern(MELEE_ARC_PATTERN_ID, out BossPatternSO.PatternEntry followUpPattern))
+                {
+                    BeginAttack(followUpPattern, KindOf(MELEE_ARC_PATTERN_ID));
+                    return;
+                }
+            }
+
             if (_cooldownRemaining > 0f)
             {
                 return;

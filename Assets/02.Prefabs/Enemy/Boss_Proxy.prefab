@@ -4562,6 +4562,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1697755371863476500, guid: 7f47355d17a03c84ab68cefe5874e1a9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 123378466292285151}
+    - targetCorrespondingSourceObject: {fileID: 1697755371863476500, guid: 7f47355d17a03c84ab68cefe5874e1a9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1448581967760337361}
     - targetCorrespondingSourceObject: {fileID: 8200569880960051972, guid: 7f47355d17a03c84ab68cefe5874e1a9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5584930382753306275}
@@ -6802,6 +6805,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae45d70be6e2cf142a68c7715d837572, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.BossTelegraphView
+--- !u!114 &1448581967760337361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7167676214267514467}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89817dd60385ee448bec73b35d88ac75, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.BossDashVisibilityView
 --- !u!1 &7187776358481672234 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1672819575504355165, guid: 7f47355d17a03c84ab68cefe5874e1a9, type: 3}
