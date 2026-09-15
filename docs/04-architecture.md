@@ -826,7 +826,13 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           LockOnController가 확정한 좌표를 화면 좌표로 옮겨 그리기만 하고
 │     │                           락온 판정에는 관여하지 않는다. 대상이 카메라 뒤로 가면 숨긴다.
 │     │                           호스트 1인에서 표식이 대상 중앙에 붙는 것을 확인했다.
-│     │                           흰 대상 위에서 묻히는지는 아직 눈으로 보지 않았다
+│     │                           표식은 흰 도트와 그 바깥 번짐 두 장이다. 순수 흰색으로 빼면
+│     │                           밝은 대상 위에서 묻혀서, 그라데이션이 바깥으로 갈수록 어두워진다.
+│     │                           흰색, 회색, 검정 배경에서 각각 읽히는 것을 확인했다
+│     ├ LockOnReticleAura.cs     [구현완료] 표식 바깥 번짐을 돌리고 숨쉬게 한다.
+│     │                           HUD 캔버스가 ScreenSpaceOverlay라 ParticleSystem이 UI 위에
+│     │                           그려지지 않는다. 그래서 UI 이미지를 코드로 직접 움직인다.
+│     │                           크기, 회전, 투명도가 실제로 변하는 것을 확인했다
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
 │     │                           씬 배선 전이라 동작을 관찰하지 못했다
