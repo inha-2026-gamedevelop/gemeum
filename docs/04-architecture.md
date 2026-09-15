@@ -819,7 +819,14 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           결계 밖을 위험 색으로 덮는다 - UI에 역마스크가 없어 판 하나를 칠하고
 │     │                           결계 자리만 비운다. 원이 움직인 만큼만 다시 칠한다.
 │     │                           다음 축소의 목표 원은 경고 시점부터 축소가 끝날 때까지 보인다.
-│     │                           _rangeMeters는 BarrierPhaseSO의 최대 반경과 같아야 한다. 맵 배경, 회전은 아직 없다
+│     │                           _rangeMeters는 200m다. 파티원 위치를 읽기 쉽게 하려고 2026-09-15에
+│     │                           400에서 줄였다. BarrierPhaseSO의 최대 반경(400)보다 작아서
+│     │                           결계 초반에는 결계 원이 미니맵 밖으로 나간다. 맵 배경, 회전은 아직 없다
+│     ├ LockOnReticle.cs         [구현완료] 락온한 대상의 중앙에 흰 점을 띄운다.
+│     │                           LockOnController가 확정한 좌표를 화면 좌표로 옮겨 그리기만 하고
+│     │                           락온 판정에는 관여하지 않는다. 대상이 카메라 뒤로 가면 숨긴다.
+│     │                           호스트 1인에서 표식이 대상 중앙에 붙는 것을 확인했다.
+│     │                           흰 대상 위에서 묻히는지는 아직 눈으로 보지 않았다
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
 │     │                           씬 배선 전이라 동작을 관찰하지 못했다
@@ -842,6 +849,11 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │                                     DevToolHost에 스스로 붙고 기본은 꺼짐.
 │                                     좌하단 개인 바가 움직이는 것까지 관찰했다
 ├ AI/        보스 HP 바
+│  └ BossHudController.cs   [구현완료] 스폰된 보스를 찾아 보스 체력 바에 물린다.
+│                           보스가 없거나 죽으면 바를 숨긴다. 스폰 목록은 주기로만 훑는다.
+│                           최대 체력이 서버 전용 값이라 클라이언트는 GameDB.Boss.MaxHealth를 쓴다.
+│                           호스트 1인에서 표시, 비율 갱신, 숨김까지 확인했다.
+│                           그로기 바는 게이지가 SyncVar가 아니라 아직 연결하지 못했다 [계획]
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
 │  ├ SteamLobbyPanel.cs    MB  Steam 로비 화면. 방 만들기 · 로비 ID 참가 · 정원이 차면 시작.

@@ -52,12 +52,14 @@ namespace Geumeum.UI
 
         [Header("범위")]
         [Tooltip("미니맵 가장자리가 몇 m를 뜻하는지")]
-        [SerializeField] private float _rangeMeters = 100f;
+        [SerializeField] private float _rangeMeters = 200f;
 
+        // 캐릭터 모델의 대표색을 따르되 어두운 맵에서 서로 구분되도록 채도와 명도를 올렸다.
+        // 무녀는 의상이 거의 검정이라 금색 장신구 쪽을 쓴다. 흰색은 락온 표식이 쓰므로 비워 둔다
         [Header("캐릭터별 색")]
-        [SerializeField] private Color _chasaColor   = Color.black;
-        [SerializeField] private Color _singungColor = Color.white;
-        [SerializeField] private Color _munyeoColor  = Color.red;
+        [SerializeField] private Color _chasaColor   = new Color(0.88f, 0.20f, 0.18f, 1f);
+        [SerializeField] private Color _singungColor = new Color(0.35f, 0.62f, 1f, 1f);
+        [SerializeField] private Color _munyeoColor  = new Color(1f, 0.78f, 0.25f, 1f);
 
         [Tooltip("아직 캐릭터가 배정되지 않은 동안 쓴다")]
         [SerializeField] private Color _unknownColor = new Color(0.5f, 0.5f, 0.5f, 1f);
