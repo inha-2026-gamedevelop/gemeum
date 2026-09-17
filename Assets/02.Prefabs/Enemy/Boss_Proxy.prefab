@@ -3148,6 +3148,7 @@ GameObject:
   - component: {fileID: 7927930797516821988}
   - component: {fileID: 1104674171312154249}
   - component: {fileID: 5981324098204463020}
+  - component: {fileID: 1919601350640846588}
   m_Layer: 11
   m_Name: Boss_Proxy
   m_TagString: Untagged
@@ -7320,3 +7321,16 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 830397713498788359, guid: 7f47355d17a03c84ab68cefe5874e1a9, type: 3}
   m_PrefabInstance: {fileID: 8428222860752947063}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1919601350640846588
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6072234761862628928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d2fb6026af44748a94c264aac89fbc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.DamageFlashView
+  _visualRoot: {fileID: 7508454022422910169}

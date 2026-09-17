@@ -40,7 +40,7 @@ Assets/01.Scripts/
 ```
 
 - `03.AI/`는 몬스터·보스 담당, `04.Systems/`는 게임플레이 시스템 담당이 소유한다. 어트리뷰트 없는 판정·AI 클래스와 해당 테스트, 원본 컴포넌트 파일(클라 실행 코드 포함)도 포함한다. 각 도메인의 `Net/`와 중앙 `98.Servers/`는 제외한다.
-- 기존 `EnemyAnimationController`·`EnemyParryWindowFlash`는 몬스터·보스 담당 소유다. 새 AI 표현은 `Presentation/`에 작성한다.
+- 기존 `EnemyAnimationController`·`EnemyParryWindowFlash`는 몬스터·보스 담당 소유다. 새 AI 표현은 `Presentation/`에 작성한다. 색 덮기 표현은 `RendererTintRegistry`를 거친다(2026-09-18, 피격 플래시와 겹칠 때 색이 굳던 문제). 적·보스 피격 플래시(`05.Art/VFX/DamageFlashView`)는 아트 소유이고, `EnemyStatus`·`BossStatus`의 체력 SyncVar 훅은 `HealthDecreased` 발생만 한다.
 - 시스템의 새 로컬 소비자는 `Client/` 또는 `Presentation/`, UI는 `06.UI/`에 작성한다.
 - `98.Servers/` 전체와 각 도메인의 `Net/`는 팀장 소유다. 새 `.server.cs`는 `98.Servers/{03.AI|04.Systems}/{기능}/`에 작성한다. 하위 경로는 기존 `Assets/01.Scripts/{03.AI|04.Systems}/{기능}/`을 그대로 비춘다. 기능 폴더 아래에 `Server/`를 다시 만들지 않는다. 새 판정·AI·규칙 클래스는 `98.Servers/`가 아니라 원래 도메인 폴더에 파트 담당이 작성한다.
 - `Net/{클래스}.network.cs`에는 서버가 소유하는 통신 계약(SyncVar·동기화 컬렉션 선언, Command와 Command 전용 헬퍼, `OnSerialize`/`OnDeserialize`)만 둔다. hook·`ClientRpc`·`TargetRpc`·클라 수명 콜백은 원본 `{클래스}.cs`에 둔다. 남을 멤버가 없으면 `Net/` 파일을 만들지 않는다. 세부는 [코딩 컨벤션 9장](../coding-convention.md).

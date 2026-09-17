@@ -17,7 +17,7 @@ using Geumeum.Network;
 namespace Geumeum.Combat
 {
     /// <summary> 플레이어 HP, 스태미나, 신력, 생명 상태의 원본. IDamageable 구현 </summary>
-    public class PlayerStatus : NetworkBehaviour, IDamageable, IRecoveryTarget,
+    public class PlayerStatus : NetworkBehaviour, IDamageable, IDamagePresentationSource, IRecoveryTarget,
         IResourceTransactionTarget, IRunStateCarrier, IGrowthParticipant, IBossSwallowTarget
     {
         /****************************************
@@ -134,6 +134,9 @@ namespace Geumeum.Combat
         /// <summary> 체력이 바뀌었다. (현재, 최대) </summary>
         public event System.Action<float, float> HealthChanged;
 
+        /// <summary> 동기화된 체력이 줄었다. 피격 플래시가 쓴다 </summary>
+        public event System.Action HealthDecreased;
+
         /// <summary> 스태미나가 바뀌었다. (현재, 최대) </summary>
         public event System.Action<float, float> StaminaChanged;
 
@@ -188,6 +191,7 @@ namespace Geumeum.Combat
             if (newValue < oldValue)
             {
                 SfxPlayer.Play(SoundKey.PlayerHurt, transform.position, isLocalPlayer, netId);
+                HealthDecreased?.Invoke();
             }
         }
 

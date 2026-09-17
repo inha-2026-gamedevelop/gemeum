@@ -27,6 +27,8 @@
 | 특성 | 자기 `TalentController.RequestAllocate`, `RequestReset` | `RevisionChanged`, `AllocationResult`; `TryGetOwnerAllocation`으로 현재 상태 조회 |
 | 전투 HUD | `LocalCombatState`의 HP·스태미나·생명 상태 조회 | 이산 상태 이벤트·`ActionRejected`; 초기 표시에는 현재 상태 조회 |
 | 몬스터 표현 | `IEnemyPresentationSource.VisualState`, `AttackVariant`, `IsParryWindowVisuallyOpen` 조회 | 같은 이름의 변경 이벤트 구독. 기존 애니메이션·패링 강조도 활성화 때 현재값을 읽는다 |
+| 피격 표현 | `IDamagePresentationSource.HealthDecreased` 구독 | 동기화된 체력이 줄 때 각 화면에서 발생. 피해량·공격자는 없다. 색 덮기는 `RendererTintRegistry`로 한다 |
+| 무기 위치 | 같은 플레이어의 `IWeaponBladeSource.TryGetBladeSegment` 조회 | 손잡이 끝과 칼끝 월드 위치. 애니메이션 뒤(`LateUpdate`)에 읽는다. 무기가 없거나 메시를 못 찾으면 false |
 | 보스 예고 | `IBossTelegraphSource` 계약 조회 | `TelegraphChanged` 구독과 현재 cue 조회; 상세 수명은 서버 API의 보스 예고 절 참고 |
 | 상호작용 | `IInteractionRequestSource.RequestInteract(targetNetId)` 요청, `InteractionController.PromptText` 조회 | `Client/InteractionClient`가 G키·후보 탐색을 담당. true는 전송이며 서버 승인이 아니다. 줍기는 인벤토리·월드 상태로 확인 |
 
@@ -49,6 +51,8 @@
 `OnDisable`·파괴 시 구독을 해제하고, 다시 켤 때 상태를 읽는다. `GameEventBus`의 서버 발행은 원격 전송이 아니므로 UI 동기화 수단으로 삼지 않는다.
 
 몬스터의 세 표현 상태는 `IEnemyPresentationSource`로 현재값을 읽을 수 있다. 구독 뒤 조회하는 순서를 지켜서 비활성 중 놓친 상태를 복원한다. 이 계약에는 공격 결정·피해 적용 메서드가 없다.
+
+렌더러 색을 잠깐 덮는 표현(피격 플래시, 강조색)은 `MaterialPropertyBlock`을 직접 저장했다 되돌리지 않고 `RendererTintRegistry.Push`/`Pop`에 층(`RendererTintLayer`)을 지정해 맡긴다. 컴포넌트마다 원래 블록을 따로 저장하면 두 표현이 겹칠 때 한쪽이 남의 색을 원래 색으로 되돌려 색이 굳는다. 새 층이 필요하면 열거형 끝에 추가하고 우선순위를 정한다. `OnDisable`에서 반드시 `Pop`한다.
 
 상호작용은 기존 프리팹의 `InteractionController`와 직렬화된 키·탐색 주기 설정을 유지한다. 원본 컴포넌트가 로컬 플레이어에서만 독립 `InteractionClient`를 구동하므로 새 컴포넌트를 씬마다 붙일 필요가 없다. 로컬 플레이어가 종료되면 소비자와 후보 캐시를 해제한다. 같은 키를 처리하는 입력 컴포넌트를 중복 추가하지 않는다.
 

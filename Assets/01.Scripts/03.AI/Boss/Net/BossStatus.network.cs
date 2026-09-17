@@ -9,6 +9,6 @@ namespace Geumeum.AI
         *                Fields
         ****************************************/
 
-        [SyncVar] private float _health;
+        [SyncVar(hook = nameof(OnHealthSynced))] private float _health;
     }
 }

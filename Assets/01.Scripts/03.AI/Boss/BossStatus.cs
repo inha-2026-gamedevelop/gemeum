@@ -17,7 +17,7 @@ namespace Geumeum.AI
     /// <summary>
     /// 보스 본체 HP와 현재 피해 배율을 관리한다.
     /// </summary>
-    public partial class BossStatus : NetworkBehaviour, IDamageable
+    public partial class BossStatus : NetworkBehaviour, IDamageable, IDamagePresentationSource
     {
         /****************************************
         *                Fields
@@ -45,5 +45,20 @@ namespace Geumeum.AI
 
         /// <summary> 치명타가 아닌 모든 피격에서 발생한다, attackerNetId 전달 </summary>
         public event Action<uint> Damaged;
+
+        /// <summary> 동기화된 체력이 줄었다. 각 화면의 피격 플래시가 쓴다 </summary>
+        public event Action HealthDecreased;
+
+        /****************************************
+        *              SyncVar Hooks
+        ****************************************/
+
+        private void OnHealthSynced(float oldValue, float newValue)
+        {
+            if (newValue < oldValue)
+            {
+                HealthDecreased?.Invoke();
+            }
+        }
     }
 }

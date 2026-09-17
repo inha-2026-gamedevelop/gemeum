@@ -614,7 +614,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7d2fb6026af44748a94c264aac89fbc7, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.PlayerDamageFlash
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.DamageFlashView
 --- !u!1001 &1331680180131862316
 PrefabInstance:
   m_ObjectHideFlags: 0

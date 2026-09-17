@@ -468,7 +468,7 @@ Unity에서 확인한 사실: **필드가 YAML에 없어도 0이 되지 않고 C
 
 ### U34 검기 · 치유 · 표식 VFX 연결
 
-- 현재 코드: `CombatFeedbackImpl` 피드백 창구 있음. 검기 전용 실행 코드와 셰이더·프리팹 없음
+- 현재 코드(2026-09-18): 셰이크·히트스톱 연결, 검기(`MeleeSlashView`·`Geumeum/MeleeSlash`)와 피격 플래시(`DamageFlashView`) 구현. 타격 사운드 일부 클립과 치유·표식 VFX 색 문법 교체(임시 청록 에셋)가 남음. L2·L3 미검증
 - 권위: 서버 확정 공격 결과와 시각을 읽는 로컬 표현. **클라가 피해 판정 크기를 정하지 않는다**
 - 권장 접근: 기존 피드백과 공격 cue에 로컬 VFX 연결. 검기 크기는 `CombatConfigSO`, 표식·치유 표현은 각 효과의 서버 수명과 맞춤
 - **2026-09-08 — 타격감은 5항목으로 고정한다.** 범위가 무한히 늘어나는 것을 막기 위해 완료 조건을 못 박는다
@@ -476,10 +476,10 @@ Unity에서 확인한 사실: **필드가 YAML에 없어도 0이 되지 않고 C
   | # | 항목 | 상태 |
   |---|---|---|
   | 1 | 카메라 셰이크 | **완료** — `CombatFeedbackImpl`이 `PlayHit`/`ParrySuccess`/`Critical`/`GroggyEnter`/`PartBreak` 5종에 이미 연결 |
-  | 2 | 히트스톱 | `ICombatFeedback.PlayHit(strength, duration)`에 인자가 이미 있다. 내부만 채운다 |
-  | 3 | 피격 플래시 | `EnemyVisualState` 기반 머티리얼 연결 |
-  | 4 | 타격 사운드 | `SoundCatalogSO` 13키에 클립 연결 (U30) |
-  | 5 | 검기 VFX | 이 항목 |
+  | 2 | 히트스톱 | **완료** - `CombatFeedbackImpl.PlayHit`이 `PlayerAnimationController.PlayHitStop`을 부른다. 길이는 `PresentationConfigSO` |
+  | 3 | 피격 플래시 | **구현(2026-09-18)** - `DamageFlashView`가 동기화된 체력 감소(`IDamagePresentationSource`)에 반응. 플레이어, 잡귀 3종, 보스(모델만). 패링 창 강조와 겹침은 `RendererTintRegistry`가 조정 |
+  | 4 | 타격 사운드 | **부분** - `MeleeHit`·`MeleeCritical`·`ArrowHit` 등은 클립 연결됨. `BossHurt`·`BossGroggyEnd`·`StaminaEmpty`·`FootstepWet` 클립 없음 (U30) |
+  | 5 | 검기 VFX | **구현(2026-09-18)** - `MeleeSlashView` + `Geumeum/MeleeSlash` 셰이더. 판정 시각 앞뒤로 실제 검날 경로(`IWeaponBladeSource`)를 기록해 리본으로 그리고 잔상으로 지운다. 조정값은 `PresentationConfigSO` |
 
   **다섯 개가 화면에 나오면 완료다.** 이후 수치 조정은 기능이 아니라 10/22 이후 폴리싱 구간의 일이다
 - 대안: Animator 표현 이벤트로 VFX만 재생 — 취소·지연 재생 동기화 정리가 더 필요
