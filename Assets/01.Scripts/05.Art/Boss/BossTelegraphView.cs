@@ -75,6 +75,9 @@ namespace Geumeum.Art
         private const float  MIN_FAN_ANGLE_DEGREES  = 1f;
         private const int    MIN_FAN_SEGMENTS       = 2;
 
+        // 순간 접근 3연계(1페이즈 패턴3)만 장판을 안 그린다
+        private const int    HIDDEN_PATTERN_ID_INSTANT_APPROACH = 3;
+
         /****************************************
         *                Fields
         ****************************************/
@@ -179,6 +182,7 @@ namespace Geumeum.Art
             }
 
             if ((cue.AttackInstanceId == 0u) ||
+                (cue.PatternId == HIDDEN_PATTERN_ID_INSTANT_APPROACH) ||
                 (!GameDB.Boss.TryGetPattern(cue.PatternId, out BossPatternSO.PatternEntry pattern)))
             {
                 return;
