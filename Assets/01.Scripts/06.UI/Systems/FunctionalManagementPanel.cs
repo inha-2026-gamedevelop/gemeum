@@ -361,7 +361,7 @@ namespace Geumeum.UI
             if ((_inventory == null) || (_selectedSlot < 0) ||
                 (_selectedSlot >= _slots.Length))
             {
-                SetText(_inventoryStatusText, "먼저 인벤토리 칸을 선택해 주세요.");
+                SetText(_inventoryStatusText, "먼저 배낭 칸을 선택해 주세요.");
                 return;
             }
 
@@ -387,7 +387,7 @@ namespace Geumeum.UI
         {
             if (_inventory == null)
             {
-                SetText(_inventoryStatusText, "인벤토리를 아직 불러오지 못했습니다.");
+                SetText(_inventoryStatusText, "배낭을 아직 불러오지 못했습니다.");
                 return;
             }
 
@@ -529,7 +529,7 @@ namespace Geumeum.UI
             InventorySlotSnapshot slot = _slots[_selectedEquipmentSlot];
             if (slot.Kind != InventoryItemKind.Equipment)
             {
-                SetText(_transferStatusText, "인벤토리에 있는 장비만 양도할 수 있습니다.");
+                SetText(_transferStatusText, "배낭에 있는 장비만 양도할 수 있습니다.");
                 return;
             }
 

@@ -131,7 +131,7 @@ namespace Geumeum.UI
                     return "장비 변경이 완료되었습니다.";
                 case InventoryResult.Full:
                 case InventoryResult.StackFull:
-                    return "인벤토리에 빈자리가 없습니다.";
+                    return "배낭에 빈자리가 없습니다.";
                 case InventoryResult.StaleRevision:
                 case InventoryResult.ItemChanged:
                     return "보유 물품이 바뀌었습니다. 다시 선택해 주세요.";
@@ -213,7 +213,7 @@ namespace Geumeum.UI
                 case TransactionRejection.InsufficientCurrency:
                     return "공용 노잣돈이 부족합니다.";
                 case TransactionRejection.InventoryFull:
-                    return "인벤토리에 빈자리가 없습니다.";
+                    return "배낭에 빈자리가 없습니다.";
                 case TransactionRejection.StaleWalletRevision:
                 case TransactionRejection.StaleInventoryRevision:
                     return "보유 상태가 바뀌었습니다. 다시 시도해 주세요.";

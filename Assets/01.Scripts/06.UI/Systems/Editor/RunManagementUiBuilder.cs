@@ -100,7 +100,7 @@ namespace Geumeum.UI.Editor
             GameObject window = CreatePanel("Window", modal.transform,
                 new Vector2(1120f, 640f), Vector2.zero, G_Surface);
             TMP_Text title = CreateText("Title", window.transform,
-                "그믐 살림", font, 30f, TextAlignmentOptions.Left,
+                "배낭", font, 30f, TextAlignmentOptions.Left,
                 new Vector2(720f, 48f), new Vector2(-170f, 286f), G_Text);
             title.fontStyle = FontStyles.Bold;
 
@@ -108,7 +108,7 @@ namespace Geumeum.UI.Editor
                 font, new Vector2(100f, 44f), new Vector2(495f, 286f), G_SurfaceRaised,
                 out _);
             Button inventoryTab = CreateButton("InventoryTab", window.transform,
-                "인벤토리", font, new Vector2(150f, 44f), new Vector2(-425f, 232f),
+                "배낭", font, new Vector2(150f, 44f), new Vector2(-425f, 232f),
                 G_Primary, out _);
             Button talentTab = CreateButton("TalentTab", window.transform,
                 "특성", font, new Vector2(150f, 44f), new Vector2(-265f, 232f),
@@ -222,7 +222,7 @@ namespace Geumeum.UI.Editor
             }
 
             references.TransferStatusText = CreateText("TransferStatus", parent,
-                "인벤토리 장비를 고른 뒤 참가자를 선택하세요.", font, 15f,
+                "배낭 장비를 고른 뒤 참가자를 선택하세요.", font, 15f,
                 TextAlignmentOptions.TopLeft, new Vector2(360f, 48f),
                 new Vector2(325f, -177f), G_MutedText);
             references.AcceptButton = CreateButton("AcceptTransfer", parent, "수락",
