@@ -60,6 +60,7 @@ Assets/
 ├ 10.InputSystem/   Input Action 에셋 (입력은 Input Manager로 받는다, 5.6장)
 ├ 11.Timeline/      연출 타임라인 (집중개발 4~5주차부터)
 ├ 12.Materials/     머티리얼 (모델 · 캐릭터별 하위 폴더)
+├ 13.UI/           UI 폰트 · 이미지 리소스 (HUD · 인게임 메뉴)
 ├ 98.FreeAssets/    무료 에셋 원본 (플러그인 · 애니메이션 등) — 수정 금지, 커밋 대상
 ├ 99.ThirdParty/    구매 에셋 원본 — 수정 금지, 커밋 제외(.gitignore)
 └ Mirror/           Mirror 패키지 — 수정 금지
@@ -871,9 +872,11 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │  ├ SteamLobbyPanel.cs    MB  Steam 로비 화면. 방 만들기 · 로비 ID 참가 · 정원이 차면 시작.
 │  │                           런이 시작되면 접히고, 열려 있는 동안 커서 소유권을 가진다
 │  └ Editor/SteamLobbyUiBuilder.cs  위 화면을 SessionNetwork 프리팹 안에 짓는 에디터 도구
-├ Systems/   [구현완료] 인벤토리, 특성 트리, 객주 상점, 정산 · 리더보드
+├ Systems/   [구현완료] 인벤토리, 특성 트리, 객주 상점, 장비 양도, 정산 · 리더보드
 │  ├ FunctionalManagementPanel.cs · RunStatusPanel.cs · RunResultPanel.cs ·
 │  │  RunResultViewAdapter.cs · FunctionalUiIndexedButton.cs · FunctionalUiText.cs
+│  ├ RailRowVisual.cs      MB  레일 한 줄(박스 · 아이콘 · 글자 · 밑줄)의 활성 표시를 바꾼다.
+│  │                           페이지가 바뀌면 FunctionalManagementPanel이 줄마다 호출한다
 │  └ Editor/RunManagementUiBuilder.cs  위 화면을 SessionManagers 프리팹 안에 짓는 에디터 도구
 └ Art/       페이드 · 트랜지션, 연출성 UI
 ```

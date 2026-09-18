@@ -41,9 +41,14 @@ namespace Geumeum.UI
         [SerializeField] private Button _inventoryTabButton;
         [SerializeField] private Button _talentTabButton;
         [SerializeField] private Button _shopTabButton;
+        [SerializeField] private Button _transferTabButton;
         [SerializeField] private GameObject _inventoryPage;
         [SerializeField] private GameObject _talentPage;
         [SerializeField] private GameObject _shopPage;
+        [SerializeField] private GameObject _transferPage;
+        [SerializeField] private RailRowVisual _inventoryRow;
+        [SerializeField] private RailRowVisual _talentRow;
+        [SerializeField] private RailRowVisual _transferRow;
 
         [Header("인벤토리")]
         [SerializeField] private TMP_Text _equippedWeaponText;
@@ -175,6 +180,7 @@ namespace Geumeum.UI
             Inventory,
             Talent,
             Shop,
+            Transfer,
         }
 
         private void Awake()
@@ -295,6 +301,11 @@ namespace Geumeum.UI
             Open(PageKind.Talent);
         }
 
+        public void OpenTransfer()
+        {
+            Open(PageKind.Transfer);
+        }
+
         public void OpenShop(uint shopNetId)
         {
             if (!_shopPoints.TryGetValue(shopNetId, out ShopInteractionPoint shopPoint) ||
@@ -320,6 +331,10 @@ namespace Geumeum.UI
                 return;
             }
 
+            // 같은 칸을 다시 누르면 실행한다. 첫 클릭까지 실행하면 물약이 오클릭으로 사라지고
+            // 양도할 장비를 고르는 순간 장착돼 버린다
+            bool isRepeat = (_selectedSlot == slotIndex) && !_slots[slotIndex].IsEmpty;
+
             _selectedSlot = slotIndex;
             InventorySlotSnapshot slot = _slots[slotIndex];
             if (slot.Kind == InventoryItemKind.Equipment)
@@ -334,6 +349,11 @@ namespace Geumeum.UI
             }
 
             RefreshInventoryView();
+
+            if (isRepeat)
+            {
+                RequestSelectedPrimaryAction();
+            }
         }
 
         public void RequestSelectedPrimaryAction()
@@ -564,6 +584,7 @@ namespace Geumeum.UI
             BindButton(_inventoryTabButton, OpenInventory);
             BindButton(_talentTabButton, OpenTalents);
             BindButton(_shopTabButton, () => Open(PageKind.Shop));
+            BindButton(_transferTabButton, OpenTransfer);
             BindButton(_equipButton, RequestSelectedPrimaryAction);
             BindButton(_unequipButton, RequestUnequip);
             BindButton(_usePotionButton, RequestUseSelectedPotion);
@@ -633,6 +654,19 @@ namespace Geumeum.UI
             SetActive(_inventoryPage, page == PageKind.Inventory);
             SetActive(_talentPage, page == PageKind.Talent);
             SetActive(_shopPage, page == PageKind.Shop);
+            SetActive(_transferPage, page == PageKind.Transfer);
+
+            SetRowActive(_inventoryRow, page == PageKind.Inventory);
+            SetRowActive(_talentRow, page == PageKind.Talent);
+            SetRowActive(_transferRow, page == PageKind.Transfer);
+        }
+
+        private static void SetRowActive(RailRowVisual row, bool isActive)
+        {
+            if (row != null)
+            {
+                row.SetActiveRow(isActive);
+            }
         }
 
         private void RefreshLocalBinding()
