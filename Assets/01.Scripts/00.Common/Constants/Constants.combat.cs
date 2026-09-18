@@ -15,6 +15,7 @@ namespace Geumeum.Common
 
             public const int   HIT_QUERY_BUFFER_SIZE   = 16;   // NonAlloc 물리 쿼리 재사용 버퍼 크기
             public const int   MELEE_COMBO_STAGE_COUNT = 3;    // 근접 콤보 단계 수(애니메이터의 Attack1~3과 짝을 이룬다)
+            public const float CLIENT_ATTACK_MOVE_LOCK = 0.35f; // 요청을 보낸 소유 클라가 서버 cue가 올 때까지 미리 멈춰 있는 상한(초)
             public const float FULL_CIRCLE_DEGREES   = 360f;   // 이 각도의 판정은 바라보는 방향을 검사하지 않는다
             public const float DAMAGE_EPSILON        = 0.001f; // 부동소수 오차로 HP가 계속 갱신되는 것을 막는다
             public const float HEALTH_EPSILON        = 0.001f; // 이 이하면 사망으로 취급

@@ -27,6 +27,7 @@ namespace Geumeum.Combat
         private PlayerStatus             _status;
         private PlayerRollController     _roll;
         private PlayerAttack             _attack;
+        private PlayerAnimationController _animation;
         private PrecisionShotController  _precisionShot;
         private LockOnController         _lockOn;
         private ReviveController         _revive;
@@ -67,6 +68,7 @@ namespace Geumeum.Combat
             _status           = GetComponent<PlayerStatus>();
             _roll             = GetComponent<PlayerRollController>();
             _attack           = GetComponent<PlayerAttack>();
+            _animation        = GetComponent<PlayerAnimationController>();
             _precisionShot    = GetComponent<PrecisionShotController>();
             _lockOn           = GetComponent<LockOnController>();
             _revive           = GetComponent<ReviveController>();
@@ -84,9 +86,12 @@ namespace Geumeum.Combat
             bool isPaused = ((RunManager.LocalInstance != null) && (RunManager.LocalInstance.IsPaused));
             bool inputBlocked = !LocalGameplayInputGate.AllowsGameplayInput;
 
+            bool isAttackLocked = (((_animation != null) && (_animation.IsAttackCueActive))
+                || ((_attack != null) && (_attack.IsClientMoveLockPending)));
+
             bool isServerDrivenMotion = (((_roll != null) && (_roll.IsRolling))
                 || ((_status != null) && (_status.IsDead || _status.IsSwallowed))
-                || (isPaused) || (inputBlocked));
+                || (isPaused) || (inputBlocked) || (isAttackLocked));
 
             _prediction.SetSuspended(isServerDrivenMotion);
 
@@ -256,8 +261,9 @@ namespace Geumeum.Combat
             RunPhase        phase     = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
             bool            isPaused  = ((RunManager.ServerInstance != null) && (RunManager.ServerInstance.IsPaused));
             PlayerLifeState lifeState = (_status != null) ? _status.LifeState : PlayerLifeState.Alive;
-            bool            canMove   = PlayerActionGate.CanAct(phase, lifeState, isPaused);
+            bool            canAct    = PlayerActionGate.CanAct(phase, lifeState, isPaused);
             double          now       = NetworkTime.time;
+            bool            canMove   = canAct;
 
             if (_roll != null)
             {
@@ -288,6 +294,10 @@ namespace Geumeum.Combat
             {
                 _heal.ServerUpdateState(now);
             }
+
+            // 행동 갱신이 끝난 뒤에 판단한다. 이번 틱에 후딜이 풀렸으면 곧바로 다시 움직일 수 있다
+            bool isAttackInProgress = ((_attack != null) && (_attack.IsBaseActionInProgress(now)));
+            canMove = PlayerActionGate.CanMove(canAct, isAttackInProgress);
 
             Vector2 direction = Vector2.zero;
             float   speed     = 0f;

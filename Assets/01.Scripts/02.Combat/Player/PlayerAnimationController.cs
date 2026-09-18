@@ -301,6 +301,17 @@ namespace Geumeum.Combat
             _animator.SetTrigger(PARAM_HEAL);
         }
 
+        /// <summary> 서버가 확정한 공격 동작이 아직 진행 중인가. 소유 클라의 이동 잠금이 읽는다 </summary>
+        public bool IsAttackCueActive
+        {
+            get
+            {
+                return (_currentCueKind == PlayerActionCueKind.Attack)
+                    && (_currentCueExecutionId != 0u)
+                    && (RunTimeLocator.Current.GameplayElapsedSeconds < _currentCueEndGameplayTime);
+            }
+        }
+
         /// <summary>Applies an authoritative action cue, including late-join progress.</summary>
         public void PlayActionCue(in PlayerActionCue cue)
         {

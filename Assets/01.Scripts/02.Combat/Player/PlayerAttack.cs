@@ -84,6 +84,7 @@ namespace Geumeum.Combat
         private double      _hitServerTime      = 0d;
         private double      _recoveryServerTime = 0d;
         private bool        _isSwinging         = false;
+        private double      _clientMoveLockUntilTime = 0d;  // 소유 클라 전용
         private AttackReach _swingReach         = AttackReach.None;
 
         // 근접 콤보 단계(1~3)
@@ -131,6 +132,12 @@ namespace Geumeum.Combat
             return IsBaseActionInProgress(serverTime)
                 || ((_precisionShot != null) && (_precisionShot.IsActionInProgress));
         }
+
+        /// <summary>
+        /// 요청을 보낸 소유 클라가 서버 cue를 기다리는 동안 미리 멈춰 있는가.
+        /// cue가 올 때까지 계속 움직이면 자기 화면만 앞으로 미끄러졌다가 되돌아온다
+        /// </summary>
+        public bool IsClientMoveLockPending => (NetworkTime.time < _clientMoveLockUntilTime);
 
         /// <summary> 정밀 사격을 제외한 기본 공격과 후딜이 진행 중인가 </summary>
         public bool IsBaseActionInProgress(double serverTime)
@@ -212,6 +219,9 @@ namespace Geumeum.Combat
             {
                 _presentation.ClientPredictFacing(aim);
             }
+
+            // 서버가 수락하면 cue가 이어받고, 거부하면 아래 TargetActionRejected가 바로 푼다
+            _clientMoveLockUntilTime = NetworkTime.time + Constants.Combat.CLIENT_ATTACK_MOVE_LOCK;
 
             CmdRequestAttack(_nextRequestId, aim, ArrowAimGeometry.BuildCameraRay(Camera.main));
             ++_nextRequestId;
@@ -414,6 +424,7 @@ namespace Geumeum.Combat
         [TargetRpc]
         private void TargetActionRejected(ActionRejection rejection)
         {
+            _clientMoveLockUntilTime = 0d;
             LocalCombatState.RaiseActionRejected(rejection);
         }
 
