@@ -100,6 +100,7 @@ Assets/
 |---|---|---|
 | `Main.unity` | **현재** | 통합 씬(개활 맵). 통합 담당자(팀장)만 수정 |
 | `Dev_Combat.unity` | **현재** | 네트워크·전투 작업 씬 |
+| `Dev_BossTrial.unity` | **현재(개발용)** | 보스 트라이 설정 씬. Boot 복사본에 편성 화면을 얹었다. 레벨 · 무기 · 장비 등급/공격력/옵션 · 특성 · 물약을 정하고 그대로 런을 시작한다 |
 | `Dev_AI.unity` | **현재** | 몬스터·보스 작업 씬 |
 | `Dev_Character.unity` | **현재** | 캐릭터·무기 부착 확인용. 네트워크 없음. 빌드 설정 미포함 |
 | `Dev_WeatherMakerIsolation.unity` | **현재** | WeatherMaker 격리 확인용(임시). 빌드 설정 미포함 |
@@ -411,6 +412,8 @@ Main.unity
    │                          개발 도구(Geumeum.Dev)와 네트워크 계층이 전투 타입을 모른 채 읽는다 → 4.7
    ├ IBossTelegraphSource.cs  [구현완료] 보스 예고의 현재 값과 변경 통지 창구. 표현이 AI 구현을
    │                          참조하지 않고 예고를 읽게 하는 경계 → 4.3
+   ├ IBossTrialGate.cs     [구현완료] 보스 트라이 전실이 보스 개시를 막고 있는지, 다음 런을 트라이로 시작할지.
+   │                          BossTrialDirector가 구현하고 RunManager와 LobbyController가 읽는다
    ├ IWeaponBladeSource.cs [구현완료] 손에 든 무기의 손잡이 끝 · 칼끝 월드 위치. PlayerWeaponVisual이 구현하고
    │                          검기(MeleeSlashView)가 읽는다
    └ IDamagePresentationSource.cs [구현완료] 동기화된 체력이 줄었다는 알림(HealthDecreased).
@@ -1074,6 +1077,7 @@ Assets/09.Data/
 ├ DayCycle/DayCycleSO.asset
 ├ Sound/SoundCatalogSO.asset
 ├ Camera/CameraConfigSO.asset ← 위 셋이 네트워크와 무관한 순수 로컬 리소스다
+├ BossTrial/BossTrialLoadoutSO.asset          보스 트라이 시작 자원 (시작 레벨 · 편성 포인트 · 등급별 비용 · 물약). 실측 전 임시값
 ├ Presentation/PresentationConfigSO.asset     전투와 아레나 표현 조정값 (판정 범위 · 서버 규칙 제외).
 │                                              히트스톱 · 피격 플래시 · 검기(잔상 시간 · 판정 전후 기록 구간 · 손잡이 비율 · 색) · 임시 VFX 프리팹
 ├ Presentation/GatNeoul_PhysioSettings.asset  갓 · 너울 PhysioBrush 설정 → 갓·너울 PhysioBrush 사용
@@ -1192,6 +1196,7 @@ Combat ✕ AI ✕ Systems 상호 직접 참조 금지 — Common의 인터페이
 | `ICombatFeedback` | CombatFeedbackImpl | 전투 타이밍 → 로컬 연출 |
 | `IDamagePresentationSource` | PlayerStatus, EnemyStatus, BossStatus | DamageFlashView (동기화된 체력 감소 → 로컬 피격 플래시) |
 | `IWeaponBladeSource` | PlayerWeaponVisual | MeleeSlashView (실제 검날 경로 → 로컬 검기) |
+| `IBossTrialGate` | BossTrialDirector | RunManager (보스 개시 보류) · LobbyController (런 모드 결정) |
 
 ### 8.3 타격감 (전투 ↔ 아트)
 

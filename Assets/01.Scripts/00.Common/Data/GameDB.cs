@@ -36,6 +36,9 @@ namespace Geumeum.Data
         public static TalentTreeSO Talent     => Require().Talent;
         public static ScoreRuleSO  Score      => Require().Score;
 
+        // 보스 트라이를 안 쓰는 빌드도 있으므로 없으면 null이다. 쓰는 쪽이 DataMissing으로 거절한다
+        public static BossTrialLoadoutSO BossTrial => Require().BossTrial;
+
         public static DayCycleSO     DayCycle => Require().DayCycle;
         public static SoundCatalogSO Sound    => Require().Sound;
         public static CameraConfigSO Camera   => Require().Camera;

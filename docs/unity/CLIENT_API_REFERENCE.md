@@ -28,6 +28,7 @@
 | 전투 HUD | `LocalCombatState`의 HP·스태미나·생명 상태 조회 | 이산 상태 이벤트·`ActionRejected`; 초기 표시에는 현재 상태 조회 |
 | 몬스터 표현 | `IEnemyPresentationSource.VisualState`, `AttackVariant`, `IsParryWindowVisuallyOpen` 조회 | 같은 이름의 변경 이벤트 구독. 기존 애니메이션·패링 강조도 활성화 때 현재값을 읽는다 |
 | 피격 표현 | `IDamagePresentationSource.HealthDecreased` 구독 | 동기화된 체력이 줄 때 각 화면에서 발생. 피해량·공격자는 없다. 색 덮기는 `RendererTintRegistry`로 한다 |
+| 보스 트라이 | `BossTrialDirector.CmdSetTrialMode`(호스트), `CmdSubmitLoadout`, `CmdRequestRetry`(호스트) | `CollectionChanged`로 제출 인원, `SubmissionResolved`로 내 편성 판정. 예산 미리보기는 `BossTrialRules.Validate`를 화면에서도 그대로 쓴다. 해금 여부는 `BossTrialUnlock.IsUnlocked` |
 | 무기 위치 | 같은 플레이어의 `IWeaponBladeSource.TryGetBladeSegment` 조회 | 손잡이 끝과 칼끝 월드 위치. 애니메이션 뒤(`LateUpdate`)에 읽는다. 무기가 없거나 메시를 못 찾으면 false |
 | 보스 예고 | `IBossTelegraphSource` 계약 조회 | `TelegraphChanged` 구독과 현재 cue 조회; 상세 수명은 서버 API의 보스 예고 절 참고 |
 | 상호작용 | `IInteractionRequestSource.RequestInteract(targetNetId)` 요청, `InteractionController.PromptText` 조회 | `Client/InteractionClient`가 G키·후보 탐색을 담당. true는 전송이며 서버 승인이 아니다. 줍기는 인벤토리·월드 상태로 확인 |

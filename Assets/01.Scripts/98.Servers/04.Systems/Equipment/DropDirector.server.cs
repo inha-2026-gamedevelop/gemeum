@@ -57,6 +57,25 @@ namespace Geumeum.Systems
         *              Server API
         ****************************************/
 
+        /// <summary>
+        /// 드랍이 아니라 지급으로 장비 하나를 만든다. 보스 트라이 시작 편성이 쓴다.
+        /// 인스턴스 ID가 겹치지 않도록 드랍과 같은 생성기를 쓴다
+        /// </summary>
+        [Server]
+        public bool ServerTryGenerateEquipment(WeaponKind weapon, int fieldLevel,
+            out WeaponCombatSnapshot equipment)
+        {
+            equipment = default;
+
+            if (!ServerEnsureRuntime())
+            {
+                return false;
+            }
+
+            equipment = _generator.Generate(weapon, fieldLevel);
+            return equipment.HasEquipment;
+        }
+
         [Server]
         private void HandleEnemyDied(EnemyDiedEvent evt)
         {

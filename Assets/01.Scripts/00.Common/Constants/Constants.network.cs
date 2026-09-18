@@ -8,6 +8,7 @@ namespace Geumeum.Common
             public const int MAX_PLAYERS = 3; // 접속 정원
 
             public const float RESULT_TO_LOBBY_SECONDS = 5f; // Result 확정 후 Lobby 복귀까지의 시간(초)
+            public const float BOSS_TRIAL_LOADOUT_TIMEOUT = 60f; // 전실에서 편성을 기다리는 상한(초), 지나면 빈 편성으로 연다
 
             public const float SERVER_TICK_INTERVAL   = 1f / 60f; // 서버 판정 틱 간격(초)
             public const float RUN_TIME_SYNC_INTERVAL = 0.5f;     // 경과 시간 동기화 주기(초), 클라는 이 사이를 보간한다

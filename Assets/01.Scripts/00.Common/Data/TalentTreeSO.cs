@@ -72,6 +72,19 @@ namespace Geumeum.Data
         *                Methods
         ****************************************/
 
+        /// <summary> 순번으로 노드를 읽는다. 목록을 그대로 훑어야 하는 편성 화면이 쓴다 </summary>
+        public bool TryGetNodeAt(int index, out NodeEntry entry)
+        {
+            if ((_nodes == null) || (index < 0) || (index >= _nodes.Length))
+            {
+                entry = default;
+                return false;
+            }
+
+            entry = _nodes[index];
+            return true;
+        }
+
         /// <summary> 노드 정보를 찾는다, 없으면 false </summary>
         public bool TryGetNode(int nodeId, out NodeEntry entry)
         {

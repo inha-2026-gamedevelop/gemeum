@@ -557,6 +557,12 @@ namespace Geumeum.Network
         /// <summary> 개발 도구를 포함하지 않은 빌드는 정식 런으로 시작한다 </summary>
         private static RunMode ResolveRunMode()
         {
+            // 방장이 전실 화면에서 보스 트라이를 골랐으면 개발 설정보다 우선한다
+            if (BossTrialGateLocator.Current.IsTrialRequested)
+            {
+                return RunMode.BossTrial;
+            }
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
             return DevRunMode;
 #else

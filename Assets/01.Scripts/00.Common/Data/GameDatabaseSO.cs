@@ -34,6 +34,7 @@ namespace Geumeum.Data
         [SerializeField] private LevelCurveSO _levelCurve;
         [SerializeField] private TalentTreeSO _talent;
         [SerializeField] private ScoreRuleSO  _score;
+        [SerializeField] private BossTrialLoadoutSO _bossTrial;
 
         [Header("테크니컬 아트 (로컬 전용)")]
         [SerializeField] private DayCycleSO     _dayCycle;
@@ -59,6 +60,7 @@ namespace Geumeum.Data
         public LevelCurveSO LevelCurve => _levelCurve;
         public TalentTreeSO Talent     => _talent;
         public ScoreRuleSO  Score      => _score;
+        public BossTrialLoadoutSO BossTrial => _bossTrial;
 
         public DayCycleSO     DayCycle => _dayCycle;
         public SoundCatalogSO Sound    => _sound;
