@@ -27431,6 +27431,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1227912689}
   - component: {fileID: 1227912688}
+  - component: {fileID: 1227912690}
   m_Layer: 0
   m_Name: '@Diagnostics'
   m_TagString: Untagged
@@ -27467,6 +27468,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1227912690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1227912687}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3549e9c50b03c846a5b9f195ffbf732, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Systems.InventoryTestSetup
+  _toggleKey: 289
+  _isOpen: 1
+  _fillWeapon: 0
 --- !u!1 &1235109545
 GameObject:
   m_ObjectHideFlags: 0
@@ -34127,6 +34143,7 @@ GameObject:
   - component: {fileID: 1633082178}
   - component: {fileID: 1633082180}
   - component: {fileID: 1633082181}
+  - component: {fileID: 1633082182}
   m_Layer: 0
   m_Name: '@Managers'
   m_TagString: Untagged
@@ -34196,6 +34213,21 @@ MonoBehaviour:
   _barrierController: {fileID: 1633082180}
   _testPhaseDurationSeconds: 10
   _autoAdvanceEnabled: 0
+--- !u!114 &1633082182
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1633082170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 846691a346b40e84da0644c887f22843, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.RunSceneDirector
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1 &1637030590
 GameObject:
   m_ObjectHideFlags: 0
