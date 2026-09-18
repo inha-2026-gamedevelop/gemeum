@@ -840,6 +840,8 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           관리 창이 열려 HUD 캔버스가 꺼지면 접고 키를 먹지 않는다.
 │     │                           지도 배경이 아직 없어 읽히게 하려고 검은 반투명 판을 임시로 깐다 -
 │     │                           Backdrop 오브젝트이고, 배경이 들어오면 지운다.
+│     │                           접힌 지도의 링 테두리는 펼치는 동안 숨긴다 - 크기가 안 맞고 시야를 가린다.
+│     │                           _compactOnly 배열에 넣은 Graphic을 끄는 방식이라 오브젝트는 남는다.
 │     │                           M 토글과 ESC 닫기를 실제 키 입력으로, 파티원 점 생성을
 │     │                           호스트 1인에서 확인했다. 3인에서 점이 캐릭터 색으로 갈리는지는 미확인
 │     ├ LockOnReticle.cs         [구현완료] 락온한 대상의 중앙에 흰 점을 띄운다.

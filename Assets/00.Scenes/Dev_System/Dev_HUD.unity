@@ -34545,8 +34545,11 @@ MonoBehaviour:
   _closeKey: 27
   _expandedScale: 4
   _expandedRangeMeters: 500
+  _expandedDotScale: 0.5
   _dots: {fileID: 1655813872}
   _backdrop: {fileID: 1349564962}
+  _compactOnly:
+  - {fileID: 930000056}
 --- !u!1001 &1658019086
 PrefabInstance:
   m_ObjectHideFlags: 0

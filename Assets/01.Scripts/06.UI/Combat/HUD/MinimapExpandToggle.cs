@@ -46,6 +46,10 @@ namespace Geumeum.UI
         [Tooltip("펼친 동안에만 깔리는 배경판. 비워 두면 깔지 않는다")]
         [SerializeField] private Graphic _backdrop = null;
 
+        // 접힌 지도에서만 쓰는 장식이다. 펼친 지도까지 따라오면 크기가 안 맞고 시야를 가린다
+        [Tooltip("펼친 동안 숨길 것들. 접힌 지도의 테두리 같은 장식을 넣는다")]
+        [SerializeField] private Graphic[] _compactOnly = null;
+
         private RectTransform _rect;
         private Canvas        _canvas;
 
@@ -94,6 +98,7 @@ namespace Geumeum.UI
 
             // 씬에 켜진 채로 저장돼도 접힌 상태에서는 보이지 않게 맞춘다
             SetBackdropVisible(false);
+            SetCompactOnlyVisible(true);
         }
 
         private void OnDisable()
@@ -162,6 +167,7 @@ namespace Geumeum.UI
             // 점은 지도 배율을 그대로 따르지 않는다. 같이 4배가 되면 뭉개진다
             _dots.DotScale = Mathf.Max(_expandedDotScale, 0.01f);
 
+            SetCompactOnlyVisible(false);
             SetBackdropVisible(true);
         }
 
@@ -180,6 +186,7 @@ namespace Geumeum.UI
             _rect.anchoredPosition = _compactAnchoredPosition;
             _rect.localScale       = _compactScale;
 
+            SetCompactOnlyVisible(true);
             SetBackdropVisible(false);
 
             if (_dots != null)
@@ -194,6 +201,22 @@ namespace Geumeum.UI
             if (_backdrop != null)
             {
                 _backdrop.enabled = isVisible;
+            }
+        }
+
+        private void SetCompactOnlyVisible(bool isVisible)
+        {
+            if (_compactOnly == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _compactOnly.Length; ++i)
+            {
+                if (_compactOnly[i] != null)
+                {
+                    _compactOnly[i].enabled = isVisible;
+                }
             }
         }
     }
