@@ -38,8 +38,5 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/00.Scenes/Dev_System/Dev_Lobby.unity
     guid: 22b00df8396d5b246bc44f8374cbd308
-  - enabled: 1
-    path: Assets/00.Scenes/Dev_System/Dev_HUD.unity
-    guid: fc0f3ccff6cb42d4f87fdc0c6adc73cd
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
