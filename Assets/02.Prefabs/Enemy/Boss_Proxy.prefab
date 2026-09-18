@@ -837,6 +837,9 @@ GameObject:
   - component: {fileID: 2493440672188875199}
   - component: {fileID: 6149093663773481605}
   - component: {fileID: 7953727135133515130}
+  - component: {fileID: 8671256667711518323}
+  - component: {fileID: 8388073033715204734}
+  - component: {fileID: 4599002674808050743}
   m_Layer: 11
   m_Name: TailCollider_2
   m_TagString: Untagged
@@ -898,6 +901,78 @@ MonoBehaviour:
   _aimOffset: {x: 0, y: 0, z: 0}
   _hitCollider: {fileID: 6149093663773481605}
   _visualRoot: {fileID: 2912423790051124091}
+--- !u!33 &8671256667711518323
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1966401843729263953}
+  m_Mesh: {fileID: 0}
+--- !u!23 &8388073033715204734
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1966401843729263953}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &4599002674808050743
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1966401843729263953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5b798f6c1f073f478c8bf57c2aac694, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.BossPartMarkerView
+  _partId: 2
+  _horizontalDiagonal: 0.3
+  _localOffset: {x: 0, y: 0.4, z: 0}
 --- !u!1 &2014543665992267001
 GameObject:
   m_ObjectHideFlags: 0
@@ -2147,6 +2222,7 @@ GameObject:
   - component: {fileID: 5454279325844730213}
   - component: {fileID: 99270892151687643}
   - component: {fileID: 1586017962528767102}
+  - component: {fileID: 7108684674370532333}
   m_Layer: 11
   m_Name: TailCollider
   m_TagString: Untagged
@@ -2278,6 +2354,21 @@ MonoBehaviour:
   _aimOffset: {x: 0, y: 0, z: 0}
   _hitCollider: {fileID: 500750084248472748}
   _visualRoot: {fileID: 2643459230307427928}
+--- !u!114 &7108684674370532333
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4751970963271497077}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5b798f6c1f073f478c8bf57c2aac694, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.BossPartMarkerView
+  _partId: 1
+  _horizontalDiagonal: 0.3
+  _localOffset: {x: 0, y: 0.4, z: 0}
 --- !u!1 &4773853850512620754
 GameObject:
   m_ObjectHideFlags: 0
@@ -2914,6 +3005,9 @@ GameObject:
   - component: {fileID: 2421899999891808828}
   - component: {fileID: 3710014644351610987}
   - component: {fileID: 6865138636579260129}
+  - component: {fileID: 6460382583144754436}
+  - component: {fileID: 4003629294970377915}
+  - component: {fileID: 6184006726361843817}
   m_Layer: 11
   m_Name: TailCollider_3
   m_TagString: Untagged
@@ -2975,6 +3069,78 @@ MonoBehaviour:
   _aimOffset: {x: 0, y: 0, z: 0}
   _hitCollider: {fileID: 3710014644351610987}
   _visualRoot: {fileID: 5783617517877885814}
+--- !u!33 &6460382583144754436
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5617448442743111877}
+  m_Mesh: {fileID: 0}
+--- !u!23 &4003629294970377915
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5617448442743111877}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &6184006726361843817
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5617448442743111877}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5b798f6c1f073f478c8bf57c2aac694, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.BossPartMarkerView
+  _partId: 3
+  _horizontalDiagonal: 0.3
+  _localOffset: {x: 0, y: 0.4, z: 0}
 --- !u!1 &5718320498461183552
 GameObject:
   m_ObjectHideFlags: 0
