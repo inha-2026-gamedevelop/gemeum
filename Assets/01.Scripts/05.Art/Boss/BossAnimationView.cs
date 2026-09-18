@@ -24,7 +24,7 @@ namespace Geumeum.Art
 
         private Animator              _animator;
         private IBossTelegraphSource  _telegraphSource;
-        private IBossPartSource       _partSource;
+        private IBossPhaseSource      _phaseSource;
         private BossStatus            _status;
 
         private uint _lastAttackInstanceId;
@@ -39,7 +39,7 @@ namespace Geumeum.Art
         {
             _animator        = GetComponent<Animator>();
             _telegraphSource = GetComponentInParent<IBossTelegraphSource>();
-            _partSource      = GetComponentInParent<IBossPartSource>();
+            _phaseSource     = GetComponentInParent<IBossPhaseSource>();
             _status          = GetComponentInParent<BossStatus>();
         }
 
@@ -59,13 +59,13 @@ namespace Geumeum.Art
 
         private void TrySubscribe()
         {
-            if ((_isSubscribed) || (_telegraphSource == null) || (_partSource == null) || (_status == null))
+            if ((_isSubscribed) || (_telegraphSource == null) || (_phaseSource == null) || (_status == null))
             {
                 return;
             }
 
             _telegraphSource.TelegraphChanged += HandleTelegraphChanged;
-            _partSource.PartChanged           += HandlePartChanged;
+            _phaseSource.PhaseChanged         += HandlePhaseChanged;
             _status.Died                      += HandleDied;
             _isSubscribed = true;
         }
@@ -78,7 +78,7 @@ namespace Geumeum.Art
             }
 
             _telegraphSource.TelegraphChanged -= HandleTelegraphChanged;
-            _partSource.PartChanged           -= HandlePartChanged;
+            _phaseSource.PhaseChanged         -= HandlePhaseChanged;
             _status.Died                      -= HandleDied;
             _isSubscribed = false;
         }
@@ -103,9 +103,15 @@ namespace Geumeum.Art
             _animator.SetTrigger(G_Attack);
         }
 
-        private void HandlePartChanged(BossPartSnapshot snapshot)
+        // 꼬리 표식(BossPartSnapshot.ActivePartId)은 2페이즈에서만 켜지므로 그로기 자세는
+        // 거기 얹지 않고 페이즈 단계(BossEncounterStage)로 직접 판정한다 - 1페이즈 그로기도
+        // 같은 자세를 보여줘야 한다. WakeWarning은 기상 예고 2초 구간으로, 그동안도 쓰러진
+        // 자세를 유지한 채 별도 경고만 얹히므로 그로기로 함께 취급한다
+        private void HandlePhaseChanged(BossPhaseSnapshot snapshot)
         {
-            _animator.SetBool(G_IsGroggy, snapshot.ActivePartId != 0);
+            bool isGroggy = (snapshot.Stage == BossEncounterStage.Groggy) ||
+                (snapshot.Stage == BossEncounterStage.WakeWarning);
+            _animator.SetBool(G_IsGroggy, isGroggy);
         }
 
         private void HandleDied(uint attackerNetId)
