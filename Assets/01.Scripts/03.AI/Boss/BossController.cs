@@ -71,7 +71,6 @@ namespace Geumeum.AI
             new List<ParticipantId>(Constants.Network.MAX_PLAYERS);
 
         private GroggyPhase _groggyPhase      = GroggyPhase.Active;
-        private float       _groggyGauge      = 0f;
         private float       _groggyStateTimer = 0f;
 
         /****************************************
@@ -85,6 +84,12 @@ namespace Geumeum.AI
         public TargetRef PrecisionTargetRef => CreateBodyTargetRef();
         public bool IsEnrageWarning => _isEnrageWarning;
         public bool IsEnraged => _isEnraged;
+
+        /// <summary>
+        /// 남은 그로기 저항. 0이 되는 순간 그로기에 들어간다.
+        /// 최대치는 밸런스 데이터(BossPatternSO.GroggyGaugeMax)라 비율은 읽는 쪽에서 만든다
+        /// </summary>
+        public float GroggyGauge => _groggyGauge;
         public event Action<BossTelegraphCue> TelegraphChanged;
         public event Action<BossPhaseSnapshot> PhaseChanged;
         public event Action<bool> EnrageWarningChanged;
