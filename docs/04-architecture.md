@@ -909,7 +909,8 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           상한 30:00은 GameDB.Barrier가 갖고 있어 코드에 박은 수치가 아니다.
 │     │                           런 시작 시 30:00에서 내려가는 것을 화면에서 확인했다.
 │     │                           축소까지 남은 시간이 아니다 - 그 경고는 배너와 부적이 맡는다(HUD_DESIGN 2.2).
-│     │                           보스 시계는 아직 세지 않는다. 보스 씬이 붙으면 점수 기준(44:00)과 맞춰야 한다.
+│     │                           보스 시계는 아직 세지 않는다 [계획]. 표시 기준은 2026-09-19에
+│                           "보스 씬에서는 보스 시계 14:00 카운트다운으로 교체, 44:00은 결과창에서만"으로 정해졌다.
 │     │                           단계별 색 전환은 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
 │     ├ PartyHudController.cs    [구현완료] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
 │     │                           스폰 목록만 주기로 훑고 값은 PlayerStatus 이벤트로 받는다.
@@ -924,12 +925,16 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │                                     주기마다 조금씩 깎아 HUD가 값을 따라가는지 보게 한다.
 │                                     DevToolHost에 스스로 붙고 기본은 꺼짐.
 │                                     좌하단 개인 바가 움직이는 것까지 관찰했다
-├ AI/        보스 HP 바
-│  └ BossHudController.cs   [구현완료] 스폰된 보스를 찾아 보스 체력 바에 물린다.
+├ AI/        보스 바(체력 · 그로기) · 광폭화 경고
+│  └ BossHudController.cs   [구현완료] 스폰된 보스를 찾아 체력 바 · 그로기 저항 바 · 광폭화 문구에 물린다.
 │                           보스가 없거나 죽으면 바를 숨긴다. 스폰 목록은 주기로만 훑는다.
-│                           최대 체력이 서버 전용 값이라 클라이언트는 GameDB.Boss.MaxHealth를 쓴다.
-│                           호스트 1인에서 표시, 비율 갱신, 숨김까지 확인했다.
-│                           그로기 바는 게이지가 SyncVar가 아니라 아직 연결하지 못했다 [계획]
+│                           최대 체력과 그로기 최대치가 서버 전용 값이라 클라이언트는
+│                           GameDB.Boss의 MaxHealth · GroggyGaugeMax를 쓴다.
+│                           RunHUD.prefab(SessionManagers 안)의 루트에 배선했다 -
+│                           보스 바는 기본 비활성이라 바 위에 붙이면 스스로 켜지 못한다.
+│                           호스트 1인에서 표시, 체력 · 그로기 비율 갱신,
+│                           광폭화 예고 · 발동 문구, 보스 제거 시 숨김까지 확인했다.
+│                           3인 접속(L3)은 아직 확인하지 못했다 [미검증]
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
 │  ├ SteamLobbyPanel.cs    MB  Steam 로비 화면. 방 만들기 · 로비 ID 참가 · 정원이 차면 시작.
