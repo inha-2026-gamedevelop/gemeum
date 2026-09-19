@@ -60,6 +60,7 @@ Assets/
 ├ 10.InputSystem/   Input Action 에셋 (입력은 Input Manager로 받는다, 5.6장)
 ├ 11.Timeline/      연출 타임라인 (집중개발 4~5주차부터)
 ├ 12.Materials/     머티리얼 (모델 · 캐릭터별 하위 폴더)
+├ 13.UI/           UI 폰트 · 이미지 리소스 (HUD · 인게임 메뉴)
 ├ 98.FreeAssets/    무료 에셋 원본 (플러그인 · 애니메이션 등) — 수정 금지, 커밋 대상
 ├ 99.ThirdParty/    구매 에셋 원본 — 수정 금지, 커밋 제외(.gitignore)
 └ Mirror/           Mirror 패키지 — 수정 금지
@@ -706,6 +707,12 @@ BossController·BossPartController·BossSoulController·BossStatus·BossSpawner�
 │  ├ EquipmentTransferService.cs NB 파티원 간 장비 양도. 제안 · 수락 · 거절 · 취소를
 │  │                           무권한 Command로 받고 서버가 호출자와 양쪽 revision을 검증
 │  │                           [구현완료]
+│  ├ Dev/InventoryTestSetup.cs  [구현완료] 개발 전용. 호스트 화면에서 참가자별로 장비를
+│  │                           지급하거나 칸을 비운다. 양도 규칙을 보려면 받을 사람과
+│  │                           가득 찬 사람이 필요한데 드랍이 15퍼센트라 손으로 모으기 어렵다.
+│  │                           단일 씬은 SceneRevision이 0에 머물러 거래 헤더가 무효가 되므로
+│  │                           서버 시작 시 1로 올린다. 이 때문에 개발 씬에는
+│  │                           RunSceneDirector가 함께 있어야 한다
 │  └ Editor/InventoryRulesTests.cs · InventoryControllerTests.cs · EquipmentSwapRulesTests.cs
 ├ Interaction/             [구현완료]
 │  ├ InteractionController.cs NB 상호작용 입력과 줍기 · 장착 요청. 판정은 전부 서버
@@ -819,7 +826,35 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           결계 밖을 위험 색으로 덮는다 - UI에 역마스크가 없어 판 하나를 칠하고
 │     │                           결계 자리만 비운다. 원이 움직인 만큼만 다시 칠한다.
 │     │                           다음 축소의 목표 원은 경고 시점부터 축소가 끝날 때까지 보인다.
-│     │                           _rangeMeters는 BarrierPhaseSO의 최대 반경과 같아야 한다. 맵 배경, 회전은 아직 없다
+│     │                           _rangeMeters는 접힌 상태 200m다. 파티원 위치를 읽기 쉽게 2026-09-15에
+│     │                           400에서 줄였다. BarrierPhaseSO의 최대 반경(400)보다 작아서
+│     │                           결계 초반에는 결계 원이 미니맵 밖으로 나간다. 맵 배경, 회전은 아직 없다.
+│     │                           펼친 지도는 MinimapExpandToggle이 500m로 바꾼다
+│     ├ MinimapExpandToggle.cs   [구현완료] M키로 미니맵을 화면 정중앙에 펼쳤다 되돌린다.
+│     │                           확대판을 따로 두지 않고 같은 MinimapPlayerDots의 배치 · 표시 반경 ·
+│     │                           점 크기만 바꾼다. 점과 결계를 두 벌 그리면 둘이 어긋날 수 있다.
+│     │                           접힌 모습은 Awake에서 씬 값을 받아 두고 접을 때 그대로 되돌린다 -
+│     │                           코드에 위치나 크기를 적지 않아 씬에서 미니맵을 옮겨도 따라간다.
+│     │                           펼치면 배율 4배(180 -> 720px), 반경 500m, 점은 12px다.
+│     │                           게임 입력은 막지 않는다. 지도를 펼친 채 이동 · 카메라가 동작한다.
+│     │                           관리 창이 열려 HUD 캔버스가 꺼지면 접고 키를 먹지 않는다.
+│     │                           지도 배경이 아직 없어 읽히게 하려고 검은 반투명 판을 임시로 깐다 -
+│     │                           Backdrop 오브젝트이고, 배경이 들어오면 지운다.
+│     │                           접힌 지도의 링 테두리는 펼치는 동안 숨긴다 - 크기가 안 맞고 시야를 가린다.
+│     │                           _compactOnly 배열에 넣은 Graphic을 끄는 방식이라 오브젝트는 남는다.
+│     │                           M 토글과 ESC 닫기를 실제 키 입력으로, 파티원 점 생성을
+│     │                           호스트 1인에서 확인했다. 3인에서 점이 캐릭터 색으로 갈리는지는 미확인
+│     ├ LockOnReticle.cs         [구현완료] 락온한 대상의 중앙에 흰 점을 띄운다.
+│     │                           LockOnController가 확정한 좌표를 화면 좌표로 옮겨 그리기만 하고
+│     │                           락온 판정에는 관여하지 않는다. 대상이 카메라 뒤로 가면 숨긴다.
+│     │                           호스트 1인에서 표식이 대상 중앙에 붙는 것을 확인했다.
+│     │                           표식은 흰 도트와 그 바깥 번짐 두 장이다. 순수 흰색으로 빼면
+│     │                           밝은 대상 위에서 묻혀서, 그라데이션이 바깥으로 갈수록 어두워진다.
+│     │                           흰색, 회색, 검정 배경에서 각각 읽히는 것을 확인했다
+│     ├ LockOnReticleAura.cs     [구현완료] 표식 바깥 번짐을 돌리고 숨쉬게 한다.
+│     │                           HUD 캔버스가 ScreenSpaceOverlay라 ParticleSystem이 UI 위에
+│     │                           그려지지 않는다. 그래서 UI 이미지를 코드로 직접 움직인다.
+│     │                           크기, 회전, 투명도가 실제로 변하는 것을 확인했다
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
 │     │                           씬 배선 전이라 동작을 관찰하지 못했다
@@ -842,14 +877,21 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │                                     DevToolHost에 스스로 붙고 기본은 꺼짐.
 │                                     좌하단 개인 바가 움직이는 것까지 관찰했다
 ├ AI/        보스 HP 바
+│  └ BossHudController.cs   [구현완료] 스폰된 보스를 찾아 보스 체력 바에 물린다.
+│                           보스가 없거나 죽으면 바를 숨긴다. 스폰 목록은 주기로만 훑는다.
+│                           최대 체력이 서버 전용 값이라 클라이언트는 GameDB.Boss.MaxHealth를 쓴다.
+│                           호스트 1인에서 표시, 비율 갱신, 숨김까지 확인했다.
+│                           그로기 바는 게이지가 SyncVar가 아니라 아직 연결하지 못했다 [계획]
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
 │  ├ SteamLobbyPanel.cs    MB  Steam 로비 화면. 방 만들기 · 로비 ID 참가 · 정원이 차면 시작.
 │  │                           런이 시작되면 접히고, 열려 있는 동안 커서 소유권을 가진다
 │  └ Editor/SteamLobbyUiBuilder.cs  위 화면을 SessionNetwork 프리팹 안에 짓는 에디터 도구
-├ Systems/   [구현완료] 인벤토리, 특성 트리, 객주 상점, 정산 · 리더보드
+├ Systems/   [구현완료] 인벤토리, 특성 트리, 객주 상점, 장비 양도, 정산 · 리더보드
 │  ├ FunctionalManagementPanel.cs · RunStatusPanel.cs · RunResultPanel.cs ·
 │  │  RunResultViewAdapter.cs · FunctionalUiIndexedButton.cs · FunctionalUiText.cs
+│  ├ RailRowVisual.cs      MB  레일 한 줄(박스 · 아이콘 · 글자 · 밑줄)의 활성 표시를 바꾼다.
+│  │                           페이지가 바뀌면 FunctionalManagementPanel이 줄마다 호출한다
 │  └ Editor/RunManagementUiBuilder.cs  위 화면을 SessionManagers 프리팹 안에 짓는 에디터 도구
 └ Art/       페이드 · 트랜지션, 연출성 UI
 ```

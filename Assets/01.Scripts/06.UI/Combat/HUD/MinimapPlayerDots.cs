@@ -52,12 +52,14 @@ namespace Geumeum.UI
 
         [Header("범위")]
         [Tooltip("미니맵 가장자리가 몇 m를 뜻하는지")]
-        [SerializeField] private float _rangeMeters = 100f;
+        [SerializeField] private float _rangeMeters = 200f;
 
+        // 캐릭터 모델의 대표색을 따르되 어두운 맵에서 서로 구분되도록 채도와 명도를 올렸다.
+        // 무녀는 의상이 거의 검정이라 금색 장신구 쪽을 쓴다. 흰색은 락온 표식이 쓰므로 비워 둔다
         [Header("캐릭터별 색")]
-        [SerializeField] private Color _chasaColor   = Color.black;
-        [SerializeField] private Color _singungColor = Color.white;
-        [SerializeField] private Color _munyeoColor  = Color.red;
+        [SerializeField] private Color _chasaColor   = new Color(0.88f, 0.20f, 0.18f, 1f);
+        [SerializeField] private Color _singungColor = new Color(0.35f, 0.62f, 1f, 1f);
+        [SerializeField] private Color _munyeoColor  = new Color(1f, 0.78f, 0.25f, 1f);
 
         [Tooltip("아직 캐릭터가 배정되지 않은 동안 쓴다")]
         [SerializeField] private Color _unknownColor = new Color(0.5f, 0.5f, 0.5f, 1f);
@@ -77,6 +79,51 @@ namespace Geumeum.UI
         private Vector2   _dangerHoleCenter = Vector2.zero;
         private float     _dangerHoleRadius = -1f;
         private Color32   _dangerPainted;
+
+        // 점은 지도 배율과 별개로 같은 크기를 유지한다. 지도를 키워도 점까지 커지면 뭉개진다
+        private float _dotScale = 1f;
+
+        /// <summary>
+        /// 미니맵 가장자리가 몇 m를 뜻하는지. 펼친 지도가 같은 컴포넌트를 쓰면서 범위만 바꾼다.
+        /// 배율이 달라지면 결계 판을 한 번은 다시 칠해야 하므로 여기서 같이 처리한다
+        /// </summary>
+        public float RangeMeters
+        {
+            get => _rangeMeters;
+            set
+            {
+                float wanted = Mathf.Max(value, 0.01f);
+
+                if (Mathf.Approximately(_rangeMeters, wanted))
+                {
+                    return;
+                }
+
+                _rangeMeters      = wanted;
+                _dangerHoleRadius = -1f;
+            }
+        }
+
+        /// <summary>
+        /// 점 크기 배율. 지도를 통째로 키우면 점도 같이 커지므로 바깥에서 되돌린다.
+        /// 프리팹이 들고 있는 크기를 기준으로 곱한다
+        /// </summary>
+        public float DotScale
+        {
+            get => _dotScale;
+            set
+            {
+                float wanted = Mathf.Max(value, 0.01f);
+
+                if (Mathf.Approximately(_dotScale, wanted))
+                {
+                    return;
+                }
+
+                _dotScale = wanted;
+                ApplyDotScale();
+            }
+        }
 
         /****************************************
         *              Unity Event
@@ -418,9 +465,23 @@ namespace Geumeum.UI
                 dot.anchorMin = DOT_ANCHOR;
                 dot.anchorMax = DOT_ANCHOR;
                 dot.pivot     = DOT_ANCHOR;
+                dot.localScale = _dotPrefab.localScale * _dotScale;
 
                 _dots.Add(dot);
                 _dotGraphics.Add(dot.GetComponent<Graphic>());
+            }
+        }
+
+        private void ApplyDotScale()
+        {
+            Vector3 wanted = _dotPrefab.localScale * _dotScale;
+
+            for (int i = 0; i < _dots.Count; ++i)
+            {
+                if (_dots[i] != null)
+                {
+                    _dots[i].localScale = wanted;
+                }
             }
         }
 

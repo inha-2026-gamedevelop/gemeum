@@ -41,9 +41,14 @@ namespace Geumeum.UI
         [SerializeField] private Button _inventoryTabButton;
         [SerializeField] private Button _talentTabButton;
         [SerializeField] private Button _shopTabButton;
+        [SerializeField] private Button _transferTabButton;
         [SerializeField] private GameObject _inventoryPage;
         [SerializeField] private GameObject _talentPage;
         [SerializeField] private GameObject _shopPage;
+        [SerializeField] private GameObject _transferPage;
+        [SerializeField] private RailRowVisual _inventoryRow;
+        [SerializeField] private RailRowVisual _talentRow;
+        [SerializeField] private RailRowVisual _transferRow;
 
         [Header("인벤토리")]
         [SerializeField] private TMP_Text _equippedWeaponText;
@@ -175,6 +180,7 @@ namespace Geumeum.UI
             Inventory,
             Talent,
             Shop,
+            Transfer,
         }
 
         private void Awake()
@@ -295,6 +301,11 @@ namespace Geumeum.UI
             Open(PageKind.Talent);
         }
 
+        public void OpenTransfer()
+        {
+            Open(PageKind.Transfer);
+        }
+
         public void OpenShop(uint shopNetId)
         {
             if (!_shopPoints.TryGetValue(shopNetId, out ShopInteractionPoint shopPoint) ||
@@ -320,6 +331,10 @@ namespace Geumeum.UI
                 return;
             }
 
+            // 같은 칸을 다시 누르면 실행한다. 첫 클릭까지 실행하면 물약이 오클릭으로 사라지고
+            // 양도할 장비를 고르는 순간 장착돼 버린다
+            bool isRepeat = (_selectedSlot == slotIndex) && !_slots[slotIndex].IsEmpty;
+
             _selectedSlot = slotIndex;
             InventorySlotSnapshot slot = _slots[slotIndex];
             if (slot.Kind == InventoryItemKind.Equipment)
@@ -334,6 +349,11 @@ namespace Geumeum.UI
             }
 
             RefreshInventoryView();
+
+            if (isRepeat)
+            {
+                RequestSelectedPrimaryAction();
+            }
         }
 
         public void RequestSelectedPrimaryAction()
@@ -341,7 +361,7 @@ namespace Geumeum.UI
             if ((_inventory == null) || (_selectedSlot < 0) ||
                 (_selectedSlot >= _slots.Length))
             {
-                SetText(_inventoryStatusText, "먼저 인벤토리 칸을 선택해 주세요.");
+                SetText(_inventoryStatusText, "먼저 배낭 칸을 선택해 주세요.");
                 return;
             }
 
@@ -367,7 +387,7 @@ namespace Geumeum.UI
         {
             if (_inventory == null)
             {
-                SetText(_inventoryStatusText, "인벤토리를 아직 불러오지 못했습니다.");
+                SetText(_inventoryStatusText, "배낭을 아직 불러오지 못했습니다.");
                 return;
             }
 
@@ -509,7 +529,7 @@ namespace Geumeum.UI
             InventorySlotSnapshot slot = _slots[_selectedEquipmentSlot];
             if (slot.Kind != InventoryItemKind.Equipment)
             {
-                SetText(_transferStatusText, "인벤토리에 있는 장비만 양도할 수 있습니다.");
+                SetText(_transferStatusText, "배낭에 있는 장비만 양도할 수 있습니다.");
                 return;
             }
 
@@ -564,6 +584,7 @@ namespace Geumeum.UI
             BindButton(_inventoryTabButton, OpenInventory);
             BindButton(_talentTabButton, OpenTalents);
             BindButton(_shopTabButton, () => Open(PageKind.Shop));
+            BindButton(_transferTabButton, OpenTransfer);
             BindButton(_equipButton, RequestSelectedPrimaryAction);
             BindButton(_unequipButton, RequestUnequip);
             BindButton(_usePotionButton, RequestUseSelectedPotion);
@@ -633,6 +654,19 @@ namespace Geumeum.UI
             SetActive(_inventoryPage, page == PageKind.Inventory);
             SetActive(_talentPage, page == PageKind.Talent);
             SetActive(_shopPage, page == PageKind.Shop);
+            SetActive(_transferPage, page == PageKind.Transfer);
+
+            SetRowActive(_inventoryRow, page == PageKind.Inventory);
+            SetRowActive(_talentRow, page == PageKind.Talent);
+            SetRowActive(_transferRow, page == PageKind.Transfer);
+        }
+
+        private static void SetRowActive(RailRowVisual row, bool isActive)
+        {
+            if (row != null)
+            {
+                row.SetActiveRow(isActive);
+            }
         }
 
         private void RefreshLocalBinding()

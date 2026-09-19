@@ -67,6 +67,7 @@
 | 플레이어 3종(차사 · 신궁 · 무녀) · 잡귀 3종(창귀 · 액귀 · 허깨비) 모델과 텍스처 | Meshy AI (일부 Blender 재작업) | `06.Model/Player`, `06.Model/Monster`, `03.Image` | **유료 플랜이라 생성자 소유** (무료 플랜 생성물이었다면 CC BY 4.0) | 플랜은 사용자 확인. **생성일 미기록** |
 | 보스 1페이즈 · 객주 갓과 너울 | Meshy AI 초안 → **미채택**, Blender에서 새 메시로 재작성 | `06.Model/Monster/GatNeoul` (작업 중) | 최종 메시는 팀 제작물. 초안 생성은 위 Meshy 조건 | 착용 확인용 파일에만 구매 보스 모델을 넣었고 최종 FBX · GLB에는 없다. 구매 에셋을 Meshy에 올리지 않았다 (`.claude/docs/2026-09-13/boss-gat-neoul.md`) |
 | HUD 이미지 17장 | ChatGPT (OpenAI) | `13.UI/00.UI_Resource/HUD` | [OpenAI 이용약관](https://openai.com/policies/terms-of-use)에 따름. 원문 캡처 미보관 | 도구는 사용자 확인. 반입 2026-09-07 (`666d63e`), 프롬프트는 `docs/unity/HUD_DESIGN.md` |
+| 인게임 메뉴 이미지 15장 | ChatGPT (OpenAI) | `13.UI/00.UI_Resource/InGame` | [OpenAI 이용약관](https://openai.com/policies/terms-of-use)에 따름. 원문 캡처 미보관 | 도구는 사용자 확인. 반입 2026-09-18. 한 장짜리 시트로 받아 요소별로 잘라 나눴고 시트 원본은 남기지 않았다. 프롬프트 미기록 |
 | BGM | Suno (예정) | 없음 | 아래 "AI 생성 음원" 절 | 아직 사용 안 함 (`SoundCatalogSO` BGM 비어 있음) |
 
 **출처만 기록된 항목은 라이선스·상업 이용 가능 여부가 확정되기 전까지 출품·배포용 빌드에 포함하지 않는다.**
