@@ -52,14 +52,14 @@ namespace Geumeum.AI
         ****************************************/
 
         private const int MELEE_ARC_PATTERN_ID     = 1; // 여우불 봉 3연격
-        private const int DERIVED_MELEE_PATTERN_ID = 2; // 반월 베기, 패턴 1의 파생. 오프닝 전용, 후보 추첨 대상 아님
+        private const int DERIVED_MELEE_PATTERN_ID = 2; // 반월 베기
         private const int TARGETED_DASH_PATTERN_ID = 3; // 순간 접근 3연계
         private const int MARKED_CIRCLE_PATTERN_ID = 4; // 여우불 낙인
         private const int CONE_BURST_PATTERN_ID    = 5; // 여우 구슬 충격파
         // 위 다섯 다 GameDB.Boss._patterns의 PatternId와 맞춘다
 
-        private const int MAX_CANDIDATE_COUNT     = 4; // 현재 독립 후보 수, 패턴 2는 오프닝 전용
-        private const int SELECTABLE_PATTERN_COUNT = 4;
+        private const int MAX_CANDIDATE_COUNT     = 5; // 현재 독립 후보 수
+        private const int SELECTABLE_PATTERN_COUNT = 5;
 
         private const float MELEE_PARRY_WINDOW_DURATION = 0.32f; // 초, 패링 판정 창 길이
 
@@ -86,6 +86,7 @@ namespace Geumeum.AI
         private static readonly int[] G_SELECTABLE_PATTERN_IDS =
         {
             MELEE_ARC_PATTERN_ID,
+            DERIVED_MELEE_PATTERN_ID,
             TARGETED_DASH_PATTERN_ID,
             MARKED_CIRCLE_PATTERN_ID,
             CONE_BURST_PATTERN_ID,
@@ -286,6 +287,7 @@ namespace Geumeum.AI
         {
             int candidateCount = 0;
             candidateCount = AddCandidate(candidateCount, MELEE_ARC_PATTERN_ID, distance);
+            candidateCount = AddCandidate(candidateCount, DERIVED_MELEE_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, TARGETED_DASH_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, MARKED_CIRCLE_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, CONE_BURST_PATTERN_ID, distance);

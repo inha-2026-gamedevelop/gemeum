@@ -697,12 +697,12 @@ namespace Geumeum.Data
                     "pattern 1 needs three impacts, last-hit parry, and positive-only timing variation");
             }
 
-            if ((derivedWake.DerivedFromId != 1) || (!derivedWake.IsConditional) ||
+            if ((derivedWake.DerivedFromId != 1) ||
                 (derivedWake.RepeatCount != 1) ||
                 (!Mathf.Approximately(derivedWake.TelegraphDuration, 0.8f)))
             {
                 return FailValidation(out failure,
-                    "pattern 2 must remain the conditional 0.8-second derivative of pattern 1");
+                    "pattern 2 must remain the 0.8-second derivative of pattern 1");
             }
 
             if ((testingCombo.RepeatCount != 3) || (!testingCombo.IsParryable) ||

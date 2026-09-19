@@ -68,7 +68,7 @@ MonoBehaviour:
     RepeatTimingJitterMax: 0
     ParryableRepeatIndex: -1
     DerivedFromId: 1
-    IsConditional: 1
+    IsConditional: 0
     SelectionWeight: 1
   - PatternId: 3
     DisplayName: "\uC21C\uAC04 \uC811\uADFC 3\uC5F0\uACC4"
