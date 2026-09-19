@@ -775,18 +775,28 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 ├ Boss/                    [구현완료] 보스 아레나 연출 · 애니메이션
 │  ├ BossArenaPhaseView.cs MB  페이즈 루트 · 안개 · 하늘 · 바닥 머티리얼 · 달 원반을 한 번에 교체.
 │  │                           판정에 관여하지 않는다. 서버 페이즈 신호에 연결하는 것은 미착수
-│  ├ BossAnimationView.cs  MB  IBossTelegraphSource · IBossPartSource · BossStatus.Died를 구독해
-│  │                           BossLocomotion.controller(05.Animator/)의 파라미터로 옮긴다
+│  ├ BossAnimationView.cs  MB  IBossTelegraphSource · IBossPhaseSource · BossStatus.Died를 구독해
+│  │                           BossLocomotion.controller(05.Animator/)의 파라미터로 옮긴다.
+│  │                           IsGroggy는 BossPhaseSnapshot.Stage(Groggy·WakeWarning)로 판정 —
+│  │                           꼬리 표식(2페이즈 전용)에 얹지 않아 1페이즈 그로기도 자세가 나온다
 │  ├ BossTelegraphView.cs  MB  [구현완료] IBossTelegraphSource.TelegraphCues(최대 8개 동시)를
 │  │                           읽어 바닥 장판(부채꼴·원·레인)을 그린다. BossPatternExecutionSpec으로
 │  │                           판정과 같은 반경·각도 값을 써서 눈에 보이는 범위와 실제 판정이 어긋나지
 │  │                           않는다. 전용 셰이더는 BossTelegraph.shader(같은 폴더)
-│  └ BossPatternImpactVfxView.cs MB  [러프] BossController.PatternImpact(타격)·
-│                              PatternTelegraphVfx(예고) 신호로 패턴별 VFX(ThirdParty SB_* 계열)를
-│                              Instantiate+Destroy. 템플릿→프리팹 매핑은 인스펙터 배열 2개
-│                              (_vfxByTemplate·_vfxByTemplateOnTelegraph)로 관리, 낙인(MarkedCircle)만
-│                              예고·타격 둘 다 씀. 정식 프로덕션 파이프라인(PresentationConfigSO·풀링)
-│                              미적용 — 느낌 보며 계속 교체 중
+│  ├ BossPatternImpactVfxView.cs MB  [러프] BossController.PatternImpact(타격)·
+│  │                           PatternTelegraphVfx(예고) 신호로 패턴별 VFX(ThirdParty SB_* 계열)를
+│  │                           Instantiate+Destroy. 템플릿→프리팹 매핑은 인스펙터 배열 2개
+│  │                           (_vfxByTemplate·_vfxByTemplateOnTelegraph)로 관리, 낙인(MarkedCircle)만
+│  │                           예고·타격 둘 다 씀. 정식 프로덕션 파이프라인(PresentationConfigSO·풀링)
+│  │                           미적용 — 느낌 보며 계속 교체 중
+│  ├ BossPartMarkerView.cs MB  [구현완료] IBossPartSource.PartChanged(ActivePartId)를 읽어 그로기 중
+│  │                           파괴 대상 꼬리 위에 빨간 마름모(대각선 1:2) 표식을 띄운다. 표식 전용
+│  │                           자식 오브젝트를 만들어 그쪽만 옮기고 카메라 방향으로 돌린다 — 이
+│  │                           스크립트 자신의 transform(=BossPartHitbox의 판정 콜라이더)은 안 건드린다
+│  └ BossKitsuneFormView.cs MB  [구현완료] IBossPhaseSource로 PhaseIndex를 읽어 여우 귀·꼬리
+│                              (Model/SK_KITSUNEYUNA_EARS·TAIL)를 1페이즈엔 숨기고 2페이즈
+│                              진입 시 드러낸다 — 정체가 드러나는 연출. 꼬리 판정 콜라이더는
+│                              별개 오브젝트라 관여하지 않는다
 ├ Camera/                  [구현완료] → 카메라와 락온 사양
 │  ├ CameraRig.cs          MB  추적 · 충돌 · 셰이크 · 줌. LateUpdate.
 │  │                           Target이 바뀔 수 있어야 한다 — 관전 카메라가 같은 물건이다.

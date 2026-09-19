@@ -81,7 +81,7 @@ MonoBehaviour:
     Targeting: 0
     Range: 3.19
     AngleDegrees: 0
-    MoveSpeed: 10
+    MoveSpeed: 6.08
     MoveDistance: 9.12
     ImpactRadius: 1.37
     ImpactOffsets:
