@@ -80,6 +80,12 @@ namespace Geumeum.Combat
                 return;
             }
 
+            if ((_weapon == null) || (!_weapon.HasWeapon) || (_weapon.Weapon != WeaponKind.Sword))
+            {
+                return;
+            }
+
+            GDebug.Log("[우클릭] 검: 패링 요청");
             ParryRequest request = new ParryRequest
             {
                 RequestId                 = NextRequestId(),

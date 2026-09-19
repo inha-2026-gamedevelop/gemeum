@@ -23,6 +23,9 @@ namespace Geumeum.Network
         *                Fields
         ****************************************/
 
+        // 로비 복귀와 씬 전환이 모두 실패했을 때 재시도 코루틴이 영원히 도는 것을 막는다
+        private const float BOSS_TRIAL_RETRY_TIMEOUT = 30f;
+
         private const string SCORE_CONFIGURATION_ERROR_MESSAGE =
             "점수 설정 오류로 이번 런의 점수와 등급을 확정하지 못했다.";
 
@@ -63,6 +66,7 @@ namespace Geumeum.Network
 
         private readonly List<RunPhase> _enteredBuffer = new List<RunPhase>();
         private WaitForSeconds          _tickWait      = null;
+        private Coroutine               _bossTrialRetryRoutine = null;
 
         /****************************************
         *              Properties
@@ -425,6 +429,13 @@ namespace Geumeum.Network
             SetSimulationEnabled(true);
 
             CommitPhase(firstPhase);
+
+            // 트라이는 30분 필드를 걷지 않는다. 시작하자마자 전실로 보낸다
+            if (mode == RunMode.BossTrial)
+            {
+                _bossEntranceState = BossEntranceState.TransitionRequested;
+            }
+
             StartTick();
             return true;
         }
@@ -713,6 +724,75 @@ namespace Geumeum.Network
             _bossEntranceState                = BossEntranceState.Idle;
             _bossEntranceDeadlineFieldSeconds = 0f;
             _result                  = default;
+        }
+
+        /// <summary>
+        /// 끝난 보스 트라이를 한 번 더 시작한다. 로비를 거쳐 새 런으로 다시 시작하므로
+        /// 보스, 부위, 표식, 시계가 이전 판의 상태를 물려받지 않는다
+        /// </summary>
+        [Server]
+        public bool ServerRequestBossTrialRetry()
+        {
+            if ((_mode != RunMode.BossTrial) || (_phase != RunPhase.Result))
+            {
+                return false;
+            }
+
+            if (_bossTrialRetryRoutine != null)
+            {
+                return false;
+            }
+
+            _bossTrialRetryRoutine = StartCoroutine(CoBossTrialRetry());
+            return true;
+        }
+
+        // 정산 씬과 로비 씬 전환이 끝나기를 기다렸다가 다시 시작한다. 전환 중 StartRun은 거절된다
+        private IEnumerator CoBossTrialRetry()
+        {
+            while ((_phase == RunPhase.Result) && (_returnRoutine != null))
+            {
+                yield return _tickWait;
+            }
+
+            if (_phase == RunPhase.Result)
+            {
+                ServerReturnToLobby();
+            }
+
+            float waitedSeconds = 0f;
+            while ((_phase != RunPhase.Lobby) || (!IsLobbySceneReady()))
+            {
+                waitedSeconds += Constants.Network.SERVER_TICK_INTERVAL;
+                if (waitedSeconds >= BOSS_TRIAL_RETRY_TIMEOUT)
+                {
+                    Debug.LogError("[RunManager] 보스 트라이 재시도가 로비 복귀를 기다리다 시간 초과됐다", this);
+                    _bossTrialRetryRoutine = null;
+                    yield break;
+                }
+
+                yield return _tickWait;
+            }
+
+            _bossTrialRetryRoutine = null;
+
+            if (!StartRun(RunMode.BossTrial))
+            {
+                Debug.LogError("[RunManager] 보스 트라이 재시도를 시작하지 못했다", this);
+            }
+        }
+
+        private bool IsLobbySceneReady()
+        {
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            if (director == null)
+            {
+                return true;
+            }
+
+            return ((director.CurrentScene == RunSceneId.None) ||
+                ((director.State == RunTransitionState.Idle) &&
+                 (director.CurrentScene == RunSceneId.Lobby)));
         }
 
         /// <summary> Result로 끝난 런을 로비 상태로 되돌린다 </summary>
@@ -1069,6 +1149,15 @@ namespace Geumeum.Network
                     continue;
                 }
 
+                if (_mode == RunMode.BossTrial)
+                {
+                    // 필드 시계를 돌리지 않는다. 걷지 않은 시간이 정산에 들어가면 안 된다
+                    ServerProgressBossEntranceRoute();
+
+                    yield return _tickWait;
+                    continue;
+                }
+
                 ServerTickFieldClock(fieldTimeLimitSeconds);
 
                 yield return _tickWait;
@@ -1303,6 +1392,12 @@ namespace Geumeum.Network
             }
 
             if (IsPaused)
+            {
+                return;
+            }
+
+            // 트라이는 전실에서 편성을 다 받기 전까지 보스로 넘어가지 않는다
+            if ((_mode == RunMode.BossTrial) && BossTrialGateLocator.Current.IsBossStartBlocked)
             {
                 return;
             }

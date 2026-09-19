@@ -634,6 +634,74 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.AI.SpawnCluster
   _scatterRadius: 3
+--- !u!1 &846266347
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 846266349}
+  - component: {fileID: 846266348}
+  m_Layer: 0
+  m_Name: '@BarrierVisual'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &846266348
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 846266347}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7360445d205c00247a3bff27a881542a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.BarrierVisual
+  _wallMaterial: {fileID: 2100000, guid: aee1a8ab5bc1b374385bc607b14c655d, type: 2}
+  _wallHeight: 120
+  _wallSegments: 48
+  _groundSink: 30
+  _doubleSidedShell: 0
+  _patchCount: 96
+  _autoFitWidth: 1
+  _patchWidth: 14
+  _patchThickness: 6
+  _groundEffectAsset: {fileID: 8926484042661614526, guid: 7a1e5839a1c1a2244953e52040052ee7, type: 3}
+  _showGroundLayer: 1
+  _groundLayerHeight: 34
+  _bodyEffectAsset: {fileID: 0}
+  _bodyRows: 1
+  _bodyHeight: 30
+  _rowSpacing: 14
+  _effectAlphaScale: 0.15
+  _effectPlayRate: 0.15
+  _useTerrainHeight: 1
+  _groundMask:
+    serializedVersion: 2
+    m_Bits: 257
+  _groundProbeHeight: 500
+  _groundResampleDistance: 2
+--- !u!4 &846266349
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 846266347}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &856733642
 GameObject:
   m_ObjectHideFlags: 0
@@ -1480,3 +1548,4 @@ SceneRoots:
   - {fileID: 107372686}
   - {fileID: 1045782136}
   - {fileID: 1185106942}
+  - {fileID: 846266349}

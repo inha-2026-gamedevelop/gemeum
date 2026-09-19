@@ -19,6 +19,7 @@ namespace Geumeum.Network
         public ulong          PlatformId;
 
         public int            ConnectionId;
+        public uint           PlayerNetId;
         public bool           IsReady;
         public bool           HasWeapon;
         public WeaponKind     Weapon;
@@ -114,6 +115,7 @@ namespace Geumeum.Network
             {
                 PlatformId         = ResolvePlatformId(conn),
                 ConnectionId       = conn.connectionId,
+                PlayerNetId        = (conn.identity == null) ? 0u : conn.identity.netId,
                 IsReady            = false,
                 HasWeapon          = false,
                 Weapon             = default,
@@ -158,6 +160,24 @@ namespace Geumeum.Network
         public LobbySlot GetSlot(int index)
         {
             return _slots[index];
+        }
+
+        /// <summary> 씬 이동으로 교체된 플레이어와 로비 슬롯의 표시용 연결을 갱신한다. </summary>
+        [Server]
+        public void ServerRefreshPlayerBindings()
+        {
+            for (int i = 0; i < _slots.Count; ++i)
+            {
+                LobbySlot slot = _slots[i];
+                uint currentId = ((NetworkServer.connections.TryGetValue(slot.ConnectionId, out NetworkConnectionToClient connection))
+                    && (connection.identity != null)) ? connection.identity.netId : 0u;
+                if (slot.PlayerNetId == currentId)
+                {
+                    continue;
+                }
+                slot.PlayerNetId = currentId;
+                _slots[i] = slot;
+            }
         }
 
         [Server]

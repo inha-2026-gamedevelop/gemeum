@@ -84,6 +84,7 @@ namespace Geumeum.Combat
         private double      _hitServerTime      = 0d;
         private double      _recoveryServerTime = 0d;
         private bool        _isSwinging         = false;
+        private double      _clientMoveLockUntilTime = 0d;  // 소유 클라 전용
         private AttackReach _swingReach         = AttackReach.None;
 
         // 근접 콤보 단계(1~3)
@@ -100,6 +101,11 @@ namespace Geumeum.Combat
         private float               _pendingCriticalMultiplier = 1f;
         private float               _committedCriticalMultiplier = 1f;
 
+        // 활 조준선. 요청 때 서버가 검증해 담고, 선딜 확정 때 이번 공격 몫으로 옮긴다
+        private PrecisionAimRay _requestedCameraAim;
+        private PrecisionAimRay _committedCameraAim;
+        private bool            _hasReportedMissingCameraConfig;
+
         private ArrowFireSnapshot _burstSnapshot;
         private int               _remainingBurstShots;
         private double            _nextBurstShotServerTime;
@@ -114,6 +120,7 @@ namespace Geumeum.Combat
         private readonly List<IDamageable> _hitTargets = new List<IDamageable>(Constants.Combat.HIT_QUERY_BUFFER_SIZE);
         private readonly RaycastHit[]       _aimHitBuffer = new RaycastHit[Constants.Combat.HIT_QUERY_BUFFER_SIZE];
         private readonly Collider[]         _muzzleOverlapBuffer = new Collider[Constants.Combat.HIT_QUERY_BUFFER_SIZE];
+        private readonly float[]            _aimHitDistances     = new float[Constants.Combat.HIT_QUERY_BUFFER_SIZE];
 
         /****************************************
         *              Public API
@@ -125,6 +132,12 @@ namespace Geumeum.Combat
             return IsBaseActionInProgress(serverTime)
                 || ((_precisionShot != null) && (_precisionShot.IsActionInProgress));
         }
+
+        /// <summary>
+        /// 요청을 보낸 소유 클라가 서버 cue를 기다리는 동안 미리 멈춰 있는가.
+        /// cue가 올 때까지 계속 움직이면 자기 화면만 앞으로 미끄러졌다가 되돌아온다
+        /// </summary>
+        public bool IsClientMoveLockPending => (NetworkTime.time < _clientMoveLockUntilTime);
 
         /// <summary> 정밀 사격을 제외한 기본 공격과 후딜이 진행 중인가 </summary>
         public bool IsBaseActionInProgress(double serverTime)
@@ -185,6 +198,17 @@ namespace Geumeum.Combat
                 return;
             }
 
+            RequestAttack();
+        }
+
+        /// <summary> 로컬 소유자의 화면 중심 조준으로 기본 공격을 요청한다. true는 전송 성공이다. </summary>
+        public bool RequestAttack()
+        {
+            if ((!isLocalPlayer) || (!NetworkClient.active) || (!LocalGameplayInputGate.AllowsGameplayInput))
+            {
+                return false;
+            }
+
             // 마우스가 카메라를 돌리므로 카메라 방위각이 곧 조준 방향이다.
             // 모델이 바라보는 방향은 이동에 따라 늦게 따라오므로 그걸로 판정하면 눈과 어긋난다
             Vector2 aim = CameraFrame.AimDirection;
@@ -196,8 +220,12 @@ namespace Geumeum.Combat
                 _presentation.ClientPredictFacing(aim);
             }
 
-            CmdRequestAttack(_nextRequestId, aim);
+            // 서버가 수락하면 cue가 이어받고, 거부하면 아래 TargetActionRejected가 바로 푼다
+            _clientMoveLockUntilTime = NetworkTime.time + Constants.Combat.CLIENT_ATTACK_MOVE_LOCK;
+
+            CmdRequestAttack(_nextRequestId, aim, ArrowAimGeometry.BuildCameraRay(Camera.main));
             ++_nextRequestId;
+            return true;
         }
 
         /****************************************
@@ -205,9 +233,37 @@ namespace Geumeum.Combat
         ****************************************/
 
         [Command]
-        private void CmdRequestAttack(uint requestId, Vector2 aim)
+        private void CmdRequestAttack(uint requestId, Vector2 aim, PrecisionAimRay cameraAim)
         {
             EnsureRunResumedSubscription();
+
+            // 카메라 위치는 입력일 뿐이다. 서버가 거리, 유한성, 정규화를 검사한다
+            if ((_weapon != null) && (_weapon.HasWeapon) && (_weapon.Weapon == WeaponKind.Bow))
+            {
+                if ((!GameDB.IsInitialized) || (GameDB.Camera == null))
+                {
+                    // 요청마다 같은 구성 오류가 반복되므로 한 번만 남긴다
+                    if (!_hasReportedMissingCameraConfig)
+                    {
+                        _hasReportedMissingCameraConfig = true;
+                        Debug.LogError("[PlayerAttack] GameDB 카메라 설정이 없어 활 조준을 검증할 수 없다. 활 기본 공격을 거부한다", this);
+                    }
+
+                    TargetActionRejected(ActionRejection.NotReady);
+                    return;
+                }
+
+                float maxOriginDistance = ResolveMaxCameraOriginDistance(GameDB.Camera);
+                if (!PrecisionShotRules.IsValidAimRay(cameraAim, transform.position, maxOriginDistance))
+                {
+                    GDebug.Server($"{GDebug.Who(netId)} 활 조준 거부: 카메라 거리 "
+                        + $"{Vector3.Distance(cameraAim.Origin, transform.position):F2}m, 허용 {maxOriginDistance:F2}m, "
+                        + $"방향 길이 {cameraAim.Direction.magnitude:F3}");
+                    TargetActionRejected(ActionRejection.NotReady);
+                    return;
+                }
+            }
+            _requestedCameraAim = cameraAim;
 
             // 클라이언트가 보낸 값이므로 그대로 믿지 않는다.
             // 방향만 받고 사거리·각도·피해는 계속 서버 수치를 쓴다
@@ -306,6 +362,7 @@ namespace Geumeum.Combat
 
             // 장비나 특성이 바뀌어도 이미 수락한 공격은 이 snapshot으로 끝낸다.
             _committedLoadout = _pendingLoadout;
+            _committedCameraAim = _requestedCameraAim;
             _committedCritical = _pendingCritical;
             _committedConsumeGauge = _pendingConsumeGauge;
             _committedCriticalMultiplier = _pendingCriticalMultiplier;
@@ -367,7 +424,7 @@ namespace Geumeum.Combat
         [TargetRpc]
         private void TargetActionRejected(ActionRejection rejection)
         {
-            GDebug.Fail($"공격 거부: {rejection}");
+            _clientMoveLockUntilTime = 0d;
             LocalCombatState.RaiseActionRejected(rejection);
         }
 
@@ -402,7 +459,6 @@ namespace Geumeum.Combat
 
             if (!didHit)
             {
-                GDebug.Warn($"{GDebug.Who(netId)} 공격 헛침 {_comboStage}단");
                 return;
             }
 
@@ -602,7 +658,9 @@ namespace Geumeum.Combat
 
             _hitTargets.Clear();
 
-            DrawSweepGizmo(origin, forward, angle, range, ignoresFacing);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+            TargetDrawSweepGizmo(origin, forward, angle, range, ignoresFacing);
+#endif
 
             int count = Physics.OverlapSphereNonAlloc(origin, range, _hitBuffer, _targetMask);
 
@@ -691,12 +749,18 @@ namespace Geumeum.Combat
         /// 방금 판정한 범위를 눈에 보이게 남긴다.
         /// 반경과 각도를 숫자로만 보면 "왜 안 맞았는지"를 찾을 수 없다 - 그림으로 봐야 찾는다.
         ///
-        /// 판정은 서버에서만 하므로 이 선도 서버(호스트) 화면에만 뜬다.
-        /// 원격 클라이언트에서 같은 범위를 보려면 그쪽에서 따로 그려야 한다
+        /// 서버가 확정한 범위를 요청자 화면에만 표시한다. 호스트는 로컬 연결로 같은 경로를 탄다.
+        /// 선언은 빌드 조건 없이 두어 빌드마다 RPC 목록이 달라지지 않게 하고, 호출부만 개발 빌드로 막는다
         /// </summary>
-        private static void DrawSweepGizmo(Vector3 origin, Vector3 forward, float angle, float range,
-                                           bool ignoresFacing)
+        [TargetRpc]
+        private void TargetDrawSweepGizmo(Vector3 origin, Vector3 forward, float angle, float range,
+            bool ignoresFacing)
         {
+            if (!isLocalPlayer)
+            {
+                return;
+            }
+
             // 한 프레임만 그리면 스윙이 지나간 뒤에는 못 본다. 잠깐 남긴다
             if (ignoresFacing)
             {
@@ -832,6 +896,8 @@ namespace Geumeum.Combat
                 + (Vector3.up * combat.RangedMuzzleHeight)
                 + (forward * combat.RangedMuzzleForward);
 
+            forward = ResolveBasicArrowForward(origin, forward, arrowConfig);
+
             uint guidanceTargetNetId = 0u;
             byte guidanceTargetPart  = 0;
 
@@ -945,7 +1011,9 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            if (!TryResolveAimPoint(aim, aimRange, arrowConfig, out Vector3 aimPoint))
+            // 정밀 사격은 비용을 쓰기 전이라, 가장 가까운 충돌이 빠졌을 수 있는 포화 결과는 거부한다
+            Vector3 aimPoint = ResolveAimPoint(aim, muzzle, aimRange, arrowConfig, out bool isAimQuerySaturated);
+            if (isAimQuerySaturated)
             {
                 return false;
             }
@@ -1116,6 +1184,25 @@ namespace Geumeum.Combat
                 Quaternion.LookRotation(snapshot.Direction));
             arrow.ServerInitialize(snapshot, arrowConfig);
             NetworkServer.Spawn(arrow.gameObject);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+            TargetDrawArrowGizmo(snapshot.Origin, snapshot.Direction,
+                snapshot.Speed * arrowConfig.ArrowLifetime, snapshot.HitRadius);
+#endif
+        }
+
+        // 선언은 빌드 조건 없이 두어 빌드마다 RPC 목록이 달라지지 않게 한다
+        [TargetRpc]
+        private void TargetDrawArrowGizmo(Vector3 origin, Vector3 direction, float range, float radius)
+        {
+            if (!isLocalPlayer)
+            {
+                return;
+            }
+
+            Vector3 end = origin + (direction * range);
+            GGizmo.Line(GGizmoChannel.Combat, origin, end, Color.cyan, GIZMO_SECONDS);
+            GGizmo.Circle(GGizmoChannel.Combat, origin, direction, radius, Color.cyan, GIZMO_SECONDS);
+            GGizmo.Circle(GGizmoChannel.Combat, end, direction, radius, Color.cyan, GIZMO_SECONDS);
         }
 
         private static float ResolveMaxCameraOriginDistance(CameraConfigSO camera)
@@ -1145,18 +1232,61 @@ namespace Geumeum.Combat
             return count > 0;
         }
 
+        /// <summary> 기본 공격 화살 방향. 스태미나를 이미 썼으므로 조준점을 못 구해도 방향은 항상 돌려준다 </summary>
         [Server]
-        private bool TryResolveAimPoint(
+        private Vector3 ResolveBasicArrowForward(Vector3 muzzle, Vector3 aimForward, ArrowConfigSO arrowConfig)
+        {
+            // 화면 중심의 조준점으로 수렴한다. 오버숄더 카메라의 측면 오프셋을
+            // 캐릭터 방향에 평행하게 발사하면 화살이 조준선 왼쪽으로 지나간다
+            PrecisionAimRay cameraAim = _committedCameraAim;
+            float aimRange = _committedLoadout.ArrowSpeed * arrowConfig.ArrowLifetime;
+
+            if ((!IsFinite(cameraAim.Origin))
+                || (!ArrowAimGeometry.TryDirection(Vector3.zero, cameraAim.Direction, out _)))
+            {
+                Debug.LogWarning($"[PlayerAttack] 확정된 카메라 조준선이 없어(방향 {cameraAim.Direction}) "
+                    + "조준 방향으로 발사한다", this);
+                return aimForward;
+            }
+
+            if ((!IsFinite(aimRange)) || (aimRange <= 0f))
+            {
+                Debug.LogWarning($"[PlayerAttack] 화살 사거리가 {aimRange}라 조준점 없이 카메라 방향으로 평행 발사한다", this);
+                return ArrowAimGeometry.ResolveFallbackDirection(cameraAim.Direction, aimForward);
+            }
+
+            Vector3 aimPoint = ResolveAimPoint(cameraAim, muzzle, aimRange, arrowConfig, out bool isAimQuerySaturated);
+            if (isAimQuerySaturated)
+            {
+                // 받은 충돌 중 가장 가까운 점도 사거리 끝점이나 평행 발사보다 실제 조준점에 가깝다
+                GDebug.Server($"{GDebug.Who(netId)} 조준선 충돌이 버퍼 {_aimHitBuffer.Length}개를 채워 받은 충돌 중 가장 가까운 점을 쓴다");
+            }
+
+            if (!ArrowAimGeometry.TryDirection(muzzle, aimPoint, out Vector3 direction))
+            {
+                Debug.LogWarning($"[PlayerAttack] 발사점 {muzzle}에서 조준점 {aimPoint}로 방향을 만들 수 없어 "
+                    + "카메라 방향으로 평행 발사한다", this);
+                return ArrowAimGeometry.ResolveFallbackDirection(cameraAim.Direction, aimForward);
+            }
+
+            return direction;
+        }
+
+        // 조준선 첫 충돌점. 충돌이 없으면 사거리 끝점이다.
+        // 결과가 버퍼를 채우면 가장 가까운 충돌이 빠졌을 수 있어 isSaturated로 알린다
+        [Server]
+        private Vector3 ResolveAimPoint(
             in PrecisionAimRay aim,
+            Vector3 muzzle,
             float aimRange,
             ArrowConfigSO arrow,
-            out Vector3 aimPoint)
+            out bool isSaturated)
         {
-            aimPoint = aim.Origin + (aim.Direction * aimRange);
+            isSaturated = false;
             int queryMask = _targetMask.value | arrow.WorldMask;
             if (queryMask == 0)
             {
-                return true;
+                return aim.Origin + (aim.Direction * aimRange);
             }
 
             int count = Physics.RaycastNonAlloc(
@@ -1167,23 +1297,26 @@ namespace Geumeum.Combat
                 queryMask,
                 QueryTriggerInteraction.Ignore);
 
-            // 포화된 결과는 가장 가까운 충돌이 빠졌을 수 있어 발사를 확정하지 않는다
-            if (count >= _aimHitBuffer.Length)
-            {
-                return false;
-            }
+            isSaturated = (count >= _aimHitBuffer.Length);
 
-            float nearestDistance = aimRange;
+            int candidateCount = 0;
             for (int i = 0; i < count; ++i)
             {
-                if (_aimHitBuffer[i].distance < nearestDistance)
+                // 카메라와 조준점 사이에 있는 자신의 콜라이더는 조준 대상이 아니다
+                if (_aimHitBuffer[i].collider.transform.IsChildOf(transform))
                 {
-                    nearestDistance = _aimHitBuffer[i].distance;
+                    continue;
                 }
+
+                _aimHitDistances[candidateCount] = _aimHitBuffer[i].distance;
+                ++candidateCount;
             }
 
-            aimPoint = aim.Origin + (aim.Direction * nearestDistance);
-            return true;
+            float minimumDistance = ArrowAimGeometry.ResolveMinimumHitDistance(aim, muzzle);
+            ArrowAimGeometry.TrySelectAimDistance(
+                _aimHitDistances, candidateCount, minimumDistance, aimRange, out float aimDistance);
+
+            return aim.Origin + (aim.Direction * aimDistance);
         }
 
         [Server]

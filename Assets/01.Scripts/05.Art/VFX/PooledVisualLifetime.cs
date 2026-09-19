@@ -15,6 +15,7 @@ namespace Geumeum.Art
 
         private ParticleSystem[] _particles;
         private TrailRenderer[] _trails;
+        private IActionCueVisual[] _cueVisuals;
         private float _remainingSeconds;
         private bool _isRented;
         private bool _particlesPaused;
@@ -98,6 +99,35 @@ namespace Geumeum.Art
             }
         }
 
+        /// <summary> 서버 cue 시각표로 스스로 진행하는 연출에 cue를 넘긴다 </summary>
+        public void PlayCue(in PlayerActionCue cue, IWeaponBladeSource blade)
+        {
+            if (!_isRented)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _cueVisuals.Length; ++i)
+            {
+                _cueVisuals[i].PlayCue(in cue, blade);
+            }
+        }
+
+        /// <summary> 빌린 쪽이 손을 뗀다. 같은 대여일 때만 전달해 이미 다른 공격에 재사용된 연출을 건드리지 않는다 </summary>
+        public void ReleaseCue(uint expectedLeaseGeneration)
+        {
+            if ((!_isRented) || (expectedLeaseGeneration == 0u) ||
+                (expectedLeaseGeneration != _leaseGeneration))
+            {
+                return;
+            }
+
+            for (int i = 0; i < _cueVisuals.Length; ++i)
+            {
+                _cueVisuals[i].ReleaseCue();
+            }
+        }
+
         /// <summary>Idempotent cancellation for exact action-cue ownership.</summary>
         public bool TryStop(uint expectedLeaseGeneration)
         {
@@ -123,6 +153,7 @@ namespace Geumeum.Art
         {
             _particles = GetComponentsInChildren<ParticleSystem>(true);
             _trails = GetComponentsInChildren<TrailRenderer>(true);
+            _cueVisuals = GetComponentsInChildren<IActionCueVisual>(true);
         }
 
         private void ResetAndPlayParticles(float elapsedSeconds)

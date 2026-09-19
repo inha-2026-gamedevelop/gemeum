@@ -398,6 +398,21 @@ namespace Geumeum.Network
         private static bool ExecuteKnownVerb(FunctionalManagementPanel panel,
             VerificationCommand command, out string message)
         {
+            if (string.Equals(command.verb, "attack_request", StringComparison.Ordinal))
+            {
+                PlayerAttack attack = (NetworkClient.localPlayer == null) ? null
+                    : NetworkClient.localPlayer.GetComponent<PlayerAttack>();
+                bool sent = (attack != null) && (attack.RequestAttack());
+                message = sent ? "기본 공격 요청 전송" : "기본 공격 요청 불가";
+                return sent;
+            }
+            if (string.Equals(command.verb, "lobby_select_weapon", StringComparison.Ordinal))
+            {
+                LobbyController lobby = FindClientLobbyController();
+                bool sent = (lobby != null) && (lobby.RequestWeaponPreference((WeaponKind)command.index));
+                message = sent ? "무기 선호 요청 전송" : "무기 선호 요청 불가";
+                return sent;
+            }
             if (string.Equals(command.verb, "interaction_request", StringComparison.Ordinal))
             {
                 NetworkIdentity player = NetworkClient.localPlayer;

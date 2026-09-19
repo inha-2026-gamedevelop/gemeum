@@ -67,6 +67,33 @@ namespace Geumeum.Systems
             ResetState(true);
         }
 
+        /// <summary>
+        /// 목표 레벨까지 필요한 경험치를 한 번에 넣는다. 보스 트라이가 30분을 건너뛰고 시작할 때 쓴다.
+        /// 레벨을 직접 대입하지 않는 이유는 최대 HP와 특성 포인트가 레벨 곡선에서 함께 나오기 때문이다
+        /// </summary>
+        [Server]
+        public bool ServerTrySetPartyLevel(int targetLevel)
+        {
+            if ((!_isRunActive) || (!_hasState) || (!GameDB.IsInitialized) || (GameDB.LevelCurve == null))
+            {
+                return false;
+            }
+
+            if (_state.Level >= targetLevel)
+            {
+                return true;
+            }
+
+            if (!GrowthRules.TryGetCumulativeExperience(GameDB.LevelCurve, targetLevel, out int required))
+            {
+                Debug.LogError($"[GrowthManager] 레벨 곡선에 {targetLevel}레벨이 없어 시작 레벨을 맞추지 못했다", this);
+                return false;
+            }
+
+            int missing = (required - _state.Experience);
+            return ((missing <= 0) || ApplyExperience(missing));
+        }
+
         /// <summary> 관리자나 테스트가 직접 파티 경험치를 적용할 때 쓴다 </summary>
         [Server]
         public bool ServerTryAddExperience(int amount)

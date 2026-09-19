@@ -20,6 +20,12 @@ MonoBehaviour:
   _lateOneShotToleranceSeconds: 0.15
   _damageFlashSeconds: 0.12
   _damageFlashColor: {r: 1, g: 0.12, b: 0.08, a: 1}
+  _meleeSlashTrailSeconds: 0.6
+  _meleeSlashRecordBeforeImpactSeconds: 0.1
+  _meleeSlashRecordAfterImpactSeconds: 0.2
+  _meleeSlashHiltRatio: 0.25
+  _meleeSlashBodyColor: {r: 0.72, g: 0.09, b: 0.07, a: 0.85}
+  _meleeSlashEdgeColor: {r: 1.5, g: 1.42, b: 1.28, a: 1}
   _meleeSlashPrefab: {fileID: 6755605753164234163, guid: b0995a10602e4554c8037a6efa6fdc6d, type: 3}
   _bellPulsePrefab: {fileID: 2509292420777381881, guid: 0d036e9c671867a41a4a4610cfc3d991, type: 3}
   _healCastPrefab: {fileID: 4942927148076373807, guid: cb04e0b109b558540811415130d76046, type: 3}

@@ -17,7 +17,7 @@ namespace Geumeum.AI
     /// <summary>
     /// 잡귀 HP와 결계 단계별 강화 배수를 관리한다. IDamageable 구현
     /// </summary>
-    public partial class EnemyStatus : NetworkBehaviour, IDamageable
+    public partial class EnemyStatus : NetworkBehaviour, IDamageable, IDamagePresentationSource
     {
         /****************************************
         *                Fields
@@ -66,5 +66,19 @@ namespace Geumeum.AI
         /// <summary> 일반 피격이 HitsToKnockback만큼 누적되면 발생한다 </summary>
         public event Action Knockback;
 
+        /// <summary> 동기화된 체력이 줄었다. 각 화면의 피격 플래시가 쓴다 </summary>
+        public event Action HealthDecreased;
+
+        /****************************************
+        *              SyncVar Hooks
+        ****************************************/
+
+        private void OnHealthSynced(float oldValue, float newValue)
+        {
+            if (newValue < oldValue)
+            {
+                HealthDecreased?.Invoke();
+            }
+        }
     }
 }

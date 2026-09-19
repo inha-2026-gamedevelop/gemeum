@@ -15,14 +15,20 @@ namespace Geumeum.Art
     public sealed class PlayerCombatPresentation : MonoBehaviour, IPlayerActionCueSink
     {
         private NetworkIdentity _identity;
+        private IWeaponBladeSource _blade;
         private PooledVisualLifetime _activeVisual;
         private uint _activeVisualLease;
         private PlayerActionCueKind _activeKind;
         private uint _activeExecutionId;
 
+        // 검기는 플레이어에 붙이지 않고 월드에 남아 스스로 사라진다. 다음 행동 때는 반납하지 않고 기록만 멈춘다
+        private PooledVisualLifetime _trailVisual;
+        private uint _trailVisualLease;
+
         private void Awake()
         {
             _identity = GetComponent<NetworkIdentity>();
+            _blade = GetComponent<IWeaponBladeSource>();
         }
 
         private void OnDisable()
@@ -45,8 +51,24 @@ namespace Geumeum.Art
             }
 
             GameObject prefab = ResolveActionPrefab(config, in cue);
-            _activeVisual = RentVisual(prefab, transform.position, transform.rotation,
-                transform, normalizedProgress, out _activeVisualLease);
+            if (IsWorldTrailCue(in cue))
+            {
+                _trailVisual = RentVisual(prefab, transform.position, Quaternion.identity,
+                    null, 0f, out _trailVisualLease);
+                if (_trailVisual != null)
+                {
+                    _trailVisual.PlayCue(in cue, _blade);
+                }
+            }
+            else
+            {
+                _activeVisual = RentVisual(prefab, transform.position, transform.rotation,
+                    transform, normalizedProgress, out _activeVisualLease);
+                if (_activeVisual != null)
+                {
+                    _activeVisual.PlayCue(in cue, _blade);
+                }
+            }
 
             if (!PlayerActionCueRules.IsLateOneShot(in cue,
                     RunTimeLocator.Current.GameplayElapsedSeconds,
@@ -131,6 +153,11 @@ namespace Geumeum.Art
         }
 
         private bool IsLocalPlayer => (_identity != null) && _identity.isLocalPlayer;
+
+        private static bool IsWorldTrailCue(in PlayerActionCue cue)
+        {
+            return (cue.Kind == PlayerActionCueKind.Attack) && (cue.Weapon == WeaponKind.Sword);
+        }
 
         private static PresentationConfigSO ResolveConfig()
         {
@@ -249,6 +276,14 @@ namespace Geumeum.Art
             }
 
             _activeVisualLease = 0u;
+
+            if (_trailVisual != null)
+            {
+                _trailVisual.ReleaseCue(_trailVisualLease);
+                _trailVisual = null;
+            }
+
+            _trailVisualLease = 0u;
         }
     }
 

@@ -1,5 +1,6 @@
 // System
 using System.Collections;
+using System.Text;
 
 // Unity
 using TMPro;
@@ -33,6 +34,21 @@ namespace Geumeum.UI
         // 로비 화면 하나 갱신하는 데 매 프레임을 쓸 이유는 없어 낮은 주기로만 확인한다
         private const float PHASE_POLL_SECONDS = 0.25f;
 
+        private const int   WEAPON_OPTION_COUNT       = 3;
+        private const int   CENTER_WEAPON_INDEX       = 1;
+        private const float WEAPON_PANEL_EXTRA_HEIGHT = 250f;
+        private const float WEAPON_PANEL_SHIFT_Y      = 125f;
+        private const float WEAPON_BUTTON_SPACING     = 160f;
+        private const float WEAPON_BUTTON_Y           = -132f;
+        private const float WEAPON_BUTTON_FONT_SIZE   = 21f;
+        private const float WEAPON_STATUS_Y           = -240f;
+        private const float WEAPON_STATUS_FONT_SIZE   = 19f;
+
+        private static readonly Vector2 WEAPON_BUTTON_SIZE    = new Vector2(150f, 48f);
+        private static readonly Vector2 WEAPON_STATUS_SIZE    = new Vector2(480f, 150f);
+        private static readonly Color   WEAPON_SELECTED_COLOR = new Color(0.24f, 0.49f, 0.45f);
+        private static readonly Color   WEAPON_IDLE_COLOR     = new Color(0.20f, 0.23f, 0.28f);
+
         /****************************************
         *                Fields
         ****************************************/
@@ -61,6 +77,9 @@ namespace Geumeum.UI
 
         private SteamLobbyService _lobby;
         private bool              _isSubscribed;
+        private readonly Button[] _weaponButtons = new Button[WEAPON_OPTION_COUNT];
+        private TMP_Text          _weaponStatus;
+        private GameObject        _fallbackEventSystem;
 
         // 화면이 떠 있는 동안 커서와 게임 입력을 가진다.
         // 이게 없으면 뒤에 선 플레이어가 커서를 잠가 ESC를 눌러야만 버튼이 눌린다
@@ -78,7 +97,7 @@ namespace Geumeum.UI
                 return;
             }
 
-            EnsureEventSystem();
+            BuildWeaponSelection();
 
             _createButton.onClick.AddListener(CreateLobby);
             _copyIdButton.onClick.AddListener(CopyLobbyId);
@@ -106,6 +125,7 @@ namespace Geumeum.UI
         {
             Unsubscribe();
             ReleaseInput();
+            ReleaseFallbackEventSystem();
         }
 
         /****************************************
@@ -122,7 +142,7 @@ namespace Geumeum.UI
         /// 씬을 넘어가도 계속 필요해 DontDestroyOnLoad로 남긴다.
         /// 이미 있으면 만들지 않는다 - EventSystem이 둘이면 Unity가 경고를 낸다
         /// </summary>
-        private static void EnsureEventSystem()
+        private void EnsureEventSystem()
         {
             if (EventSystem.current != null)
             {
@@ -130,6 +150,7 @@ namespace Geumeum.UI
             }
 
             var host = new GameObject("EventSystem(자동 생성)");
+            _fallbackEventSystem = host;
             host.AddComponent<EventSystem>();
 
             // 이 프로젝트는 레거시 Input(activeInputHandler=0)을 쓴다
@@ -137,6 +158,17 @@ namespace Geumeum.UI
 
             Object.DontDestroyOnLoad(host);
             Debug.Log("[SteamLobbyPanel] 씬에 EventSystem이 없어 하나 만들었다");
+        }
+
+        private void ReleaseFallbackEventSystem()
+        {
+            if (_fallbackEventSystem == null)
+            {
+                return;
+            }
+            _fallbackEventSystem.SetActive(false);
+            Destroy(_fallbackEventSystem);
+            _fallbackEventSystem = null;
         }
 
         /// <summary> 화면을 열고 닫으면서 커서 소유권도 같이 넘긴다 </summary>
@@ -149,6 +181,7 @@ namespace Geumeum.UI
 
             if (isVisible)
             {
+                EnsureEventSystem();
                 if (_inputToken == null)
                 {
                     _inputToken = LocalGameplayInputGate.Acquire();
@@ -158,6 +191,7 @@ namespace Geumeum.UI
             }
 
             ReleaseInput();
+            ReleaseFallbackEventSystem();
         }
 
         private void ReleaseInput()
@@ -196,6 +230,7 @@ namespace Geumeum.UI
             _lobby.LobbyEntered   += OnLobbyEntered;
             _lobby.LobbyLeft      += OnLobbyLeft;
             _lobby.MembersChanged += Refresh;
+            _lobby.LobbyDataChanged += Refresh;
             _lobby.GameServerSet  += OnGameServerSet;
 
             SteamSessionCoordinator session = SteamSessionCoordinator.Instance;
@@ -219,6 +254,7 @@ namespace Geumeum.UI
                 _lobby.LobbyEntered   -= OnLobbyEntered;
                 _lobby.LobbyLeft      -= OnLobbyLeft;
                 _lobby.MembersChanged -= Refresh;
+                _lobby.LobbyDataChanged -= Refresh;
                 _lobby.GameServerSet  -= OnGameServerSet;
             }
 
@@ -271,6 +307,7 @@ namespace Geumeum.UI
 
         private void Refresh()
         {
+            RefreshWeaponSelection();
             if (!SteamTransportSelector.IsSteamTransport(Transport.active))
             {
                 SetPanelVisible(false);
@@ -321,7 +358,7 @@ namespace Geumeum.UI
         {
             if (canStart)
             {
-                return "정원이 찼다. 시작을 누르면 게임이 시작된다";
+                return "정원이 찼다. 시작 후 각자 준비 완료를 누르면 출발한다";
             }
 
             if (!lobby.IsOwner)
@@ -342,6 +379,90 @@ namespace Geumeum.UI
             _startButton.interactable  = canStart;
             _copyIdButton.interactable = canLeave;
             _leaveButton.interactable  = canLeave;
+        }
+
+        private void BuildWeaponSelection()
+        {
+            // 기존 로비 프리팹의 글꼴, 버튼을 재사용한다. 씬별 별도 배선이 필요 없다.
+            var panel = (RectTransform)_startButton.transform.parent;
+            panel.sizeDelta += new Vector2(0f, WEAPON_PANEL_EXTRA_HEIGHT);
+            foreach (Transform child in panel)
+            {
+                if (child is RectTransform rect)
+                {
+                    rect.anchoredPosition += new Vector2(0f, WEAPON_PANEL_SHIFT_Y);
+                }
+            }
+
+            string[] names = { "검, 차사", "활, 신궁", "방울, 무녀" };
+            WeaponKind[] weapons = { WeaponKind.Sword, WeaponKind.Bow, WeaponKind.Bell };
+            for (int i = 0; i < weapons.Length; ++i)
+            {
+                WeaponKind weapon = weapons[i];
+                Button button = Instantiate(_startButton, panel);
+                button.name = "WeaponPreference_" + weapon;
+                button.onClick = new Button.ButtonClickedEvent();
+                button.onClick.AddListener(() =>
+                {
+                    SteamLobbyService lobby = SteamLobbyService.Instance;
+                    if (lobby != null)
+                    {
+                        lobby.RequestWeaponPreference(weapon);
+                    }
+                    RefreshWeaponSelection();
+                });
+                var rect = (RectTransform)button.transform;
+                rect.anchoredPosition = new Vector2((i - CENTER_WEAPON_INDEX) * WEAPON_BUTTON_SPACING, WEAPON_BUTTON_Y);
+                rect.sizeDelta = WEAPON_BUTTON_SIZE;
+                TMP_Text label = button.GetComponentInChildren<TMP_Text>();
+                label.text = names[i];
+                label.fontSize = WEAPON_BUTTON_FONT_SIZE;
+                _weaponButtons[i] = button;
+            }
+            _weaponStatus = Instantiate(_hintText, panel);
+            _weaponStatus.name = "WeaponPreferenceStatus";
+            _weaponStatus.rectTransform.anchoredPosition = new Vector2(0f, WEAPON_STATUS_Y);
+            _weaponStatus.rectTransform.sizeDelta = WEAPON_STATUS_SIZE;
+            _weaponStatus.fontSize = WEAPON_STATUS_FONT_SIZE;
+            _weaponStatus.alignment = TextAlignmentOptions.Center;
+        }
+
+        private void RefreshWeaponSelection()
+        {
+            if (_weaponStatus == null)
+            {
+                return;
+            }
+            SteamLobbyService lobby = SteamLobbyService.Instance;
+            SteamSessionCoordinator session = SteamSessionCoordinator.Instance;
+            bool canSelect = (lobby != null) && (lobby.IsInLobby) && (session != null)
+                && (session.State == SteamSessionState.Gathering);
+            WeaponKind selected = default;
+            bool hasChoice = (lobby != null) && (lobby.TryGetLocalWeaponPreference(out selected));
+            for (int i = 0; i < _weaponButtons.Length; ++i)
+            {
+                _weaponButtons[i].interactable = canSelect;
+                _weaponButtons[i].image.color = ((hasChoice) && ((int)selected == i))
+                    ? WEAPON_SELECTED_COLOR : WEAPON_IDLE_COLOR;
+            }
+            if ((lobby == null) || (!lobby.IsInLobby))
+            {
+                _weaponStatus.text = "방에 들어오면 선호 무기를 선택할 수 있습니다.";
+                return;
+            }
+            var text = new StringBuilder("선호 무기, 중복 선택 시 서버가 추첨합니다.\n");
+            SteamLocalUser.TryGetSteamId(out ulong ownId);
+            for (int i = 0; i < lobby.Members.Count; ++i)
+            {
+                ulong member = lobby.Members[i];
+                bool local = (member == ownId);
+                WeaponKind weapon = selected;
+                bool hasPreference = local ? hasChoice : lobby.TryGetMemberWeaponPreference(member, out weapon);
+                string label = !hasPreference ? "미선택" : weapon == WeaponKind.Sword ? "검" : weapon == WeaponKind.Bow ? "활" : "방울";
+                text.AppendLine($"{(local ? "나" : $"참가자 {i + 1}")} : {label}");
+            }
+            text.Append("시작 후 출발 준비 화면에서 최종 확인합니다.");
+            _weaponStatus.text = text.ToString();
         }
 
         /****************************************

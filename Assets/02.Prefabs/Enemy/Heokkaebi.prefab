@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 3088159365008929110}
   - component: {fileID: 3274165015426231284}
   - component: {fileID: 2570772771484725258}
+  - component: {fileID: 8749385322886613937}
   m_Layer: 10
   m_Name: Heokkaebi
   m_TagString: Untagged
@@ -276,3 +277,16 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d6a800174bdfa034eaaf0b7dd0983a2d, type: 3}
   m_PrefabInstance: {fileID: 6218456359427877750}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8749385322886613937
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6828250604125262584}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d2fb6026af44748a94c264aac89fbc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.DamageFlashView
+  _visualRoot: {fileID: 0}

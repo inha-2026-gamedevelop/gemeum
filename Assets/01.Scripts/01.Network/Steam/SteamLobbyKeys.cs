@@ -42,6 +42,8 @@ namespace Geumeum.Network
         public const string MEMBER_MEMORY_MB     = "memory_mb";
         public const string MEMBER_VRAM_MB       = "vram_mb";
         public const string MEMBER_PING_LOC      = "ping_loc";
+        // 선호 표시용 자기 신고. 확정 역할은 Mirror 서버 로스터만 결정한다.
+        public const string MEMBER_WEAPON_PREFERENCE = "weapon_preference";
 
         /****************************************
         *                Values

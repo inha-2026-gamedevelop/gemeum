@@ -101,6 +101,7 @@ Assets/
 |---|---|---|
 | `Main.unity` | **현재** | 통합 씬(개활 맵). 통합 담당자(팀장)만 수정 |
 | `Dev_Combat.unity` | **현재** | 네트워크·전투 작업 씬 |
+| `Dev_BossTrial.unity` | **현재(개발용)** | 보스 트라이 설정 씬. Boot 복사본에 편성 화면을 얹었다. 레벨 · 무기 · 장비 등급/공격력/옵션 · 특성 · 물약을 정하고 그대로 런을 시작한다 |
 | `Dev_AI.unity` | **현재** | 몬스터·보스 작업 씬 |
 | `Dev_Character.unity` | **현재** | 캐릭터·무기 부착 확인용. 네트워크 없음. 빌드 설정 미포함 |
 | `Dev_WeatherMakerIsolation.unity` | **현재** | WeatherMaker 격리 확인용(임시). 빌드 설정 미포함 |
@@ -315,8 +316,12 @@ Main.unity
 │  │                             않는 NullCombatFeedback → 8.3
 │  ├ BarrierStateLocator.cs  static [구현완료] IBarrierState 등록·조회. 기본값은 결계가 꺼진 것으로
 │  │                             답하는 NullBarrierState라, 결계 구현 전에도 전투·AI·아트가 돈다
-│  └ RunTimeLocator.cs       static [구현완료] IRunTimeSource 등록·조회. RunManager가 OnEnable에서 등록하고
-│                                기본값은 0초에 멈춘 NullRunTimeSource다
+│  ├ RunTimeLocator.cs       static [구현완료] IRunTimeSource 등록·조회. RunManager가 OnEnable에서 등록하고
+│  │                             기본값은 0초에 멈춘 NullRunTimeSource다
+│  └ RendererTintRegistry.cs static [구현완료] 렌더러 색 덮기(MaterialPropertyBlock)를 한곳에서 관리.
+│                                원래 블록은 첫 요청 때 한 번만 저장하고 RendererTintLayer 우선순위
+│                                (ParryWindow < Damage)로 적용한다. 패링 창 강조와 피격 플래시가
+│                                겹쳐도 색이 굳지 않는다 (2026-09-18. 회귀: 05.Art/Editor/CombatHitFeedbackTests)
 ├ Events/                  namespace Geumeum.Common — 파트 간 이벤트 계약 → 8장
 │  ├ IGameEventBus.cs      C#  타입이 지정된 이벤트 발행 · 구독 계약
 │  ├ GameEventBus.cs       MB  @Managers가 소유하는 서버/로컬 이벤트 허브.
@@ -362,7 +367,9 @@ Main.unity
 │  └ SceneTransitionSnapshot.cs struct 전환 한 번의 내용. 참가자 복구 여부를 여기서 정한다
 ├ Pooling/                 namespace Geumeum.Common — 로컬 표현 오브젝트 풀
 │  ├ LocalObjectPoolService.cs MB [구현완료] 프리팹별 ObjectPool<GameObject>.
-│  │                              PersistentSingleton을 상속한다. 호출부는 아직 없다
+│  │                              PersistentSingleton을 상속한다. 플레이어 공격 연출(PlayerCombatPresentation)이 쓴다.
+│  │                              부모가 꺼지는 중 반납이 거부되면 다음 프레임에 옮기고, 파괴된 인스턴스는 대여에서 버린다
+│  │                              (2026-09-16, 보스 입장 후 호스트 연결 끊김 수정. 회귀: 00.Common/Editor/LocalObjectPoolServiceTests)
 │  └ LocalPoolRoot.cs      MB  [구현완료] 풀에 넣어도 되는 프리팹임을 선언하는 표식.
 │                              네트워크 개체를 걸러내는 화이트리스트다
 ├ CameraFrame.cs           static [구현완료] 카메라 yaw · 입력 허용 플래그 · 락온 상태 셋.
@@ -404,8 +411,15 @@ Main.unity
    ├ IParryWindowTarget.cs    패링 창을 여닫을 수 있는 대상의 계약
    ├ IDisplayNamed.cs      [구현완료] 로그·화면에 쓸 사람이 읽는 이름. PlayerNameTag가 구현하고
    │                          개발 도구(Geumeum.Dev)와 네트워크 계층이 전투 타입을 모른 채 읽는다 → 4.7
-   └ IBossTelegraphSource.cs  [구현완료] 보스 예고의 현재 값과 변경 통지 창구. 표현이 AI 구현을
-                              참조하지 않고 예고를 읽게 하는 경계 → 4.3
+   ├ IBossTelegraphSource.cs  [구현완료] 보스 예고의 현재 값과 변경 통지 창구. 표현이 AI 구현을
+   │                          참조하지 않고 예고를 읽게 하는 경계 → 4.3
+   ├ IBossTrialGate.cs     [구현완료] 보스 트라이 전실이 보스 개시를 막고 있는지, 다음 런을 트라이로 시작할지.
+   │                          BossTrialDirector가 구현하고 RunManager와 LobbyController가 읽는다
+   ├ IWeaponBladeSource.cs [구현완료] 손에 든 무기의 손잡이 끝 · 칼끝 월드 위치. PlayerWeaponVisual이 구현하고
+   │                          검기(MeleeSlashView)가 읽는다
+   └ IDamagePresentationSource.cs [구현완료] 동기화된 체력이 줄었다는 알림(HealthDecreased).
+                              PlayerStatus · EnemyStatus · BossStatus가 체력 SyncVar 훅에서 발생시키고
+                              아트의 DamageFlashView가 구독한다. 판정 정보는 싣지 않는다
 ```
 
 `Interfaces/`에는 인터페이스만 둔다. 파트가 공유하는 열거형은 `Types/`로 보낸다 — 폴더명과 내용이 어긋나면 다음 사람이 찾지 못한다.
@@ -510,7 +524,8 @@ Main.unity
 │  │                           씬 전환 뒤 무기를 되붓는다. [예정] 장비/특성 provider의 실제 구현과 소비 연결
 │  │                           (CombatStatsSnapshot · WeaponCombatSnapshot · ICombatLoadoutProvider 계약은 이미 있음)
 │  ├ PlayerWeaponVisual.cs MB  [구현완료] 활성 캐릭터 모델의 오른손 뼈에 무기 모델을 붙이는 표현 전용.
-│  │                           부착 보정값은 아직 전부 0이라 무기가 몸통에 파묻힌다
+│  │                           캐릭터 x 무기별 부착 보정은 Player.prefab에 있다. IWeaponBladeSource 구현:
+│  │                           부착할 때 가장 큰 메시의 긴 축에서 손에 먼 끝을 칼끝으로 한 번 찾아 둔다
 │  ├ PlayerCharacter.cs    NB  [구현완료] CharacterKind SyncVar 훅으로 캐릭터 모델을 켜는 표현 전용.
 │  │                           차사 · 신궁 · 무녀 3종 바인딩 완료. 캐릭터가 무기를 정한다.
 │  │                           IRunStateCarrier(순서 10) — 씬 전환 뒤 캐릭터를 되붓는다
@@ -548,6 +563,9 @@ Main.unity
 │  ├ ArrowProjectile.cs    NB  [구현완료] 서버 물리 틱마다 SphereCast로 훑는 궤적 · 명중 · 관통.
 │  │                           netId로 대상 중복을 막는다. [구현완료] 장애물 판정 · 락온 유도
 │  │                           (TryFindWorldBlock · UpdateGuidance; 활성 WorldMask는 ArrowConfigSO.asset에서 확인)
+│  ├ ArrowAimGeometry.cs   static [구현완료] 활 조준 수렴 계산. 카메라 중심 ray에서 총구보다 가까운 충돌은
+│  │                           조준점에서 빼고, 조준점을 못 구하면 카메라 방향 폴백을 정한다.
+│  │                           PlayerAttack 기본 공격과 정밀 사격이 공유 (회귀: 02.Combat/Player/Editor/ArrowAimGeometryTests)
 │  ├ ArrowLauncher.cs      NB  [예정] 별도 스폰 실행기. 지금은 PlayerAttack이 직접 띄운다
 │  └ ArrowGuidance         [구현완료] 독립 클래스는 없고 ArrowProjectile.UpdateGuidance에 구현되어 있다.
 │                              별도 클래스가 아니라 ArrowProjectile의 서버 틱 안에서 처리한다.
@@ -605,10 +623,12 @@ Main.unity
 03.AI/                     namespace Geumeum.AI
 ├ Enemy/
 │  ├ EnemyAnimationController.cs MB [구현완료] 잡귀 애니메이션 파라미터 갱신 (로컬 전용)
-│  ├ EnemyParryWindowFlash.cs MB [구현완료] 실제 패링 판정 구간(근사치) 동안 렌더러 강조색 표시 (로컬 전용, 이슈 #52)
+│  ├ EnemyParryWindowFlash.cs MB [구현완료] 실제 패링 판정 구간(근사치) 동안 렌더러 강조색 표시 (로컬 전용, 이슈 #52).
+│  │                           색 덮기와 복원은 RendererTintRegistry(ParryWindow 층)에 맡긴다
 │  ├ EnemyController.cs    NB  잡귀 공통: 추적 · 공격 실행 · 사망 → 드랍/경험치 이벤트 발행.
 │  │                           EnemySO의 종류 필드로 구동 (종류별 상속 대신 데이터 구동)
 │  ├ EnemyStatus.cs        NB  HP SyncVar + 강화 배수 적용. IDamageable 구현.
+│  │                           HP 감소 훅이 IDamagePresentationSource.HealthDecreased를 발생시킨다 (각 화면 피격 플래시)
 │  │                           배수는 스폰 시점의 결계 단계로 확정하고 이후 재계산하지 않는다
 │  │                           (교전 중 최대 HP가 변하면 체력바가 어긋난다 — 게임 디자인 5.2)
 │  ├ EnemyBrainBase.cs     C#  행동 결정 베이스 (서버에서만 Tick)
@@ -632,7 +652,8 @@ Main.unity
    │                              [구현완료] 무녀 표식 공명 카운터(패턴 종료 시 1회).
    │                              [예정] 신궁 시전 취소 카운터 · 예고 view · 다중 cue ·
    │                              syncInterval 확정
-   ├ BossStatus.cs            NB [구현완료] 보스 HP SyncVar + 현재 본체 피해 배율. IDamageable
+   ├ BossStatus.cs            NB [구현완료] 보스 HP SyncVar + 현재 본체 피해 배율. IDamageable.
+   │                              HP 감소 훅이 IDamagePresentationSource.HealthDecreased를 발생시킨다
    ├ BossPhaseStateBase.cs    C#  [구현완료] 페이즈 추상 클래스 (enum+switch 금지 — 기술 구현 4.2).
    │                              CancelActiveAttack()로 진행 중 판정 · 패링 창 · 예고를 정리하고,
    │                              Exit()는 멱등이라 종료된 페이즈는 다시 공격하지 않는다
@@ -813,12 +834,28 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 ├ Editor/                  에디터 전용
 │  ├ ArtProductionWiringHelper.cs  static 표현 에셋 생성 · 열린 씬 배선 메뉴 (Geumeum/Production/Art)
 │  ├ ArtPresentationTests.cs       표현 계층 EditMode 테스트
+│  ├ CombatHitFeedbackTests.cs     검기 시간표 · 초승달 호 각도와 반경 · 색 덮기 겹침 복원 · 검기 설정값 검증
 │  ├ TeaserPreparationWindow.cs    [현재] 티저 준비 창 (Geumeum/Art/Teaser Preparation). 샷과 프레임별 편집 지시를 보여 주고,
 │  │                               같은 씬 카메라의 시작/종료 포즈를 JSON에만 저장한다. 녹화 · 카메라 적용은 없다
 │  ├ TeaserPlanDocument.cs         [현재] teaser-shots.json 읽기 · 구간 검증 · 포즈 저장. 다른 곳에서 바뀐 파일은 덮어쓰지 않는다
 │  └ TeaserPlanDocumentTests.cs    포즈 왕복 · 외부 변경 거부 · 씬 불일치 · 전투 샷 배속 검증.
 │                                  조립 · 편집 그래픽 · 음량 마감은 저장소 루트 tools/teaser(Remotion) → 티저 제작 설계
-└ Shaders/, VFX/           셰이더 · 파티클 에셋
+├ VFX/                     [구현완료] 플레이어 행동 연출과 피격 표현 (풀링, 판정 관여 없음)
+│  ├ PlayerCombatPresentation.cs MB 서버가 수락한 PlayerActionCue를 받아 무기별 연출 프리팹을 풀에서 빌리고 소리를 낸다.
+│  │                              검기만 플레이어에 붙이지 않고 월드에 두며, 다음 행동 때 반납하지 않고 기록만 멈춘다
+│  ├ PooledVisualLifetime.cs  MB  풀 연출의 수명 · 일시정지 · 늦은 cue 되감기. 자식의 IActionCueVisual에 cue와 무기를 넘긴다
+│  ├ IActionCueVisual.cs      C#  cue 시각표로 스스로 진행하는 연출의 계약. PlayCue(cue, 무기) / ReleaseCue(기록 중단)
+│  ├ MeleeSlashView.cs        MB  [2026-09-18] 검 기본 공격 검기. 판정 시각 앞뒤 구간 동안 IWeaponBladeSource의 실제 검날
+│  │                              (손잡이 쪽 ~ 칼끝)을 매 프레임 기록해 월드 공간 리본으로 잇는다. 애니메이션이 휘두른
+│  │                              방향과 경로를 그대로 따르고, 점마다 나이를 먹여 잔상으로 지운 뒤 스스로 풀에 돌아간다.
+│  │                              프레임 사이는 centripetal Catmull-Rom으로 보간 → 검기 설계(unity/SLASH_VFX_DESIGN.md)
+│  └ DamageFlashView.cs       MB  [2026-09-18] IDamagePresentationSource 체력 감소에 렌더러를 잠깐 덮는다.
+│                                 플레이어 · 잡귀 3종 · Boss_Proxy(_visualRoot = Model)에 붙는다.
+│                                 옛 PlayerDamageFlash를 GUID 그대로 일반화했다
+└ Shaders/                 셰이더
+   ├ BarrierWall.shader    결계 벽 셸
+   └ MeleeSlash.shader     [2026-09-18] 검기 리본. 주묵 몸통 + 한지 칼끝 테두리(색 문법 아군). 나이에 따라 옅어지고
+                           수명 후반부터 노이즈로 갉아먹힌다
 ```
 
 **카메라는 `CameraFrame`(`00.Common`)에 yaw만 밀고, 전투는 그 값을 읽는다.** 카메라 오브젝트를 참조하지 않으므로 `02.Combat` → `05.Art` 의존이 생기지 않는다 — 로케이터를 하나 더 만들 이유도 없다.
@@ -867,7 +904,7 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           크기, 회전, 투명도가 실제로 변하는 것을 확인했다
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
-│     │                           씬 배선 전이라 동작을 관찰하지 못했다
+│     │                           RunHUD.prefab(SessionManagers 안)에 배선했다. 화면 동작은 아직 관찰하지 못했다
 │     ├ HudTimerController.cs    [구현완료] 우상단 시간 슬롯에 필드에 남은 시간을 mm:ss로 적는다.
 │     │                           상한 30:00은 GameDB.Barrier가 갖고 있어 코드에 박은 수치가 아니다.
 │     │                           런 시작 시 30:00에서 내려가는 것을 화면에서 확인했다.
@@ -881,6 +918,7 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     ├ PartyMemberPlate.cs      [구현완료] 파티 한 줄의 뷰. 이름 · 직업 아이콘 · 자원 바 3개.
 │     │                           값만 받고 PlayerStatus도 네트워크도 참조하지 않는다.
 │     │                           이름과 자원 바가 원격 플레이어의 값을 따라가는 것을 확인했다
+│     ├ Editor/RunHudProductionWiringHelper.cs  Dev_HUD의 HUD · 관리 창 · 결계 벽을 SessionManagers · Field로 옮기는 도구
 │     └ Dev/
 │        └ HudResourceDecayTester.cs  [현재] 개발 전용. 서버가 모든 플레이어의 자원을
 │                                     주기마다 조금씩 깎아 HUD가 값을 따라가는지 보게 한다.
@@ -895,7 +933,8 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
 │  ├ SteamLobbyPanel.cs    MB  Steam 로비 화면. 방 만들기 · 로비 ID 참가 · 정원이 차면 시작.
-│  │                           런이 시작되면 접히고, 열려 있는 동안 커서 소유권을 가진다
+│  │                           런이 시작되면 접히고, 열려 있는 동안 커서 소유권을 가진다. 대기방에서 무기 선호를 고른다
+│  ├ LobbyWeaponPanel.cs   MB  3인 로비 무기 선호 · 준비 UI. 서버 로스터만 표시하고 LobbyController 요청 API를 부른다
 │  └ Editor/SteamLobbyUiBuilder.cs  위 화면을 SessionNetwork 프리팹 안에 짓는 에디터 도구
 ├ Systems/   [구현완료] 인벤토리, 특성 트리, 객주 상점, 장비 양도, 정산 · 리더보드
 │  ├ FunctionalManagementPanel.cs · RunStatusPanel.cs · RunResultPanel.cs ·
@@ -1090,7 +1129,9 @@ Assets/09.Data/
 ├ DayCycle/DayCycleSO.asset
 ├ Sound/SoundCatalogSO.asset
 ├ Camera/CameraConfigSO.asset ← 위 셋이 네트워크와 무관한 순수 로컬 리소스다
-├ Presentation/PresentationConfigSO.asset     전투와 아레나 표현 조정값 (판정 범위 · 서버 규칙 제외)
+├ BossTrial/BossTrialLoadoutSO.asset          보스 트라이 시작 자원 (시작 레벨 · 편성 포인트 · 등급별 비용 · 물약). 실측 전 임시값
+├ Presentation/PresentationConfigSO.asset     전투와 아레나 표현 조정값 (판정 범위 · 서버 규칙 제외).
+│                                              히트스톱 · 피격 플래시 · 검기(잔상 시간 · 판정 전후 기록 구간 · 손잡이 비율 · 색) · 임시 VFX 프리팹
 ├ Presentation/GatNeoul_PhysioSettings.asset  갓 · 너울 PhysioBrush 설정 → 갓·너울 PhysioBrush 사용
 ├ Teaser/teaser-shots.json     티저 샷 · 편집 · 소리 지시의 단일 원천. GameDB가 아니다 (Unity 준비 창과 tools/teaser가 같이 읽는다)
 └ Weather/                   보스 아레나 연출 프로파일. GameDB가 아니라 렌더링 리소스다
@@ -1205,6 +1246,9 @@ Combat ✕ AI ✕ Systems 상호 직접 참조 금지 — Common의 인터페이
 | `IParryable` | 창귀 돌진, 보스 패링 가능 패턴 | ParryController |
 | `IInteractable` | ShopKeeper, DroppedItem | 플레이어 상호작용 입력 |
 | `ICombatFeedback` | CombatFeedbackImpl | 전투 타이밍 → 로컬 연출 |
+| `IDamagePresentationSource` | PlayerStatus, EnemyStatus, BossStatus | DamageFlashView (동기화된 체력 감소 → 로컬 피격 플래시) |
+| `IWeaponBladeSource` | PlayerWeaponVisual | MeleeSlashView (실제 검날 경로 → 로컬 검기) |
+| `IBossTrialGate` | BossTrialDirector | RunManager (보스 개시 보류) · LobbyController (런 모드 결정) |
 
 ### 8.3 타격감 (전투 ↔ 아트)
 

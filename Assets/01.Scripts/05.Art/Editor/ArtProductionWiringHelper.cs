@@ -279,9 +279,9 @@ namespace Geumeum.Art.Editor
                     root.AddComponent<PlayerCombatPresentation>();
                 }
 
-                if (root.GetComponent<PlayerDamageFlash>() == null)
+                if (root.GetComponent<DamageFlashView>() == null)
                 {
-                    root.AddComponent<PlayerDamageFlash>();
+                    root.AddComponent<DamageFlashView>();
                 }
 
                 PrefabUtility.SaveAsPrefabAsset(root, PLAYER_PATH);

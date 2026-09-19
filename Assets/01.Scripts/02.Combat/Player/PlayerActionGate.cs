@@ -22,6 +22,16 @@ namespace Geumeum.Combat
             return ((lifeState == PlayerLifeState.Alive) || (lifeState == PlayerLifeState.ReviveInvulnerable));
         }
 
+        /// <summary>
+        /// 이번 틱에 이동 입력을 적용해도 되는가.
+        /// 공격 동작 중에는 제자리에 선다. 움직이면서 휘두르면 검기와 판정 방향이 발밑을 따라 흘러
+        /// 눈에 보이는 것과 맞은 위치가 어긋난다
+        /// </summary>
+        public static bool CanMove(bool canAct, bool isAttackInProgress)
+        {
+            return (canAct) && (!isAttackInProgress);
+        }
+
         /// <summary> 단발 행동을 시작할 수 있는지 공통 조건을 한 번에 계산한다 </summary>
         public static bool CanStartAction(in PlayerActionContext context)
         {

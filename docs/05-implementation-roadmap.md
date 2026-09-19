@@ -468,7 +468,7 @@ Unity에서 확인한 사실: **필드가 YAML에 없어도 0이 되지 않고 C
 
 ### U34 검기 · 치유 · 표식 VFX 연결
 
-- 현재 코드: `CombatFeedbackImpl` 피드백 창구 있음. 검기 전용 실행 코드와 셰이더·프리팹 없음
+- 현재 코드(2026-09-18): 셰이크·히트스톱 연결, 검기(`MeleeSlashView`·`Geumeum/MeleeSlash`)와 피격 플래시(`DamageFlashView`) 구현. 타격 사운드 일부 클립과 치유·표식 VFX 색 문법 교체(임시 청록 에셋)가 남음. L2·L3 미검증
 - 권위: 서버 확정 공격 결과와 시각을 읽는 로컬 표현. **클라가 피해 판정 크기를 정하지 않는다**
 - 권장 접근: 기존 피드백과 공격 cue에 로컬 VFX 연결. 검기 크기는 `CombatConfigSO`, 표식·치유 표현은 각 효과의 서버 수명과 맞춤
 - **2026-09-08 — 타격감은 5항목으로 고정한다.** 범위가 무한히 늘어나는 것을 막기 위해 완료 조건을 못 박는다
@@ -476,10 +476,10 @@ Unity에서 확인한 사실: **필드가 YAML에 없어도 0이 되지 않고 C
   | # | 항목 | 상태 |
   |---|---|---|
   | 1 | 카메라 셰이크 | **완료** — `CombatFeedbackImpl`이 `PlayHit`/`ParrySuccess`/`Critical`/`GroggyEnter`/`PartBreak` 5종에 이미 연결 |
-  | 2 | 히트스톱 | `ICombatFeedback.PlayHit(strength, duration)`에 인자가 이미 있다. 내부만 채운다 |
-  | 3 | 피격 플래시 | `EnemyVisualState` 기반 머티리얼 연결 |
-  | 4 | 타격 사운드 | `SoundCatalogSO` 13키에 클립 연결 (U30) |
-  | 5 | 검기 VFX | 이 항목 |
+  | 2 | 히트스톱 | **완료** - `CombatFeedbackImpl.PlayHit`이 `PlayerAnimationController.PlayHitStop`을 부른다. 길이는 `PresentationConfigSO` |
+  | 3 | 피격 플래시 | **구현(2026-09-18)** - `DamageFlashView`가 동기화된 체력 감소(`IDamagePresentationSource`)에 반응. 플레이어, 잡귀 3종, 보스(모델만). 패링 창 강조와 겹침은 `RendererTintRegistry`가 조정 |
+  | 4 | 타격 사운드 | **부분** - `MeleeHit`·`MeleeCritical`·`ArrowHit` 등은 클립 연결됨. `BossHurt`·`BossGroggyEnd`·`StaminaEmpty`·`FootstepWet` 클립 없음 (U30) |
+  | 5 | 검기 VFX | **구현(2026-09-18)** - `MeleeSlashView` + `Geumeum/MeleeSlash` 셰이더. 판정 시각 앞뒤로 실제 검날 경로(`IWeaponBladeSource`)를 기록해 리본으로 그리고 잔상으로 지운다. 조정값은 `PresentationConfigSO` |
 
   **다섯 개가 화면에 나오면 완료다.** 이후 수치 조정은 기능이 아니라 10/22 이후 폴리싱 구간의 일이다
 - 대안: Animator 표현 이벤트로 VFX만 재생 — 취소·지연 재생 동기화 정리가 더 필요
@@ -489,7 +489,7 @@ Unity에서 확인한 사실: **필드가 YAML에 없어도 0이 되지 않고 C
 
 ### U35 보스 트라이 편성 · 재시도 · 정산 제외
 
-- 현재 코드: `RunMode.BossTrial` enum, `StartRun(mode)`, 결과 등록 자격 골격 있음. Lv10·편성 예산·전실 UI·보스만 시작하는 흐름 없음
+- 현재 코드(2026-09-18): 서버 흐름 구현. `BossTrialLoadoutSO`(시작 레벨 10 · 편성 포인트 · 등급별 비용 · 물약 상한), `BossTrialRules` 예산 검증, `BossTrialDirector`(전실 편성 수집 · 적용 · 재시도 · 모드 요청), `RunManager`가 트라이에서 필드를 건너뛰고 전실에서 편성을 기다린다. 리더보드 제외는 `RunResultSnapshot.IsLeaderboardEligible`이 이미 막는다. 개발용 설정 씬 `Dev_BossTrial`(레벨 · 무기 · 장비 등급/공격력/옵션 · 특성 · 물약을 정하고 그대로 시작)까지 구현하고 에디터 Play로 보스 구간 진입까지 확인했다. **정식 편성 UI와 전실 공간 배치는 남음**(@kjw1237). 편성 포인트는 실측 전 임시값. 3인 L3 미검증
 - 권위: 편성·시작·재설정·정산 제외 서버 / 편성 UI 로컬
 - 권장 접근: 기존 로비와 7개 씬 흐름 재사용. mode별 편성 예산과 loadout을 서버가 검증하고 기존 snapshot으로 이동. **재시작 시 보스·부위·표식·시계를 함께 초기화**
 - 대안: 개발용 보스 재시작 UI 재사용 — 제출용 편성 검증과 안내를 추가 정리해야 한다

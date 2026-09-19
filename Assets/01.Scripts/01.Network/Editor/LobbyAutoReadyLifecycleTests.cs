@@ -132,6 +132,48 @@ namespace Geumeum.Network.EditorTests
                 "같은 Idle 완료 콜백이 겹쳐도 자동 준비를 두 번 적용하면 안 된다");
         }
 
+        [Test]
+        public void LobbyArrivalRebindsReplacedPlayerWithoutChangingPreferenceOrReady()
+        {
+            var playerObject = new GameObject("ReplacementLobbyPlayer", typeof(NetworkIdentity));
+            NetworkServer.connections.TryGetValue(41, out NetworkConnectionToClient previous);
+            try
+            {
+                var connection = new NetworkConnectionToClient(41);
+                typeof(NetworkConnection).GetProperty(nameof(NetworkConnection.identity))
+                    .SetValue(connection, playerObject.GetComponent<NetworkIdentity>());
+                typeof(NetworkIdentity).GetProperty(nameof(NetworkIdentity.netId))
+                    .SetValue(connection.identity, 902u);
+                NetworkServer.connections[41] = connection;
+                LobbySlot slot = _roster.GetSlot(0);
+                slot.PlayerNetId = 901u;
+                slot.HasPreference = true;
+                slot.PreferredCharacter = CharacterKind.Singung;
+                slot.IsReady = true;
+                _roster.SetSlot(0, slot);
+
+                _lobby.ServerHandleLobbyIdle();
+
+                slot = _roster.GetSlot(0);
+                Assert.AreEqual(902u, slot.PlayerNetId);
+                Assert.IsTrue(slot.HasPreference);
+                Assert.AreEqual(CharacterKind.Singung, slot.PreferredCharacter);
+                Assert.IsTrue(slot.IsReady);
+            }
+            finally
+            {
+                if (previous == null)
+                {
+                    NetworkServer.connections.Remove(41);
+                }
+                else
+                {
+                    NetworkServer.connections[41] = previous;
+                }
+                Object.DestroyImmediate(playerObject);
+            }
+        }
+
         private static object Get(object target, string fieldName)
         {
             return target.GetType().GetField(fieldName, PRIVATE_INSTANCE).GetValue(target);

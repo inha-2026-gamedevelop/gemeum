@@ -13,6 +13,18 @@ namespace Geumeum.Combat.Tests
             BindingFlags.Static | BindingFlags.NonPublic;
 
         [Test]
+        public void AttackInProgressStopsMovementUntilItEnds()
+        {
+            // 공격 중에는 서 있고, 후딜까지 끝나면 같은 조건에서 다시 움직인다
+            Assert.IsFalse(PlayerActionGate.CanMove(true, true));
+            Assert.IsTrue(PlayerActionGate.CanMove(true, false));
+
+            // 행동과 무관하게 막힌 상태(사망, 일시정지, 로비)는 그대로 막힌다
+            Assert.IsFalse(PlayerActionGate.CanMove(false, false));
+            Assert.IsFalse(PlayerActionGate.CanMove(false, true));
+        }
+
+        [Test]
         public void BurstDeadlineAfterPauseStartMovesPastResumeTick()
         {
             const double pauseStart = 10.0;
