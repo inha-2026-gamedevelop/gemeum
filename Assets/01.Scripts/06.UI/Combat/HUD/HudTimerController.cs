@@ -7,6 +7,7 @@ using TMPro;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
+using Geumeum.Network;
 
 namespace Geumeum.UI
 {
@@ -20,8 +21,9 @@ namespace Geumeum.UI
     /// 그 숫자는 생존만 다루고 "거점 하나 더 칠 시간이 있나"에 답하지 못한다.
     /// 파밍이 길어질수록 점수의 시간 보너스가 줄어드는데, 그 비용이 보이는 곳은 여기뿐이다.
     ///
-    /// 보스 시계는 아직 세지 않는다. 보스 씬이 붙으면 점수 기준(필드 + 보스)과 맞춰야 한다.
-    /// 단계별 색 전환도 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
+    /// 보스 구간에 들어가면 같은 슬롯이 보스 잔여 시간으로 바뀐다. 슬롯을 늘리지 않는 이유는
+    /// 필드 시계가 그 시점부터 00:00에 멈춰 있어 두 줄로 두면 죽은 숫자가 하나 남기 때문이다.
+    /// 단계별 색 전환은 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
     /// </summary>
     public class HudTimerController : MonoBehaviour
     {
@@ -76,10 +78,10 @@ namespace Geumeum.UI
         ****************************************/
 
         /// <summary>
-        /// 필드 상한에서 필드 경과를 뺀다. 상한은 GameDB가 갖고 있어 밸런스에서 고치면 여기도 따라간다.
+        /// 지금 도는 시계의 상한에서 그 시계의 경과를 뺀다.
+        /// 상한은 둘 다 GameDB가 갖고 있어 밸런스에서 고치면 여기도 따라간다.
         ///
-        /// 보스 경과는 더하지 않는다. 보스 씬이 아직 붙지 않아 셀 것이 없고,
-        /// 지금 합쳐 세면 필드에서만 도는 런에서 숫자가 14분 크게 시작한다
+        /// 두 시계를 합쳐 세지 않는다. 합치면 필드에서만 도는 런에서 숫자가 14분 크게 시작한다
         /// </summary>
         private bool TryResolveRemainingSeconds(out int seconds)
         {
@@ -92,11 +94,30 @@ namespace Geumeum.UI
                 return false;
             }
 
-            double limit   = GameDB.Barrier.FieldTimeLimitSeconds;
-            double elapsed = RunTimeLocator.Current.FieldElapsedSeconds;
+            IRunTimeSource time = RunTimeLocator.Current;
 
-            seconds = ToRemainingSeconds(limit - elapsed);
+            if (IsBossPhase())
+            {
+                seconds = ToRemainingSeconds(
+                    GameDB.Boss.BossTimeLimitSeconds - time.BossElapsedSeconds);
+                return true;
+            }
+
+            seconds = ToRemainingSeconds(
+                GameDB.Barrier.FieldTimeLimitSeconds - time.FieldElapsedSeconds);
             return true;
+        }
+
+        /// <summary>
+        /// 보스 구간인지. phase는 SyncVar라 세 클라이언트가 같은 시점에 같이 바뀐다.
+        ///
+        /// 보스 경과가 0보다 큰지로 판별하지 않는다 - 보스 시계가 막 시작한 첫 프레임에
+        /// 0이라서, 그 한 프레임 동안 필드 시계의 00:00이 튀어 보인다
+        /// </summary>
+        private static bool IsBossPhase()
+        {
+            RunManager run = RunManager.LocalInstance;
+            return ((run != null) && (run.Phase == RunPhase.Boss));
         }
 
         // 카운트다운은 올림이다. 0.4초 남았는데 00:00으로 보이면 이미 끝난 것으로 읽힌다
