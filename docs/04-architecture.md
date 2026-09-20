@@ -926,7 +926,12 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           색 값은 SerializeField이고 경계 시각은 BarrierPhaseSO가 갖는다.
 │     │                           스냅샷을 주입해 붉은색 전환과 흰색 복귀를 확인했다. 정상 경로의
 │     │                           10:00 도달과 3인은 아직이다 [미검증].
-│     │                           보스 임박(남은 03:00) 색 전환은 아직 없다 [계획]
+│     │                           보스 구간에서는 남은 시간이 03:00 이하면 같은 붉은색으로 바꾼다(2026-09-21).
+│     │                           결계 스냅샷을 보지 않는다 - 결계 타임라인은 보스 진입 시점에 멈추는 필드
+│     │                           시계 기준이라, 축소 구간 중에 입장하면 보스전 내내 붉게 굳는다.
+│     │                           임계 180초는 SerializeField, 상한 840초는 GameDB.Boss가 갖는다.
+│     │                           Dev_BossTrial 1인에서 남은 189.6초 흰색 → 175.7초 붉은색을 확인했다.
+│     │                           3인과 정확한 경계 시각은 아직이다 [미검증]
 │     ├ HudVisibilityGate.cs     [구현완료] 관리 창이 열려 있는 동안과 RunPhase.Result에서
 │     │                           HUD 캔버스를 끈다. GameObject가 아니라 Canvas만 꺼서
 │     │                           숨은 동안에도 바인딩과 값 갱신은 계속된다.

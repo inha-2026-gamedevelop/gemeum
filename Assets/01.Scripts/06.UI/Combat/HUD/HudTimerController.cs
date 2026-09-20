@@ -23,7 +23,7 @@ namespace Geumeum.UI
     ///
     /// 보스 구간에 들어가면 같은 슬롯이 보스 잔여 시간으로 바뀐다. 슬롯을 늘리지 않는 이유는
     /// 필드 시계가 그 시점부터 멈춰 있어 두 줄로 두면 죽은 숫자가 하나 남기 때문이다.
-    /// 단계별 색 전환은 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
+    /// 숫자가 붉어지는 조건도 구간마다 다르다. 필드는 결계 축소, 보스는 남은 시간이다
     /// </summary>
     public class HudTimerController : MonoBehaviour
     {
@@ -48,6 +48,9 @@ namespace Geumeum.UI
 
         [Tooltip("결계 경고와 축소가 진행되는 동안의 숫자 색. 주묵 붉은색")]
         [SerializeField] private Color _warningColor = new Color(0.78f, 0.15f, 0.15f, 1f);
+
+        [Tooltip("보스 남은 시간이 이 값(초) 이하면 숫자를 붉게 한다. HUD_DESIGN 2.2 상태 5")]
+        [SerializeField] private float _bossWarningSeconds = 180f;
 
         // 색이 그대로인데 다시 넣으면 TMP가 메시를 매 프레임 다시 만든다. _shownSeconds와 같은 이유다
         private Color _shownColor;
@@ -154,14 +157,22 @@ namespace Geumeum.UI
         }
 
         /// <summary>
-        /// 결계가 좁아지는 동안 숫자를 붉게 물들인다.
+        /// 구간에 맞는 색을 고른다. 필드는 결계 축소를, 보스는 남은 시간을 본다.
         ///
-        /// 축소 시각을 직접 세지 않는다. 서버가 확정해 보낸 구간을 배너와 똑같이 읽으므로
-        /// 배너가 뜨는 순간과 숫자가 붉어지는 순간이 어긋나지 않는다
+        /// 필드에서는 축소 시각을 직접 세지 않는다. 서버가 확정해 보낸 구간을 배너와
+        /// 똑같이 읽으므로 배너가 뜨는 순간과 숫자가 붉어지는 순간이 어긋나지 않는다
         /// </summary>
         private void ApplyColor()
         {
-            Color next = IsBarrierWarning() ? _warningColor : _normalColor;
+            // 보스 상한을 GameDB에서 읽는다. 부트 전에 읽으면 예외가 나므로 색도 건드리지 않는다
+            if (!GameDB.IsInitialized)
+            {
+                return;
+            }
+
+            bool isWarning = IsBossPhase() ? IsBossTimeCritical() : IsBarrierWarning();
+
+            Color next = isWarning ? _warningColor : _normalColor;
             if (next == _shownColor)
             {
                 return;
@@ -189,6 +200,22 @@ namespace Geumeum.UI
             // 결계 타임라인은 필드 시계 기준이다. 보스전에서 멈추는 그 시계와 같은 것을 봐야 한다
             double now = RunTimeLocator.Current.FieldElapsedSeconds;
             return ((now >= snapshot.WarningGameplayTime) && (now < snapshot.EndGameplayTime));
+        }
+
+        /// <summary>
+        /// 보스 제한 시간이 임계 이하로 남았는지.
+        ///
+        /// 결계 스냅샷을 보지 않는다 - 결계 타임라인은 필드 시계 기준인데 그 시계는
+        /// 보스 진입 시점에 멈춘다. 축소 구간 중에 입장하면 보스전 내내 참이 된다.
+        ///
+        /// 숫자를 다시 계산하지 않고 상한에서 경과를 뺀다. TryResolveDisplaySeconds와
+        /// 같은 값을 쓰므로 03:00이 찍히는 순간과 붉어지는 순간이 어긋나지 않는다
+        /// </summary>
+        private bool IsBossTimeCritical()
+        {
+            double remaining = GameDB.Boss.BossTimeLimitSeconds
+                             - RunTimeLocator.Current.BossElapsedSeconds;
+            return (remaining <= _bossWarningSeconds);
         }
     }
 }
