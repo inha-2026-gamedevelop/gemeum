@@ -201,7 +201,25 @@ namespace Geumeum.AI
 
         private void TickIdle()
         {
-            if ((_cooldownRemaining > 0f) || (Target == null))
+            if (Target == null)
+            {
+                return;
+            }
+
+            // 마수 돌진(7) 직후엔 쿨다운, 거리 추첨을 전부 건너뛰고 거대 꼬리치기(6)를 강제로
+            // 붙인다 - 1페이즈 순간 접근(3) -> 여우불 봉 3연격(1) 강제 연계와 동일하게 맞춘다.
+            // 마수 돌진 자체엔 전용 2타, 3타 애니메이션이 없어 반복 판정을 못 주고, 대신
+            // 반복 애니메이션이 갖춰진 패턴6으로 이어 붙인다
+            if (_previousPatternId == TARGETED_DASH_PATTERN_ID)
+            {
+                if (GameDB.Boss.TryGetPattern(MELEE_ARC_PATTERN_ID, out BossPatternSO.PatternEntry followUpPattern))
+                {
+                    BeginAttack(followUpPattern, KindOf(MELEE_ARC_PATTERN_ID));
+                    return;
+                }
+            }
+
+            if (_cooldownRemaining > 0f)
             {
                 return;
             }

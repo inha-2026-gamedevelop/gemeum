@@ -145,8 +145,8 @@ MonoBehaviour:
     IsParryable: 1
     Template: 1
     Targeting: 0
-    Range: 5.13
-    AngleDegrees: 180
+    Range: 6.5
+    AngleDegrees: 240
     MoveSpeed: 0
     MoveDistance: 0
     ImpactRadius: 0
@@ -173,7 +173,7 @@ MonoBehaviour:
     AngleDegrees: 0
     MoveSpeed: 12
     MoveDistance: 15.96
-    ImpactRadius: 1.37
+    ImpactRadius: 2.5
     ImpactOffsets:
     - 1.2
     RepeatTimingJitterMin: 0
@@ -216,7 +216,7 @@ MonoBehaviour:
     Template: 4
     Targeting: 0
     Range: 10.26
-    AngleDegrees: 60
+    AngleDegrees: 110
     MoveSpeed: 0
     MoveDistance: 0
     ImpactRadius: 0
