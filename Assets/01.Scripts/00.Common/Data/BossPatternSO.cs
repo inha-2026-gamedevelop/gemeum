@@ -673,7 +673,7 @@ namespace Geumeum.Data
                 }
             }
 
-            if ((_patterns.Length != 10) ||
+            if ((_patterns.Length != 15) ||
                 (!TryGetPattern(1, out PatternEntry teachingCombo)) ||
                 (!TryGetPattern(2, out PatternEntry derivedWake)) ||
                 (!TryGetPattern(3, out PatternEntry teachingDash)) ||
@@ -683,9 +683,14 @@ namespace Geumeum.Data
                 (!TryGetPattern(7, out PatternEntry testingDash)) ||
                 (!TryGetPattern(8, out PatternEntry partyMarks)) ||
                 (!TryGetPattern(9, out PatternEntry testingCone)) ||
-                (!TryGetPattern(10, out PatternEntry finalCone)))
+                (!TryGetPattern(10, out PatternEntry finalCone)) ||
+                (!TryGetPattern(11, out PatternEntry _)) ||
+                (!TryGetPattern(12, out PatternEntry _)) ||
+                (!TryGetPattern(13, out PatternEntry _)) ||
+                (!TryGetPattern(14, out PatternEntry _)) ||
+                (!TryGetPattern(15, out PatternEntry _)))
             {
-                return FailValidation(out failure, "the boss contract requires pattern ids 1..10 exactly");
+                return FailValidation(out failure, "the boss contract requires pattern ids 1..15 exactly");
             }
 
             if ((teachingCombo.RepeatCount != 3) || (!teachingCombo.IsParryable) ||

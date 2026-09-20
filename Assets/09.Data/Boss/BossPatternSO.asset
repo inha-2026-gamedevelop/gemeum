@@ -16,11 +16,11 @@ MonoBehaviour:
   _phases:
   - PhaseIndex: 1
     EnterHealthRatio: 1
-    PatternIds: 0100000002000000030000000400000005000000
+    PatternIds: 01000000020000000300000004000000050000000b0000000c000000
     WakePatternId: 2
   - PhaseIndex: 2
     EnterHealthRatio: 0.5
-    PatternIds: 06000000070000000800000009000000
+    PatternIds: 060000000700000008000000090000000d0000000e0000000f000000
     WakePatternId: 2
   _transitionLockDuration: 2
   _patterns:
@@ -252,6 +252,116 @@ MonoBehaviour:
     DerivedFromId: -1
     IsConditional: 1
     SelectionWeight: 1
+  - PatternId: 11
+    DisplayName: TBD_Phase1_New1
+    TelegraphDuration: 1
+    ActiveDuration: 1
+    Cooldown: 20
+    Damage: 1
+    IsParryable: 0
+    Template: 1
+    Targeting: 0
+    Range: 3
+    AngleDegrees: 90
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 0
+    ImpactOffsets:
+    - 1
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 1
+    SelectionWeight: 0
+  - PatternId: 12
+    DisplayName: TBD_Phase1_New2
+    TelegraphDuration: 1
+    ActiveDuration: 1
+    Cooldown: 20
+    Damage: 1
+    IsParryable: 0
+    Template: 1
+    Targeting: 0
+    Range: 3
+    AngleDegrees: 90
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 0
+    ImpactOffsets:
+    - 1
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 1
+    SelectionWeight: 0
+  - PatternId: 13
+    DisplayName: TBD_Phase2_New1
+    TelegraphDuration: 1
+    ActiveDuration: 1
+    Cooldown: 20
+    Damage: 1
+    IsParryable: 0
+    Template: 1
+    Targeting: 0
+    Range: 3
+    AngleDegrees: 90
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 0
+    ImpactOffsets:
+    - 1
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 1
+    SelectionWeight: 0
+  - PatternId: 14
+    DisplayName: TBD_Phase2_New2
+    TelegraphDuration: 1
+    ActiveDuration: 1
+    Cooldown: 20
+    Damage: 1
+    IsParryable: 0
+    Template: 1
+    Targeting: 0
+    Range: 3
+    AngleDegrees: 90
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 0
+    ImpactOffsets:
+    - 1
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 1
+    SelectionWeight: 0
+  - PatternId: 15
+    DisplayName: TBD_Phase2_New3
+    TelegraphDuration: 1
+    ActiveDuration: 1
+    Cooldown: 20
+    Damage: 1
+    IsParryable: 0
+    Template: 1
+    Targeting: 0
+    Range: 3
+    AngleDegrees: 90
+    MoveSpeed: 0
+    MoveDistance: 0
+    ImpactRadius: 0
+    ImpactOffsets:
+    - 1
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 1
+    SelectionWeight: 0
   _bossTimeLimitSeconds: 840
   _enrageStartSeconds: 810
   _enrageWarningSeconds: 720
