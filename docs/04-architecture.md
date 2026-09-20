@@ -905,6 +905,15 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
 │     │                           RunHUD.prefab(SessionManagers 안)에 배선했다. 화면 동작은 아직 관찰하지 못했다
+│     ├ BossTimeWarningToast.cs  [미검증] 보스 남은 시간이 03:00 아래로 내려가는 순간만 한 번 알린다.
+│     │                           조건이 참인 동안 떠 있지 않는다 - 지속 표시는 HudTimerController의 붉은 숫자가
+│     │                           맡고, 여기는 "지금 막 3분이 됐다"는 사건만 다룬다. 계속 띄우면 보스 패턴을 가린다.
+│     │                           임계를 넘는 순간을 직접 본 경우에만 띄운다 - 런 도중 들어온 사람에게 남은 30초에
+│     │                           "3분" 문구가 뜨면 거짓말이 된다(ThresholdSide.NotObserved).
+│     │                           코루틴 없이 값 하나로 세어 중복 시작·취소 문제를 만들지 않는다.
+│     │                           런타임으로 오브젝트를 붙여 1인에서 표시·자동 소멸·임계 아래 재발 억제·
+│     │                           도중 접속 무시·보스 재진입 시 재발동을 확인했다.
+│     │                           아직 어느 씬·프리팹에도 배선하지 않았다. 3인은 아직이다 [미검증]
 │     ├ HudTimerController.cs    [구현완료] 우상단 시간 슬롯의 숫자를 mm:ss로 적는다. 구간마다 방향이 다르다 -
 │     │                           필드는 00:00에서 30:00까지 올라가고, 보스(RunPhase.Boss)는 14:00에서 내려간다.
 │     │                           필드에 강제 종료가 없어 내려가는 숫자는 없는 마감을 만든다(2026-09-20 되돌림).
