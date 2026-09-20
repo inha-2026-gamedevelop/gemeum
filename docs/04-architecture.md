@@ -915,10 +915,19 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           보스 시계 첫 프레임이 0이라 필드 00:00이 한 번 튀기 때문이다.
 │     │                           Dev_BossTrial 1인 플레이에서 30:00 → 13:56 전환과 감소를 확인했다.
 │     │                           3인 확인은 아직이다 [미검증].
-│     │                           Result 단계에서 HUD 캔버스가 꺼지지 않아 숫자가 필드 잔여로
-│     │                           되돌아가는 것을 같은 확인에서 발견했다 - HudVisibilityGate가
-│     │                           관리 창만 보고 RunPhase를 보지 않는다 [미해결].
+│     │                           Result 단계에서 숫자가 필드 잔여로 되돌아가던 것은
+│     │                           HudVisibilityGate가 그 단계에 캔버스를 꺼서 해결했다 [구현완료].
 │     │                           단계별 색 전환은 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
+│     ├ HudVisibilityGate.cs     [구현완료] 관리 창이 열려 있는 동안과 RunPhase.Result에서
+│     │                           HUD 캔버스를 끈다. GameObject가 아니라 Canvas만 꺼서
+│     │                           숨은 동안에도 바인딩과 값 갱신은 계속된다.
+│     │                           HUD는 SessionManagers 안이라 DontDestroyOnLoad로 Result 씬까지
+│     │                           따라간다. 끄지 않으면 결과창 위에 전투 HUD가 남는다.
+│     │                           씬이 아니라 단계로 판단한다 - 런이 끝나도 씬 전환이 늦게 온다.
+│     │                           Dev_BossTrial 1인 플레이에서 Result 전환 시 씬이 아직
+│     │                           Boss_Arena인 채로 캔버스가 꺼지는 것을 확인했다. 3인은 아직이다 [미검증].
+│     │                           단계는 이벤트가 없어 Update에서 읽는다 - RunManager가 단계 변경
+│     │                           이벤트를 공개하면 관리 창처럼 구독으로 바꾼다 [계획]
 │     ├ PartyHudController.cs    [구현완료] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
 │     │                           스폰 목록만 주기로 훑고 값은 PlayerStatus 이벤트로 받는다.
 │     │                           3인 접속에서 본인을 뺀 2줄이 뜨고, 한 명이 나가면 그 줄이 사라지는 것을 확인했다.
