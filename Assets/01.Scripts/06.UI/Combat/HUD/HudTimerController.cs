@@ -17,12 +17,12 @@ namespace Geumeum.UI
     /// 서버가 보낸 시계 하나에서 각 클라이언트가 계산한다 - 매 초 값을 받지도, 로컬로 세지도 않는다.
     /// 그래서 런 도중 들어온 사람도 같은 숫자를 본다.
     ///
-    /// 적는 것은 필드에 남은 시간이다. 축소까지 남은 시간이 아니다 -
+    /// 필드에서 적는 것은 지금까지 쓴 시간이다. 축소까지 남은 시간이 아니다 -
     /// 그 숫자는 생존만 다루고 "거점 하나 더 칠 시간이 있나"에 답하지 못한다.
     /// 파밍이 길어질수록 점수의 시간 보너스가 줄어드는데, 그 비용이 보이는 곳은 여기뿐이다.
     ///
     /// 보스 구간에 들어가면 같은 슬롯이 보스 잔여 시간으로 바뀐다. 슬롯을 늘리지 않는 이유는
-    /// 필드 시계가 그 시점부터 00:00에 멈춰 있어 두 줄로 두면 죽은 숫자가 하나 남기 때문이다.
+    /// 필드 시계가 그 시점부터 멈춰 있어 두 줄로 두면 죽은 숫자가 하나 남기 때문이다.
     /// 단계별 색 전환은 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
     /// </summary>
     public class HudTimerController : MonoBehaviour
@@ -58,7 +58,7 @@ namespace Geumeum.UI
                 return;
             }
 
-            if (!TryResolveRemainingSeconds(out int seconds))
+            if (!TryResolveDisplaySeconds(out int seconds))
             {
                 return;
             }
@@ -78,17 +78,20 @@ namespace Geumeum.UI
         ****************************************/
 
         /// <summary>
-        /// 지금 도는 시계의 상한에서 그 시계의 경과를 뺀다.
-        /// 상한은 둘 다 GameDB가 갖고 있어 밸런스에서 고치면 여기도 따라간다.
+        /// 두 구간이 세는 방향이 다르다.
+        ///
+        /// 필드는 0:00에서 올라간다. 게이트가 상시 열려 있어 필드에는 강제 종료가 없고,
+        /// 시간은 점수로만 비용이 된다. 내려가는 숫자는 없는 마감을 있는 것처럼 보이게 한다.
+        /// 보스는 14:00에서 내려간다. 여기는 실제로 시간이 다하면 런이 끝난다.
         ///
         /// 두 시계를 합쳐 세지 않는다. 합치면 필드에서만 도는 런에서 숫자가 14분 크게 시작한다
         /// </summary>
-        private bool TryResolveRemainingSeconds(out int seconds)
+        private bool TryResolveDisplaySeconds(out int seconds)
         {
             seconds = 0;
 
             // 상한은 GameDB에 있다. 부트 전에 읽으면 예외가 난다.
-            // 이때 00:00을 적으면 시간이 다 됐다는 뜻으로 읽히므로 아무것도 적지 않는다
+            // 이때 00:00을 적으면 보스 시간이 다 됐다는 뜻으로 읽히므로 아무것도 적지 않는다
             if (!GameDB.IsInitialized)
             {
                 return false;
@@ -103,8 +106,8 @@ namespace Geumeum.UI
                 return true;
             }
 
-            seconds = ToRemainingSeconds(
-                GameDB.Barrier.FieldTimeLimitSeconds - time.FieldElapsedSeconds);
+            seconds = ToElapsedSeconds(
+                time.FieldElapsedSeconds, GameDB.Barrier.FieldTimeLimitSeconds);
             return true;
         }
 
@@ -124,6 +127,18 @@ namespace Geumeum.UI
         private static int ToRemainingSeconds(double remaining)
         {
             return Mathf.Max(0, Mathf.CeilToInt((float) remaining));
+        }
+
+        /// <summary>
+        /// 카운트업은 내림이다. 런이 시작하자마자 00:01로 보이면 1초를 건너뛴 것으로 읽힌다.
+        ///
+        /// 상한에서 멈춘다. 서버가 이미 필드 경과를 상한에서 고정하지만,
+        /// 보스 전환이 늦어지는 동안 표시가 30:00을 넘어가면 없는 시간이 생긴 것처럼 보인다
+        /// </summary>
+        private static int ToElapsedSeconds(double elapsed, double limit)
+        {
+            double clamped = (elapsed > limit) ? limit : elapsed;
+            return Mathf.Max(0, Mathf.FloorToInt((float) clamped));
         }
     }
 }

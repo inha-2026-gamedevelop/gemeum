@@ -905,15 +905,18 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
 │     │                           RunHUD.prefab(SessionManagers 안)에 배선했다. 화면 동작은 아직 관찰하지 못했다
-│     ├ HudTimerController.cs    [구현완료] 우상단 시간 슬롯에 지금 도는 시계의 남은 시간을 mm:ss로 적는다.
-│     │                           필드 구간은 30:00, 보스 구간(RunPhase.Boss)은 14:00에서 내려간다.
+│     ├ HudTimerController.cs    [구현완료] 우상단 시간 슬롯의 숫자를 mm:ss로 적는다. 구간마다 방향이 다르다 -
+│     │                           필드는 00:00에서 30:00까지 올라가고, 보스(RunPhase.Boss)는 14:00에서 내려간다.
+│     │                           필드에 강제 종료가 없어 내려가는 숫자는 없는 마감을 만든다(2026-09-20 되돌림).
+│     │                           카운트업은 내림, 카운트다운은 올림이다 - 반대로 하면 1초를 건너뛴 것처럼 보인다.
 │     │                           두 상한 모두 GameDB(Barrier · Boss)가 갖고 있어 코드에 박은 수치가 아니다.
 │     │                           2026-09-19 결정 "보스 씬에서는 보스 시계 14:00 카운트다운으로 교체,
 │     │                           44:00은 결과창에서만"을 그대로 따른다 [구현완료].
 │     │                           축소까지 남은 시간이 아니다 - 그 경고는 배너와 부적이 맡는다(HUD_DESIGN 2.2).
 │     │                           보스 경과가 0인지로 구간을 가르지 않고 RunManager.Phase를 읽는다 -
 │     │                           보스 시계 첫 프레임이 0이라 필드 00:00이 한 번 튀기 때문이다.
-│     │                           Dev_BossTrial 1인 플레이에서 30:00 → 13:56 전환과 감소를 확인했다.
+│     │                           Dev_BossTrial에서 보스 14:00 → 13:43 감소를, 일반 런에서 필드
+│     │                           00:10 → 00:18 증가와 1800초 지점의 30:00 고정을 확인했다(1인).
 │     │                           3인 확인은 아직이다 [미검증].
 │     │                           Result 단계에서 숫자가 필드 잔여로 되돌아가던 것은
 │     │                           HudVisibilityGate가 그 단계에 캔버스를 꺼서 해결했다 [구현완료].
