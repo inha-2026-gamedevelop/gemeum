@@ -57,7 +57,7 @@ MonoBehaviour:
     IsParryable: 0
     Template: 1
     Targeting: 0
-    Range: 3.19
+    Range: 5
     AngleDegrees: 100
     MoveSpeed: 0
     MoveDistance: 0
