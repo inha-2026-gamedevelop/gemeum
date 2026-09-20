@@ -539,7 +539,7 @@ Gaia 기본 지형(사실적 자연) + 여러 출처의 건축 에셋 + 저승 �
 | 데디케이티드 서버 전환 여부 | 추후 검토 |
 | ~~공용 권위 시뮬레이션 틱~~ | **결정됨(2026-09-02 갱신).** 별도 스케줄러로 확정 — `AuthorityTickScheduler`가 `FixedUpdate`에서 우선순위 순으로 실행하며 `Constants.Network`의 `TICK_PRIORITY_MOVEMENT`(0) · `TICK_PRIORITY_AI`(100) · projectile(200) · ability(300)이 순서를 소유한다. `PlayerStatus` · `PlayerController` · `EnemyController`가 실제로 등록한다. 투사체는 아직 이 틱을 우회하므로 편입이 남았다 |
 | ~~애니메이션 에셋 소싱~~ | **설계됨(2026-09-02 갱신).** [애니메이션 파이프라인 설계](unity/ANIMATION_PIPELINE_DESIGN.md)가 Humanoid 리타게팅 · Override Controller · 서버 cue · 소싱 상한을 확정했다. 실제 구매 · 라이선스 확정만 남았다 |
-| 빌드 배포 방식 (테스트용) | 미정 |
+| ~~빌드 배포 방식 (테스트용)~~ | **결정됨(2026-09-20).** 저장소 루트 `launcher/`의 별도 런처로 배포한다 — 팀원이 런처를 받아 설치·업데이트하고 런처가 게임을 Steam 로비 경로로 띄운다. 파일 단위 SHA-256 패치, ECDSA 서명 검증, 실패 시 이전 버전 보존, 런처 자기 업데이트. 배포 서버는 팀장 PC(정적 HTTP)이고 R2 전환은 주소만 바꾸면 된다. 계약·운영 절차는 [런처·패치 시스템 설계](unity/PATCH_SYSTEM_DESIGN.md) |
 
 ### 8.1 기능별 상세 설계 (2026-09-02 편입)
 

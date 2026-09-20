@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Patch.Core/Patch.Core.csproj" />
+  <Project Path="Patch.Client/Patch.Client.csproj" />
+  <Project Path="Patch.Core.Tests/Patch.Core.Tests.csproj" />
+  <Project Path="Release.Packager/Release.Packager.csproj" />
+  <Project Path="Launcher.UI/Launcher.UI.csproj" />
+</Solution>

@@ -102,3 +102,10 @@ crashlytics-build.properties
 # BMad 워크플로우 산출물 (작업 중 생성물 — 팀에 남길 결정은 docs/에 쓴다)
 # 스킬 팩과 모듈 설정(_bmad/, .claude/skills/)은 팀원 공유용이라 커밋 대상이다
 _bmad-output/
+
+# 런처·패치 도구 (.NET) 산출물
+launcher/**/bin/
+launcher/**/obj/
+
+# 런처 프로젝트 파일은 Unity가 만드는 생성물이 아니라 소스다 (위 *.csproj 규칙의 예외)
+!launcher/**/*.csproj

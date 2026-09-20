@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Geumeum.Packager</RootNamespace>
+    <AssemblyName>geumeum-pack</AssemblyName>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.416" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Patch.Core/Patch.Core.csproj" />
+    <ProjectReference Include="../Patch.Client/Patch.Client.csproj" />
+  </ItemGroup>
+</Project>
