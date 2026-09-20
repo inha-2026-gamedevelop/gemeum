@@ -42,6 +42,16 @@ namespace Geumeum.UI
         // 초가 그대로인데 다시 적으면 TMP가 메시를 매 프레임 다시 만든다
         private int _shownSeconds = NOT_SHOWN;
 
+        [Header("색")]
+        [Tooltip("평시 숫자 색. 한지 백색")]
+        [SerializeField] private Color _normalColor  = Color.white;
+
+        [Tooltip("결계 경고와 축소가 진행되는 동안의 숫자 색. 주묵 붉은색")]
+        [SerializeField] private Color _warningColor = new Color(0.78f, 0.15f, 0.15f, 1f);
+
+        // 색이 그대로인데 다시 넣으면 TMP가 메시를 매 프레임 다시 만든다. _shownSeconds와 같은 이유다
+        private Color _shownColor;
+
         /****************************************
         *              Unity Event
         ****************************************/
@@ -57,6 +67,8 @@ namespace Geumeum.UI
             {
                 return;
             }
+
+            ApplyColor();
 
             if (!TryResolveDisplaySeconds(out int seconds))
             {
@@ -139,6 +151,44 @@ namespace Geumeum.UI
         {
             double clamped = (elapsed > limit) ? limit : elapsed;
             return Mathf.Max(0, Mathf.FloorToInt((float) clamped));
+        }
+
+        /// <summary>
+        /// 결계가 좁아지는 동안 숫자를 붉게 물들인다.
+        ///
+        /// 축소 시각을 직접 세지 않는다. 서버가 확정해 보낸 구간을 배너와 똑같이 읽으므로
+        /// 배너가 뜨는 순간과 숫자가 붉어지는 순간이 어긋나지 않는다
+        /// </summary>
+        private void ApplyColor()
+        {
+            Color next = IsBarrierWarning() ? _warningColor : _normalColor;
+            if (next == _shownColor)
+            {
+                return;
+            }
+
+            _shownColor  = next;
+            _label.color = next;
+        }
+
+        /// <summary>
+        /// 결계 경고 또는 축소가 진행 중인지. 경고 시작부터 축소 종료까지를 한 구간으로 본다.
+        ///
+        /// Revision 0은 서버가 아직 원을 세우지 않은 것이라 시각 필드가 전부 0이다.
+        /// 거르지 않으면 런이 시작하자마자 숫자가 한 번 붉어진다
+        /// </summary>
+        private static bool IsBarrierWarning()
+        {
+            BarrierTransitionState snapshot = BarrierStateLocator.TransitionSource.Snapshot;
+
+            if ((!snapshot.IsActive) || (snapshot.Revision == 0u))
+            {
+                return false;
+            }
+
+            // 결계 타임라인은 필드 시계 기준이다. 보스전에서 멈추는 그 시계와 같은 것을 봐야 한다
+            double now = RunTimeLocator.Current.FieldElapsedSeconds;
+            return ((now >= snapshot.WarningGameplayTime) && (now < snapshot.EndGameplayTime));
         }
     }
 }

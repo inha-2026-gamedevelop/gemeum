@@ -920,7 +920,13 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           3인 확인은 아직이다 [미검증].
 │     │                           Result 단계에서 숫자가 필드 잔여로 되돌아가던 것은
 │     │                           HudVisibilityGate가 그 단계에 캔버스를 꺼서 해결했다 [구현완료].
-│     │                           단계별 색 전환은 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
+│     │                           결계 경고·축소 구간에는 숫자를 주묵 붉은색으로 바꾼다(2026-09-20).
+│     │                           축소 시각을 직접 세지 않고 BarrierStateLocator 스냅샷을 배너와
+│     │                           똑같이 읽는다 - 그래야 배너와 숫자가 같은 순간에 반응한다.
+│     │                           색 값은 SerializeField이고 경계 시각은 BarrierPhaseSO가 갖는다.
+│     │                           스냅샷을 주입해 붉은색 전환과 흰색 복귀를 확인했다. 정상 경로의
+│     │                           10:00 도달과 3인은 아직이다 [미검증].
+│     │                           보스 임박(남은 03:00) 색 전환은 아직 없다 [계획]
 │     ├ HudVisibilityGate.cs     [구현완료] 관리 창이 열려 있는 동안과 RunPhase.Result에서
 │     │                           HUD 캔버스를 끈다. GameObject가 아니라 Canvas만 꺼서
 │     │                           숨은 동안에도 바인딩과 값 갱신은 계속된다.
