@@ -253,27 +253,27 @@ MonoBehaviour:
     IsConditional: 1
     SelectionWeight: 1
   - PatternId: 11
-    DisplayName: TBD_Phase1_New1
-    TelegraphDuration: 1
+    DisplayName: "여우불 광선"
+    TelegraphDuration: 1.5
     ActiveDuration: 1
-    Cooldown: 20
-    Damage: 1
+    Cooldown: 24
+    Damage: 9
     IsParryable: 0
-    Template: 1
+    Template: 4
     Targeting: 0
-    Range: 3
-    AngleDegrees: 90
-    MoveSpeed: 0
+    Range: 8
+    AngleDegrees: 18
+    MoveSpeed: 4
     MoveDistance: 0
     ImpactRadius: 0
     ImpactOffsets:
-    - 1
+    - 1.5
     RepeatTimingJitterMin: 0
     RepeatTimingJitterMax: 0
     ParryableRepeatIndex: -1
     DerivedFromId: -1
-    IsConditional: 1
-    SelectionWeight: 0
+    IsConditional: 0
+    SelectionWeight: 1
   - PatternId: 12
     DisplayName: TBD_Phase1_New2
     TelegraphDuration: 1
@@ -297,27 +297,27 @@ MonoBehaviour:
     IsConditional: 1
     SelectionWeight: 0
   - PatternId: 13
-    DisplayName: TBD_Phase2_New1
-    TelegraphDuration: 1
+    DisplayName: "여우불 광선"
+    TelegraphDuration: 1.5
     ActiveDuration: 1
-    Cooldown: 20
-    Damage: 1
+    Cooldown: 30
+    Damage: 12
     IsParryable: 0
-    Template: 1
+    Template: 4
     Targeting: 0
-    Range: 3
-    AngleDegrees: 90
-    MoveSpeed: 0
+    Range: 8
+    AngleDegrees: 18
+    MoveSpeed: 3
     MoveDistance: 0
     ImpactRadius: 0
     ImpactOffsets:
-    - 1
+    - 1.5
     RepeatTimingJitterMin: 0
     RepeatTimingJitterMax: 0
     ParryableRepeatIndex: -1
     DerivedFromId: -1
-    IsConditional: 1
-    SelectionWeight: 0
+    IsConditional: 0
+    SelectionWeight: 1
   - PatternId: 14
     DisplayName: TBD_Phase2_New2
     TelegraphDuration: 1

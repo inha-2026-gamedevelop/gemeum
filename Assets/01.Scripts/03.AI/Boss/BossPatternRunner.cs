@@ -32,7 +32,8 @@ namespace Geumeum.AI
             float   damage,
             uint    attackerNetId,
             int     targetLayerMask,
-            BossController damageRouter = null)
+            BossController damageRouter = null,
+            HitStrength hitStrength = HitStrength.Heavy)
         {
             int hitCount  = Physics.OverlapSphereNonAlloc(origin, range, s_hitBuffer, targetLayerMask);
             int seenCount = 0;
@@ -68,7 +69,7 @@ namespace Geumeum.AI
                     ++seenCount;
                 }
 
-                var damageInfo = new DamageInfo(damage, attackerNetId, HitStrength.Heavy);
+                var damageInfo = new DamageInfo(damage, attackerNetId, hitStrength);
                 if (damageRouter != null)
                 {
                     damageRouter.ServerApplyPatternDamage(damageable, damageInfo);

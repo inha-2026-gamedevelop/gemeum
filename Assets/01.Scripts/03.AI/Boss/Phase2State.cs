@@ -39,23 +39,36 @@ namespace Geumeum.AI
             TargetedDash,
             MarkedCircle,
             ConeBurst,
+            RotatingBeam, // ID로만 구분한다 - SO Template은 검증 통과용으로 ConeBurst(4)를 그대로 쓴다
         }
 
         /****************************************
         *              Constants
         ****************************************/
 
-        private const int MELEE_ARC_PATTERN_ID     = 6; // 거대 꼬리치기
-        private const int TARGETED_DASH_PATTERN_ID = 7; // 마수 돌진
-        private const int MARKED_CIRCLE_PATTERN_ID = 8; // 표식 순환 처형
-        private const int CONE_BURST_PATTERN_ID    = 9; // 연쇄 부채꼴 3단
-        // 위 넷 다 GameDB.Boss._patterns의 PatternId와 맞춘다. 10번(백귀야행)은
+        private const int MELEE_ARC_PATTERN_ID     = 6;  // 거대 꼬리치기
+        private const int TARGETED_DASH_PATTERN_ID = 7;  // 마수 돌진
+        private const int MARKED_CIRCLE_PATTERN_ID = 8;  // 표식 순환 처형
+        private const int CONE_BURST_PATTERN_ID    = 9;  // 연쇄 부채꼴 3단
+        private const int ROTATING_BEAM_PATTERN_ID = 13; // 여우불 광선 - 360도 회전 빔
+        // 위 다섯 다 GameDB.Boss._patterns의 PatternId와 맞춘다. 10번(백귀야행)은
         // 조건부 발동(꼬리 상태)이라 쿨다운 기반 선택기 대상이 아니다 - 이 슬라이스에서 다루지 않는다
 
-        private const int MAX_CANDIDATE_COUNT      = 4; // 현재 독립 후보 수, 패턴 10은 조건부 발동
-        private const int SELECTABLE_PATTERN_COUNT = 4;
+        private const int MAX_CANDIDATE_COUNT      = 5; // 현재 독립 후보 수, 패턴 10은 조건부 발동
+        private const int SELECTABLE_PATTERN_COUNT = 5;
 
         private const float MELEE_PARRY_WINDOW_DURATION = 0.32f; // 초, 패링 판정 창 길이
+
+        // 여우불 광선(13) 전용 - 360도를 ActiveDuration에 걸쳐 회전한다. Damage 필드는
+        // 다른 패턴과 달리 초당 피해량(DPS)으로 읽는다, 매 틱 deltaTime을 곱해 적용한다
+        private const float ROTATING_BEAM_FULL_SWEEP_DEGREES = 360f;
+
+        // 2페이즈는 같은 축에서 등간격으로 여러 개를 같이 돌린다 - 회전 속도, 폭은 1페이즈와 동일하게
+        // 두고 회피 가능한 연속 구간만 줄인다(사용자 요청, 2026-09-21)
+        private const int ROTATING_BEAM_COUNT = 2;
+
+        // GGizmo.Line은 항상 1px라 얇으면 잘 안 보인다 - 십자로 살짝 오프셋한 선을 겹쳐 굵어 보이게 한다
+        private const float ROTATING_BEAM_GIZMO_THICKNESS = 0.15f;
 
         /****************************************
         *                Fields
@@ -70,6 +83,7 @@ namespace Geumeum.AI
             TARGETED_DASH_PATTERN_ID,
             MARKED_CIRCLE_PATTERN_ID,
             CONE_BURST_PATTERN_ID,
+            ROTATING_BEAM_PATTERN_ID,
         };
 
         private readonly BossPatternSelector.Candidate[] _candidatePatterns =
@@ -259,6 +273,7 @@ namespace Geumeum.AI
             candidateCount = AddCandidate(candidateCount, TARGETED_DASH_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, MARKED_CIRCLE_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, CONE_BURST_PATTERN_ID, distance);
+            candidateCount = AddCandidate(candidateCount, ROTATING_BEAM_PATTERN_ID, distance);
             return candidateCount;
         }
 
@@ -337,6 +352,11 @@ namespace Geumeum.AI
                 return PatternKind.MarkedCircle;
             }
 
+            if (patternId == ROTATING_BEAM_PATTERN_ID)
+            {
+                return PatternKind.RotatingBeam;
+            }
+
             if (patternId == CONE_BURST_PATTERN_ID)
             {
                 return PatternKind.ConeBurst;
@@ -354,6 +374,7 @@ namespace Geumeum.AI
                 case TARGETED_DASH_PATTERN_ID: return "마수 돌진";
                 case MARKED_CIRCLE_PATTERN_ID: return "표식 순환 처형";
                 case CONE_BURST_PATTERN_ID:    return "연쇄 부채꼴 3단";
+                case ROTATING_BEAM_PATTERN_ID: return "여우불 광선";
                 default:                       return $"패턴 {patternId}";
             }
         }
@@ -365,6 +386,12 @@ namespace Geumeum.AI
             _activePattern          = pattern;
             _activeSpec             = new BossPatternExecutionSpec(pattern);
             _activeKind             = ToKind(_activeSpec.Template, kind);
+            if (pattern.PatternId == ROTATING_BEAM_PATTERN_ID)
+            {
+                // SO Template은 검증 통과용 ConeBurst라 ToKind가 못 잡는다, ID로 덮어쓴다
+                _activeKind = PatternKind.RotatingBeam;
+            }
+
             _activeDamageMultiplier = _controller.ServerGetAttackDamageMultiplier();
             _previousPatternId      = pattern.PatternId;
             _activeParried          = false;
@@ -398,11 +425,14 @@ namespace Geumeum.AI
             }
 
             SnapshotRepeatTargets();
-            PublishRepeatTelegraphs();
-            TryOpenParryWindow(pattern, _activeRepeatIndex);
 
-            // BossTelegraphView가 아직 없어 예고가 화면에 안 보인다. 확인용 임시 로그 - 뷰 붙으면 지운다
-            GDebug.Server($"[보스] {PatternName(pattern.PatternId)} 예고 시작");
+            // 여우불 광선은 360도로 돌아 고정된 부채꼴 장판이 방향을 오해시킨다 - 예고 장판을 안 띄운다
+            if (_activeKind != PatternKind.RotatingBeam)
+            {
+                PublishRepeatTelegraphs();
+            }
+
+            TryOpenParryWindow(pattern, _activeRepeatIndex);
         }
 
         private static PatternKind ToKind(BossPatternSO.PatternTemplate template,
@@ -510,6 +540,12 @@ namespace Geumeum.AI
                 return;
             }
 
+            if (_activeKind == PatternKind.RotatingBeam)
+            {
+                TickRotatingBeam(deltaTime);
+                return;
+            }
+
             if (_activeKind == PatternKind.TargetedDash)
             {
                 Self.position = Vector3.MoveTowards(Self.position, _dashDestination,
@@ -550,11 +586,78 @@ namespace Geumeum.AI
             _state             = AttackState.Recovery;
         }
 
+        // 여우불 광선 전용 - ImpactOffsets 기반 반복 판정을 안 쓰고, 예고가 끝나면
+        // MoveSpeed를 "회전에 걸리는 시간(초)"으로 재해석해 그 시간 동안 360도를 돈다
+        // (Template이 ConeBurst라 실제 이동 속도로는 안 쓰인다). ActiveDuration은 다른
+        // 패턴과 똑같이 회전이 끝난 뒤 회복 상태로 보여주는 짧은 버퍼로 남겨둔다.
+        // Damage 필드는 초당 피해량(DPS)으로 읽어 deltaTime을 곱한 만큼만 적용한다.
+        // 2페이즈는 ROTATING_BEAM_COUNT개를 같은 축에서 등간격으로 같이 돌린다(회전 속도, 폭은 그대로,
+        // 회피 가능한 연속 구간만 줄인다) - 1페이즈(1개)보다 회피가 빡빡해지는 지점
+        private void TickRotatingBeam(float deltaTime)
+        {
+            _stateTimer += deltaTime;
+
+            float sweepElapsed  = _stateTimer - _activePattern.TelegraphDuration;
+            if (sweepElapsed < 0f)
+            {
+                return; // 아직 예고 중, 회전 시작 전
+            }
+
+            float sweepDuration = _activeSpec.MoveSpeed;
+            if (sweepElapsed >= sweepDuration)
+            {
+                _controller.ServerNotifyPatternEnded(_activePattern.PatternId, _activeAttackInstanceId);
+                _stateTimer        = 0f;
+                _cooldownRemaining = _controller.ServerGetGlobalCadence(2);
+                _state             = AttackState.Recovery;
+                return;
+            }
+
+            float   sweepAngle     = (sweepElapsed / sweepDuration) * ROTATING_BEAM_FULL_SWEEP_DEGREES;
+            float   beamSpacing    = ROTATING_BEAM_FULL_SWEEP_DEGREES / ROTATING_BEAM_COUNT;
+            Vector3 beamOrigin     = Self.position;
+            uint    attackerNetId  = (_selfIdentity != null) ? _selfIdentity.netId : 0u;
+            float   damageThisTick = _activePattern.Damage * _activeDamageMultiplier * deltaTime;
+
+            for (int i = 0; i < ROTATING_BEAM_COUNT; ++i)
+            {
+                Vector3 beamDirection = Quaternion.AngleAxis(sweepAngle + (i * beamSpacing), Vector3.up)
+                    * _lockedForward;
+                Vector3 beamEnd = beamOrigin + (beamDirection * _activeSpec.Range);
+
+                // 실제 VFX가 붙기 전까지만 쓰는 확인용 시각화 - 에디터/개발 빌드에서만 그려지고
+                // 릴리스 빌드에서는 호출 자체가 통째로 사라진다(GGizmo.Line의 Conditional 속성)
+                DrawBeamGizmo(beamOrigin, beamEnd, beamDirection);
+
+                BossPatternRunner.ExecuteMeleeArc(
+                    beamOrigin,
+                    beamDirection,
+                    _activeSpec.Range,
+                    _activeSpec.AngleDegrees,
+                    damageThisTick,
+                    attackerNetId,
+                    _playerLayerMask,
+                    _controller,
+                    HitStrength.Light);
+            }
+        }
+
+        // GGizmo.Line은 GL 즉시 그리기라 두께 지정이 없다 - 십자로 살짝 오프셋한 선 다섯 개를
+        // 겹쳐 그려서 굵어 보이게 한다(카메라 각도에 상관없이 보이도록 좌우, 상하 둘 다 오프셋)
+        private static void DrawBeamGizmo(Vector3 origin, Vector3 end, Vector3 direction)
+        {
+            GGizmo.Line(GGizmoChannel.Monster, origin, end, Color.magenta);
+
+            Vector3 right = Vector3.Cross(Vector3.up, direction).normalized * ROTATING_BEAM_GIZMO_THICKNESS;
+            Vector3 up    = Vector3.up * ROTATING_BEAM_GIZMO_THICKNESS;
+            GGizmo.Line(GGizmoChannel.Monster, origin + right, end + right, Color.magenta);
+            GGizmo.Line(GGizmoChannel.Monster, origin - right, end - right, Color.magenta);
+            GGizmo.Line(GGizmoChannel.Monster, origin + up,    end + up,    Color.magenta);
+            GGizmo.Line(GGizmoChannel.Monster, origin - up,    end - up,    Color.magenta);
+        }
+
         private void ResolveImpact()
         {
-            // BossTelegraphView가 아직 없어 타격이 화면에 안 보인다. 확인용 임시 로그 - 뷰 붙으면 지운다
-            GDebug.Server($"[보스] {PatternName(_activePattern.PatternId)} 타격 판정");
-
             uint attackerNetId = (_selfIdentity != null) ? _selfIdentity.netId : 0u;
             float damage       = _activePattern.Damage * _activeDamageMultiplier;
 
