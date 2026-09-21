@@ -275,27 +275,27 @@ MonoBehaviour:
     IsConditional: 0
     SelectionWeight: 1
   - PatternId: 12
-    DisplayName: TBD_Phase1_New2
-    TelegraphDuration: 1
+    DisplayName: "여우불 탄막"
+    TelegraphDuration: 1.2
     ActiveDuration: 1
-    Cooldown: 20
-    Damage: 1
+    Cooldown: 36
+    Damage: 4
     IsParryable: 0
-    Template: 1
+    Template: 4
     Targeting: 0
-    Range: 3
-    AngleDegrees: 90
-    MoveSpeed: 0
-    MoveDistance: 0
-    ImpactRadius: 0
+    Range: 9
+    AngleDegrees: 360
+    MoveSpeed: 1.4
+    MoveDistance: 6
+    ImpactRadius: 1
     ImpactOffsets:
-    - 1
+    - 1.2
     RepeatTimingJitterMin: 0
     RepeatTimingJitterMax: 0
     ParryableRepeatIndex: -1
     DerivedFromId: -1
-    IsConditional: 1
-    SelectionWeight: 0
+    IsConditional: 0
+    SelectionWeight: 1
   - PatternId: 13
     DisplayName: "여우불 광선"
     TelegraphDuration: 1.5
@@ -319,27 +319,27 @@ MonoBehaviour:
     IsConditional: 0
     SelectionWeight: 1
   - PatternId: 14
-    DisplayName: TBD_Phase2_New2
-    TelegraphDuration: 1
+    DisplayName: "여우불 탄막"
+    TelegraphDuration: 1.2
     ActiveDuration: 1
-    Cooldown: 20
-    Damage: 1
+    Cooldown: 36
+    Damage: 4
     IsParryable: 0
-    Template: 1
+    Template: 4
     Targeting: 0
-    Range: 3
-    AngleDegrees: 90
-    MoveSpeed: 0
-    MoveDistance: 0
-    ImpactRadius: 0
+    Range: 9
+    AngleDegrees: 360
+    MoveSpeed: 1.4
+    MoveDistance: 6
+    ImpactRadius: 1
     ImpactOffsets:
-    - 1
+    - 1.2
     RepeatTimingJitterMin: 0
     RepeatTimingJitterMax: 0
     ParryableRepeatIndex: -1
     DerivedFromId: -1
-    IsConditional: 1
-    SelectionWeight: 0
+    IsConditional: 0
+    SelectionWeight: 1
   - PatternId: 15
     DisplayName: TBD_Phase2_New3
     TelegraphDuration: 1

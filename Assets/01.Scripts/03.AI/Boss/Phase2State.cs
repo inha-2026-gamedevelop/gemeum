@@ -39,7 +39,8 @@ namespace Geumeum.AI
             TargetedDash,
             MarkedCircle,
             ConeBurst,
-            RotatingBeam, // ID로만 구분한다 - SO Template은 검증 통과용으로 ConeBurst(4)를 그대로 쓴다
+            RotatingBeam,  // ID로만 구분한다 - SO Template은 검증 통과용으로 ConeBurst(4)를 그대로 쓴다
+            RandomBarrage, // ID로만 구분한다 - 위와 동일한 이유
         }
 
         /****************************************
@@ -50,12 +51,13 @@ namespace Geumeum.AI
         private const int TARGETED_DASH_PATTERN_ID = 7;  // 마수 돌진
         private const int MARKED_CIRCLE_PATTERN_ID = 8;  // 표식 순환 처형
         private const int CONE_BURST_PATTERN_ID    = 9;  // 연쇄 부채꼴 3단
-        private const int ROTATING_BEAM_PATTERN_ID = 13; // 여우불 광선 - 360도 회전 빔
-        // 위 다섯 다 GameDB.Boss._patterns의 PatternId와 맞춘다. 10번(백귀야행)은
+        private const int ROTATING_BEAM_PATTERN_ID  = 13; // 여우불 광선 - 360도 회전 빔
+        private const int RANDOM_BARRAGE_PATTERN_ID = 14; // 여우불 탄막 - 랜덤 방향 연속 난사
+        // 위 여섯 다 GameDB.Boss._patterns의 PatternId와 맞춘다. 10번(백귀야행)은
         // 조건부 발동(꼬리 상태)이라 쿨다운 기반 선택기 대상이 아니다 - 이 슬라이스에서 다루지 않는다
 
-        private const int MAX_CANDIDATE_COUNT      = 5; // 현재 독립 후보 수, 패턴 10은 조건부 발동
-        private const int SELECTABLE_PATTERN_COUNT = 5;
+        private const int MAX_CANDIDATE_COUNT      = 6; // 현재 독립 후보 수, 패턴 10은 조건부 발동
+        private const int SELECTABLE_PATTERN_COUNT = 6;
 
         private const float MELEE_PARRY_WINDOW_DURATION = 0.32f; // 초, 패링 판정 창 길이
 
@@ -69,6 +71,19 @@ namespace Geumeum.AI
 
         // GGizmo.Line은 항상 1px라 얇으면 잘 안 보인다 - 십자로 살짝 오프셋한 선을 겹쳐 굵어 보이게 한다
         private const float ROTATING_BEAM_GIZMO_THICKNESS = 0.15f;
+
+        // 여우불 탄막(14) 전용 - 원래 1페이즈(12)에서 테스트하던 걸 그대로 옮기면서 한 번에
+        // 나가는 발 수만 3에서 6으로 늘려 2페이즈답게 더 빡빡하게 만들었다. MoveSpeed를
+        // "발사 간격(초)"으로, MoveDistance를 "총 난사 시간(초)"으로 재해석한다. 생존
+        // 플레이어 방향을 우선 겨냥한 뒤 모자란 만큼 무작위로 채운다. 넓은 부채꼴을 한 번에
+        // 훑으면 "제자리 지정 공격"처럼 느껴져서, 대신 구체가 사거리 끝까지 날아가는 동안
+        // 경로를 여러 지점으로 쪼개 순서대로 판정한다 - 실제로 지나가는 자리에 있어야 맞는다
+        private const int   BARRAGE_SHOTS_PER_VOLLEY     = 6;
+        private const float BARRAGE_BULLET_TRAVEL_TIME   = 1.2f; // 원점에서 사거리 끝까지 날아가는 시간(초) - 피할 반응 시간
+        private const int   BARRAGE_TRAVEL_SAMPLE_COUNT  = 4;    // 비행 경로를 몇 지점으로 쪼개 판정할지
+        private const float BARRAGE_AIM_JITTER_DEGREES   = 15f;  // 완전한 조준처럼 안 느껴지게 주는 무작위 흔들림
+        private const float BARRAGE_BULLET_GIZMO_RADIUS  = 0.3f; // 날아가는 구체 기즈모 반지름(m)
+        private const float BARRAGE_BULLET_HEIGHT        = 1f;   // Self.position이 발밑이라 그만큼 띄운다(m)
 
         /****************************************
         *                Fields
@@ -84,6 +99,7 @@ namespace Geumeum.AI
             MARKED_CIRCLE_PATTERN_ID,
             CONE_BURST_PATTERN_ID,
             ROTATING_BEAM_PATTERN_ID,
+            RANDOM_BARRAGE_PATTERN_ID,
         };
 
         private readonly BossPatternSelector.Candidate[] _candidatePatterns =
@@ -126,6 +142,12 @@ namespace Geumeum.AI
         private readonly float[] _activeImpactOffsets =
             new float[BossPatternExecutionSpec.MAX_REPEAT_COUNT];
         private int _repeatCountOverride;
+
+        // 여우불 탄막(RandomBarrage) 전용
+        private readonly Transform[] _barrageAliveTargets    = new Transform[Constants.Network.MAX_PLAYERS];
+        private readonly Vector3[]   _barrageDirections      = new Vector3[BARRAGE_SHOTS_PER_VOLLEY];
+        private readonly int[]       _barrageNextSampleIndex = new int[BARRAGE_SHOTS_PER_VOLLEY];
+        private int                  _barrageCycleIndex      = -1;
 
         /****************************************
         *              Constructor
@@ -274,6 +296,7 @@ namespace Geumeum.AI
             candidateCount = AddCandidate(candidateCount, MARKED_CIRCLE_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, CONE_BURST_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, ROTATING_BEAM_PATTERN_ID, distance);
+            candidateCount = AddCandidate(candidateCount, RANDOM_BARRAGE_PATTERN_ID, distance);
             return candidateCount;
         }
 
@@ -357,6 +380,11 @@ namespace Geumeum.AI
                 return PatternKind.RotatingBeam;
             }
 
+            if (patternId == RANDOM_BARRAGE_PATTERN_ID)
+            {
+                return PatternKind.RandomBarrage;
+            }
+
             if (patternId == CONE_BURST_PATTERN_ID)
             {
                 return PatternKind.ConeBurst;
@@ -391,7 +419,12 @@ namespace Geumeum.AI
                 // SO Template은 검증 통과용 ConeBurst라 ToKind가 못 잡는다, ID로 덮어쓴다
                 _activeKind = PatternKind.RotatingBeam;
             }
+            else if (pattern.PatternId == RANDOM_BARRAGE_PATTERN_ID)
+            {
+                _activeKind = PatternKind.RandomBarrage;
+            }
 
+            _barrageCycleIndex      = -1;
             _activeDamageMultiplier = _controller.ServerGetAttackDamageMultiplier();
             _previousPatternId      = pattern.PatternId;
             _activeParried          = false;
@@ -426,8 +459,9 @@ namespace Geumeum.AI
 
             SnapshotRepeatTargets();
 
-            // 여우불 광선은 360도로 돌아 고정된 부채꼴 장판이 방향을 오해시킨다 - 예고 장판을 안 띄운다
-            if (_activeKind != PatternKind.RotatingBeam)
+            // 여우불 광선은 360도로 돌아, 여우불 탄막은 매 발 방향이 바뀌어 고정된 부채꼴
+            // 장판이 방향을 오해시킨다 - 둘 다 예고 장판을 안 띄운다
+            if ((_activeKind != PatternKind.RotatingBeam) && (_activeKind != PatternKind.RandomBarrage))
             {
                 PublishRepeatTelegraphs();
             }
@@ -546,6 +580,12 @@ namespace Geumeum.AI
                 return;
             }
 
+            if (_activeKind == PatternKind.RandomBarrage)
+            {
+                TickRandomBarrage(deltaTime);
+                return;
+            }
+
             if (_activeKind == PatternKind.TargetedDash)
             {
                 Self.position = Vector3.MoveTowards(Self.position, _dashDestination,
@@ -654,6 +694,123 @@ namespace Geumeum.AI
             GGizmo.Line(GGizmoChannel.Monster, origin - right, end - right, Color.magenta);
             GGizmo.Line(GGizmoChannel.Monster, origin + up,    end + up,    Color.magenta);
             GGizmo.Line(GGizmoChannel.Monster, origin - up,    end - up,    Color.magenta);
+        }
+
+        // 여우불 탄막 전용 - ImpactOffsets 기반 반복 판정을 안 쓰고, MoveSpeed를 "발사
+        // 간격(초)"으로, MoveDistance를 "총 난사 시간(초)"으로 재해석한다. 매 간격마다
+        // BARRAGE_SHOTS_PER_VOLLEY발을 동시에 쏘는데, 각 발은 원점에서 사거리 끝까지
+        // BARRAGE_BULLET_TRAVEL_TIME 동안 날아가는 구체로 보여주고, 그 경로를
+        // BARRAGE_TRAVEL_SAMPLE_COUNT개 지점으로 쪼개 지나가는 순서대로 판정한다 -
+        // 사거리 전체를 한 번에 훑지 않고 실제로 지나는 자리에 있어야 맞는다.
+        // ImpactRadius는 탄환 하나의 판정 반경, Damage는 발당(정확히는 지점당) 피해량이다
+        private void TickRandomBarrage(float deltaTime)
+        {
+            _stateTimer += deltaTime;
+
+            float barrageElapsed = _stateTimer - _activePattern.TelegraphDuration;
+            if (barrageElapsed < 0f)
+            {
+                return; // 아직 예고 중, 난사 시작 전
+            }
+
+            float totalDuration   = _activeSpec.MoveDistance;
+            float volleyInterval  = _activeSpec.MoveSpeed;
+            int   cycleIndex      = Mathf.FloorToInt(barrageElapsed / volleyInterval);
+            float cycleStartTime  = cycleIndex * volleyInterval;
+
+            // 이미 시작된 발은 끝까지 날아가게 두고, 다음 발을 새로 시작하려는 시점에만
+            // 총 난사 시간을 넘었는지 확인한다 - 안 그러면 마지막 발이 도중에 끊긴다
+            if ((cycleIndex != _barrageCycleIndex) && (cycleStartTime >= totalDuration))
+            {
+                _controller.ServerNotifyPatternEnded(_activePattern.PatternId, _activeAttackInstanceId);
+                _stateTimer        = 0f;
+                _cooldownRemaining = _controller.ServerGetGlobalCadence(2);
+                _state             = AttackState.Recovery;
+                return;
+            }
+
+            float cycleElapsed = barrageElapsed - cycleStartTime;
+
+            if (cycleIndex != _barrageCycleIndex)
+            {
+                _barrageCycleIndex = cycleIndex;
+                for (int i = 0; i < BARRAGE_SHOTS_PER_VOLLEY; ++i)
+                {
+                    _barrageNextSampleIndex[i] = 0;
+                }
+
+                PickBarrageDirections();
+            }
+
+            Vector3 origin        = Self.position + (Vector3.up * BARRAGE_BULLET_HEIGHT);
+            float   travelRatio   = Mathf.Clamp01(cycleElapsed / BARRAGE_BULLET_TRAVEL_TIME);
+            uint    attackerNetId = (_selfIdentity != null) ? _selfIdentity.netId : 0u;
+            float   damage        = _activePattern.Damage * _activeDamageMultiplier;
+
+            for (int i = 0; i < BARRAGE_SHOTS_PER_VOLLEY; ++i)
+            {
+                Vector3 aimEnd = origin + (_barrageDirections[i] * _activeSpec.Range);
+
+                if (cycleElapsed < BARRAGE_BULLET_TRAVEL_TIME)
+                {
+                    // 실제 VFX가 붙기 전까지만 쓰는 확인용 시각화 - 에디터/개발 빌드에서만 그려진다
+                    Vector3 bulletPos = Vector3.Lerp(origin, aimEnd, travelRatio);
+                    GGizmo.Sphere(GGizmoChannel.Monster, bulletPos, BARRAGE_BULLET_GIZMO_RADIUS, Color.yellow);
+                }
+
+                // 이 발이 아직 안 지나간 다음 샘플 지점의 시각이 됐으면 그 자리를 판정한다
+                while (_barrageNextSampleIndex[i] < BARRAGE_TRAVEL_SAMPLE_COUNT)
+                {
+                    float sampleRatio = (float) (_barrageNextSampleIndex[i] + 1) / BARRAGE_TRAVEL_SAMPLE_COUNT;
+                    float sampleTime  = BARRAGE_BULLET_TRAVEL_TIME * sampleRatio;
+                    if (cycleElapsed < sampleTime)
+                    {
+                        break;
+                    }
+
+                    Vector3 samplePos = Vector3.Lerp(origin, aimEnd, sampleRatio);
+                    BossPatternRunner.ExecuteMeleeArc(
+                        samplePos,
+                        Vector3.forward,
+                        _activeSpec.ImpactRadius,
+                        360f,
+                        damage,
+                        attackerNetId,
+                        _playerLayerMask,
+                        _controller,
+                        HitStrength.Light);
+                    ++_barrageNextSampleIndex[i];
+                }
+            }
+        }
+
+        // 생존 플레이어 방향을 우선 겨냥해 허공에 낭비되는 발을 줄이고, 인원이 모자라면
+        // 무작위 방향으로 채운다. 완전한 조준으로 안 느껴지도록 약간의 흔들림을 더한다
+        private void PickBarrageDirections()
+        {
+            int aliveCount = _controller.ServerCollectAliveTargets(_barrageAliveTargets);
+            Vector3 origin = Self.position;
+
+            for (int i = 0; i < BARRAGE_SHOTS_PER_VOLLEY; ++i)
+            {
+                Vector3 baseDirection;
+                if (i < aliveCount)
+                {
+                    Vector3 toTarget = _barrageAliveTargets[i].position - origin;
+                    toTarget.y = 0f;
+                    baseDirection = (toTarget.sqrMagnitude > 0.0001f)
+                        ? toTarget.normalized
+                        : _lockedForward;
+                }
+                else
+                {
+                    float randomAngle = (float) (_random.NextDouble() * 360.0);
+                    baseDirection = Quaternion.AngleAxis(randomAngle, Vector3.up) * Vector3.forward;
+                }
+
+                float jitter = ((float) _random.NextDouble() - 0.5f) * 2f * BARRAGE_AIM_JITTER_DEGREES;
+                _barrageDirections[i] = Quaternion.AngleAxis(jitter, Vector3.up) * baseDirection;
+            }
         }
 
         private void ResolveImpact()

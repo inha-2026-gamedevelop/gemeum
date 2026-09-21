@@ -53,6 +53,28 @@ namespace Geumeum.AI
             return false;
         }
 
+        /// <summary>
+        /// 확인용 회전 빔 시각화 대상. directionBuffer에 현재 활성 빔들의 방향(공용 원점 기준)을
+        /// 채우고 개수를 돌려준다(2페이즈는 반대편 2줄기라 2개). 실제 VFX가 붙기 전까지만 쓴다.
+        /// GGizmo는 서버 틱마다만 다시 그려져 렌더 프레임 사이에 깜빡이므로, BossController가
+        /// 매 렌더 프레임(Update) 이 값을 읽어 실제 3D 오브젝트 위치를 갱신한다
+        /// </summary>
+        public virtual int GetDebugBeams(Vector3[] directionBuffer, out Vector3 origin, out float range)
+        {
+            origin = default;
+            range  = 0f;
+            return 0;
+        }
+
+        /// <summary>
+        /// 확인용 탄막 구체 시각화 대상. buffer에 현재 날아가고 있는 탄환들의 위치를 채우고
+        /// 개수를 돌려준다. GGizmo 깜빡임 문제는 위 GetDebugBeams와 같다
+        /// </summary>
+        public virtual int GetDebugBullets(Vector3[] buffer)
+        {
+            return 0;
+        }
+
         /// <summary> 페이즈를 종료한다. 종료된 상태는 다시 실행하지 않는다 </summary>
         public void Exit()
         {
