@@ -44,7 +44,8 @@ namespace Geumeum.UI.Editor
         // 캔버스 기준 해상도 1280x720과 같은 좌표계를 쓴다
         private const float BAR_WIDTH     = 540f;
         private const float BAR_HEIGHT    = 68f;
-        private const float BAR_TOP_GAP   = 16f;
+        // 짧게 빼면 바 색과 거의 같아 그라데이션이 보이지 않고 경계선처럼 읽힌다
+        private const float FADE_HEIGHT   = 90f;
         private const float BUTTON_WIDTH  = 150f;
         private const float BUTTON_HEIGHT = 44f;
         private const float BUTTON_GAP    = 170f;
@@ -224,11 +225,33 @@ namespace Geumeum.UI.Editor
             rect.anchorMax        = new Vector2(0.5f, 1f);
             rect.pivot            = new Vector2(0.5f, 1f);
             rect.sizeDelta        = new Vector2(BAR_WIDTH, BAR_HEIGHT);
-            rect.anchoredPosition = new Vector2(0f, -BAR_TOP_GAP);
+            rect.anchoredPosition = Vector2.zero;
 
             Image image = created.AddComponent<Image>();
             image.color = G_Surface;
+
+            CreateBottomFade(rect);
             return rect;
+        }
+
+        /// <summary> 바 아래에 같은 색을 깔고 아래로 가면서 투명해지게 해 화면과 이어 붙인다 </summary>
+        private static void CreateBottomFade(RectTransform bar)
+        {
+            GameObject created = CreateObject("BottomFade", bar);
+            RectTransform rect = created.GetComponent<RectTransform>();
+            rect.anchorMin        = new Vector2(0f, 0f);
+            rect.anchorMax        = new Vector2(1f, 0f);
+            rect.pivot            = new Vector2(0.5f, 1f);
+            rect.offsetMin        = new Vector2(0f, -FADE_HEIGHT);
+            rect.offsetMax        = new Vector2(0f, 0f);
+
+            Image image = created.AddComponent<Image>();
+            image.color         = G_Surface;
+            image.raycastTarget = false;
+
+            // FadeSide는 선언 순서와 명시값이 같아 그대로 index로 쓴다
+            UiEdgeFade fade = created.AddComponent<UiEdgeFade>();
+            SetEnum(fade, "_transparentSide", (int)UiEdgeFade.FadeSide.Bottom);
         }
 
         private static TMP_Text CreateText(string name, Transform parent, string content,
@@ -273,6 +296,20 @@ namespace Geumeum.UI.Editor
             CreateText("Label", rect, label, font, 22f, TextAlignmentOptions.Center,
                 new Vector2(BUTTON_WIDTH, BUTTON_HEIGHT), Vector2.zero, G_Text);
             return button;
+        }
+
+        private static void SetEnum(UnityEngine.Object target, string propertyName,
+            int value)
+        {
+            SerializedObject serialized = new SerializedObject(target);
+            SerializedProperty property = serialized.FindProperty(propertyName);
+            if (property == null)
+            {
+                throw new InvalidOperationException($"직렬화 field가 없다: {propertyName}");
+            }
+
+            property.enumValueIndex = value;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void SetReference(UnityEngine.Object target, string propertyName,

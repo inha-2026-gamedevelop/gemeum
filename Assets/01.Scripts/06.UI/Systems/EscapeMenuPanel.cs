@@ -32,9 +32,11 @@ namespace Geumeum.UI
         [SerializeField] private SettingsPanel _settingsPanel;
 
         [Header("슬라이드")]
-        [Tooltip("닫힌 상태에서 화면 밖으로 밀어 둘 거리. 위로 빼려면 y를 양수로 준다")]
-        [SerializeField] private Vector2 _hiddenOffset = new Vector2(0f, 120f);
-        [SerializeField, Min(0f)] private float _slideSeconds = 0.18f;
+        [Tooltip("닫힌 상태에서 화면 밖으로 밀어 둘 거리. 위로 빼려면 y를 양수로 준다. " +
+            "바 높이에 아래 그라데이션 길이까지 더한 값보다 커야 꼬리가 남지 않는다")]
+        [SerializeField] private Vector2 _hiddenOffset = new Vector2(0f, 170f);
+        [Tooltip("너무 짧으면 슬라이드가 보이지 않고 그냥 나타난 것처럼 읽힌다")]
+        [SerializeField, Min(0f)] private float _slideSeconds = 0.32f;
 
         // 씬에 꺼진 사본이 함께 있을 수 있어 살아 있는 것만 모아 둔다. Find로 씬을 훑지 않으려는 것이다
         private static readonly List<EscapeMenuPanel> G_Live = new List<EscapeMenuPanel>();
