@@ -999,16 +999,22 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 ├ Systems/   [구현완료] 인벤토리, 특성 트리, 객주 상점, 장비 양도, 정산 · 리더보드
 │  ├ FunctionalManagementPanel.cs · RunStatusPanel.cs · RunResultPanel.cs ·
 │  │  RunResultViewAdapter.cs · FunctionalUiIndexedButton.cs · FunctionalUiText.cs
-│  ├ RailRowVisual.cs      MB  레일 한 줄(박스 · 아이콘 · 글자 · 밑줄)의 활성 표시를 바꾼다.
-│  │                           페이지가 바뀌면 FunctionalManagementPanel이 줄마다 호출한다
-│  └ Editor/RunManagementUiBuilder.cs  위 화면을 SessionManagers 프리팹 안에 짓는 에디터 도구
+│  ├ EscapeMenuPanel.cs    MB  ESC로 여닫는 중앙 상단 가로 바. 배낭 · 특성 · 설정 입구만 맡는다.
+│  │                           ESC 입력을 단독으로 읽어 관리창 → 설정 → 메뉴 순으로 하나씩 닫는다
+│  ├ SettingsPanel.cs      MB  설정 창. 여닫기 골격만 있고 실제 항목은 아직 없다 [계획]
+│  ├ RailRowVisual.cs      MB  좌측 레일 한 줄(박스 · 아이콘 · 글자 · 밑줄)의 활성 표시를 바꾼다.
+│  │                           레일을 ESC 메뉴로 대체해 코드에서는 더 쓰지 않는다.
+│  │                           꺼 둔 _bak_ 레일 오브젝트가 아직 참조하므로 파일은 남겨 둔다
+│  ├ Editor/RunManagementUiBuilder.cs  위 화면을 SessionManagers 프리팹 안에 짓는 에디터 도구
+│  └ Editor/EscapeMenuUiBuilder.cs  레일을 _bak_로 꺼 두고 ESC 메뉴 · 설정 골격을
+│                              RunManagementUI 프리팹 안에 짓는 에디터 도구. 다시 돌려도 된다
 └ Art/       페이드 · 트랜지션, 연출성 UI
 ```
 
-> ⚠️ **`*UiBuilder` 두 개는 임시 개발용이다.** `SteamLobbyUiBuilder`와 `RunManagementUiBuilder`는
+> ⚠️ **`*UiBuilder` 세 개는 임시 개발용이다.** `SteamLobbyUiBuilder`와 `RunManagementUiBuilder`와 `EscapeMenuUiBuilder`는
 > `new GameObject`로 uGUI 계층을 만든다 — 아래 "씬·프리팹 우선" 규칙에 어긋난다.
 > 3인 접속을 당장 돌려 보려고 만든 것이고, **UI 담당(@kjw1237)이 만들 최종 화면은 이 방식이 아니다.**
-> 최종 UI가 들어오면 두 빌더와 그 산출물은 걷어낸다. 새 UI를 이 방식으로 만들지 않는다. [예정]
+> 최종 UI가 들어오면 세 빌더와 그 산출물은 걷어낸다. 새 UI를 이 방식으로 만들지 않는다. [예정]
 
 폴더는 화면이 참조하는 게임 상태의 출처를 기준으로 그대로 나눠 두되(코드가 어느 시스템의 SyncVar · 이벤트를 읽는지 한눈에 보이도록), 소유자는 폴더 구분과 무관하게 @kjw1237 한 명이다.
 
