@@ -261,7 +261,7 @@ MonoBehaviour:
     IsParryable: 0
     Template: 4
     Targeting: 0
-    Range: 8
+    Range: 16
     AngleDegrees: 18
     MoveSpeed: 4
     MoveDistance: 0
@@ -305,7 +305,7 @@ MonoBehaviour:
     IsParryable: 0
     Template: 4
     Targeting: 0
-    Range: 8
+    Range: 16
     AngleDegrees: 18
     MoveSpeed: 3
     MoveDistance: 0
