@@ -972,8 +972,12 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │                           GameDB.Boss의 MaxHealth · GroggyGaugeMax를 쓴다.
 │                           RunHUD.prefab(SessionManagers 안)의 루트에 배선했다 -
 │                           보스 바는 기본 비활성이라 바 위에 붙이면 스스로 켜지 못한다.
-│                           호스트 1인에서 표시, 체력 · 그로기 비율 갱신,
-│                           광폭화 예고 · 발동 문구, 보스 제거 시 숨김까지 확인했다.
+│                           그로기 저항이 차오를 때는 바로 대입하지 않고 1.5초에 걸쳐 따라간다 -
+│                           서버가 기상 순간 최대치를 한 번에 되돌리는 데다 그 프레임에 기상 패턴이
+│                           함께 시작돼 화면이 끊기므로, 한 프레임이 옮길 양에도 상한을 둔다.
+│                           깎이는 쪽은 타격 결과라 즉시 반영한다.
+│                           호스트 1인에서 표시, 체력 · 그로기 비율 갱신, 그로기 진입 시 빈 바와
+│                           기상 시 차오름, 광폭화 예고 · 발동 문구, 보스 제거 시 숨김까지 확인했다.
 │                           3인 접속(L3)은 아직 확인하지 못했다 [미검증]
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
