@@ -876,8 +876,15 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           _rangeMeters는 접힌 상태 200m다. 파티원 위치를 읽기 쉽게 2026-09-15에
 │     │                           400에서 줄였다. BarrierPhaseSO의 최대 반경(400)보다 작아서
 │     │                           결계 초반에는 결계 원이 미니맵 밖으로 나간다. 맵 배경, 회전은 아직 없다.
-│     │                           펼친 지도는 MinimapExpandToggle이 500m로 바꾼다
-│     ├ MinimapExpandToggle.cs   [구현완료] M키로 미니맵을 화면 정중앙에 펼쳤다 되돌린다.
+│     │                           펼친 지도는 MinimapExpandToggle이 500m로 바꾼다. 2026-09-21부터
+│     │                           접힌 지도는 화면에 나오지 않으므로 200m는 되돌릴 값으로만 쓰인다
+│     ├ MinimapExpandToggle.cs   [구현완료] Tab키로 지도를 화면 정중앙에 펼쳤다 되돌린다.
+│     │                           2026-09-21 기획 변경 - 평시에는 지도를 아예 숨기고 여는 키만 알린다.
+│     │                           접힌 상태 = 숨김이다. CanvasGroup 알파를 0으로 두고
+│     │                           MinimapPlayerDots를 꺼서 숨은 동안 점 · 결계를 그리지 않는다.
+│     │                           GameObject를 끄지 않는 이유는 이 컴포넌트가 여는 키를 계속 받아야 해서다.
+│     │                           접힌 동안 좌측 상단에 HUD_MapHint(키캡 Tab + 지도)를 띄운다 -
+│     │                           _closedHint에 넣은 오브젝트이고, 지도 바깥에 두어야 같이 숨지 않는다.
 │     │                           확대판을 따로 두지 않고 같은 MinimapPlayerDots의 배치 · 표시 반경 ·
 │     │                           점 크기만 바꾼다. 점과 결계를 두 벌 그리면 둘이 어긋날 수 있다.
 │     │                           접힌 모습은 Awake에서 씬 값을 받아 두고 접을 때 그대로 되돌린다 -
@@ -887,10 +894,11 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           관리 창이 열려 HUD 캔버스가 꺼지면 접고 키를 먹지 않는다.
 │     │                           지도 배경이 아직 없어 읽히게 하려고 검은 반투명 판을 임시로 깐다 -
 │     │                           Backdrop 오브젝트이고, 배경이 들어오면 지운다.
-│     │                           접힌 지도의 링 테두리는 펼치는 동안 숨긴다 - 크기가 안 맞고 시야를 가린다.
-│     │                           _compactOnly 배열에 넣은 Graphic을 끄는 방식이라 오브젝트는 남는다.
-│     │                           M 토글과 ESC 닫기를 실제 키 입력으로, 파티원 점 생성을
-│     │                           호스트 1인에서 확인했다. 3인에서 점이 캐릭터 색으로 갈리는지는 미확인
+│     │                           접힌 지도의 링 테두리를 숨기던 _compactOnly는 지웠다 -
+│     │                           접힌 상태가 숨김이 되어 할 일이 없어졌고, 링은 이제 펼친 지도의
+│     │                           테두리로 보인다. 원형 링과 사각 Backdrop이 어긋나는 것은 미해결이다.
+│     │                           Dev_HUD 플레이 모드에서 숨김 · 확대 · 복귀 · 안내 표시를 확인했다.
+│     │                           Tab 키 입력 경로와 3인 접속은 미확인
 │     ├ LockOnReticle.cs         [구현완료] 락온한 대상의 중앙에 흰 점을 띄운다.
 │     │                           LockOnController가 확정한 좌표를 화면 좌표로 옮겨 그리기만 하고
 │     │                           락온 판정에는 관여하지 않는다. 대상이 카메라 뒤로 가면 숨긴다.
