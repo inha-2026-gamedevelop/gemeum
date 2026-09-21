@@ -539,12 +539,10 @@ namespace Geumeum.AI
             _activeTargetNetId = _activeTarget.TryGetComponent(out NetworkIdentity targetIdentity)
                 ? targetIdentity.netId : 0u;
 
-            // 여우불 광선은 360도로 돌아, 여우불 탄막은 매 발 방향이 바뀌어 고정된 부채꼴
-            // 장판이 방향을 오해시킨다 - 둘 다 예고 장판을 안 띄운다
-            if ((_activeKind != PatternKind.RotatingBeam) && (_activeKind != PatternKind.RandomBarrage))
-            {
-                PublishRepeatTelegraphs();
-            }
+            // 여우불 광선은 360도로 돌고 여우불 탄막은 매 발 방향이 바뀌어 고정된 부채꼴
+            // 장판을 못 그리지만, 신호 자체는 그대로 보내 모션 트리거(BossAnimationView)가
+            // 돌게 한다 - 장판만 안 보이게 하는 건 BossTelegraphView 쪽 숨김 목록으로 처리한다
+            PublishRepeatTelegraphs();
 
             TryOpenParryWindow(pattern, _activeRepeatIndex);
         }
@@ -681,6 +679,9 @@ namespace Geumeum.AI
             float sweepDuration = _activeSpec.MoveSpeed;
             if (sweepElapsed >= sweepDuration)
             {
+                // 회전 시작 전 딱 한 번만 보낸 예고 신호를 여기서 닫는다 - 안 닫으면
+                // 동시 예고 목록에 계속 남아 다음 발동들이 상한에 걸린다
+                _controller.ServerCancelTelegraph(_activeAttackInstanceId);
                 _controller.ServerNotifyPatternEnded(_activePattern.PatternId, _activeAttackInstanceId);
                 _stateTimer        = 0f;
                 _cooldownRemaining = _controller.ServerGetGlobalCadence(1);
@@ -751,6 +752,9 @@ namespace Geumeum.AI
             // 총 난사 시간을 넘었는지 확인한다 - 안 그러면 마지막 발이 도중에 끊긴다
             if ((cycleIndex != _barrageCycleIndex) && (cycleStartTime >= totalDuration))
             {
+                // 난사 시작 전 딱 한 번만 보낸 예고 신호를 여기서 닫는다 - 안 닫으면
+                // 동시 예고 목록에 계속 남아 다음 발동들이 상한에 걸린다
+                _controller.ServerCancelTelegraph(_activeAttackInstanceId);
                 _controller.ServerNotifyPatternEnded(_activePattern.PatternId, _activeAttackInstanceId);
                 _stateTimer        = 0f;
                 _cooldownRemaining = _controller.ServerGetGlobalCadence(1);
