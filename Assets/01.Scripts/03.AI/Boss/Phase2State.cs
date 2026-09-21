@@ -43,6 +43,14 @@ namespace Geumeum.AI
             RandomBarrage, // ID로만 구분한다 - 위와 동일한 이유
         }
 
+        // 여우불 진(15) 슬롯 하나의 상태 - 일반 AttackState와 별개로 흐른다
+        private struct GroundZoneInstance
+        {
+            public bool  IsActive;
+            public int   LandmarkIndex;
+            public float Timer;
+        }
+
         /****************************************
         *              Constants
         ****************************************/
@@ -84,6 +92,30 @@ namespace Geumeum.AI
         private const float BARRAGE_AIM_JITTER_DEGREES   = 15f;  // 완전한 조준처럼 안 느껴지게 주는 무작위 흔들림
         private const float BARRAGE_BULLET_GIZMO_RADIUS  = 0.3f; // 날아가는 구체 기즈모 반지름(m)
         private const float BARRAGE_BULLET_HEIGHT        = 1f;   // Self.position이 발밑이라 그만큼 띄운다(m)
+
+        // 여우불 진(15) 전용 - 일반 선택기를 안 거치는 독립 배경 시스템이다. 보스가 다른 패턴을
+        // 진행하는 동안에도 계속 흐르며, 최대 GROUND_ZONE_MAX_CONCURRENT개까지 동시에 유지된다.
+        // TelegraphDuration을 "생성 전 경고 시간(초)"으로, ActiveDuration을 "생성 후 유지 시간(초)"으로,
+        // Cooldown을 "다음 장판 배치까지 대기 시간(초)"으로, Damage를 초당 피해량(DPS)으로,
+        // Range를 반경(m)으로 재해석한다. Template은 검증 통과용으로 ConeBurst(4)를 그대로 쓴다.
+        // Cooldown 수치는 아직 팀 확정치가 아니다 - SO 값만 바꾸면 되니 밸런싱 중 조정 예정
+        private const int GROUND_ZONE_PATTERN_ID     = 15;
+        private const int GROUND_ZONE_MAX_CONCURRENT = 2;
+
+        // 마당 돌무더기 4기 좌표(BOSS_DESIGN.md 14장) - "어디 근처"를 말로 지칭할 수 있는
+        // 비대칭 랜드마크라 이 지점들을 그대로 장판 후보 지점으로 재사용한다
+        private static readonly Vector3[] GROUND_ZONE_LANDMARKS =
+        {
+            new Vector3(-7.5f,  0f, 5.0f),   // 가 - 북서
+            new Vector3(10.7f,  0f, 2.5f),   // 나 - 동
+            new Vector3(8.0f,   0f, -10.25f), // 다 - 남동
+            new Vector3(-14.0f, 0f, -5.4f),  // 라 - 남서
+        };
+
+        // 최초 배치까지의 지연 - 2페이즈 진입 직후 바로 깔리면 다른 패턴과 몰려 보인다
+        private const float GROUND_ZONE_INITIAL_SPAWN_DELAY = 8f;
+
+        private const int GROUND_ZONE_GIZMO_SEGMENTS = 24; // 원 외곽선을 그릴 선분 수
 
         /****************************************
         *                Fields
@@ -149,6 +181,12 @@ namespace Geumeum.AI
         private readonly int[]       _barrageNextSampleIndex = new int[BARRAGE_SHOTS_PER_VOLLEY];
         private int                  _barrageCycleIndex      = -1;
 
+        // 여우불 진(GroundZone) 전용 - 일반 공격 상태 순환과 독립으로 흐른다
+        private readonly GroundZoneInstance[] _groundZones =
+            new GroundZoneInstance[GROUND_ZONE_MAX_CONCURRENT];
+        private readonly bool[] _groundZoneLandmarkOccupied = new bool[GROUND_ZONE_LANDMARKS.Length];
+        private float           _groundZoneSpawnCooldown    = GROUND_ZONE_INITIAL_SPAWN_DELAY;
+
         /****************************************
         *              Constructor
         ****************************************/
@@ -170,6 +208,9 @@ namespace Geumeum.AI
             {
                 return;
             }
+
+            // 일반 공격 상태 순환과 독립 - 보스가 다른 패턴을 진행 중이어도 계속 흐른다
+            TickGroundZones(deltaTime);
 
             TickPatternCooldowns(deltaTime);
             if (_cooldownRemaining > 0f)
@@ -810,6 +851,168 @@ namespace Geumeum.AI
 
                 float jitter = ((float) _random.NextDouble() - 0.5f) * 2f * BARRAGE_AIM_JITTER_DEGREES;
                 _barrageDirections[i] = Quaternion.AngleAxis(jitter, Vector3.up) * baseDirection;
+            }
+        }
+
+        // 여우불 진 전용 - 일반 선택기, BeginAttack/TickWindup 순환을 안 거친다. 이 패턴의
+        // PatternEntry는 스키마 계약(15개)을 채우기 위한 데이터 컨테이너로만 쓰이고, 필드는
+        // 위 상수 주석대로 재해석한다. Target이 없으면(전투 시작 전 등) 아무것도 하지 않는다
+        private void TickGroundZones(float deltaTime)
+        {
+            if (Target == null)
+            {
+                return;
+            }
+
+            if (!GameDB.Boss.TryGetPattern(GROUND_ZONE_PATTERN_ID, out BossPatternSO.PatternEntry zonePattern))
+            {
+                return;
+            }
+
+            float warningDuration = zonePattern.TelegraphDuration;
+            float activeDuration  = zonePattern.ActiveDuration;
+            float radius          = zonePattern.Range;
+            float dps             = zonePattern.Damage;
+            uint  attackerNetId   = (_selfIdentity != null) ? _selfIdentity.netId : 0u;
+
+            for (int i = 0; i < _groundZones.Length; ++i)
+            {
+                if (!_groundZones[i].IsActive)
+                {
+                    continue;
+                }
+
+                _groundZones[i].Timer += deltaTime;
+                float   timer    = _groundZones[i].Timer;
+                Vector3 position = GROUND_ZONE_LANDMARKS[_groundZones[i].LandmarkIndex];
+
+                if (timer < warningDuration)
+                {
+                    // 확인용 시각화 - 실제 VFX(SB_Energy_Release_Loop 등)가 붙기 전까지만 쓴다
+                    DrawGroundZoneGizmo(position, radius, Color.yellow);
+                    continue;
+                }
+
+                if (timer >= (warningDuration + activeDuration))
+                {
+                    _groundZones[i] = default;
+                    continue;
+                }
+
+                DrawGroundZoneGizmo(position, radius, new Color(1f, 0.4f, 0f));
+
+                // 틱마다 deltaTime만큼만 적용하는 지속 피해 - 주기적 타격이 아니라 서 있는 동안
+                // 계속 깎이는 느낌을 준다. 카메라 흔들림 스팸을 피하려고 Light를 쓴다
+                BossPatternRunner.ExecuteMeleeArc(
+                    position,
+                    Vector3.forward,
+                    radius,
+                    360f,
+                    dps * deltaTime,
+                    attackerNetId,
+                    _playerLayerMask,
+                    _controller,
+                    HitStrength.Light);
+            }
+
+            _groundZoneSpawnCooldown -= deltaTime;
+            if (_groundZoneSpawnCooldown > 0f)
+            {
+                return;
+            }
+
+            int freeSlot = FindFreeGroundZoneSlot();
+            if ((freeSlot < 0) || (!TryPickFreeGroundZoneLandmark(out int landmarkIndex)))
+            {
+                return;
+            }
+
+            _groundZones[freeSlot] = new GroundZoneInstance
+            {
+                IsActive      = true,
+                LandmarkIndex = landmarkIndex,
+                Timer         = 0f,
+            };
+            _groundZoneSpawnCooldown = zonePattern.Cooldown;
+        }
+
+        private int FindFreeGroundZoneSlot()
+        {
+            for (int i = 0; i < _groundZones.Length; ++i)
+            {
+                if (!_groundZones[i].IsActive)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        // 이미 장판이 깔린 랜드마크는 제외하고 나머지 중 무작위로 고른다 - 4기 중 최대
+        // GROUND_ZONE_MAX_CONCURRENT(2)기까지만 쓰이므로 항상 최소 2곳은 비어 있다
+        private bool TryPickFreeGroundZoneLandmark(out int landmarkIndex)
+        {
+            for (int i = 0; i < _groundZoneLandmarkOccupied.Length; ++i)
+            {
+                _groundZoneLandmarkOccupied[i] = false;
+            }
+
+            for (int i = 0; i < _groundZones.Length; ++i)
+            {
+                if (_groundZones[i].IsActive)
+                {
+                    _groundZoneLandmarkOccupied[_groundZones[i].LandmarkIndex] = true;
+                }
+            }
+
+            int freeCount = 0;
+            for (int i = 0; i < _groundZoneLandmarkOccupied.Length; ++i)
+            {
+                if (!_groundZoneLandmarkOccupied[i])
+                {
+                    ++freeCount;
+                }
+            }
+
+            if (freeCount <= 0)
+            {
+                landmarkIndex = -1;
+                return false;
+            }
+
+            int pickedFreeIndex = _random.Next(freeCount);
+            int seenFreeCount   = 0;
+            for (int i = 0; i < _groundZoneLandmarkOccupied.Length; ++i)
+            {
+                if (_groundZoneLandmarkOccupied[i])
+                {
+                    continue;
+                }
+
+                if (seenFreeCount == pickedFreeIndex)
+                {
+                    landmarkIndex = i;
+                    return true;
+                }
+
+                ++seenFreeCount;
+            }
+
+            landmarkIndex = -1;
+            return false;
+        }
+
+        // GGizmo에는 원 전용 그리기가 없어 선분을 이어 외곽선으로 표현한다
+        private static void DrawGroundZoneGizmo(Vector3 center, float radius, Color color)
+        {
+            Vector3 previous = center + (Vector3.forward * radius);
+            for (int i = 1; i <= GROUND_ZONE_GIZMO_SEGMENTS; ++i)
+            {
+                float angle = (360f / GROUND_ZONE_GIZMO_SEGMENTS) * i;
+                Vector3 next = center + (Quaternion.AngleAxis(angle, Vector3.up) * Vector3.forward * radius);
+                GGizmo.Line(GGizmoChannel.Monster, previous, next, color);
+                previous = next;
             }
         }
 

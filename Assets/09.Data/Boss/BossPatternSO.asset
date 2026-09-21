@@ -341,16 +341,16 @@ MonoBehaviour:
     IsConditional: 0
     SelectionWeight: 1
   - PatternId: 15
-    DisplayName: TBD_Phase2_New3
+    DisplayName: 여우불 진
     TelegraphDuration: 1
-    ActiveDuration: 1
+    ActiveDuration: 30
     Cooldown: 20
-    Damage: 1
+    Damage: 10
     IsParryable: 0
-    Template: 1
+    Template: 4
     Targeting: 0
-    Range: 3
-    AngleDegrees: 90
+    Range: 6
+    AngleDegrees: 360
     MoveSpeed: 0
     MoveDistance: 0
     ImpactRadius: 0
