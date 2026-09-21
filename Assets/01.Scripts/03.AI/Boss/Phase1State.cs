@@ -87,6 +87,10 @@ namespace Geumeum.AI
         private const float BARRAGE_BULLET_GIZMO_RADIUS  = 0.3f; // 날아가는 구체 기즈모 반지름(m)
         private const float BARRAGE_BULLET_HEIGHT        = 1f;   // Self.position이 발밑이라 그만큼 띄운다(m)
 
+        // 여우불 낙인(4) 전용 - VFX 원점이 지면에 살짝 묻혀서 그만큼 띄운다. 판정 반경(_markedCenter)은
+        // 그대로 두고 표현만 올린다
+        private const float MARKED_CIRCLE_VFX_HEIGHT_OFFSET = 0.1f;
+
         // 예고(TelegraphDuration) 앞 절반은 대상을 따라가고 뒤 절반은 방향을 확정한다
         // (BOSS_PATTERN_CONTRACT.md 11.2절 확정값). 완전 잠금이면 정지 표적을 지나쳐버리고,
         // 완전 추적이면 회피 창이 없어진다 - 그 절충
@@ -526,8 +530,10 @@ namespace Geumeum.AI
                 // 위치 확정 후 잠금 - 예고 중 대상이 움직여도 낙인 중심은 안 따라간다
                 _markedCenter = _activeTarget.position;
 
-                // 러프 VFX 연결(이슈 검증용) — 낙인은 예고 시작 시점에도 신호를 쏜다
-                _controller.ServerPlayPatternTelegraphVfx(BossPatternSO.PatternTemplate.MarkedCircle, _markedCenter, Vector3.forward);
+                // 러프 VFX 연결(이슈 검증용) - 낙인은 예고 시작 시점에도 신호를 쏜다.
+                // 판정 지점(_markedCenter)은 그대로 두고 VFX만 지면에 안 묻히게 살짝 띄운다
+                _controller.ServerPlayPatternTelegraphVfx(BossPatternSO.PatternTemplate.MarkedCircle,
+                    _markedCenter + (Vector3.up * MARKED_CIRCLE_VFX_HEIGHT_OFFSET), Vector3.forward);
             }
 
             _activeTargetNetId = _activeTarget.TryGetComponent(out NetworkIdentity targetIdentity)
@@ -861,8 +867,9 @@ namespace Geumeum.AI
 
             if (_activeKind == PatternKind.MarkedCircle)
             {
-                // 러프 VFX 연결(이슈 검증용)
-                _controller.ServerPlayPatternImpact(BossPatternSO.PatternTemplate.MarkedCircle, _markedCenter, Vector3.forward);
+                // 러프 VFX 연결(이슈 검증용) - 판정 원점(_markedCenter)은 그대로 두고 VFX만 띄운다
+                _controller.ServerPlayPatternImpact(BossPatternSO.PatternTemplate.MarkedCircle,
+                    _markedCenter + (Vector3.up * MARKED_CIRCLE_VFX_HEIGHT_OFFSET), Vector3.forward);
 
                 // 원점이 보스가 아니라 예고 시작 시점에 고정한 낙인 중심이다, 각도 제한도 없다
                 BossPatternRunner.ExecuteMeleeArc(
