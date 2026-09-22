@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: WM_Profile_Underworld
   m_EditorClassIdentifier: Assembly-CSharp::DigitalRuby.WeatherMaker.WeatherMakerFullScreenFogProfileScript
   FogMode: 4
-  FogDensity: 0.035
+  FogDensity: 0.032
   FogFactorMultiplier: 1
   FogStartDepth: 0
   FogEndDepth: 0
-  FogColor: {r: 0.039215688, g: 0.14117648, b: 0.13333334, a: 1}
-  FogEmissionColor: {r: 0, g: 0, b: 0, a: 1}
+  FogColor: {r: 0.24, g: 0.035, b: 0.055, a: 1}
+  FogEmissionColor: {r: 0.012, g: 0.001, b: 0.002, a: 1}
   FogGradientColor:
     serializedVersion: 2
     key0: {r: 1, g: 1, b: 1, a: 1}
@@ -110,11 +110,11 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   FogMinShadow: 0.4
-  MaxFogFactor: 1
-  FogNoiseScale: 0.01
+  MaxFogFactor: 0.64
+  FogNoiseScale: 0.055
   FogNoiseAdder: 0
-  FogNoiseMultiplier: 0
-  FogNoiseVelocity: {x: 0.01, y: 0.01, z: 0}
+  FogNoiseMultiplier: 0.55
+  FogNoiseVelocity: {x: 0.04, y: 0.008, z: 0.02}
   FogNoiseVelocityRotation: {x: 0, y: 0, z: 0, w: 0}
   WindEffectsFogNoiseVelocity: 0
   FogNoiseSampleCount: 40
@@ -132,7 +132,7 @@ MonoBehaviour:
   FogEdgeSmoothFactor: 0.25
   FogHeightFalloffPower: 0.75
   FogEdgeFalloffPower: 0.75
-  FogHeight: 0
+  FogHeight: 7
   ShadowMultiplierPower: 4
   SunShaftSampleCount: 0
   SunShaftSpread: 0.65

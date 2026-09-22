@@ -5,10 +5,13 @@ using UnityEngine.SceneManagement;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Dev;
+using Geumeum.AI;
+using Mirror;
+using Geumeum.Data;
 
 namespace Geumeum.Art
 {
-    /// <summary> 보스 아레나의 페이즈를 키로 바꾼다. 개발 확인용이고 게임 규칙에 관여하지 않는다 </summary>
+    /// <summary>보스 전투 페이즈를 서버에서 재시작한다. 오프라인에서는 배경만 미리 본다</summary>
     public class BossPhaseDebugSwitcher : MonoBehaviour
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
@@ -19,6 +22,7 @@ namespace Geumeum.Art
 
         private const string PANEL_ID    = "bossphase";
         private const string PANEL_TITLE = "보스 페이즈";
+        private string _message = string.Empty;
 
         [Header("대상")]
         [SerializeField] private BossArenaPhaseView _phaseView;
@@ -40,7 +44,7 @@ namespace Geumeum.Art
         ****************************************/
 
         /// <summary>
-        /// 씬에 배치하지 않아도 실행 시작에 스스로 붙는다.
+        /// 씬에 배치하지 않아도 실행 시작에 스스로 붙는다
         /// 보스 아레나는 런 도중에 로드되므로, 아레나 씬에 심어 두면 그 씬을 직접 열었을 때만 동작한다
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -70,7 +74,7 @@ namespace Geumeum.Art
         }
 
         /// <summary>
-        /// 아레나 뷰를 찾는다. 아직 없으면 조용히 넘긴다 - 보스 아레나 밖에서는 없는 게 정상이다.
+        /// 아레나 뷰를 찾는다. 아직 없으면 조용히 넘긴다 - 보스 아레나 밖에서는 없는 게 정상이다
         /// Find 계열이라 매 프레임 돌리지 않고 씬이 바뀔 때만 부른다
         /// </summary>
         private void ResolveView()
@@ -86,25 +90,20 @@ namespace Geumeum.Art
                 return;
             }
 
-            _phaseView.ShowPhase(_startPhase);
+            if (!NetworkClient.active && !NetworkServer.active) { _phaseView.ShowPhase(_startPhase); }
         }
 
         private void Update()
         {
-            if (_phaseView == null)
-            {
-                return;
-            }
-
             if (Input.GetKeyDown(_shrineKeyCode))
             {
-                _phaseView.ShowPhase(BossArenaPhase.Shrine);
+                ApplyPhase(1);
                 return;
             }
 
             if (Input.GetKeyDown(_underworldKeyCode))
             {
-                _phaseView.ShowPhase(BossArenaPhase.Underworld);
+                ApplyPhase(2);
                 return;
             }
 
@@ -113,46 +112,74 @@ namespace Geumeum.Art
                 return;
             }
 
-            bool isShrine = (_phaseView.CurrentPhase == BossArenaPhase.Shrine);
-            _phaseView.ShowPhase(isShrine ? BossArenaPhase.Underworld : BossArenaPhase.Shrine);
+            bool isShrine = (_phaseView == null || _phaseView.CurrentPhase == BossArenaPhase.Shrine);
+            ApplyPhase(isShrine ? 2 : 1);
         }
 
         /// <summary>
-        /// 페이즈 전환은 브라우저 개발 패널에서 누른다.
+        /// 페이즈 전환은 브라우저 개발 패널에서 누른다
         /// 화면 왼쪽 위 고정 라벨은 다른 개발 표시와 같은 자리를 써서 서로를 덮었다
         /// </summary>
         private void Build(DevPanelBuilder builder)
         {
-            if (_phaseView == null)
+            builder.Label("호스트: 실제 전투 페이즈 재시작 / 오프라인: 배경 미리보기");
+            builder.Label("전투 재시작 시 HP·부위·원혼을 초기화하며 해당 페이즈 시작 HP를 적용한다.");
+            var source = BossPhaseSourceLocator.Current;
+            if (source != null) { builder.Label($"전투 페이즈: {source.PhaseSnapshot.PhaseIndex} / {source.PhaseSnapshot.Stage}"); }
+            builder.Button("shrine", $"1페이즈 재시작 ({_shrineKeyCode})");
+            builder.Button("underworld", $"2페이즈 재시작 ({_underworldKeyCode})");
+            builder.Button("groggy", "그로기 / 꼬리 노출");
+            if (source != null && GameDB.IsInitialized &&
+                GameDB.Boss.TryGetPhase(source.PhaseSnapshot.PhaseIndex, out var phase) && phase.PatternIds != null)
             {
-                builder.Label("보스 아레나 밖이라 전환할 것이 없다");
-                return;
+                builder.Header("현재 페이즈 패턴 실행");
+                foreach (int id in phase.PatternIds)
+                {
+                    if (GameDB.Boss.TryGetPattern(id, out var pattern))
+                    { builder.Button("pattern." + id, pattern.DisplayName); }
+                }
             }
-
-            bool isShrine = (_phaseView.CurrentPhase == BossArenaPhase.Shrine);
-
-            builder.Label(isShrine ? "지금 1페이즈 산속 사당" : "지금 2페이즈 저승 물길");
-            builder.Button("shrine",     $"1페이즈로 ({_shrineKeyCode})");
-            builder.Button("underworld", $"2페이즈로 ({_underworldKeyCode})");
+            builder.Label(_message);
         }
 
         private void Handle(DevCommand command)
         {
-            if (_phaseView == null)
+            if (command.Control == "groggy" || command.Control.StartsWith("pattern.", System.StringComparison.Ordinal))
             {
+                if (!NetworkServer.active) { _message = "호스트 패널에서 실행한다."; return; }
+                BossController boss = FindAnyObjectByType<BossController>();
+                bool applied = boss != null && (command.Control == "groggy" ? boss.ServerDevEnterGroggy() :
+                    int.TryParse(command.Control.Substring(8), out int pattern) && boss.ServerDevBeginPattern(pattern));
+                _message = applied ? "보스 테스트 실행 완료" : "보스 / 대상 / 현재 전투 단계 조건을 확인한다.";
                 return;
             }
-
             if (command.Control == "shrine")
             {
-                _phaseView.ShowPhase(BossArenaPhase.Shrine);
+                ApplyPhase(1);
                 return;
             }
 
             if (command.Control == "underworld")
             {
-                _phaseView.ShowPhase(BossArenaPhase.Underworld);
+                ApplyPhase(2);
             }
+        }
+
+        private void ApplyPhase(int phase)
+        {
+            if (NetworkServer.active)
+            {
+                // 보스는 씬 로드 이후 네트워크 스폰된다. 버튼을 누를 때 현재 인스턴스를 찾는다
+                BossController boss = FindAnyObjectByType<BossController>();
+                _message = boss != null && boss.ServerDevRestartPhase(phase)
+                    ? $"{phase}페이즈 서버 적용 완료" : "살아 있는 보스가 없거나 일시정지 / 씬 전환 중이다.";
+                return;
+            }
+            if (NetworkClient.active) { _message = "실제 페이즈 변경은 호스트 패널에서 실행한다."; return; }
+            ResolveView();
+            if (_phaseView == null) { _message = "보스 아레나가 없다."; return; }
+            _phaseView.ShowPhase((BossArenaPhase)phase);
+            _message = $"{phase}페이즈 배경 미리보기 (오프라인)";
         }
 
 #endif
