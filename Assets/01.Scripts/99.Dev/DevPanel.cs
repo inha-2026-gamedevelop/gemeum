@@ -19,7 +19,7 @@ namespace Geumeum.Dev
     }
 
     /// <summary>
-    /// 조작 하나를 브라우저로 보낼 형태.
+    /// 조작 하나를 브라우저로 보낼 형태
     /// JsonUtility는 상속을 직렬화하지 못하므로 종류마다 클래스를 나누지 않고 한 형태에 다 담는다
     /// </summary>
     [Serializable]
@@ -52,13 +52,13 @@ namespace Geumeum.Dev
     public class DevSnapshotView
     {
         public string         product;
-        public string         role;    // 호스트 · 클라이언트처럼 이 프로세스가 무엇인지
+        public string         role;    // 호스트, 클라이언트처럼 이 프로세스가 무엇인지
         public int            revision;
         public DevPanelView[] panels;
     }
 
     /// <summary>
-    /// 패널이 자기 조작을 쌓는 곳.
+    /// 패널이 자기 조작을 쌓는 곳
     /// 각 개발 도구는 GUILayout을 부르는 대신 여기에 무엇이 있는지만 적는다 -
     /// 그리는 쪽이 게임 화면이 아니라 브라우저라 그리기 코드를 들고 있을 수 없다
     /// </summary>
@@ -136,7 +136,7 @@ namespace Geumeum.Dev
         }
 
         /// <summary>
-        /// 앞의 count줄만 보낸다.
+        /// 앞의 count줄만 보낸다
         /// 태그로 걸러 낸 줄을 담을 때 배열은 그대로 두고 채운 만큼만 쓰기 위한 것이다 -
         /// 스냅샷마다 배열을 새로 만들면 로그가 쌓일수록 GC가 돈다
         /// </summary>

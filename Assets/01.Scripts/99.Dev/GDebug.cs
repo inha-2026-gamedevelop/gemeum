@@ -21,7 +21,7 @@ namespace Geumeum.Dev
         Fail    = 2,
         Warn    = 3,
         Server  = 4, // 서버 판정 결과, 3인 테스트에서 누가 정했는지 구분하려고 나눈다
-        Boss    = 5, // 보스 페이즈·패턴·부위. 전투 로그에 묻히면 보스 흐름을 못 따라간다
+        Boss    = 5, // 보스 페이즈, 패턴, 부위. 전투 로그에 묻히면 보스 흐름을 못 따라간다
     }
 
     /// <summary> 화면 오른쪽에 뜨는 개발용 로그. 게임을 멈추지 않고 판정 결과를 본다 </summary>
@@ -31,7 +31,7 @@ namespace Geumeum.Dev
         *              Constants
         ****************************************/
 
-        // 예전에는 화면에 겹치지 않는 줄 수(18)에 묶여 있었다.
+        // 예전에는 화면에 겹치지 않는 줄 수(18)에 묶여 있었다
         // 지금은 브라우저 패널에서 스크롤해 보므로 3인 테스트 한 판을 담을 만큼 늘린다
         public const int MAX_LINES = 200;
 
@@ -49,7 +49,7 @@ namespace Geumeum.Dev
             public float    UnscaledTime; // 히트스톱이나 슬로우모션에 로그가 얼어붙지 않게 한다
             public int      Repeat;       // 같은 줄이 연달아 오면 늘린다
 
-            // 3인 테스트에서 서로의 로그를 맞춰 보려면 시계 시각이 있어야 한다.
+            // 3인 테스트에서 서로의 로그를 맞춰 보려면 시계 시각이 있어야 한다
             // UnscaledTime은 각 프로세스가 켜진 시점부터라 서로 비교가 안 된다
             public DateTime WallClock;
         }
@@ -122,8 +122,8 @@ namespace Geumeum.Dev
 
         /// <summary>
         /// 같은 내용을 Unity 콘솔에도 남긴다. 기본으로 켜 둔다 -
-        /// 빌드에서는 Player.log에 그대로 떨어져야 나중에 로그만 보고 원인을 좁힐 수 있다.
-        /// 화면 로그는 게임을 끄면 사라지고, 3인 테스트에서는 PC마다 따로 남는다.
+        /// 빌드에서는 Player.log에 그대로 떨어져야 나중에 로그만 보고 원인을 좁힐 수 있다
+        /// 화면 로그는 게임을 끄면 사라지고, 3인 테스트에서는 PC마다 따로 남는다
         /// 콘솔이 시끄러워 방해되면 개발 패널에서 이 값을 끈다
         /// </summary>
         public static bool MirrorToUnityConsole { get; set; } = true;
@@ -243,7 +243,7 @@ namespace Geumeum.Dev
 
             float now = Time.unscaledTime;
 
-            // 같은 줄이 연달아 오면 새로 쌓지 않고 횟수만 올린다.
+            // 같은 줄이 연달아 오면 새로 쌓지 않고 횟수만 올린다
             // 매 프레임 도는 자리에 로그를 걸어도 화면이 한 줄로 덮이지 않는다
             if (_count > 0)
             {
@@ -288,7 +288,7 @@ namespace Geumeum.Dev
             }
 
             // 종류를 심각도로 옮기지 않는다. GDebug의 Fail은 "패링이 빗나갔다"처럼
-            // 게임 안에서 일어난 결과이지 프로그램 오류가 아니다.
+            // 게임 안에서 일어난 결과이지 프로그램 오류가 아니다
             // 이것을 LogError로 올리면 진짜 에러가 전투 로그에 묻히고,
             // 테스트도 처리되지 않은 에러 로그로 보고 실패한다
             UnityEngine.Debug.Log($"[{kind}] {message}");

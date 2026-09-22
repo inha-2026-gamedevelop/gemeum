@@ -21,7 +21,7 @@ using Geumeum.UI;
 namespace Geumeum.Network
 {
     /// <summary> 명시적으로 지정한 JSON 큐의 제한된 M2 명령만 실행한다 </summary>
-    public sealed class VerificationCommandDriver : MonoBehaviour
+    public sealed partial class VerificationCommandDriver : MonoBehaviour
     {
         private const string PATH_ARGUMENT = "-verification-command-path";
         private const float POLL_INTERVAL = 0.25f;
@@ -78,6 +78,8 @@ namespace Geumeum.Network
         [Serializable]
         private sealed class VerificationSnapshot
         {
+            public bool lobbyBotFill;
+            public LobbySlot[] lobbySlots;
             public bool localPlayerBound;
             public bool managementPanelBound;
             public bool managementPanelVisible;
@@ -103,7 +105,9 @@ namespace Geumeum.Network
             public string graphicsDeviceType;
             public int activeCameraCount;
             public int activeOverlayCanvasCount;
+            public AbilityEnemySnapshot[] abilityEnemies;
             public BossVerificationSnapshot[] bosses;
+            public PlayerVerificationSnapshot[] players;
             public uint localPlayerNetId;
             public string interactionPromptText;
             public int localPlayerLifeState;
@@ -122,9 +126,17 @@ namespace Geumeum.Network
             public WeaponCombatSnapshot localPlayerEquippedWeapon;
             public int runPhase;
             public uint runId;
+            public int runScene;
+            public int transitionState;
+            public int resultPartyKind;
             public uint inventoryRevision;
             public int[] slotKinds;
             public int[] slotCounts;
+            public uint[] slotEquipmentIds;
+            public int[] slotWeapons;
+            public LootVerificationSnapshot[] drops;
+            public uint[] shopIds;
+            public string interactionDisplay;
             public uint talentRevision;
             public bool talentHasWeapon;
             public int talentWeapon;
@@ -139,6 +151,14 @@ namespace Geumeum.Network
             public bool resultHasAuthoritativeScore;
             public int resultScore;
             public string resultEvaluationMessage;
+        }
+
+        [Serializable]
+        private sealed class LootVerificationSnapshot
+        {
+            public uint netId;
+            public WeaponCombatSnapshot equipment;
+            public Vector3 position;
         }
 
         [Serializable]
@@ -395,9 +415,237 @@ namespace Geumeum.Network
             return response;
         }
 
+        private void PauseHitTest()
+        {
+            RunManager.ServerInstance?.ServerAddPauseReason(RunPauseReason.BossCinematic, "Hit reaction verification");
+        }
+
         private static bool ExecuteKnownVerb(FunctionalManagementPanel panel,
             VerificationCommand command, out string message)
         {
+            if (command.verb.StartsWith("ability_", StringComparison.Ordinal))
+            { return G_Instance.ExecuteAbilityVerification(command, out message); }
+            if (command.verb == "hit_test_overlap")
+            {
+                if (!NetworkServer.active || NetworkClient.localPlayer == null)
+                { message = "Server host required"; return false; }
+                Vector3 position = NetworkClient.localPlayer.transform.position;
+                foreach (var player in PlayerStatus.ServerPlayers)
+                {
+                    player.GetComponent<PlayerController>().ServerTeleport(position);
+                }
+
+                message = "Players placed at the same position"; return true;
+            }
+            if (command.verb == "hit_test_damage")
+            {
+                if (!NetworkServer.active || !NetworkServer.spawned.TryGetValue(command.uintValue, out var target) ||
+                    !target.TryGetComponent(out PlayerStatus status) || command.index <= 0)
+                { message = "Server player and positive damage required"; return false; }
+                status.TakeDamage(new DamageInfo(command.index, uint.MaxValue, HitStrength.Light));
+                if (command.secondaryIndex == 1) { G_Instance.Invoke(nameof(PauseHitTest), 0.08f); }
+                var attack = target.GetComponent<PlayerAttack>();
+                var rejection = attack.ServerRequestAttack((uint)command.commandId, Vector2.up, default);
+                message = $"reacting={status.IsHitReacting}, generation={status.HitReaction.Generation}, attack={rejection}";
+                return true;
+            }
+            if (command.verb == "loot_test_defeat")
+            {
+                if (!NetworkServer.active) { message = "서버 전용"; return false; }
+                int count = 0;
+                foreach (var enemy in UnityEngine.Object.FindObjectsByType<EnemyStatus>(FindObjectsInactive.Exclude))
+                {
+                    if (enemy.IsDead || count >= Mathf.Clamp(command.index, 1, 100)) { continue; }
+                    enemy.TakeDamage(DamageInfo.FromEnvironment(Mathf.CeilToInt(enemy.MaxHealth) + 1));
+                    ++count;
+                }
+                message = "실제 적 사망 처리=" + count; return count > 0;
+            }
+            if (command.verb == "loot_test_position")
+            {
+                if (!NetworkServer.active || !NetworkServer.spawned.TryGetValue(command.uintValue, out var destination))
+                { message = "서버 대상 없음"; return false; }
+                var actors = new List<PlayerStatus>(PlayerStatus.ServerPlayers);
+                actors.Sort((a,b) => a.netId.CompareTo(b.netId));
+                for (int i = 0; i < actors.Count; ++i)
+                {
+                    if (command.index >= 0 && command.index != i) { continue; }
+                    actors[i].GetComponent<PlayerController>().ServerTeleport(destination.transform.position + Vector3.back);
+                }
+                message = "검증 시작 위치 배치"; return true;
+            }
+            if (command.verb == "ui_test_supplies")
+            {
+                if (!NetworkServer.active || !NetworkServer.spawned.TryGetValue(command.uintValue, out var actor))
+                { message = "서버 대상 없음"; return false; }
+                var inventory = actor.GetComponent<InventoryController>();
+                if (inventory == null) { message = "배낭 없음"; return false; }
+                foreach (var kind in new[]{ShopItemKind.HealthPotion, ShopItemKind.RerollTicket, ShopItemKind.UpgradeTicket})
+                {
+                    inventory.ServerTryStoreConsumable(kind, 1, 3, 3, inventory.Revision);
+                }
+                UnityEngine.Object.FindAnyObjectByType<GrowthManager>().ServerTryAddExperience(1000);
+                UnityEngine.Object.FindAnyObjectByType<CurrencyManager>().TryCredit(5000);
+                message = "UI 테스트용 물약/티켓/경험치/노잣돈 지급 (몬스터 장비 드롭 검증과 별개)"; return true;
+            }
+            if (command.verb == "ui_test_open_shop_phase")
+            {
+                var run = RunManager.ServerInstance;
+                if (!NetworkServer.active || run == null || run.Phase != RunPhase.Farming)
+                { message = "파밍 서버 필요"; return false; }
+                typeof(RunManager).GetMethod("CommitPhase", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    .Invoke(run, new object[]{RunPhase.Shrink2});
+                message = "객주 UI 검증용 2차 축소 진입"; return true;
+            }
+            if (command.verb == "ui_layout")
+            {
+                var lines = new List<string>();
+                foreach (var button in UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsInactive.Exclude))
+                {
+                    var corners = new Vector3[4]; button.GetComponent<RectTransform>().GetWorldCorners(corners);
+                    lines.Add(button.name + ":" + button.interactable + ":" + ((corners[0]+corners[2])*.5f));
+                }
+                message = string.Join(";", lines); return true;
+            }
+            if (command.verb == "bot_inventory_request" || command.verb == "bot_inventory_probe")
+            {
+                var local = NetworkClient.localPlayer;
+                var reader = local == null ? null : local.GetComponent<InventoryController>();
+                var run = RunManager.LocalInstance;
+                var director = RunSceneDirector.LocalInstance;
+                if (reader == null || run == null || director == null) { message = "조회 실행기 없음"; return false; }
+                if (command.verb == "bot_inventory_request")
+                {
+                    reader.RequestBotInventory(command.uintValue, run.RunId.Value, director.Revision.Value);
+                    message = "봇 배낭 조회 요청"; return true;
+                }
+                bool available = reader.TryGetBotInventory(command.uintValue, run.RunId.Value, director.Revision.Value, out var bag);
+                int count = 0;
+                if (available) { foreach (var slot in bag.Slots) { count += slot.Count; } }
+                message = $"available={available}, bot={bag.BotNetId}, revision={bag.InventoryRevision}, count={count}, slots={bag.Slots?.Length ?? 0}";
+                return available;
+            }
+            if (command.verb == "bot_test_store_potion")
+            {
+                if (!NetworkServer.active || !NetworkServer.spawned.TryGetValue(command.uintValue, out var actor) ||
+                    !actor.TryGetComponent(out PlayerStatus bot) || bot.Participant.Kind != ParticipantKind.Bot)
+                { message = "서버 봇 아님"; return false; }
+                var inventory = actor.GetComponent<InventoryController>();
+                var result = inventory.ServerTryStoreConsumable(ShopItemKind.HealthPotion, 1, 3, 3, inventory.Revision);
+                message = result.ToString(); return result == InventoryResult.Success;
+            }
+            if (command.verb == "bot_test_group_enemy" || command.verb == "bot_test_group_boss")
+            {
+                if (!NetworkServer.active) { message = "서버 아님"; return false; }
+                Transform target = null;
+                foreach (var identity in NetworkServer.spawned.Values)
+                {
+                    if (identity == null) { continue; }
+                    if (command.verb == "bot_test_group_enemy" && identity.TryGetComponent(out EnemyStatus enemy) && !enemy.IsDead)
+                    { target = enemy.transform; break; }
+                    if (command.verb == "bot_test_group_boss" && identity.TryGetComponent(out BossStatus boss) && !boss.IsDead)
+                    { target = boss.transform; break; }
+                }
+                if (target == null) { message = "전투 대상 없음"; return false; }
+                foreach (var player in PlayerStatus.ServerPlayers)
+                {
+                    WeaponKind weapon = player.GetComponent<PlayerWeapon>().Weapon;
+                    float distance = weapon == WeaponKind.Sword ? 2f : weapon == WeaponKind.Bow ? 9f : 3f;
+                    float side = weapon == WeaponKind.Sword ? 0f : weapon == WeaponKind.Bow ? 2f : -2f;
+                    player.GetComponent<PlayerController>().ServerTeleport(target.position + new Vector3(side, 0f, -distance));
+                }
+                message = "전투 검증 시작 위치 배치"; return true;
+            }
+            if (string.Equals(command.verb, "bot_place_near_enemy", StringComparison.Ordinal))
+            {
+                if ((!NetworkServer.active) || (command.index <= 0) ||
+                    (!NetworkServer.spawned.TryGetValue(command.uintValue, out NetworkIdentity bot)) ||
+                    (!bot.TryGetComponent(out PlayerStatus status)) ||
+                    (status.Participant.Kind != ParticipantKind.Bot))
+                { message = "서버 봇 대상이 필요하다"; return false; }
+                foreach (EnemyStatus enemy in UnityEngine.Object.FindObjectsByType<EnemyStatus>(FindObjectsInactive.Exclude))
+                {
+                    if (enemy.IsDead) { continue; }
+                    Vector3 position = enemy.transform.position - Vector3.forward * command.index;
+                    bot.GetComponent<PlayerController>().ServerTeleport(position);
+                    message = $"bot={bot.netId}, enemy={enemy.netId}, enemyHealth={enemy.Health}, position={position}";
+                    return true;
+                }
+                message = "살아 있는 잡귀가 없다"; return false;
+            }
+            if (string.Equals(command.verb, "host_offset", StringComparison.Ordinal))
+            {
+                if ((!NetworkServer.active) || (NetworkClient.localPlayer == null))
+                { message = "호스트 전용"; return false; }
+                PlayerController player = NetworkClient.localPlayer.GetComponent<PlayerController>();
+                player.ServerTeleport(player.transform.position + new Vector3(command.index, 0f, command.secondaryIndex));
+                message = "호스트 이동 목표 배치"; return true;
+            }
+            if (string.Equals(command.verb, "brain_pause", StringComparison.Ordinal))
+            {
+                RunManager run = RunManager.ServerInstance;
+                if ((!NetworkServer.active) || (run == null)) { message = "서버 런이 없다"; return false; }
+                bool changed = (command.index != 0)
+                    ? run.ServerAddPauseReason(RunPauseReason.BossCinematic, "BT verification")
+                    : run.ServerClearPauseReason(RunPauseReason.BossCinematic);
+                message = $"pause={run.IsPaused}"; return changed;
+            }
+            if (string.Equals(command.verb, "bot_damage", StringComparison.Ordinal) ||
+                string.Equals(command.verb, "bot_heal", StringComparison.Ordinal))
+            {
+                if ((!NetworkServer.active) ||
+                    (!NetworkServer.spawned.TryGetValue(command.uintValue, out NetworkIdentity bot)) ||
+                    (!bot.TryGetComponent(out PlayerStatus status)) ||
+                    (status.Participant.Kind != ParticipantKind.Bot) || (command.index <= 0))
+                {
+                    message = "서버 봇 대상 또는 수치가 유효하지 않다";
+                    return false;
+                }
+
+                float before = status.Health;
+                if (command.verb == "bot_damage")
+                {
+                    status.TakeDamage(DamageInfo.FromEnvironment(command.index));
+                }
+                else
+                {
+                    status.TryRestoreHealth(command.index);
+                }
+
+                message = $"bot={bot.netId}, health={before}->{status.Health}";
+                return !Mathf.Approximately(before, status.Health);
+            }
+
+            if (string.Equals(command.verb, "bot_spawn", StringComparison.Ordinal))
+            {
+                NetworkIdentity host = NetworkClient.localPlayer;
+                NetworkManager manager = NetworkManager.singleton;
+                if ((!NetworkServer.active) || (host == null) || (manager == null))
+                {
+                    message = "서버 호스트에서만 봇을 생성할 수 있다";
+                    return false;
+                }
+
+                bool spawned = PlayerBotSpawner.TrySpawn(manager.playerPrefab,
+                    host.transform.position + host.transform.right * 2f,
+                    host.transform.rotation, (WeaponKind)command.index,
+                    (CharacterKind)command.secondaryIndex, out NetworkIdentity bot);
+                message = spawned
+                    ? $"bot={bot.netId}, participant={bot.GetComponent<PlayerStatus>().Participant}, owner={(bot.connectionToClient == null ? "none" : "connected")}, role={bot.GetComponent<PlayerRunAgent>().HasRole}"
+                    : "봇 생성 거부";
+                return spawned;
+            }
+
+            if (string.Equals(command.verb, "bot_despawn", StringComparison.Ordinal))
+            {
+                bool removed = NetworkServer.active &&
+                    NetworkServer.spawned.TryGetValue(command.uintValue, out NetworkIdentity bot) &&
+                    bot.TryGetComponent(out PlayerStatus status) &&
+                    PlayerBotSpawner.TryDespawn(status.Participant);
+                message = removed ? "봇 제거" : "봇 제거 거부";
+                return removed;
+            }
+
             if (string.Equals(command.verb, "attack_request", StringComparison.Ordinal))
             {
                 PlayerAttack attack = (NetworkClient.localPlayer == null) ? null
@@ -431,6 +679,72 @@ namespace Geumeum.Network
                 return true;
             }
 
+            if (string.Equals(command.verb, "lobby_bot_fill", StringComparison.Ordinal))
+            {
+                LobbyController lobby = FindClientLobbyController();
+                bool accepted = lobby != null && lobby.RequestBotFill(command.index != 0);
+                message = accepted ? "봇 충원 요청 전송" : "호스트 로비 없음";
+                return accepted;
+            }
+
+            if (string.Equals(command.verb, "bot_test_transition", StringComparison.Ordinal))
+            {
+                bool accepted = NetworkServer.active && RunSceneDirector.ServerInstance != null &&
+                    RunSceneDirector.ServerInstance.ServerBeginTransition((RunSceneId)command.index);
+                message = accepted ? "씬 전환 시작" : "씬 전환 거절";
+                return accepted;
+            }
+            if (string.Equals(command.verb, "bot_test_gate", StringComparison.Ordinal))
+            {
+                bool accepted = NetworkServer.active && RunManager.ServerInstance != null &&
+                    RunManager.ServerInstance.ServerTryStartBossEntranceCountdown(NetworkServer.localConnection);
+                message = accepted ? "실제 보스 입구 카운트다운" : "입구 거절"; return accepted;
+            }
+            if (string.Equals(command.verb, "bot_test_player_damage", StringComparison.Ordinal))
+            {
+                if (!NetworkServer.active || !NetworkServer.spawned.TryGetValue(command.uintValue, out NetworkIdentity actor) ||
+                    !actor.TryGetComponent(out PlayerStatus status)) { message = "대상 없음"; return false; }
+                status.TakeDamage(DamageInfo.FromEnvironment(command.index)); message = "플레이어 피해 적용"; return true;
+            }
+            if (string.Equals(command.verb, "bot_test_spirit", StringComparison.Ordinal))
+            {
+                if (!NetworkServer.active) { message = "서버 아님"; return false; }
+                foreach (PlayerStatus actor in PlayerStatus.ServerPlayers) { actor.ServerAddSpirit(command.index); }
+                message = "테스트 신력 지급"; return true;
+            }
+            if (string.Equals(command.verb, "bot_test_boss_damage", StringComparison.Ordinal))
+            {
+                if (!NetworkServer.active) { message = "서버 아님"; return false; }
+                foreach (var identity in NetworkServer.spawned.Values)
+                {
+                    if (identity != null && identity.TryGetComponent(out BossStatus boss))
+                    { boss.TakeDamage(DamageInfo.FromEnvironment(command.index)); message = "보스 단계 테스트 피해"; return true; }
+                }
+                message = "보스 없음"; return false;
+            }
+            if (string.Equals(command.verb, "bot_test_soul_window", StringComparison.Ordinal))
+            {
+                if (!NetworkServer.active) { message = "서버 아님"; return false; }
+                foreach (var identity in NetworkServer.spawned.Values)
+                {
+                    if (identity != null && identity.TryGetComponent(out BossSoulController souls))
+                    { souls.ServerBeginFinal(RunTimeLocator.Current.GameplayElapsedSeconds); message = "원혼 단계 QA 시작"; return true; }
+                }
+                message = "보스 없음"; return false;
+            }
+            if (string.Equals(command.verb, "bot_test_finish", StringComparison.Ordinal))
+            {
+                bool accepted = NetworkServer.active && RunManager.ServerInstance != null &&
+                    RunManager.ServerInstance.TryFinishRun((RunOutcome)command.index);
+                message = accepted ? "런 종료 요청" : "런 종료 거절";
+                return accepted;
+            }
+            if (string.Equals(command.verb, "bot_test_return", StringComparison.Ordinal))
+            {
+                if (!NetworkServer.active || RunManager.ServerInstance == null) { message = "서버 없음"; return false; }
+                RunManager.ServerInstance.ServerReturnToLobby(); message = "로비 복귀 요청"; return true;
+            }
+
             if (string.Equals(command.verb, "lobby_select_character",
                     StringComparison.Ordinal) ||
                 string.Equals(command.verb, "lobby_ready", StringComparison.Ordinal))
@@ -451,6 +765,9 @@ namespace Geumeum.Network
                     break;
                 case "ui_open_inventory":
                     panel.OpenInventory();
+                    break;
+                case "ui_open_transfer":
+                    panel.OpenTransfer();
                     break;
                 case "ui_open_talents":
                     panel.OpenTalents();
@@ -898,6 +1215,47 @@ namespace Geumeum.Network
             }
         }
 
+        [Serializable]
+        private sealed class PlayerVerificationSnapshot
+        {
+            public WeaponAbilityMark wedge, echoFirst, echoSecond;
+            public bool recalling;
+            public float echoCooldown;
+            public byte counterMarks;
+            public Vector2 actionFacing;
+            public bool actionFacingActive;
+            public float skillCooldown;
+            public bool skillActive;
+            public double bellFieldEnd;
+            public Vector3 bellFieldPoint;
+            public float bellFieldRadius, fieldBuffMultiplier;
+            public double fieldBuffExpiry;
+            public bool placementActive, placementPending, talentBlocked;
+            public uint netId;
+            public float health;
+            public bool hitReacting;
+            public PlayerHitReactionCue hitReaction;
+            public double gameplayTime;
+            public int animatorState;
+            public bool animatorTransition;
+            public bool hasRole;
+            public string participant;
+            public int weapon;
+            public bool owned;
+            public float stamina;
+            public float spirit;
+            public Vector3 position;
+            public string brainNode;
+            public string brainGraph;
+            public bool brainCatchUp;
+            public uint brainGeneration;
+            public uint brainTarget;
+            public int brainAttacks;
+            public int brainRolls, brainParryAttempts, brainHeals, brainRescues, brainPrecision;
+            public int pathFailures;
+            public ActionRejection brainRejection;
+        }
+
         private static VerificationSnapshot CaptureSnapshot()
         {
             var snapshot = new VerificationSnapshot
@@ -918,6 +1276,77 @@ namespace Geumeum.Network
                 graphicsDeviceType = SystemInfo.graphicsDeviceType.ToString(),
                 resultEvaluationMessage = string.Empty,
             };
+            LobbyController lobby = NetworkServer.active ? LobbyController.ServerInstance : FindClientLobbyController();
+            LobbyRoster roster = lobby == null ? null : lobby.GetComponent<LobbyRoster>();
+            snapshot.lobbyBotFill = lobby != null && lobby.FillWithBots;
+            snapshot.lobbySlots = roster == null ? Array.Empty<LobbySlot>() : new LobbySlot[roster.SlotCount];
+            if (roster != null)
+            {
+                for (int i = 0; i < roster.SlotCount; ++i)
+                {
+                    snapshot.lobbySlots[i] = roster.GetSlot(i);
+                }
+            }
+
+            EnemyStatus[] enemies = UnityEngine.Object.FindObjectsByType<EnemyStatus>(FindObjectsInactive.Exclude);
+            snapshot.abilityEnemies = new AbilityEnemySnapshot[enemies.Length];
+            for (int i = 0; i < enemies.Length; ++i)
+            { snapshot.abilityEnemies[i] = new AbilityEnemySnapshot { netId = enemies[i].netId, health = enemies[i].Health, position = enemies[i].transform.position }; }
+            PlayerStatus[] players = UnityEngine.Object.FindObjectsByType<PlayerStatus>(
+                FindObjectsInactive.Exclude);
+            snapshot.players = new PlayerVerificationSnapshot[players.Length];
+            for (int i = 0; i < players.Length; ++i)
+            {
+                PlayerStatus player = players[i];
+                PlayerRunAgent agent = player.GetComponent<PlayerRunAgent>();
+                PlayerBrain brain = player.GetComponent<PlayerController>()?.ServerBrain;
+                snapshot.players[i] = new PlayerVerificationSnapshot
+                {
+                    wedge = player.GetComponent<PlayerAttack>().Wedge,
+                    echoFirst = player.GetComponent<PlayerAttack>().EchoFirst,
+                    echoSecond = player.GetComponent<PlayerAttack>().EchoSecond,
+                    recalling = player.GetComponent<PlayerAttack>().IsRecalling,
+                    echoCooldown = player.GetComponent<PlayerAttack>().EchoCooldownRemaining,
+                    counterMarks = player.GetComponent<PlayerAttack>().CounterMarks,
+                    actionFacing = player.GetComponent<PlayerAttack>().ActionFacing,
+                    actionFacingActive = player.GetComponent<PlayerAttack>().UsesActionFacing,
+                    skillCooldown = player.GetComponent<PlayerAttack>().WeaponSkillCooldownRemaining,
+                    skillActive = player.GetComponent<PlayerAttack>().IsWeaponSkillActive,
+                    bellFieldEnd = player.GetComponent<PlayerAttack>().BellFieldEnd,
+                    bellFieldPoint = player.GetComponent<PlayerAttack>().BellFieldPoint,
+                    bellFieldRadius = player.GetComponent<PlayerAttack>().BellFieldRadius,
+                    fieldBuffMultiplier = player.GetComponent<SupportBuffController>()?.ActiveDamageMultiplier ?? 1f,
+                    fieldBuffExpiry = player.GetComponent<SupportBuffController>()?.ActiveExpiryGameplayTime ?? 0,
+                    placementActive = player.GetComponent<PlayerAttack>().IsPlacingField,
+                    placementPending = player.GetComponent<PlayerAttack>().IsPlacementPending,
+                    talentBlocked = player.GetComponent<PlayerAttack>().BlocksTalentMutation,
+                    netId = player.netId, health = player.Health,
+                    hitReacting = player.IsHitReacting,
+                    hitReaction = player.HitReaction,
+                    gameplayTime = RunTimeLocator.Current.GameplayElapsedSeconds,
+                    animatorState = player.GetComponentInChildren<Animator>()?.GetCurrentAnimatorStateInfo(0).shortNameHash ?? 0,
+                    animatorTransition = player.GetComponentInChildren<Animator>()?.IsInTransition(0) ?? false,
+                    hasRole = (agent != null) && agent.HasRole,
+                    participant = player.Participant.ToString(),
+                    weapon = (int)player.GetComponent<PlayerWeapon>().Weapon,
+                    owned = player.connectionToClient != null,
+                    stamina = player.Stamina, spirit = player.Spirit,
+                    position = player.transform.position,
+                    brainNode = brain?.ActiveNode,
+                    brainCatchUp = brain?.IsCatchUpSprinting ?? false,
+                    brainGraph = brain?.BehaviorGraph != null ? brain.BehaviorGraph.name : null,
+                    brainGeneration = brain?.Generation ?? 0u,
+                    brainTarget = brain?.TargetNetId ?? 0u,
+                    brainAttacks = brain?.AcceptedAttacks ?? 0,
+                    brainRolls = brain?.AcceptedRolls ?? 0,
+                    brainParryAttempts = brain?.ParryAttempts ?? 0,
+                    brainHeals = brain?.AcceptedHeals ?? 0,
+                    brainRescues = brain?.StartedRescues ?? 0,
+                    brainPrecision = brain?.AcceptedPrecision ?? 0,
+                    pathFailures = brain?.PathFailures ?? 0,
+                    brainRejection = brain?.LastRejection ?? ActionRejection.None,
+                };
+            }
 
             Camera[] cameras = UnityEngine.Object.FindObjectsByType<Camera>(
                 FindObjectsInactive.Exclude);
@@ -987,7 +1416,11 @@ namespace Geumeum.Network
             {
                 snapshot.runPhase = (int)run.Phase;
                 snapshot.runId = run.RunId.Value;
+                RunSceneDirector director = RunSceneDirector.ServerInstance != null ? RunSceneDirector.ServerInstance : RunSceneDirector.LocalInstance;
+                snapshot.runScene = director == null ? 0 : (int)director.CurrentScene;
+                snapshot.transitionState = director == null ? 0 : (int)director.State;
                 RunResultSnapshot result = run.Result;
+                snapshot.resultPartyKind = (int)result.PartyKind;
                 snapshot.resultOutcome = (int)result.Outcome;
                 snapshot.resultRevision = result.ResultRevision;
                 snapshot.resultHasAuthoritativeFacts = result.HasAuthoritativeFacts;
@@ -1005,6 +1438,17 @@ namespace Geumeum.Network
             snapshot.localPlayerNetId = localPlayer.netId;
             InteractionController interaction = localPlayer.GetComponent<InteractionController>();
             snapshot.interactionPromptText = (interaction == null) ? null : interaction.PromptText;
+            var loot = new List<LootVerificationSnapshot>();
+            var shops = new List<uint>();
+            foreach (var identity in NetworkClient.spawned.Values)
+            {
+                if (identity.TryGetComponent(out DroppedItem drop))
+                { loot.Add(new LootVerificationSnapshot { netId = identity.netId, equipment = drop.Equipment, position = identity.transform.position }); }
+                if (identity.GetComponent<ShopInteractionPoint>() != null) { shops.Add(identity.netId); }
+            }
+            snapshot.drops = loot.ToArray(); snapshot.shopIds = shops.ToArray();
+            var prompt = UnityEngine.Object.FindAnyObjectByType<InteractionPromptView>();
+            snapshot.interactionDisplay = prompt == null ? null : prompt.DisplayText;
             PlayerStatus status = localPlayer.GetComponent<PlayerStatus>();
             if (status != null)
             {
@@ -1041,10 +1485,14 @@ namespace Geumeum.Network
                     snapshot.inventoryRevision = revision;
                     snapshot.slotKinds = new int[slots.Length];
                     snapshot.slotCounts = new int[slots.Length];
+                    snapshot.slotEquipmentIds = new uint[slots.Length];
+                    snapshot.slotWeapons = new int[slots.Length];
                     for (int i = 0; i < slots.Length; ++i)
                     {
                         snapshot.slotKinds[i] = (int)slots[i].Kind;
                         snapshot.slotCounts[i] = slots[i].Count;
+                        snapshot.slotEquipmentIds[i] = slots[i].Equipment.InstanceId;
+                        snapshot.slotWeapons[i] = (int)slots[i].Equipment.WeaponKind;
                     }
                 }
             }

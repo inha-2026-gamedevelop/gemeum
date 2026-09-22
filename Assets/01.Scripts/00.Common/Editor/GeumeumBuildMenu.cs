@@ -1,4 +1,5 @@
 // System
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -9,10 +10,13 @@ using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
+// 프로젝트 내부
+using Geumeum.Network;
+
 namespace Geumeum.EditorTools
 {
     /// <summary>
-    /// 툴바의 그믐, 빌드 메뉴. 빌드 옵션을 사람마다 다르게 잡지 않도록 한 곳에 고정한다.
+    /// 툴바의 그믐, 빌드 메뉴. 빌드 옵션을 사람마다 다르게 잡지 않도록 한 곳에 고정한다
     /// 개발 빌드에만 DEVELOPMENT_BUILD가 정의되어 FrameRecorder 같은 측정 도구가 함께 들어간다
     /// </summary>
     public static class GeumeumBuildMenu
@@ -30,20 +34,33 @@ namespace Geumeum.EditorTools
         private const string RELEASE_DIR     = "Release";
         private const string EXECUTABLE_NAME = "gemeum.exe";
 
-        // 3인 테스트 실행 스크립트. 빌드 폴더째로 팀원에게 전달해도 바로 접속할 수 있게 통째로 넣는다.
-        // 목록을 두지 않고 폴더째 넣는 이유는, 스크립트를 새로 만들 때마다 여기를 고치는 것을 잊으면
-        // 빌드에만 빠진 채로 전달되어 원인을 찾기 어렵기 때문이다.
+        // 실행에 필요한 스크립트만 복사한다. tools의 제작용 소스, 의존성은 빌드에 넣지 않는다
         // 릴리스에는 넣지 않는다 - 실행 인자로 자동 접속하는 경로는 개발 빌드에만 있다
         private const string TOOLS_DIR = "tools";
+        private static readonly string[] DEVELOPMENT_TOOLS =
+        {
+            "run-3clients.ps1", "run-client.bat", "run-host.bat",
+            "run-steam-client.bat", "run-steam-host.bat", "run-steam-lobby.bat",
+            "show-steam-client-result.ps1", "show-steam-host-id.ps1",
+        };
 
-        // SteamAPI.Init은 exe 옆의 이 파일에서 AppID를 읽는다. 없으면 Steam 경로가 초기화에서 막힌다.
+        // SteamAPI.Init은 exe 옆의 이 파일에서 AppID를 읽는다. 없으면 Steam 경로가 초기화에서 막힌다
         // tools가 아니라 프로젝트 루트에 있어 따로 복사한다. 릴리스에는 넣지 않는다 - 실제 AppID로 출시하면 불필요하다
         private const string STEAM_APPID_FILE = "steam_appid.txt";
 
-        private const int ORDER_DEVELOPMENT = 0;
-        private const int ORDER_RELEASE     = 1;
-        private const int ORDER_OPEN_BUILD  = 20;
-        private const int ORDER_OPEN_LOG    = 21;
+        // 로비와 인증에서 사용하는 빌드 정보를 패키징 manifest와 대조한다
+        private const string DATA_DIR_SUFFIX   = "_Data";
+        private const string STREAMING_DIR     = "StreamingAssets";
+        private const string RELEASE_ID_PREFIX = "win64";
+
+        private const string MENU_ALLOW_MISMATCH  = MENU_BUILD + "에디터 빌드 불일치 허용";
+        private const string PREF_ALLOW_MISMATCH  = "Geumeum.AllowBuildMismatch";
+
+        private const int ORDER_DEVELOPMENT    = 0;
+        private const int ORDER_RELEASE        = 1;
+        private const int ORDER_ALLOW_MISMATCH = 10;
+        private const int ORDER_OPEN_BUILD     = 20;
+        private const int ORDER_OPEN_LOG       = 21;
 
         private const BuildTarget      BUILD_TARGET       = BuildTarget.StandaloneWindows64;
         private const BuildTargetGroup BUILD_TARGET_GROUP = BuildTargetGroup.Standalone;
@@ -63,6 +80,29 @@ namespace Geumeum.EditorTools
         private static void BuildRelease()
         {
             Build(RELEASE_DIR, BuildOptions.None);
+        }
+
+        // 에디터 호스트에 빌드 클라이언트를 붙일 때만 켠다. 에디터 releaseId는 항상 editor라 평소엔 빌드와 붙지 않는다
+        [MenuItem(MENU_ALLOW_MISMATCH, false, ORDER_ALLOW_MISMATCH)]
+        private static void ToggleAllowMismatch()
+        {
+            bool next = !EditorPrefs.GetBool(PREF_ALLOW_MISMATCH, false);
+            EditorPrefs.SetBool(PREF_ALLOW_MISMATCH, next);
+            BuildIdentity.EditorAllowMismatch = next;
+            UnityEngine.Debug.Log($"[그믐] 에디터 빌드 불일치 허용: {(next ? "켬" : "끔")}");
+        }
+
+        [MenuItem(MENU_ALLOW_MISMATCH, true)]
+        private static bool ValidateAllowMismatch()
+        {
+            Menu.SetChecked(MENU_ALLOW_MISMATCH, EditorPrefs.GetBool(PREF_ALLOW_MISMATCH, false));
+            return true;
+        }
+
+        [InitializeOnLoadMethod]
+        private static void RestoreAllowMismatch()
+        {
+            BuildIdentity.EditorAllowMismatch = EditorPrefs.GetBool(PREF_ALLOW_MISMATCH, false);
         }
 
         [MenuItem(MENU_BUILD + "빌드 폴더 열기", false, ORDER_OPEN_BUILD)]
@@ -117,9 +157,86 @@ namespace Geumeum.EditorTools
             {
                 CopyExtraFiles(Path.GetDirectoryName(path));
             }
+            CleanNonRuntimeArtifacts(Path.GetDirectoryName(path));
+
+            // 실패하면 빌드가 어떤 배포와도 붙지 않는다. 조용히 넘기지 않고 빌드 실패로 본다
+            if (!TryWriteBuildIdentity(path, out string releaseId))
+            {
+                return;
+            }
 
             UnityEngine.Debug.Log($"[그믐] {outputDir} 빌드 성공 - {summary.totalTime.TotalSeconds:F1}초, "
-                + $"{summary.totalSize / 1048576f:F1}MB, 씬 {scenes.Length}개\n{path}");
+                + $"{summary.totalSize / 1048576f:F1}MB, 씬 {scenes.Length}개, releaseId={releaseId}\n{path}");
+        }
+
+        // 빌드마다 새 releaseId를 찍는다. 같은 소스라도 다른 빌드끼리는 붙지 않는 것이 계약이다
+        private static bool TryWriteBuildIdentity(string executablePath, out string releaseId)
+        {
+            releaseId = $"{RELEASE_ID_PREFIX}-{DateTime.Now:yyyyMMdd-HHmm}";
+
+            string dataDir = Path.Combine(Path.GetDirectoryName(executablePath),
+                Path.GetFileNameWithoutExtension(executablePath) + DATA_DIR_SUFFIX, STREAMING_DIR);
+            string target  = Path.Combine(dataDir, BuildIdentity.FILE_NAME);
+
+            var data = new BuildIdentity.Data
+            {
+                releaseId       = releaseId,
+                displayVersion  = PlayerSettings.bundleVersion,
+                protocolVersion = BuildIdentity.PROTOCOL_VERSION,
+                contentVersion  = SourceCommit(),
+            };
+
+            try
+            {
+                Directory.CreateDirectory(dataDir);
+                File.WriteAllText(target, BuildIdentity.Serialize(data));
+                return true;
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
+            {
+                UnityEngine.Debug.LogError($"[그믐] 빌드 정체성 파일을 쓰지 못했다: {target}\n{exception.Message}");
+                return false;
+            }
+        }
+
+        // 어느 커밋으로 만든 빌드인지 남긴다. 커밋하지 않은 변경이 있으면 표시한다
+        private static string SourceCommit()
+        {
+            string commit = RunGit("rev-parse --short=12 HEAD");
+            if (string.IsNullOrEmpty(commit))
+            {
+                UnityEngine.Debug.LogWarning("[그믐] git 커밋을 읽지 못해 contentVersion을 unknown으로 둔다");
+                return "unknown";
+            }
+
+            string dirty = RunGit("status --porcelain --untracked-files=no");
+            return string.IsNullOrEmpty(dirty) ? commit : commit + "-dirty";
+        }
+
+        private static string RunGit(string arguments)
+        {
+            var info = new ProcessStartInfo("git", arguments)
+            {
+                WorkingDirectory       = ProjectRoot(),
+                RedirectStandardOutput = true,
+                UseShellExecute        = false,
+                CreateNoWindow         = true,
+            };
+
+            try
+            {
+                using (Process process = Process.Start(info))
+                {
+                    string output = process.StandardOutput.ReadToEnd().Trim();
+                    process.WaitForExit();
+                    return (process.ExitCode == 0) ? output : null;
+                }
+            }
+            catch (System.ComponentModel.Win32Exception exception)
+            {
+                UnityEngine.Debug.LogWarning($"[그믐] git 실행 실패: {exception.Message}");
+                return null;
+            }
         }
 
         // 복사에 실패해도 빌드 자체는 성공이다. 막지 않고 경고만 남긴다
@@ -131,7 +248,7 @@ namespace Geumeum.EditorTools
             UnityEngine.Debug.Log($"[그믐] 실행 스크립트 {copied}개를 빌드 폴더에 넣었다");
         }
 
-        // 배치 파일이 exe 옆에서 자기를 찾으므로 하위 폴더 구조를 그대로 유지한다
+        // 배치 파일과 보조 PowerShell은 exe 옆에서 서로를 찾는다
         private static int CopyTools(string toolsPath, string outputPath)
         {
             if (!Directory.Exists(toolsPath))
@@ -141,12 +258,10 @@ namespace Geumeum.EditorTools
             }
 
             int copied = 0;
-            foreach (string source in Directory.GetFiles(toolsPath, "*", SearchOption.AllDirectories))
+            foreach (string name in DEVELOPMENT_TOOLS)
             {
-                string relative    = source.Substring(toolsPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                string destination = Path.Combine(outputPath, relative);
-
-                Directory.CreateDirectory(Path.GetDirectoryName(destination));
+                string source = Path.Combine(toolsPath, name);
+                string destination = Path.Combine(outputPath, name);
 
                 if (TryCopy(source, destination))
                 {
@@ -155,6 +270,37 @@ namespace Geumeum.EditorTools
             }
 
             return copied;
+        }
+
+        // Unity는 같은 출력 폴더에 남은 예전 복사본을 지우지 않으므로 성공한 빌드 뒤 정리한다
+        private static void CleanNonRuntimeArtifacts(string outputPath)
+        {
+            string root = Path.GetFullPath(Path.Combine(ProjectRoot(), BUILD_ROOT)) + Path.DirectorySeparatorChar;
+            string output = Path.GetFullPath(outputPath);
+            if (!output.StartsWith(root, StringComparison.OrdinalIgnoreCase)
+                || (File.GetAttributes(output) & FileAttributes.ReparsePoint) != 0)
+            {
+                throw new IOException("빌드 정리 경로가 Builds 내부의 일반 폴더가 아니다: " + output);
+            }
+
+            foreach (string name in new[] { "teaser", "gemeum_BurstDebugInformation_DoNotShip", "gemeum_BackUpThisFolder_ButDontShipItWithYourGame" })
+            {
+                string target = Path.GetFullPath(Path.Combine(output, name));
+                if (!target.StartsWith(output + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new IOException("빌드 정리 대상 경로가 잘못됐다: " + target);
+                }
+
+                if (Directory.Exists(target))
+                {
+                    if ((File.GetAttributes(target) & FileAttributes.ReparsePoint) != 0)
+                    {
+                        throw new IOException("빌드 정리 대상이 링크다: " + target);
+                    }
+
+                    Directory.Delete(target, true);
+                }
+            }
         }
 
         private static void CopyIfExists(string source, string destination)
