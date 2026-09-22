@@ -27,6 +27,7 @@ namespace Geumeum.Combat.Tests
         {
             _serverWasActive = NetworkServer.active;
             typeof(NetworkServer).GetProperty(nameof(NetworkServer.active)).SetValue(null, true);
+            ResetPlacementAim();
             _previousRun = RunManager.ServerInstance; _previousScene = RunSceneDirector.ServerInstance;
             _previousTime = RunTimeLocator.Current;
             _run = Create<RunManager>(); Set(_run, "_runIdValue", 7u); Set(_run, "_phase", RunPhase.Farming);
@@ -45,6 +46,7 @@ namespace Geumeum.Combat.Tests
         [TearDown]
         public void Cleanup()
         {
+            ResetPlacementAim();
             MarkRegistry.ClearAll();
             ServerPlayerList().Clear();
             foreach (uint id in _ids) { NetworkServer.spawned.Remove(id); }
@@ -302,6 +304,20 @@ namespace Geumeum.Combat.Tests
 
         private static void Set(object obj, string field, object value)
         { obj.GetType().GetField(field, BindingFlags.NonPublic | BindingFlags.Instance).SetValue(obj, value); }
+        /// <summary>
+        /// LocalPlacementAim.SuppressesCombatInput은 조준을 끝낸 "그 프레임"을 Time.frameCount로
+        /// 기억한다. EditMode 테스트는 여러 개가 에디터의 같은 프레임 안에서 연달아 도는데,
+        /// 앞선 테스트(설치 조준, 입력 게이트 해제 등)가 End()를 부르고 나면 그 프레임 번호가
+        /// 그대로 남아 뒤 테스트의 전투 입력이 통째로 삼켜진다.
+        /// 정적 초기화는 런타임 훅이라 EditMode에서 돌지 않으므로 여기서 직접 되돌린다
+        /// </summary>
+        private static void ResetPlacementAim()
+        {
+            typeof(LocalPlacementAim)
+                .GetMethod("ResetStatic", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, null);
+        }
+
         private static void SetStatic(System.Type type, string property, object value)
         { type.GetProperty(property).SetValue(null, value); }
         private sealed class Clock : IRunTimeSource

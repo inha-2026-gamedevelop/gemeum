@@ -199,8 +199,13 @@ namespace Geumeum.AI
         private sealed class DeflectVictim : MonoBehaviour, IDamageable
         {
             public float Health = 100f;
+            public HitStrength LastStrength = HitStrength.Critical; // 어느 기본값과도 안 겹치게
             public bool IsDead => Health <= 0;
-            public void TakeDamage(in DamageInfo damage) { Health -= damage.Amount; }
+            public void TakeDamage(in DamageInfo damage)
+            {
+                Health      -= damage.Amount;
+                LastStrength = damage.Strength;
+            }
         }
 
         [Test]
@@ -219,12 +224,24 @@ namespace Geumeum.AI
                 Physics.SyncTransforms();
                 var runner = typeof(BossController).Assembly.GetType("Geumeum.AI.BossPatternRunner");
                 var hit = runner.GetMethod("ExecuteMeleeArc");
-                hit.Invoke(null, new object[] { Vector3.zero, Vector3.forward, 3f, 360f, 10f, 1u, 1 << 30, null, 17u });
+
+                // 인자 순서가 (.., damageRouter, hitStrength, deflectedDefender)로 합쳐졌다.
+                // 쳐내기 면제와 피격 강도는 서로 독립이어야 한다 - 둘을 같이 넘겨서 확인한다
+                Assert.AreEqual(10, hit.GetParameters().Length);
+                Assert.AreEqual("hitStrength",       hit.GetParameters()[8].Name);
+                Assert.AreEqual("deflectedDefender", hit.GetParameters()[9].Name);
+
+                hit.Invoke(null, new object[] { Vector3.zero, Vector3.forward, 3f, 360f, 10f, 1u, 1 << 30, null, HitStrength.Light, 17u });
                 Assert.AreEqual(100f, first.GetComponent<DeflectVictim>().Health);
                 Assert.AreEqual(90f, second.GetComponent<DeflectVictim>().Health);
-                hit.Invoke(null, new object[] { Vector3.zero, Vector3.forward, 3f, 360f, 10f, 1u, 1 << 30, null, 0u });
+                // 면제되지 않은 쪽에는 넘긴 강도가 그대로 실려야 한다
+                Assert.AreEqual(HitStrength.Light, second.GetComponent<DeflectVictim>().LastStrength);
+
+                hit.Invoke(null, new object[] { Vector3.zero, Vector3.forward, 3f, 360f, 10f, 1u, 1 << 30, null, HitStrength.Heavy, 0u });
                 Assert.AreEqual(90f, first.GetComponent<DeflectVictim>().Health);
                 Assert.AreEqual(80f, second.GetComponent<DeflectVictim>().Health);
+                Assert.AreEqual(HitStrength.Heavy, first.GetComponent<DeflectVictim>().LastStrength);
+                Assert.AreEqual(HitStrength.Heavy, second.GetComponent<DeflectVictim>().LastStrength);
             }
             finally { UnityEngine.Object.DestroyImmediate(first); UnityEngine.Object.DestroyImmediate(second); }
         }

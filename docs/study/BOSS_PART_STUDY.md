@@ -8,7 +8,7 @@
 
 ## 2. 데이터
 
-`Assets/09.Data/Boss/BossPatternSO.asset`은 HP 55,000, 2페이즈·10패턴, 꼬리 3구간×1,350, 본체 25% 게이트 등 현재 데이터를 갖는다. `DerivedFromId`, `IsConditional`, `SelectionWeight`로 파생·조건·추첨을 구분한다. 값은 SO에서 읽고 코드 상수로 복제하지 않는다.
+`Assets/09.Data/Boss/BossPatternSO.asset`은 HP 110,000, 2페이즈·15패턴, 꼬리 3구간×1,350, 본체 25% 게이트 등 현재 데이터를 갖는다. `DerivedFromId`, `IsConditional`, `SelectionWeight`로 파생·조건·추첨을 구분한다. 값은 SO에서 읽고 코드 상수로 복제하지 않는다.
 
 ## 3. 권위·공용 계약
 

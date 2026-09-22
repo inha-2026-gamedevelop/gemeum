@@ -51,17 +51,11 @@ namespace Geumeum.UI
         [Header("창")]
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private Button _closeButton;
-        [SerializeField] private Button _inventoryTabButton;
-        [SerializeField] private Button _talentTabButton;
         [SerializeField] private Button _shopTabButton;
-        [SerializeField] private Button _transferTabButton;
         [SerializeField] private GameObject _inventoryPage;
         [SerializeField] private GameObject _talentPage;
         [SerializeField] private GameObject _shopPage;
         [SerializeField] private GameObject _transferPage;
-        [SerializeField] private RailRowVisual _inventoryRow;
-        [SerializeField] private RailRowVisual _talentRow;
-        [SerializeField] private RailRowVisual _transferRow;
 
         [Header("인벤토리")]
         [SerializeField] private TMP_Text _equippedWeaponText;
@@ -73,6 +67,10 @@ namespace Geumeum.UI
         [SerializeField] private Button _usePotionButton;
         [SerializeField] private Button _useTicketButton;
         [SerializeField] private Button _targetEquippedButton;
+
+        // 레일이 사라진 뒤 보내는 쪽이 양도 페이지로 들어갈 유일한 입구다.
+        // 받는 쪽은 제안이 도착하면 자동으로 열린다(HandleTransferChanged)
+        [SerializeField] private Button _openTransferButton;
 
         [Header("특성")]
         [SerializeField] private TMP_Text _talentPointText;
@@ -98,6 +96,10 @@ namespace Geumeum.UI
         [SerializeField] private CurrencyManager _currency;
         [SerializeField] private ShopTransactionService _shopTransactions;
         [SerializeField] private EquipmentTransferService _transferService;
+
+        // 씬에 꺼진 사본이 함께 있을 수 있어 살아 있는 것만 모아 둔다. Find로 씬을 훑지 않으려는 것이다
+        private static readonly List<FunctionalManagementPanel> G_Live =
+            new List<FunctionalManagementPanel>();
 
         private readonly InventorySlotSnapshot[] _slots =
             new InventorySlotSnapshot[InventorySnapshot.SLOT_COUNT];
@@ -198,12 +200,17 @@ namespace Geumeum.UI
             Transfer,
         }
 
+        // 소유권(Instance)은 여기서 잡지 않는다. 꺼진 사본도 Awake는 돌기 때문에
+        // 꺼져 있는 쪽이 Instance를 차지한다 - 등록은 OnEnable/ReleaseRegistration이 맡는다
         private void Awake()
         {
-            Instance = this;
             EnsureTalentViewCapacity();
-            if (_inventoryPage != null && _inventoryDetailText != null)
-            { _botInventoryView = BotInventoryView.Create(_inventoryPage, _inventoryDetailText.font); }
+
+            if ((_inventoryPage != null) && (_inventoryDetailText != null))
+            {
+                _botInventoryView = BotInventoryView.Create(_inventoryPage, _inventoryDetailText.font);
+            }
+
             BindButtons();
             SetVisible(false);
         }
@@ -494,6 +501,14 @@ namespace Geumeum.UI
 
         private void OnEnable()
         {
+            // 같은 씬에 꺼져 있는 사본이 또 있을 수 있다. Awake에서 잡으면 꺼진 쪽이 Instance를 차지한다
+            if (!G_Live.Contains(this))
+            {
+                G_Live.Add(this);
+            }
+
+            Instance = this;
+
             if (_currency != null)
             {
                 _currency.BalanceChanged += HandleBalanceChanged;
@@ -514,6 +529,7 @@ namespace Geumeum.UI
 
         private void OnDisable()
         {
+            ReleaseRegistration();
             UnbindLocalPlayer();
             UnbindShopPoints();
 
@@ -538,10 +554,19 @@ namespace Geumeum.UI
         private void OnDestroy()
         {
             ReleaseInputToken();
-            if (Instance == this)
+            ReleaseRegistration();
+        }
+
+        /// <summary> 쥐고 있던 쪽이 빠지면 아직 살아 있는 사본에게 넘긴다 </summary>
+        private void ReleaseRegistration()
+        {
+            G_Live.Remove(this);
+            if (Instance != this)
             {
-                Instance = null;
+                return;
             }
+
+            Instance = (G_Live.Count > 0) ? G_Live[G_Live.Count - 1] : null;
         }
 
         private void Update()
@@ -565,12 +590,8 @@ namespace Geumeum.UI
                 return;
             }
 
+            // ESC는 EscapeMenuPanel이 단독으로 읽는다. 여기서도 읽으면 한 번 누를 때 두 창이 함께 반응한다
             LocalGameplayInputGate.Maintain(_inputToken);
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                Close();
-                return;
-            }
 
             if (Time.unscaledTime >= _nextSnapshotPollTime)
             {
@@ -883,15 +904,13 @@ namespace Geumeum.UI
         private void BindButtons()
         {
             BindButton(_closeButton, Close);
-            BindButton(_inventoryTabButton, OpenInventory);
-            BindButton(_talentTabButton, OpenTalents);
             BindButton(_shopTabButton, () => Open(PageKind.Shop));
-            BindButton(_transferTabButton, OpenTransfer);
             BindButton(_equipButton, RequestSelectedPrimaryAction);
             BindButton(_unequipButton, RequestUnequip);
             BindButton(_usePotionButton, RequestUseSelectedPotion);
             BindButton(_useTicketButton, RequestUseSelectedTicket);
             BindButton(_targetEquippedButton, SelectEquippedTicketTarget);
+            BindButton(_openTransferButton, OpenTransfer);
             BindButton(_talentResetButton, RequestResetTalents);
             BindButton(_acceptTransferButton, RequestAcceptTransfer);
             BindButton(_rejectTransferButton, RequestRejectTransfer);
@@ -924,6 +943,13 @@ namespace Geumeum.UI
             RefreshLocalBinding();
             if (!_isVisible)
             {
+                // ESC 메뉴가 입력을 쥐고 있으면 창이 열리지 못한다. 메뉴를 먼저 거둔다
+                EscapeMenuPanel menu = EscapeMenuPanel.Instance;
+                if ((menu != null) && menu.IsVisible)
+                {
+                    menu.Close();
+                }
+
                 if (!LocalGameplayInputGate.AllowsGameplayInput)
                 {
                     return;
@@ -974,23 +1000,11 @@ namespace Geumeum.UI
             SetActive(_shopPage, page == PageKind.Shop);
             SetActive(_transferPage, page == PageKind.Transfer);
 
-            SetRowActive(_inventoryRow, page == PageKind.Inventory);
-            SetRowActive(_talentRow, page == PageKind.Talent);
-            SetRowActive(_transferRow, page == PageKind.Transfer);
-
             if (page != PageKind.Talent)
             {
                 // 탭을 옮기면 포인터 나감이 오지 않는 경로가 있어 직접 지운다
                 _hoveredTalentIndex = -1;
                 HideTalentTooltip();
-            }
-        }
-
-        private static void SetRowActive(RailRowVisual row, bool isActive)
-        {
-            if (row != null)
-            {
-                row.SetActiveRow(isActive);
             }
         }
 
@@ -1581,6 +1595,11 @@ namespace Geumeum.UI
             RefreshAllViews();
         }
 
+        private bool IsLocalTransferRecipient(EquipmentTransferOfferSnapshot offer)
+        {
+            return (_localIdentity != null) && (offer.RecipientNetId == _localIdentity.netId);
+        }
+
         private void HandleTransferChanged(EquipmentTransferResult result)
         {
             if (result.Offer.State == EquipmentTransferState.Offered)
@@ -1590,6 +1609,12 @@ namespace Geumeum.UI
                 SetText(_transferStatusText, result.Succeeded
                     ? "장비 양도 제안이 도착했습니다."
                     : FunctionalUiText.GetTransactionRejection(result.Rejection));
+
+                // 레일이 사라져 수신자가 스스로 양도 페이지로 들어갈 길이 없다. 제안이 오면 열어 준다
+                if (result.Succeeded && IsLocalTransferRecipient(result.Offer))
+                {
+                    Open(PageKind.Transfer);
+                }
             }
             else
             {

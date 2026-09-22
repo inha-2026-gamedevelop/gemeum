@@ -22,7 +22,7 @@ namespace Geumeum.Network
 
         private const string EDITOR_ONLY_TAG = "EditorOnly";
         private const int    REQUIRED_BOSS_PHASE_COUNT = 2;
-        private const int    REQUIRED_BOSS_PATTERN_COUNT = 10;
+        private const int    REQUIRED_BOSS_PATTERN_COUNT = 15;
 
         /// <summary> 기존 호출부와의 호환용 데이터 검사. 보스는 별도 호출에서 검사한다 </summary>
         public static void ValidateData(

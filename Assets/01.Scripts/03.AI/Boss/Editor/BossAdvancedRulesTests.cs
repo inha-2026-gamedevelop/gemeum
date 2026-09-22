@@ -23,17 +23,35 @@ namespace Geumeum.AI
         private const BindingFlags INSTANCE = BindingFlags.Instance |
             BindingFlags.Public | BindingFlags.NonPublic;
 
+        private GameDatabaseSO _database;
+        private BossPatternSO  _databaseBoss;
+
         [SetUp]
         public void SetUp()
         {
             Assert.IsFalse(NetworkServer.active);
             typeof(NetworkServer).GetProperty(nameof(NetworkServer.active)).SetValue(null, true);
+
+            // Phase2.Tick은 공격 상태 기계와 별개로 여우불 진(패턴 15)을 매 틱 확인하고,
+            // 그 값만은 주입한 SO가 아니라 GameDB에서 읽는다. 이 픽스처는 가짜 데이터를
+            // 직접 넣어 쓰므로 GameDB가 비어 Tick이 예외로 끊겼다.
+            // 빈 BossPatternSO를 걸어 두면 TryGetPattern(15)가 false라 지면 장판은 돌지 않는다
+            // - 각 테스트가 주입한 가짜 데이터로 검사하던 판정은 그대로다
+            _databaseBoss = ScriptableObject.CreateInstance<BossPatternSO>();
+            _database     = ScriptableObject.CreateInstance<GameDatabaseSO>();
+            Set(_database, "_boss", _databaseBoss);
+            GameDB.Initialize(_database);
         }
 
         [TearDown]
         public void TearDown()
         {
             typeof(NetworkServer).GetProperty(nameof(NetworkServer.active)).SetValue(null, false);
+
+            // 초기화된 GameDB를 다른 픽스처로 흘리지 않는다
+            GameDB.ResetStatic();
+            if (_database != null) { UnityEngine.Object.DestroyImmediate(_database); }
+            if (_databaseBoss != null) { UnityEngine.Object.DestroyImmediate(_databaseBoss); }
         }
 
         [Test]

@@ -20,6 +20,7 @@ using Geumeum.Common;
 using Geumeum.Data;
 using Geumeum.Network;
 using Geumeum.Systems;
+using Geumeum.UI.Editor;
 
 namespace Geumeum.UI.Tests
 {
@@ -27,6 +28,8 @@ namespace Geumeum.UI.Tests
     {
         private const BindingFlags PRIVATE_INSTANCE =
             BindingFlags.Instance | BindingFlags.NonPublic;
+
+        private const BindingFlags PRIVATE_NESTED = BindingFlags.NonPublic;
 
         private bool _previousCameraInput;
         private CursorLockMode _previousCursorLock;
@@ -349,8 +352,13 @@ namespace Geumeum.UI.Tests
             finally { UnityEngine.Object.DestroyImmediate(root); }
         }
 
-        [Test]
-        public void ProductionTabTextAndTitleAreConnected()
+        // 좌측 레일(RailRowVisual)은 ESC 메뉴 도입과 함께 제거됐다. 탭 전환은 이제 제목과
+        // 페이지 오브젝트로만 드러나므로, 프리팹 배선이 그 두 가지를 실제로 갱신하는지 본다
+        [TestCase("Inventory", "배낭", "_inventoryPage")]
+        [TestCase("Talent",    "특성", "_talentPage")]
+        [TestCase("Shop",      "객주", "_shopPage")]
+        [TestCase("Transfer",  "양도", "_transferPage")]
+        public void ProductionTabTextAndTitleAreConnected(string pageName, string title, string pageField)
         {
             var source = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/02.Prefabs/UI/RunManagementUI.prefab");
             var root = UnityEngine.Object.Instantiate(source);
@@ -358,10 +366,19 @@ namespace Geumeum.UI.Tests
             try
             {
                 var panel = root.GetComponentInChildren<FunctionalManagementPanel>(true);
-                var row = (RailRowVisual)Get(panel, "_talentRow");
-                row.SetActiveRow(true);
-                Assert.IsTrue(((TMP_Text)Get(row, "_label")).raycastTarget);
-                Assert.NotNull(Get(panel, "_pageTitle"));
+
+                var pageTitle = (TMP_Text)Get(panel, "_pageTitle");
+                Assert.NotNull(pageTitle, "_pageTitle이 프리팹에서 끊겼다");
+
+                var pageKind = panel.GetType().GetNestedType("PageKind", PRIVATE_NESTED);
+                Assert.IsNotNull(pageKind, "PageKind");
+                Invoke(panel, "SetPage", System.Enum.Parse(pageKind, pageName));
+
+                Assert.AreEqual(title, pageTitle.text);
+
+                var page = (GameObject)Get(panel, pageField);
+                Assert.NotNull(page, pageField + "가 프리팹에서 끊겼다");
+                Assert.IsTrue(page.activeSelf, pageField + "가 켜지지 않았다");
             }
             finally { UnityEngine.Object.DestroyImmediate(root); }
         }
@@ -761,6 +778,245 @@ namespace Geumeum.UI.Tests
             }
         }
 
+        /// <summary>
+        /// RunHUD는 양쪽 작업이 한 프리팹에서 만난 곳이다. 병합에서 한쪽 위젯이
+        /// 통째로 빠지거나 참조가 끊겨도 컴파일은 통과하므로 프리팹으로 직접 확인한다
+        /// </summary>
+        [Test]
+        public void ProductionRunHudKeepsBothSidesWiredAndUnique()
+        {
+            var source = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/02.Prefabs/UI/RunHUD.prefab");
+            Assert.IsNotNull(source, "RunHUD 생산 프리팹을 찾지 못했다");
+
+            var root = UnityEngine.Object.Instantiate(source);
+            root.SetActive(false);
+            try
+            {
+                // 우리 쪽 위젯
+                var prompt = GetSingle<InteractionPromptView>(root);
+                Assert.IsNotNull(Get(prompt, "_label"), "InteractionPromptView._label이 끊겼다");
+                Assert.IsNotNull(Get(prompt, "_root"), "InteractionPromptView._root가 끊겼다");
+
+                var ability = GetSingle<WeaponAbilityHUD>(root);
+                Assert.IsNotNull(Get(ability, "_label"), "WeaponAbilityHUD._label이 끊겼다");
+
+                // 들어온 쪽 위젯
+                var toast = GetSingle<BossTimeWarningToast>(root);
+                Assert.IsNotNull(Get(toast, "_canvasGroup"), "BossTimeWarningToast._canvasGroup이 끊겼다");
+                Assert.IsNotNull(Get(toast, "_messageText"), "BossTimeWarningToast._messageText가 끊겼다");
+
+                var minimap = GetSingle<MinimapExpandToggle>(root);
+                Assert.AreEqual(KeyCode.Tab, (KeyCode) Get(minimap, "_toggleKey"), "미니맵 여는 키가 Tab이 아니다");
+                Assert.IsNotNull(Get(minimap, "_dots"), "MinimapExpandToggle._dots가 끊겼다");
+                Assert.IsNotNull(Get(minimap, "_backdrop"), "MinimapExpandToggle._backdrop이 끊겼다");
+                Assert.IsNotNull(Get(minimap, "_closedHint"), "MinimapExpandToggle._closedHint가 끊겼다");
+
+                // 양쪽이 각각 루트에 붙여 둔 자식이 전부 살아 있어야 한다
+                foreach (string childName in new[]
+                    { "InteractionPrompt", "WeaponAbilityHint", "BossTimeWarningToast", "HUD_MapHint", "HUD_Minimap" })
+                {
+                    Assert.IsNotNull(FindChild(root.transform, childName),
+                        $"RunHUD에서 {childName}이(가) 사라졌다");
+                }
+            }
+            finally { UnityEngine.Object.DestroyImmediate(root); }
+        }
+
+        // ── 병합 통합 회귀 (PR68) ─────────────────────────────────────────
+
+        /// <summary>
+        /// 꺼져 있는 사본이 소유권을 가로채면 ESC가 엉뚱한 창을 닫는다.
+        /// Awake가 아니라 OnEnable/ReleaseRegistration이 Instance를 정한다
+        /// </summary>
+        [Test]
+        public void DisabledDuplicatePanelNeverTakesOwnership()
+        {
+            // EditMode는 ExecuteAlways가 아닌 MonoBehaviour의 Awake/OnEnable/OnDisable을
+            // 부르지 않는다. 소유권 이전 자체가 이 세 콜백의 계약이므로 순서대로 직접 돌린다
+            var firstRoot = new GameObject("first");
+            var secondRoot = new GameObject("second");
+            FunctionalManagementPanel first = firstRoot.AddComponent<FunctionalManagementPanel>();
+            FunctionalManagementPanel second = secondRoot.AddComponent<FunctionalManagementPanel>();
+            try
+            {
+                Invoke(first, "Awake");
+                Invoke(first, "OnEnable");
+                Assert.AreSame(first, FunctionalManagementPanel.Instance,
+                    "켜져 있는 쪽이 소유해야 한다");
+
+                // 꺼져 있는 사본에도 Awake는 돈다 - 프리팹이 켜진 채 들어와 곧바로 꺼지거나
+                // 컴포넌트만 비활성인 경우다. 여기서 Instance를 잡으면 G_Live에 없는
+                // 꺼진 패널이 주인이 되고, ESC가 닫을 창을 못 찾는다
+                Invoke(second, "Awake");
+                Assert.AreSame(first, FunctionalManagementPanel.Instance,
+                    "Awake가 소유권을 가로챘다");
+
+                Invoke(second, "OnEnable");
+                Assert.AreSame(second, FunctionalManagementPanel.Instance,
+                    "켜진 순간에는 넘어와야 한다");
+
+                Invoke(second, "OnDisable");
+                Assert.AreSame(first, FunctionalManagementPanel.Instance,
+                    "빠지면 아직 살아 있는 쪽으로 돌아와야 한다");
+            }
+            finally
+            {
+                // 실패해도 G_Live에 죽은 패널이 남지 않게 한다
+                ReleasePanel(second);
+                ReleasePanel(first);
+                UnityEngine.Object.DestroyImmediate(secondRoot);
+                UnityEngine.Object.DestroyImmediate(firstRoot);
+            }
+        }
+
+        /// <summary> 레일이 사라진 뒤 제목이 유일한 탭 표시다. 빌더가 그 참조를 만들어야 한다 </summary>
+        [Test]
+        public void BuilderProducesPageTitleAndTwentyTalentNodes()
+        {
+            // Configure는 세션 루트에서 거래 서비스 셋을 찾지 못하면 LogError를 내고 false다.
+            // 자산을 직렬화하지 않고 빈 컴포넌트만 붙여 같은 조건을 만든다
+            var root = new GameObject("built");
+            root.SetActive(false);
+
+            // 세 서비스는 전부 NetworkBehaviour다. NetworkIdentity를 먼저 붙이지 않으면
+            // Mirror가 "requires a NetworkIdentity" 오류 로그를 남겨 테스트가 깨진다
+            root.AddComponent<NetworkIdentity>();
+            root.AddComponent<CurrencyManager>();
+            root.AddComponent<ShopTransactionService>();
+            root.AddComponent<EquipmentTransferService>();
+            try
+            {
+                TMP_FontAsset font = LoadProductionFont();
+                Assert.IsTrue(RunManagementUiBuilder.Configure(root, font), "빌더가 구성에 실패했다");
+
+                var panel = root.GetComponentInChildren<FunctionalManagementPanel>(true);
+                Assert.IsNotNull(panel, "빌더가 패널을 만들지 않았다");
+
+                var pageTitle = (TMP_Text) Get(panel, "_pageTitle");
+                Assert.IsNotNull(pageTitle, "_pageTitle이 빌더에서 연결되지 않았다");
+
+                var nodes = (FunctionalUiIndexedButton[]) Get(panel, "_talentButtons");
+                Assert.IsNotNull(nodes);
+                Assert.AreEqual(20, nodes.Length, "특성 노드는 4열 5행이다");
+                CollectionAssert.DoesNotContain(nodes, null, "빈 노드가 있다");
+
+                var pageKind = panel.GetType().GetNestedType("PageKind", PRIVATE_NESTED);
+                Invoke(panel, "SetPage", Enum.Parse(pageKind, "Talent"));
+                Assert.AreEqual("특성", pageTitle.text, "빌더가 만든 제목이 페이지를 따라가지 않는다");
+            }
+            finally { UnityEngine.Object.DestroyImmediate(root); }
+        }
+
+        /// <summary>
+        /// 레일 제거로 보내는 쪽의 양도 입구가 사라졌다. 배낭의 버튼이 실제로
+        /// 양도 페이지를 여는지 클릭으로 확인한다 - 참조만 있고 안 열리면 의미가 없다
+        /// </summary>
+        [Test]
+        public void InventoryTransferButtonOpensTransferPage()
+        {
+            // 버튼 구독(BindButtons)은 Awake에서만 일어난다. EditMode는 Awake를 부르지 않으므로
+            // 딱 한 번 직접 돌린다 - 두 번 돌리면 AddListener가 겹쳐 같은 동작이 두 번 실행된다
+            TalentPanelFixture fixture = CreateTalentPanel();
+            try
+            {
+                FunctionalManagementPanel panel = fixture.Panel;
+                var button = (Button) Get(panel, "_openTransferButton");
+                Assert.IsNotNull(button, "배낭에 양도 버튼이 연결되어 있지 않다");
+
+                // 창이 이미 떠 있는 상태에서 누르는 경우다. 입력 토큰 분기를 타지 않게 해
+                // 이 테스트가 확인할 것(버튼 -> 양도 페이지)만 남긴다
+                Set(panel, "_isVisible", true);
+                Invoke(panel, "SetPage", ResolvePage("Inventory"));
+
+                var transferPage = (GameObject) Get(panel, "_transferPage");
+                Assert.IsFalse(transferPage.activeSelf, "시작은 배낭이어야 한다");
+
+                // 참조만 걸려 있고 실제로 안 열리면 입구가 없는 것과 같다
+                button.onClick.Invoke();
+
+                Assert.IsTrue(transferPage.activeSelf, "버튼이 양도 페이지를 열지 않았다");
+                Assert.AreEqual("양도", ((TMP_Text) Get(panel, "_pageTitle")).text);
+            }
+            finally { fixture.Dispose(); }
+        }
+
+        /// <summary>
+        /// ESC 한 번에 지도만 접힌다. MinimapExpandToggle과 EscapeMenuPanel이 같은 프레임에
+        /// 각자 ESC를 읽으므로 Update 순서와 무관하게 같은 결과가 나와야 한다
+        /// </summary>
+        [TestCase(true,  TestName = "EscapeClosesExpandedMapOnly_MenuUpdatesFirst")]
+        [TestCase(false, TestName = "EscapeClosesExpandedMapOnly_MinimapUpdatesFirst")]
+        public void EscapeClosesExpandedMapWithoutOpeningMenu(bool menuFirst)
+        {
+            EscapeFixture fixture = CreateEscapeFixture();
+            try
+            {
+                fixture.Minimap.Expand();
+                Assert.IsTrue(fixture.Minimap.IsExpanded);
+
+                if (menuFirst)
+                {
+                    Invoke(fixture.Menu, "HandleEscape");
+                    Assert.IsFalse(RunsMinimapEscapeStep(fixture.Minimap),
+                        "메뉴가 이미 처리한 ESC를 지도가 또 처리하면 안 된다");
+                }
+                else
+                {
+                    Assert.IsFalse(RunsMinimapEscapeStep(fixture.Minimap),
+                        "메뉴가 있으면 지도는 ESC를 넘겨야 한다");
+                    Invoke(fixture.Menu, "HandleEscape");
+                }
+
+                Assert.IsFalse(fixture.Minimap.IsExpanded, "지도가 접히지 않았다");
+                Assert.IsFalse(fixture.Menu.IsVisible, "지도만 닫아야 하는데 메뉴까지 열렸다");
+            }
+            finally { fixture.Dispose(); }
+        }
+
+        /// <summary> 지도가 접혀 있으면 ESC는 평소대로 메뉴를 연다 </summary>
+        [Test]
+        public void EscapeOpensMenuWhenMapIsNotExpanded()
+        {
+            EscapeFixture fixture = CreateEscapeFixture();
+            try
+            {
+                Assert.IsFalse(fixture.Minimap.IsExpanded);
+                Invoke(fixture.Menu, "HandleEscape");
+                Assert.IsTrue(fixture.Menu.IsVisible, "메뉴가 열리지 않았다");
+            }
+            finally { fixture.Dispose(); }
+        }
+
+        /// <summary> 메뉴가 없는 화면에서는 지도가 직접 ESC로 접힌다 </summary>
+        [Test]
+        public void MinimapKeepsEscapeFallbackWhenNoMenuExists()
+        {
+            EscapeFixture fixture = CreateEscapeFixture(withMenu: false);
+            try
+            {
+                fixture.Minimap.Expand();
+                Assert.IsTrue(RunsMinimapEscapeStep(fixture.Minimap),
+                    "메뉴가 없으면 지도가 스스로 접어야 한다");
+            }
+            finally { fixture.Dispose(); }
+        }
+
+        /// <summary> 닫기 키를 ESC가 아닌 키로 바꿔 두면 메뉴와 겹치지 않으므로 그대로 동작한다 </summary>
+        [Test]
+        public void MinimapCustomCloseKeyIsNotDeferredToMenu()
+        {
+            EscapeFixture fixture = CreateEscapeFixture();
+            try
+            {
+                Set(fixture.Minimap, "_closeKey", KeyCode.M);
+                fixture.Minimap.Expand();
+                Assert.IsTrue(RunsMinimapEscapeStep(fixture.Minimap),
+                    "ESC가 아닌 닫기 키까지 메뉴에 넘기면 안 된다");
+            }
+            finally { fixture.Dispose(); }
+        }
+
         private sealed class DisableProbe : MonoBehaviour
         {
             public int DisableCount;
@@ -781,6 +1037,144 @@ namespace Geumeum.UI.Tests
                 GameDB.ResetStatic();
                 if (Database != null) { UnityEngine.Object.DestroyImmediate(Database); }
             }
+        }
+
+        /// <summary>
+        /// ESC 조율 회귀용. EditMode는 Awake/OnEnable을 부르지 않으므로 직접 돌린다 -
+        /// 지도는 Awake에서 _dots와 접힌 좌표를 잡고 OnEnable에서 소유권을 등록한다
+        /// </summary>
+        private sealed class EscapeFixture
+        {
+            public GameObject          MapRoot;
+            public GameObject          MenuRoot;
+            public MinimapExpandToggle Minimap;
+            public EscapeMenuPanel     Menu;
+
+            /// <summary> 테스트가 실패해도 정적 등록(G_Live·Instance)이 남지 않게 한다 </summary>
+            public void Dispose()
+            {
+                ReleaseComponent(Menu);
+                ReleaseComponent(Minimap);
+
+                if (MenuRoot != null) { UnityEngine.Object.DestroyImmediate(MenuRoot); }
+                if (MapRoot != null) { UnityEngine.Object.DestroyImmediate(MapRoot); }
+            }
+        }
+
+        private static EscapeFixture CreateEscapeFixture(bool withMenu = true)
+        {
+            var fixture = new EscapeFixture();
+
+            if (withMenu)
+            {
+                fixture.MenuRoot = new GameObject("menu");
+                fixture.Menu = fixture.MenuRoot.AddComponent<EscapeMenuPanel>();
+                Invoke(fixture.Menu, "Awake");
+                Invoke(fixture.Menu, "OnEnable");
+            }
+            else
+            {
+                // 지도의 ESC 폴백은 "메뉴가 없다"는 전제 위에서만 성립한다.
+                // 앞선 테스트가 메뉴 등록을 남겼다면 그 전제부터 깨진 것이므로 여기서 드러낸다
+                Assert.IsNull(EscapeMenuPanel.Instance,
+                    "앞선 테스트가 ESC 메뉴 등록을 정리하지 않았다");
+            }
+
+            fixture.MapRoot = new GameObject("map", typeof(RectTransform));
+            MinimapPlayerDots dots = fixture.MapRoot.AddComponent<MinimapPlayerDots>();
+
+            // MinimapPlayerDots.Awake는 부르지 않는다(점 프리팹 검사에서 LogError를 낸다).
+            // 다만 DotScale 설정이 _dotPrefab을 그대로 읽으므로 그 필드만 채워 둔다
+            var dot = new GameObject("dot", typeof(RectTransform)).GetComponent<RectTransform>();
+            dot.SetParent(fixture.MapRoot.transform, worldPositionStays: false);
+            Set(dots, "_dotPrefab", dot);
+
+            fixture.Minimap = fixture.MapRoot.AddComponent<MinimapExpandToggle>();
+            Invoke(fixture.Minimap, "Awake");
+            Invoke(fixture.Minimap, "OnEnable");
+            return fixture;
+        }
+
+        /// <summary>
+        /// MinimapExpandToggle.Update의 ESC 갈래만 떼어 돌린다. 키 입력(Input)은 EditMode에서
+        /// 흉내 낼 수 없으므로 "키가 눌렸다면 접었겠는가"를 같은 조건으로 묻는다.
+        /// 접었으면 true
+        /// </summary>
+        private static bool RunsMinimapEscapeStep(MinimapExpandToggle minimap)
+        {
+            bool defers = (bool) Invoke(minimap, "DefersCloseKeyToEscapeMenu");
+            if ((!minimap.IsExpanded) || defers)
+            {
+                return false;
+            }
+
+            minimap.Collapse();
+            return true;
+        }
+
+        /// <summary> 해당 컴포넌트가 프리팹에 정확히 하나만 있어야 한다. 병합으로 두 벌이 남는 것을 막는다 </summary>
+        private static T GetSingle<T>(GameObject root) where T : Component
+        {
+            T[] found = root.GetComponentsInChildren<T>(true);
+            Assert.AreEqual(1, found.Length, $"{typeof(T).Name}이(가) {found.Length}개다");
+            return found[0];
+        }
+
+        private static Transform FindChild(Transform parent, string name)
+        {
+            for (int i = 0; i < parent.childCount; ++i)
+            {
+                if (parent.GetChild(i).name == name)
+                {
+                    return parent.GetChild(i);
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// EditMode에서 직접 돌린 OnEnable의 짝을 맞춘다. 정적 목록에 파괴된 컴포넌트가
+        /// 남으면 다음 테스트의 Instance가 죽은 객체를 가리킨다
+        /// </summary>
+        private static void ReleaseComponent(MonoBehaviour behaviour)
+        {
+            if (behaviour == null)
+            {
+                return;
+            }
+
+            InvokeIfPresent(behaviour, "OnDisable");
+            InvokeIfPresent(behaviour, "OnDestroy");
+        }
+
+        private static void ReleasePanel(FunctionalManagementPanel panel)
+        {
+            ReleaseComponent(panel);
+        }
+
+        /// <summary> 있으면 부르고 없으면 넘어간다. 정리 경로가 이름 변경으로 깨지지 않게 한다 </summary>
+        private static void InvokeIfPresent(object target, string methodName)
+        {
+            MethodInfo method = target.GetType().GetMethod(methodName, PRIVATE_INSTANCE);
+            if (method != null)
+            {
+                method.Invoke(target, null);
+            }
+        }
+
+        private static TMP_FontAsset LoadProductionFont()
+        {
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/02.Prefabs/UI/RunManagementUI.prefab");
+            Assert.IsNotNull(prefab, "생산 프리팹을 찾지 못했다");
+
+            TMP_Text sample = prefab.GetComponentInChildren<TMP_Text>(true);
+            Assert.IsNotNull(sample, "생산 프리팹에 TMP 텍스트가 없다");
+
+            // font가 null이면 Configure가 LogError와 함께 false를 돌려준다. 원인을 여기서 드러낸다
+            Assert.IsNotNull(sample.font, "생산 프리팹 TMP 텍스트에 폰트가 없다");
+            return sample.font;
         }
 
         private static TalentPanelFixture CreateTalentPanel()

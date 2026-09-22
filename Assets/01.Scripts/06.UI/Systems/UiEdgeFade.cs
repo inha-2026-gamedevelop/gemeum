@@ -15,10 +15,13 @@ namespace Geumeum.UI
 
         private const float EPSILON = 0.0001f;
 
+        // 직렬화된 값이다. 기존 번호를 바꾸거나 재배열하지 않는다
         public enum FadeSide
         {
-            Right = 0,
-            Left  = 1,
+            Right  = 0,
+            Left   = 1,
+            Bottom = 2,
+            Top    = 3,
         }
 
         /****************************************
@@ -39,26 +42,33 @@ namespace Geumeum.UI
                 return;
             }
 
-            float minX = float.MaxValue;
-            float maxX = float.MinValue;
+            bool isVertical = IsVertical(_transparentSide);
+
+            // Right와 Top은 값이 큰 쪽이 투명해진다
+            bool fadesAtMaximum = ((_transparentSide == FadeSide.Right) ||
+                (_transparentSide == FadeSide.Top));
+
+            float minimum = float.MaxValue;
+            float maximum = float.MinValue;
             UIVertex vertex = default;
 
             for (int i = 0; i < helper.currentVertCount; ++i)
             {
                 helper.PopulateUIVertex(ref vertex, i);
-                if (vertex.position.x < minX)
+                float axis = isVertical ? vertex.position.y : vertex.position.x;
+                if (axis < minimum)
                 {
-                    minX = vertex.position.x;
+                    minimum = axis;
                 }
 
-                if (vertex.position.x > maxX)
+                if (axis > maximum)
                 {
-                    maxX = vertex.position.x;
+                    maximum = axis;
                 }
             }
 
-            float width = (maxX - minX);
-            if (width <= EPSILON)
+            float span = (maximum - minimum);
+            if (span <= EPSILON)
             {
                 return;
             }
@@ -67,8 +77,9 @@ namespace Geumeum.UI
             {
                 helper.PopulateUIVertex(ref vertex, i);
 
-                float ratio = ((vertex.position.x - minX) / width);
-                float opacity = (_transparentSide == FadeSide.Right) ? (1f - ratio) : ratio;
+                float axis = isVertical ? vertex.position.y : vertex.position.x;
+                float ratio = ((axis - minimum) / span);
+                float opacity = fadesAtMaximum ? (1f - ratio) : ratio;
 
                 Color32 color = vertex.color;
                 color.a = (byte) Mathf.RoundToInt(color.a * Mathf.Clamp01(opacity));
@@ -76,6 +87,11 @@ namespace Geumeum.UI
 
                 helper.SetUIVertex(vertex, i);
             }
+        }
+
+        private static bool IsVertical(FadeSide side)
+        {
+            return ((side == FadeSide.Bottom) || (side == FadeSide.Top));
         }
     }
 }

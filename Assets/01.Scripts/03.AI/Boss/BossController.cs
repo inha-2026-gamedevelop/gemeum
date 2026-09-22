@@ -46,6 +46,15 @@ namespace Geumeum.AI
         private const int   TARGET_SCAN_BUFFER_SIZE = Constants.Network.MAX_PLAYERS * 4;
         private const int   MAX_ACTIVE_TELEGRAPHS   = 8;
 
+        // 실제 VFX가 붙기 전까지만 쓰는 확인용 시각화 - 호스트(서버 겸 클라이언트) 화면에만
+        // 보이는 로컬 전용 오브젝트라 네트워크 동기화가 없다. GGizmo는 서버 틱마다만 다시
+        // 그려져 렌더 프레임 사이에 깜빡였는데, 실제 오브젝트는 매 프레임 위치만 갱신하면
+        // 되므로 깜빡이지 않는다
+        private const int   DEBUG_VISUAL_MAX_BEAMS     = 2;    // 2페이즈 여우불 광선이 동시에 도는 최대 줄기 수
+        private const int   DEBUG_VISUAL_MAX_BULLETS   = 6;    // 여우불 탄막 한 발사에 동시에 나가는 최대 발 수
+        private const float DEBUG_BEAM_VISUAL_RADIUS   = 0.15f; // 빔 실린더 반지름(m)
+        private const float DEBUG_BULLET_VISUAL_RADIUS = 0.4f;  // 탄막 구체 반지름(m)
+
         [SerializeField] private BossStatus _status;
         [SerializeField] private BossPartController _parts;
         [SerializeField] private BossSoulController _souls;
@@ -69,6 +78,12 @@ namespace Geumeum.AI
         private uint                _telegraphRevision = 0u;
         private readonly List<ParticipantId> _resonanceOwnerBuffer =
             new List<ParticipantId>(Constants.Network.MAX_PLAYERS);
+
+        // 확인용 시각화(호스트 전용) - 실제 VFX가 붙기 전까지만 쓴다
+        private GameObject[] _debugBeamVisuals;
+        private GameObject[] _debugBulletVisuals;
+        private readonly Vector3[] _debugBeamDirectionBuffer = new Vector3[DEBUG_VISUAL_MAX_BEAMS];
+        private readonly Vector3[] _debugBulletPositionBuffer = new Vector3[DEBUG_VISUAL_MAX_BULLETS];
 
         private GroggyPhase _groggyPhase      = GroggyPhase.Active;
         private float       _groggyStateTimer = 0f;
@@ -123,6 +138,136 @@ namespace Geumeum.AI
             }
 
             _playerLayerMask = LayerMask.GetMask(Constants.Layer.PLAYER);
+            EnsureDebugVisuals();
+        }
+
+        // 실제 VFX가 붙기 전까지만 쓰는 확인용 시각화(호스트 전용, 네트워크 동기화 없음).
+        // 기즈모 대신 실제 프리미티브를 쓰는 이유는 기즈모가 서버 틱마다만 다시 그려져
+        // 렌더 프레임 사이에 깜빡였기 때문이다 - 실제 오브젝트는 위치만 갱신하면 되니 안 깜빡인다
+        private void EnsureDebugVisuals()
+        {
+            if (_debugBeamVisuals != null)
+            {
+                return;
+            }
+
+            Material beamMaterial   = CreateDebugMaterial(Color.magenta);
+            Material bulletMaterial = CreateDebugMaterial(Color.yellow);
+
+            _debugBeamVisuals = new GameObject[DEBUG_VISUAL_MAX_BEAMS];
+            for (int i = 0; i < _debugBeamVisuals.Length; ++i)
+            {
+                _debugBeamVisuals[i] = CreateDebugPrimitive(
+                    "DebugBeamVisual (임시, VFX 붙으면 제거)", PrimitiveType.Cylinder, beamMaterial);
+            }
+
+            _debugBulletVisuals = new GameObject[DEBUG_VISUAL_MAX_BULLETS];
+            for (int i = 0; i < _debugBulletVisuals.Length; ++i)
+            {
+                _debugBulletVisuals[i] = CreateDebugPrimitive(
+                    "DebugBulletVisual (임시, VFX 붙으면 제거)", PrimitiveType.Sphere, bulletMaterial);
+            }
+        }
+
+        private static GameObject CreateDebugPrimitive(string name, PrimitiveType type, Material material)
+        {
+            GameObject instance = GameObject.CreatePrimitive(type);
+            instance.name = name;
+
+            // 판정용 콜라이더가 아니라 순전히 눈으로 보는 표시라 물리에 끼면 안 된다
+            if (instance.TryGetComponent(out Collider primitiveCollider))
+            {
+                Destroy(primitiveCollider);
+            }
+
+            if (instance.TryGetComponent(out Renderer renderer))
+            {
+                renderer.sharedMaterial   = material;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows   = false;
+            }
+
+            instance.SetActive(false);
+            return instance;
+        }
+
+        // URP에서 CreatePrimitive 기본 재질을 그대로 쓰면 셰이더가 안 맞아 분홍색으로 나온다 -
+        // URP Unlit 셰이더를 직접 찾아 붙여서 조명과 무관하게 항상 지정한 색으로 보이게 한다
+        private static Material CreateDebugMaterial(Color color)
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+            var material = new Material(shader) { hideFlags = HideFlags.DontSave };
+            if (material.HasProperty("_BaseColor"))
+            {
+                material.SetColor("_BaseColor", color);
+            }
+            else
+            {
+                material.color = color;
+            }
+
+            return material;
+        }
+
+        private void Update()
+        {
+            UpdateDebugBeamVisuals();
+            UpdateDebugBulletVisuals();
+        }
+
+        private void UpdateDebugBeamVisuals()
+        {
+            Vector3 origin = default;
+            float   range  = 0f;
+            int count = (_currentPhaseState == null)
+                ? 0
+                : _currentPhaseState.GetDebugBeams(_debugBeamDirectionBuffer, out origin, out range);
+
+            for (int i = 0; i < _debugBeamVisuals.Length; ++i)
+            {
+                bool active = i < count;
+                if (_debugBeamVisuals[i].activeSelf != active)
+                {
+                    _debugBeamVisuals[i].SetActive(active);
+                }
+
+                if (!active)
+                {
+                    continue;
+                }
+
+                Vector3   direction = _debugBeamDirectionBuffer[i];
+                Transform visual    = _debugBeamVisuals[i].transform;
+                visual.position   = origin + (direction * (range * 0.5f));
+                visual.rotation   = Quaternion.FromToRotation(Vector3.up, direction);
+                visual.localScale = new Vector3(
+                    DEBUG_BEAM_VISUAL_RADIUS, range * 0.5f, DEBUG_BEAM_VISUAL_RADIUS);
+            }
+        }
+
+        private void UpdateDebugBulletVisuals()
+        {
+            int count = (_currentPhaseState == null)
+                ? 0
+                : _currentPhaseState.GetDebugBullets(_debugBulletPositionBuffer);
+
+            for (int i = 0; i < _debugBulletVisuals.Length; ++i)
+            {
+                bool active = i < count;
+                if (_debugBulletVisuals[i].activeSelf != active)
+                {
+                    _debugBulletVisuals[i].SetActive(active);
+                }
+
+                if (!active)
+                {
+                    continue;
+                }
+
+                Transform visual = _debugBulletVisuals[i].transform;
+                visual.position   = _debugBulletPositionBuffer[i];
+                visual.localScale = Vector3.one * (DEBUG_BULLET_VISUAL_RADIUS * 2f);
+            }
         }
 
         private void OnEnable()

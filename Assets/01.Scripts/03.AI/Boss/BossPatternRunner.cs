@@ -23,6 +23,11 @@ namespace Geumeum.AI
         /// <summary>
         /// 원점 앞 부채꼴 범위의 살아있는 대상 전원에게 피해를 적용한다
         /// 같은 호출 안에서 같은 대상이 여러 콜라이더로 겹쳐도 한 번만 맞는다
+        /// <para><paramref name="hitStrength"/>는 패턴별 피격 강도다 - 지속 피해(광선, 탄막)는
+        /// Light, 단발 충격은 기본값 Heavy를 쓴다</para>
+        /// <para><paramref name="deflectedDefender"/>가 0이 아니면 그 netId를 가진 대상만
+        /// 이번 판정에서 제외한다 - 쳐내기에 성공한 플레이어 한 명만 면제하고 나머지는 그대로
+        /// 맞는다. 호출자가 "이번 공격 인스턴스·연타 인덱스에서 쳐낸 사람"일 때만 넘긴다</para>
         /// </summary>
         public static void ExecuteMeleeArc(
             Vector3 origin,
@@ -32,7 +37,9 @@ namespace Geumeum.AI
             float   damage,
             uint    attackerNetId,
             int     targetLayerMask,
-            BossController damageRouter = null, uint deflectedDefender = 0u)
+            BossController damageRouter      = null,
+            HitStrength    hitStrength       = HitStrength.Heavy,
+            uint           deflectedDefender = 0u)
         {
             int hitCount  = Physics.OverlapSphereNonAlloc(origin, range, s_hitBuffer, targetLayerMask);
             int seenCount = 0;
@@ -75,7 +82,7 @@ namespace Geumeum.AI
                     ++seenCount;
                 }
 
-                var damageInfo = new DamageInfo(damage, attackerNetId, HitStrength.Heavy);
+                var damageInfo = new DamageInfo(damage, attackerNetId, hitStrength);
                 if (damageRouter != null)
                 {
                     damageRouter.ServerApplyPatternDamage(damageable, damageInfo);

@@ -30,8 +30,6 @@ namespace Geumeum.UI.Editor
         // 창 로컬 단위는 캔버스 기준 해상도(1280x720)와 같고, 페이지도 창과 같은 좌표계를 쓴다
         private const float WINDOW_WIDTH = 1280f;
         private const float WINDOW_HEIGHT = 720f;
-        private const float RAIL_BOX_X = -578f;       // 좌측 레일 아이콘 상자 중심
-        private const float RAIL_LABEL_X = -438f;     // 레일 글자 중심
         private const float CONTENT_CENTER_X = 476f;  // 우측 콘텐츠 칸 중심(안쪽 322~630)
 
         // 특성 격자. FunctionalManagementPanel의 TALENT_BUTTON_COUNT와 같아야 한다
@@ -119,12 +117,6 @@ namespace Geumeum.UI.Editor
             Button closeButton = CreateButton("Close", window.transform, "닫기",
                 font, new Vector2(44f, 44f), new Vector2(577f, 308f), G_SurfaceRaised,
                 out _, 17f, new Vector2(100f, 44f));
-            Button inventoryTab = CreateRailTab("InventoryTab", window.transform,
-                "배낭", font, 70f, 204.5f, G_Primary);
-            Button talentTab = CreateRailTab("TalentTab", window.transform,
-                "특성", font, 60f, 101.5f, G_SurfaceRaised);
-            Button transferTab = CreateRailTab("TransferTab", window.transform,
-                "양도", font, 60f, -1.5f, G_SurfaceRaised);
             Button shopTab = CreateButton("ShopTab", window.transform,
                 "객주", font, new Vector2(180f, 64f), new Vector2(-530f, 56f),
                 G_SurfaceRaised, out _);
@@ -149,10 +141,10 @@ namespace Geumeum.UI.Editor
             FunctionalManagementPanel panel = modal.AddComponent<FunctionalManagementPanel>();
             SetReference(panel, "_canvasGroup", canvasGroup);
             SetReference(panel, "_closeButton", closeButton);
-            SetReference(panel, "_inventoryTabButton", inventoryTab);
-            SetReference(panel, "_talentTabButton", talentTab);
+            // 레일이 사라진 뒤로 지금 페이지를 알려주는 건 이 제목뿐이다 - 빼먹으면
+            // 재생성한 프리팹에서 탭을 옮겨도 제목이 "배낭"에 멈춘다
+            SetReference(panel, "_pageTitle", title);
             SetReference(panel, "_shopTabButton", shopTab);
-            SetReference(panel, "_transferTabButton", transferTab);
             SetReference(panel, "_inventoryPage", inventoryPage);
             SetReference(panel, "_talentPage", talentPage);
             SetReference(panel, "_shopPage", shopPage);
@@ -166,6 +158,7 @@ namespace Geumeum.UI.Editor
             SetReference(panel, "_usePotionButton", inventory.UsePotionButton);
             SetReference(panel, "_useTicketButton", inventory.UseTicketButton);
             SetReference(panel, "_targetEquippedButton", inventory.TargetEquippedButton);
+            SetReference(panel, "_openTransferButton", inventory.OpenTransferButton);
             SetReference(panel, "_talentPointText", talent.PointText);
             SetReference(panel, "_talentStatusText", talent.StatusText);
             SetArray(panel, "_talentColumnTexts", talent.ColumnTexts);
@@ -232,6 +225,12 @@ namespace Geumeum.UI.Editor
             references.UseTicketButton = CreateButton("UseTicket", parent, "티켓 사용",
                 font, new Vector2(93f, 26f), new Vector2(471f, -255f), G_Primary,
                 out _, 10.5f);
+
+            // 레일이 사라져 보내는 쪽이 양도 페이지로 갈 입구가 없어졌다.
+            // 물약·티켓 줄 아래에 한 칸만 두고 ESC 메뉴의 버튼 셋은 건드리지 않는다
+            references.OpenTransferButton = CreateButton("OpenTransfer", parent,
+                "장비 양도", font, new Vector2(93f, 26f),
+                new Vector2(369f, -285f), G_SurfaceRaised, out _, 10.5f);
             return references;
         }
 
@@ -335,16 +334,6 @@ namespace Geumeum.UI.Editor
                 font, new Vector2(71f, 25f), new Vector2(506f, 45f),
                 G_SurfaceRaised, out _, 10.5f);
             return references;
-        }
-
-        /// <summary> 좌측 레일 한 줄: 아이콘 자리 상자와 오른쪽 글자 </summary>
-        private static Button CreateRailTab(string name, Transform parent, string label,
-            TMP_FontAsset font, float boxSize, float y, Color color)
-        {
-            return CreateButton(name, parent, label, font,
-                new Vector2(boxSize, boxSize), new Vector2(RAIL_BOX_X, y), color,
-                out _, 17f, new Vector2(150f, 44f),
-                new Vector2(RAIL_LABEL_X - RAIL_BOX_X, 0f), TextAlignmentOptions.Left);
         }
 
         private static void BuildResult(Transform parent, TMP_FontAsset font)
@@ -552,6 +541,7 @@ namespace Geumeum.UI.Editor
             public Button UsePotionButton;
             public Button UseTicketButton;
             public Button TargetEquippedButton;
+            public Button OpenTransferButton;
         }
 
         private sealed class TransferReferences
