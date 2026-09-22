@@ -31,11 +31,7 @@ namespace Geumeum.Network
         public SteamSessionState State { get; private set; } = SteamSessionState.Offline;
 
         /// <summary>
-        /// 호스트를 열 수 있는가. 소유자이고 필요한 인원이 다 모였을 때만.
-        ///
-        /// 인원을 낮출 수 있게 열어 두면 호스트 혼자 런이 시작되면서 입장이 잠겨
-        /// 나머지 둘이 거부된다. 그래서 기본은 정원 고정이고,
-        /// 개발 패널에서 사람이 직접 고른 인원만 예외로 받는다
+        /// 소유자가 편성 로비를 연다. 런 출발은 게임 로비의 준비, 봇 충원 게이트가 별도로 맡는다
         /// </summary>
         public bool CanStartHost
         {
@@ -62,7 +58,7 @@ namespace Geumeum.Network
             }
 #endif
 
-            return SteamLobbyService.MAX_MEMBERS;
+            return 1;
         }
 
         /****************************************

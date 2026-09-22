@@ -5,6 +5,20 @@ using Geumeum.Network;
 /// <summary> 이탈 상태 보관소의 경계 규칙 </summary>
 public class RunParticipantRegistryTests
 {
+    [Test]
+    public void SameNumericHumanAndBotSnapshotsRemainIndependent()
+    {
+        var human = MakeSnapshot(1u, 100UL, 17f);
+        var bot = MakeSnapshot(1u, 100UL, 42f);
+        bot.Participant = new ParticipantId(ParticipantKind.Bot, 100UL);
+        Assert.IsTrue(RunParticipantRegistry.ServerStore(human));
+        Assert.IsTrue(RunParticipantRegistry.ServerStore(bot));
+        Assert.AreEqual(2, RunParticipantRegistry.Count);
+        Assert.IsTrue(RunParticipantRegistry.TryTake(new RunId(1u), bot.Participant, out var taken));
+        Assert.AreSame(bot, taken);
+        Assert.IsTrue(RunParticipantRegistry.Has(human.Participant));
+    }
+
     private static RunParticipantSnapshot MakeSnapshot(uint runIdValue, ulong participantValue, float health)
     {
         return new RunParticipantSnapshot

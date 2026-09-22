@@ -31,6 +31,16 @@ namespace Geumeum.Network
 
         private bool _autoReadyForLobbyPending = false;
         private Coroutine _preferenceTransfer;
+        [SyncVar] private bool _fillWithBots;
+        private int _runHumanCount;
+        public bool FillWithBots => _fillWithBots;
+
+        [Server]
+        public void ServerRememberRetryParty(bool fillWithBots)
+        {
+            _fillWithBots = fillWithBots;
+            _runHumanCount = LobbyRoster.ServerInstance == null ? 0 : LobbyRoster.ServerInstance.SlotCount;
+        }
 
         /****************************************
         *              Properties
@@ -88,7 +98,7 @@ namespace Geumeum.Network
             _preferenceTransfer = null;
         }
 
-        // Steam 대기방에서는 Mirror가 아직 없다. 씬 전환과 본인 슬롯 동기화가 끝난 뒤 요청한다.
+        // Steam 대기방에서는 Mirror가 아직 없다. 씬 전환과 본인 슬롯 동기화가 끝난 뒤 요청한다
         private IEnumerator TransferSteamPreference()
         {
             var roster = GetComponent<LobbyRoster>();
@@ -180,11 +190,11 @@ namespace Geumeum.Network
         }
 
         /// <summary>
-        /// 정원이 차면 로비 씬으로 넘긴다.
+        /// 정원이 차면 로비 씬으로 넘긴다
         ///
         /// 자동 준비(IsLobbyIdle)와 런 시작(RunManager.StartRun)이 둘 다
         /// "로비 씬에서 대기 중"을 요구한다. Boot에 머물면 그 조건이 영영 참이 되지 않아
-        /// 3인이 다 붙어도 런이 시작되지 않고, 플레이어는 바닥 없는 Boot에서 계속 떨어진다.
+        /// 3인이 다 붙어도 런이 시작되지 않고, 플레이어는 바닥 없는 Boot에서 계속 떨어진다
         ///
         /// 호스트를 여는 것과 게임에 들어가는 것은 다른 일이라 여기서 이어 준다
         /// </summary>
@@ -206,14 +216,14 @@ namespace Geumeum.Network
                 return;
             }
 
-            int requiredPlayers = ResolveRequiredPlayers();
-            if (roster.SlotCount != requiredPlayers)
+            int requiredPlayers = 1;
+            if (roster.SlotCount < requiredPlayers)
             {
                 Debug.Log($"[LobbyController] 로비 씬 진입 대기: {roster.SlotCount}/{requiredPlayers}명", this);
                 return;
             }
 
-            Debug.Log($"[LobbyController] 정원이 찼다. 로비 씬으로 넘긴다: 현재={director.CurrentScene}", this);
+            Debug.Log($"[LobbyController] 참가자가 입장해 로비 씬으로 넘긴다: 현재={director.CurrentScene}", this);
             if (!director.ServerBeginTransition(RunSceneId.Lobby))
             {
                 Debug.LogError("[LobbyController] 로비 씬 전환을 시작하지 못했다", this);
@@ -237,6 +247,9 @@ namespace Geumeum.Network
         [Server]
         public void ServerResetForNewRun()
         {
+            BotParty.Clear();
+            _fillWithBots = false;
+            _runHumanCount = 0;
             LobbyRoster roster = LobbyRoster.ServerInstance;
             if (roster != null)
             {
@@ -283,7 +296,7 @@ namespace Geumeum.Network
         *              Public API
         ****************************************/
 
-        /// <summary> 무기 선호 요청. true는 전송 성공이며 확정은 로스터를 읽는다. </summary>
+        /// <summary> 무기 선호 요청. true는 전송 성공이며 확정은 로스터를 읽는다 </summary>
         public bool RequestWeaponPreference(WeaponKind weapon)
         {
             if ((!isClient) || (!NetworkClient.active) || (!Enum.IsDefined(typeof(WeaponKind), weapon)))
@@ -297,7 +310,7 @@ namespace Geumeum.Network
             return true;
         }
 
-        /// <summary> 준비 상태 변경 요청. 실제 준비 상태는 로스터의 서버 결과를 사용한다. </summary>
+        /// <summary> 준비 상태 변경 요청. 실제 준비 상태는 로스터의 서버 결과를 사용한다 </summary>
         public bool RequestReady(bool ready)
         {
             if ((!isClient) || (!NetworkClient.active))
@@ -309,13 +322,112 @@ namespace Geumeum.Network
             return true;
         }
 
+        public bool RequestBotFill(bool enabled)
+        {
+            if ((!isClient) || (!NetworkClient.active)) { return false; }
+            CmdSetBotFill(enabled);
+            return true;
+        }
+
+        [Command(requiresAuthority = false)]
+        public void CmdSetBotFill(bool enabled, NetworkConnectionToClient sender = null)
+        {
+            if (AccountGameServer.Enabled)
+            {
+                return;
+            }
+
+            if (!ServerCanManageRoom(sender) ||
+                IsAdmissionLocked() || (!IsLobbyIdle())) { return; }
+            _fillWithBots = enabled;
+            TryStartRun();
+        }
+
+        /// <summary> 전용 서버에서는 API가 확인한 방장, 기존 호스트에서는 로컬 연결만 허용한다 </summary>
+        public static bool ServerCanManageRoom(NetworkConnectionToClient sender)
+        {
+            if (sender == null || !NetworkServer.active)
+            {
+                return false;
+            }
+
+            return AccountGameServer.Enabled
+                ? sender.isAuthenticated && AccountGameServer.Instance != null && AccountGameServer.Instance.IsRoomOwner(sender.connectionId)
+                : ReferenceEquals(sender, NetworkServer.localConnection);
+        }
+
         /****************************************
         *              Commands
         ****************************************/
 
+        private bool _launcherStartAuthorized;
+
+        /// <summary> API가 확정한 파티가 모두 접속했을 때만 선호, 봇 설정을 적용하고 출발한다 </summary>
+        [Server]
+        public bool ServerApplyLauncherParty(AccountGameServer.LaunchMember[] members, bool fillWithBots)
+        {
+            if (!AccountGameServer.Enabled || !IsLobbyIdle() || members == null || members.Length < 1 || members.Length > 3)
+            {
+                return false;
+            }
+
+            var roster = LobbyRoster.ServerInstance;
+            if (roster == null || roster.SlotCount != members.Length)
+            {
+                return false;
+            }
+
+            var ids = new System.Collections.Generic.HashSet<ulong>();
+            foreach (var member in members)
+            {
+                if (!ulong.TryParse(member.account_id, out ulong id) || !ids.Add(id) || member.preference < 0 || member.preference > 2)
+                {
+                    return false;
+                }
+
+                bool found = false;
+                for (int i = 0; i < roster.SlotCount; ++i)
+                {
+                    if (roster.GetSlot(i).PlatformId == id && roster.GetSlot(i).PlayerNetId != 0)
+                    {
+                        found = true;
+                    }
+                }
+
+                if (!found)
+                {
+                    return false;
+                }
+            }
+            for (int i = 0; i < roster.SlotCount; ++i)
+            {
+                var slot = roster.GetSlot(i);
+                foreach (var member in members)
+                {
+                    if (slot.PlatformId.ToString() == member.account_id)
+                    {
+                        slot.HasPreference = true;
+                        slot.PreferredCharacter = (CharacterKind)member.preference;
+                    }
+                }
+
+                slot.IsReady = true;
+                roster.SetSlot(i, slot);
+            }
+            _fillWithBots = fillWithBots;
+            _launcherStartAuthorized = true;
+            TryStartRun();
+            return RunManager.ServerInstance != null && RunManager.ServerInstance.Phase != RunPhase.Lobby;
+        }
+
         [Command(requiresAuthority = false)]
         public void CmdSetReady(bool isReady, NetworkConnectionToClient sender = null)
         {
+            if (AccountGameServer.Enabled)
+            {
+                return;
+            }
+
             if ((sender == null) || (IsAdmissionLocked()) || (!IsLobbyIdle()))
             {
                 return;
@@ -328,6 +440,11 @@ namespace Geumeum.Network
         [Command(requiresAuthority = false)]
         public void CmdSelectCharacter(CharacterKind character, NetworkConnectionToClient sender = null)
         {
+            if (AccountGameServer.Enabled)
+            {
+                return;
+            }
+
             if ((sender == null) || (IsAdmissionLocked()) || (!IsLobbyIdle()))
             {
                 return;
@@ -391,6 +508,11 @@ namespace Geumeum.Network
         [Server]
         private void TryStartRun()
         {
+            if (AccountGameServer.Enabled && !_launcherStartAuthorized)
+            {
+                return;
+            }
+
             LobbyRoster roster = LobbyRoster.ServerInstance;
             if ((roster == null) || (RunManager.ServerInstance == null))
             {
@@ -403,7 +525,8 @@ namespace Geumeum.Network
                 return;
             }
 
-            int requiredPlayers = ResolveRequiredPlayers();
+            int requiredPlayers = _fillWithBots ? roster.SlotCount : ResolveRequiredPlayers();
+            if (requiredPlayers < 1) { return; }
             if (roster.SlotCount != requiredPlayers)
             {
                 return;
@@ -419,15 +542,25 @@ namespace Geumeum.Network
 
             if ((LobbyRoleCoordinator.ServerInstance == null) || (!LobbyRoleCoordinator.ServerInstance.ServerAssignRoles()))
             {
+                LobbyRoleCoordinator.ServerInstance?.ServerResetForNewRun();
                 return;
             }
 
-            if (requiredPlayers != Constants.Network.MAX_PLAYERS)
+            if (!_fillWithBots && requiredPlayers != Constants.Network.MAX_PLAYERS)
             {
                 Debug.LogWarning($"[LobbyController] Dev 설정으로 {requiredPlayers}인 런을 시작한다. 3인 검증에는 쓸 수 없다", this);
             }
 
             LockAdmission();
+
+            if (_fillWithBots && !BotParty.TryFill())
+            {
+                BotParty.Clear();
+                (NetworkManager.singleton as GeumeumNetworkManager)?.UnlockAdmission();
+                LobbyRoleCoordinator.ServerInstance.ServerResetForNewRun();
+                return;
+            }
+            _runHumanCount = roster.SlotCount;
 
             if (RunManager.ServerInstance.StartRun(ResolveRunMode()))
             {
@@ -435,6 +568,8 @@ namespace Geumeum.Network
             }
 
             Debug.LogError("[LobbyController] 런 시작에 실패해 입장 잠금과 역할 배분을 되돌린다", this);
+            BotParty.Clear();
+            _runHumanCount = 0;
 
             GeumeumNetworkManager manager = NetworkManager.singleton as GeumeumNetworkManager;
             if (manager != null)
@@ -522,7 +657,7 @@ namespace Geumeum.Network
             }
 
             LobbyRoster roster          = LobbyRoster.ServerInstance;
-            int         requiredPlayers = ResolveRequiredPlayers();
+            int         requiredPlayers = _runHumanCount > 0 ? _runHumanCount : ResolveRequiredPlayers();
 
             if ((roster == null) || (roster.SlotCount < requiredPlayers) || (roster.HasPendingRecovery))
             {
@@ -544,6 +679,10 @@ namespace Geumeum.Network
         /// <summary> 씬 값과 테스트 실행 창의 설정을 합쳐 자동 준비 여부를 정한다 </summary>
         private bool IsAutoReadyEnabled()
         {
+            if (AccountGameServer.Enabled)
+            {
+                return false;
+            }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
             if (DevForceAutoReady)
             {
@@ -573,7 +712,7 @@ namespace Geumeum.Network
         private int ResolveRequiredPlayers()
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
-            // 테스트 실행 창에서 사람이 직접 고른 값. 씬 값·실행 인자와 달리 사고로 들어올 수 없어
+            // 테스트 실행 창에서 사람이 직접 고른 값. 씬 값, 실행 인자와 달리 사고로 들어올 수 없어
             // Steam 경로에서도 통한다. 대신 나머지 둘은 못 들어오므로 3인 검증에는 쓸 수 없다
             if (IsDevRequiredPlayersValid())
             {
@@ -581,7 +720,7 @@ namespace Geumeum.Network
             }
 #endif
 
-            // Steam 경로는 PC 3대로만 검증할 수 있어 인원을 낮출 이유가 없다.
+            // Steam 경로는 PC 3대로만 검증할 수 있어 인원을 낮출 이유가 없다
             // 씬 값이나 실행 인자로 1이 들어오면 호스트 혼자 런이 시작되면서
             // 입장이 잠겨 나머지 둘이 거부되므로, 여기서 정원으로 고정한다
             if (SteamTransportSelector.IsSteamTransport(Transport.active))
@@ -612,8 +751,8 @@ namespace Geumeum.Network
         ****************************************/
 
         /// <summary>
-        /// 테스트 실행 창이 고른 시작 인원. 0이면 오버라이드 없음.
-        /// 씬 값·실행 인자와 달리 사람이 그 화면에서 직접 누른 값이라 Steam 경로에서도 통한다
+        /// 테스트 실행 창이 고른 시작 인원. 0이면 오버라이드 없음
+        /// 씬 값, 실행 인자와 달리 사람이 그 화면에서 직접 누른 값이라 Steam 경로에서도 통한다
         /// </summary>
         public static int DevRequiredPlayers { get; set; } = 0;
 
@@ -624,7 +763,7 @@ namespace Geumeum.Network
         public static RunMode DevRunMode { get; set; } = RunMode.Standard;
 
         /// <summary>
-        /// 창에서 값을 바꾼 뒤 지금 상태로 런 시작을 다시 시도한다.
+        /// 창에서 값을 바꾼 뒤 지금 상태로 런 시작을 다시 시도한다
         /// 접속은 이미 끝나 있고 정원 조건만 바뀐 경우가 많아, 값 변경만으로는 아무 일도 일어나지 않는다
         /// </summary>
         [Server]

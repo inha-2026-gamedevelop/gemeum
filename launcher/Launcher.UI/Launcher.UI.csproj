@@ -5,7 +5,7 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>Geumeum.Launcher</RootNamespace>
     <AssemblyName>GeumeumLauncher</AssemblyName>
-    <Version>1.2.7</Version>
+    <Version>1.2.12</Version>
     <ApplicationIcon>Assets/launcher.ico</ApplicationIcon>
     <InvariantGlobalization>false</InvariantGlobalization>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -21,5 +21,6 @@
   <ItemGroup>
     <Resource Include="Assets/*.png" />
     <ProjectReference Include="../Patch.Client/Patch.Client.csproj" />
+    <ProjectReference Include="../Account.Client/Account.Client.csproj" />
   </ItemGroup>
 </Project>

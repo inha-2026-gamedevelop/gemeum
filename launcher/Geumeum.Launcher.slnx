@@ -1,4 +1,6 @@
 <Solution>
+  <Project Path="Account.Client/Account.Client.csproj" />
+  <Project Path="Account.Client.Tests/Account.Client.Tests.csproj" />
   <Project Path="Patch.Core/Patch.Core.csproj" />
   <Project Path="Patch.Client/Patch.Client.csproj" />
   <Project Path="Patch.Core.Tests/Patch.Core.Tests.csproj" />

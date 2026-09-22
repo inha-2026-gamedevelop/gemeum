@@ -54,6 +54,14 @@ namespace Geumeum.Network
         {
             _manager = GetComponent<NetworkManager>();
 
+            if (AccountGameServer.IsAccountProcess)
+            {
+                var steam = GetComponent<FizzySteamworks>();
+                if (steam != null) { steam.CancelInvoke(); steam.enabled = false; }
+                HideKcpHud();
+                return;
+            }
+
             if (!HasFlag(Environment.GetCommandLineArgs(), ARG_STEAM))
             {
                 return;
@@ -94,6 +102,12 @@ namespace Geumeum.Network
 
         private void Start()
         {
+            if (AccountGameServer.IsAccountProcess)
+            {
+                var steam = GetComponent<FizzySteamworks>();
+                if (steam != null) { steam.CancelInvoke(); steam.enabled = false; }
+                return;
+            }
             if (!IsSteamPath)
             {
                 Debug.Log("[SteamTransportSelector] KCP 경로로 시작한다");

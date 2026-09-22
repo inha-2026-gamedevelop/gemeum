@@ -66,7 +66,7 @@ namespace Geumeum.Network
                 return;
             }
 
-            // 호출자가 수집한 참조 오류를 보존하고 이 검사 결과를 이어 붙인다.
+            // 호출자가 수집한 참조 오류를 보존하고 이 검사 결과를 이어 붙인다
             ValidateBarrier(barrier, strict, failures);
             ValidateLevelCurve(levelCurve, strict, failures);
             ValidateSpawn(spawn, strict, failures);
@@ -91,7 +91,21 @@ namespace Geumeum.Network
                 PositiveFinite("최소 자원 비용", combat.MinimumResourceCost, failures);
                 PositiveFinite("최대 공격 속도 배율", combat.MaximumAttackSpeedMultiplier, failures);
                 PositiveFinite("연사 간격", combat.BurstShotInterval, failures);
-                PositiveFinite("지원 버프 지속 시간", combat.SupportBuffDuration, failures);
+                PositiveFinite("공명진 반경", combat.BellFieldRadius, failures);
+                PositiveFinite("공명진 지속 시간", combat.BellFieldDuration, failures);
+                PositiveFinite("공명진 체류 판정 간격", combat.BellFieldSampleInterval, failures);
+                PositiveFinite("공명진 이탈 유지 시간", combat.BellFieldTailDuration, failures);
+
+                // 상한이 기본값보다 낮으면 장비 401이 붙는 순간 유지시간이 거꾸로 줄어든다
+                if (combat.BellFieldTailMaximum < combat.BellFieldTailDuration)
+                {
+                    failures.Add("공명진 이탈 유지 상한이 기본 유지 시간보다 짧다");
+                }
+
+                if (combat.BellFieldDamageMultiplier < 1f)
+                {
+                    failures.Add("공명진 공격력 계수가 1 미만이다");
+                }
             }
 
             if (talent == null)
@@ -660,14 +674,14 @@ namespace Geumeum.Network
             RequireSessionServices(failures);
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // 프레임 측정기는 개발/에디터에서만 출시 씬 검사를 보강한다.
+            // 프레임 측정기는 개발/에디터에서만 출시 씬 검사를 보강한다
             RequireInScene<FrameRecorder>("FrameRecorder", failures);
 #endif
         }
 
         private static void RequireSessionServices(List<string> failures)
         {
-            // 서버 시작 전 1회 검사다. Network는 Systems 구체 타입 대신 Common 계약을 검사한다.
+            // 서버 시작 전 1회 검사다. Network는 Systems 구체 타입 대신 Common 계약을 검사한다
             MonoBehaviour[] behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(
                 FindObjectsInactive.Include);
             bool hasGrowth = false;
@@ -733,7 +747,7 @@ namespace Geumeum.Network
             }
 
             // Mirror disables spawnable scene identities during scene post-processing,
-            // before NetworkManager.OnStartServer validates and spawns them.
+            // before NetworkManager.OnStartServer validates and spawns them
             Mirror.NetworkIdentity identity =
                 behaviour.GetComponentInParent<Mirror.NetworkIdentity>(true);
             if ((identity == null) || (!identity.enabled) || (identity.sceneId == 0) ||
@@ -744,7 +758,7 @@ namespace Geumeum.Network
             }
 
             // Only the scene identity itself may be inactive. Disabled children or
-            // parents still represent intentionally inactive service objects.
+            // parents still represent intentionally inactive service objects
             Transform current = behaviour.transform;
             while (current != identity.transform)
             {

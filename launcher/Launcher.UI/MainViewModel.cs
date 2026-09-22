@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Threading;
 using Geumeum.Patch;
 using Geumeum.Patch.Client;
+using Geumeum.Accounts;
 
 namespace Geumeum.Launcher;
 
@@ -23,7 +24,9 @@ public enum LauncherState
     Error,
 }
 
-/// 설계서 9장 실행 흐름: 상태 복구 → 업데이트 확인 → 설치 계획 → 다운로드 → 검증 → 적용 → 실행.
+/// <summary>
+/// 실행 흐름: 상태 복구 -> 업데이트 확인 -> 설치 계획 -> 다운로드 -> 검증 -> 적용 -> 실행
+/// </summary>
 public sealed class MainViewModel : ObservableObject, IDisposable
 {
     private readonly LauncherConfig   _config;
@@ -33,6 +36,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly DispatcherTimer  _runningTimer;
     private readonly DispatcherTimer  _steamTimer;
     private SteamLoginState _steamLogin = SteamLoginState.Unknown;
+    private readonly bool _gameAccounts;
+    private readonly CancellationTokenSource _lifetime = new();
+    private bool _launching;
 
     private IRemoteRepository?       _remote;
     private Installer?               _installer;
@@ -61,11 +67,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private double _progressValue;
     private bool   _progressVisible;
 
-    public MainViewModel(LauncherConfig config, LauncherSettings settings, string? repoOverride)
+    public MainViewModel(LauncherConfig config, LauncherSettings settings, string? repoOverride, string? accountOverride = null, bool gameAccounts = false, string? accountStateDirectory = null)
     {
         _config       = config;
         _settings     = settings;
         _repoOverride = repoOverride;
+        _gameAccounts = gameAccounts;
         _layout       = new InstallLayout(settings.InstallRoot);
         _log          = new PatchLog(_layout.LogsDir);
 
@@ -73,7 +80,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         LauncherVersion = new Version(assembly.Major, assembly.Minor, Math.Max(assembly.Build, 0));
 
         PrimaryCommand  = new RelayCommand(OnPrimaryAsync, () => IsPrimaryEnabled);
-        SettingsCommand = new RelayCommand(OpenSettingsAsync, () => _state != LauncherState.Installing);
+        SettingsCommand = new RelayCommand(OpenSettingsAsync,
+            () => _state != LauncherState.Installing && !_launching && Account?.IsBusy != true);
+        string accountOrigin = accountOverride ?? config.AccountApiUrl;
+        if (!string.IsNullOrWhiteSpace(accountOrigin))
+        {
+            Account = new AccountViewModel(accountOrigin, accountOverride != null,
+                accountStateDirectory ?? Path.Combine(LauncherSettings.SettingsDir, "Accounts"));
+            Account.PropertyChanged += (_, _) =>
+            {
+                Raise(nameof(IsPrimaryEnabled));
+                Raise(nameof(SteamLoginText));
+                CommandManagerRefresh();
+            };
+        }
+        AccountCommand = new RelayCommand(OpenAccountAsync,
+            () => Account is { IsBusy: false } && State != LauncherState.Running && !_launching);
 
         _speedTimer   = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _speedTimer.Tick += (_, _) => UpdateSpeed();
@@ -95,14 +117,26 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public RelayCommand PrimaryCommand  { get; }
     public RelayCommand SettingsCommand { get; }
-    public string SteamLoginText => _steamLogin switch
+    public AccountViewModel? Account { get; }
+    public bool HasAccount => Account != null;
+    public RelayCommand AccountCommand { get; }
+
+    private Task OpenAccountAsync()
+    {
+        if (Account != null)
+            new AccountWindow(Account) { Owner = Application.Current.MainWindow }.ShowDialog();
+        return Task.CompletedTask;
+    }
+    public string SteamLoginText => _gameAccounts
+        ? Account?.IsSignedIn == true ? "그믐 계정으로 접속합니다." : "계정 로그인 후 게임을 시작할 수 있습니다. 계정이 없으면 공식 Discord에서 발급받으세요."
+        : _steamLogin switch
     {
         SteamLoginState.SignedIn => "Steam 로그인 감지됨",
         SteamLoginState.NotRunning => "Steam을 실행하고 로그인해 주세요.",
         SteamLoginState.SignedOut => "Steam에 로그인해 주세요. 로그인 후 게임을 시작할 수 있습니다.",
         _ => "Steam 로그인을 확인할 수 없습니다. Steam에서 로그인 상태를 확인해 주세요.",
     };
-    public bool SteamLoginRequired => _steamLogin != SteamLoginState.SignedIn;
+    public bool SteamLoginRequired => !_gameAccounts && _steamLogin != SteamLoginState.SignedIn;
 
     private void RefreshSteamLogin()
     {
@@ -111,6 +145,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _steamLogin = next;
         Raise(nameof(SteamLoginText));
         Raise(nameof(SteamLoginRequired));
+        Raise(nameof(IsPrimaryEnabled));
+        CommandManagerRefresh();
     }
 
     public LauncherState State
@@ -145,14 +181,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         LauncherState.UpdateAvailable  => "업데이트",
         LauncherState.Installing       => "일시정지",
         LauncherState.Paused           => "계속",
-        LauncherState.Ready            => "게임 시작",
-        LauncherState.Offline          => "게임 시작",
+        LauncherState.Ready            => _gameAccounts ? "원정대 찾기" : "게임 시작",
+        LauncherState.Offline          => _gameAccounts ? "원정대 찾기" : "게임 시작",
         LauncherState.Running          => "실행 중",
         LauncherState.LauncherOutdated => "런처 받기",
         _                              => "다시 시도",
     };
 
-    public bool IsPrimaryEnabled => _state is not (LauncherState.Checking or LauncherState.Running);
+    public bool IsPrimaryEnabled => !_launching
+        && _state is not (LauncherState.Checking or LauncherState.Running)
+        && (_state is not (LauncherState.Ready or LauncherState.Offline)
+            || ((Account == null ? !_gameAccounts : Account.IsSignedIn && !Account.IsBusy)
+                && !SteamLoginRequired));
 
     public string InstallRoot => _layout.Root;
     public string GameSizeText => _check == null ? "확인 중" : Format.Bytes(_check.Manifest.TotalSize);
@@ -174,7 +214,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string Channel     => _settings.Channel;
     public string LogsDir     => _layout.LogsDir;
 
+    /// <summary>
     /// 설정에 적은 주소가 내장 주소보다 우선한다. 둘 다 없으면 빈 문자열
+    /// </summary>
     public string ServerUrl => _repoOverride
         ?? (_settings.ServerUrl.Length > 0 ? _settings.ServerUrl : _config.HasBaseUrl ? _config.BaseUrl : "");
 
@@ -186,6 +228,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public async Task InitializeAsync()
     {
+        if (Account != null) await Account.RestoreAsync();
         RebuildServices();
 
         string? exePath = Environment.ProcessPath;
@@ -201,8 +244,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         await RefreshAsync();
     }
 
-    /// 새 런처가 게시돼 있으면 받아서 교체하고 재시작한다. 재시작했으면 true — 호출자는 더 진행하지 않는다.
-    /// 실패해도 지금 런처로 계속 쓸 수 있게 경고만 남긴다.
+    /// <summary>
+    /// 새 런처가 게시돼 있으면 받아서 교체하고 재시작한다. 재시작했으면 true - 호출자는 더 진행하지 않는다
+    /// 실패해도 지금 런처로 계속 쓸 수 있게 경고만 남긴다
+    /// </summary>
     private async Task<bool> TryUpdateLauncherAsync()
     {
 #if DEBUG
@@ -394,6 +439,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private async Task OnPrimaryAsync()
     {
+        if (!IsPrimaryEnabled) return;
         switch (_state)
         {
             case LauncherState.NotInstalled:
@@ -410,7 +456,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             case LauncherState.Ready:
             case LauncherState.Offline:
-                Launch();
+                if (Account != null)
+                {
+                    if (Account.IsBusy) return;
+                    if (!Account.IsSignedIn) await OpenAccountAsync();
+                    if (!Account.IsSignedIn) return;
+                    await Account.RefreshProfileAsync();
+                    if (Account.IsError || !Account.IsSignedIn)
+                    {
+                        WarningText = Account.Message;
+                        return;
+                    }
+                }
+                await LaunchAsync();
                 break;
 
             case LauncherState.LauncherOutdated:
@@ -464,7 +522,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    // 설치와 복구가 같은 진행 화면·일시정지·오류 처리를 쓴다
+    // 설치와 복구가 같은 진행 화면, 일시정지, 오류 처리를 쓴다
     private async Task RunWorkAsync(string title, Func<IProgress<InstallProgress>, CancellationToken, Task> work)
     {
         State           = LauncherState.Installing;
@@ -548,7 +606,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SpeedText = $"{Format.Bytes((long)_speed)}/s · 남은 시간 {(eta.TotalHours >= 1 ? eta.ToString(@"h\:mm\:ss") : eta.ToString(@"m\:ss"))}";
     }
 
-    private void Launch()
+    private async Task LaunchAsync()
     {
         if (_local?.Active == null || _local.ActiveManifest == null || !_local.IsInstalled)
         {
@@ -556,38 +614,86 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        // 실행 직전에 다시 확인한다. 로그인 대기 때문에 Ready/Offline 상태를 잃지 않는다.
+        // 실행 직전에 다시 확인한다. 로그인 대기 때문에 Ready/Offline 상태를 잃지 않는다
         RefreshSteamLogin();
-        if (SteamLoginRequired)
+        if (!_gameAccounts && SteamLoginRequired)
         {
             MessageBox.Show(SteamLoginText, "Steam 로그인 필요", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         RotateGameLog();
+        Process? launched = null;
+        TokenReply? gameSession = null;
+        _launching = true;
+        Raise(nameof(IsPrimaryEnabled));
+        CommandManagerRefresh();
         try
         {
-            Process process = GameProcess.Launch(_layout, _local.Active.ReleaseId, _local.ActiveManifest, GameArguments());
-            _log.Info($"게임 실행: {_local.Active.ReleaseId} (pid {process.Id}) {string.Join(' ', GameArguments())}");
-            process.EnableRaisingEvents = true;
+            AccountRoom? room = null;
+            if (_gameAccounts)
+            {
+                if (Account?.IsSignedIn != true) throw new AccountException("먼저 계정에 로그인해 주세요.");
+                var rooms = new RoomWindow(Account, _local.Active.ReleaseId) { Owner = Application.Current.MainWindow };
+                if (rooms.ShowDialog() != true) return;
+                room = rooms.SelectedRoom;
+            }
+            using var pipe = _gameAccounts ? new GameSessionPipe() : null;
+            var arguments = GameArguments().ToList();
+            if (pipe != null)
+            {
+                gameSession = await Account!.CreateGameSessionAsync(_lifetime.Token);
+                arguments.AddRange(new[] { "-account-pipe", pipe.Name, "-launcher-pid", Environment.ProcessId.ToString() });
+            }
+            Process process = GameProcess.Launch(_layout, _local.Active.ReleaseId, _local.ActiveManifest, arguments);
+            launched = process;
+            _log.Info($"게임 실행: {_local.Active.ReleaseId} (pid {process.Id})");
+            if (pipe != null)
+            {
+                await pipe.DeliverAsync(process.Id, new Uri(Account!.ApiOrigin), gameSession!, _lifetime.Token, room);
+                _log.Info("게임 계정 세션 전달 확인");
+            }
             process.Exited += (_, _) => Application.Current.Dispatcher.InvokeAsync(async () =>
             {
-                _log.Info($"게임 종료: 코드 {SafeExitCode(process)}");
+                string exitCode = SafeExitCode(process);
+                _log.Info($"게임 종료: 코드 {exitCode}");
                 process.Dispose();
                 await RefreshAsync();
+                if (exitCode == "12") WarningText = "게임 계정 세션이 종료되었습니다. 계정 서버를 확인하고 다시 로그인해 주세요.";
+                if (exitCode == "13") WarningText = "파티 연결이 종료되었습니다. 인터넷 연결을 확인한 뒤 파티를 다시 만들어 주세요.";
             });
+            process.EnableRaisingEvents = true;
             EnterRunning();
         }
         catch (Exception e)
         {
-            HandleError(e, "게임을 시작하지 못했다");
+            if (launched != null)
+            {
+                try { if (!launched.HasExited) launched.Kill(); }
+                catch (Exception stopError) when (stopError is InvalidOperationException or System.ComponentModel.Win32Exception)
+                { _log.Warn("실패한 게임 프로세스 종료를 확인하지 못했습니다."); }
+                launched.Dispose();
+            }
+            if (gameSession != null)
+            {
+                try
+                {
+                    using var api = new AccountApi(Account!.ApiOrigin, true);
+                    await api.LogoutAsync(gameSession.AccessToken);
+                }
+                catch (AccountException) { _log.Warn("실패한 게임 세션의 원격 폐기를 확인하지 못했습니다."); }
+            }
+            HandleError(new AccountException(e is AccountException ? e.Message : "게임 실행 또는 계정 세션 전달에 실패했습니다."), "게임을 시작하지 못했다");
         }
+        finally { _launching = false; Raise(nameof(IsPrimaryEnabled)); CommandManagerRefresh(); }
     }
 
     // 런처로 켜면 항상 Steam 로비 경로로 들어간다(tools/run-steam-lobby.bat과 같은 경로). 게임 로그는 로그 폴더에 같이 둔다
     private IReadOnlyList<string> GameArguments()
     {
-        return new[] { "-steam", "-logFile", Path.Combine(_layout.LogsDir, "game.log") };
+        return _gameAccounts
+            ? new[] { "-logFile", Path.Combine(_layout.LogsDir, "game.log") }
+            : new[] { "-steam", "-logFile", Path.Combine(_layout.LogsDir, "game.log") };
     }
 
     // 직전 실행 로그 하나는 남긴다. 튕긴 뒤 다시 켜도 원인 로그가 덮이지 않게 한다
@@ -796,7 +902,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         System.Windows.Input.CommandManager.InvalidateRequerySuggested();
     }
 
+    /// <summary>
     /// 창을 닫으면 진행 중인 작업을 멈춘다. 받은 부분은 다음 실행에 이어 쓴다
+    /// </summary>
     public void CancelWork()
     {
         _pauseRequested = true;
@@ -805,9 +913,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        _lifetime.Cancel();
         _speedTimer.Stop();
         _runningTimer.Stop();
         _steamTimer.Stop();
+        Account?.Dispose();
         _remote?.Dispose();
     }
 }

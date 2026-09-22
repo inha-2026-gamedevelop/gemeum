@@ -62,7 +62,7 @@ namespace Geumeum.Network.Tests
             Assert.IsNotNull(combat);
             Assert.IsNotNull(talent);
             Assert.IsNotNull(score);
-            Assert.AreEqual(30, talent.NodeCount);
+            Assert.AreEqual(39, talent.NodeCount);
             var failures = new List<string>();
 
             GeumeumBootValidator.ValidateProgressionData(combat, talent, score,
@@ -142,7 +142,7 @@ namespace Geumeum.Network.Tests
             data.FindProperty("_minimumResourceCost").floatValue = 0f;
             data.FindProperty("_maximumAttackSpeedMultiplier").floatValue = float.NaN;
             data.FindProperty("_burstShotInterval").floatValue = 0f;
-            data.FindProperty("_supportBuffDuration").floatValue = -1f;
+            data.FindProperty("_bellFieldDuration").floatValue = -1f;
             data.ApplyModifiedPropertiesWithoutUndo();
             var failures = new List<string>();
 

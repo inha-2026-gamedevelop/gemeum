@@ -1,5 +1,6 @@
 // System
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 // Unity
@@ -21,9 +22,6 @@ namespace Geumeum.Network
         *                Fields
         ****************************************/
 
-        [Tooltip("붙는 쪽과 받는 쪽이 같아야 하는 값. 프로토콜이 바뀔 때만 올린다")]
-        [SerializeField] private string _buildId = "dev";
-
         [Tooltip("KCP 경로에서 쓸 신원 소스. DevIdentitySource를 꽂는다")]
         [FormerlySerializedAs("_identitySourceBehaviour")]
         [SerializeField] private MonoBehaviour _devIdentitySourceBehaviour;
@@ -36,6 +34,7 @@ namespace Geumeum.Network
 
         private IPlayerIdentitySource _devIdentitySource;
         private IPlayerIdentitySource _steamIdentitySource;
+        private Coroutine _accountWait;
 
         /****************************************
         *              Properties
@@ -45,11 +44,11 @@ namespace Geumeum.Network
         public static GeumeumAuthenticator ServerInstance { get; private set; }
 
         /// <summary> 짝 검사를 위한 신원 소스 이름. 없으면 빈 문자열 </summary>
-        public string IdentityLabel => (ActiveSource != null) ? ActiveSource.Label : string.Empty;
+        public string IdentityLabel => AccountGameServer.Enabled ? "Account" : (ActiveSource != null) ? ActiveSource.Label : string.Empty;
 
         /// <summary>
-        /// 인증 직후 SceneMessage를 기다려야 하는지 로컬 NetworkManager가 읽는다.
-        /// AuthResponse가 ClientAccept보다 먼저 이 값을 확정한다.
+        /// 인증 직후 SceneMessage를 기다려야 하는지 로컬 NetworkManager가 읽는다
+        /// AuthResponse가 ClientAccept보다 먼저 이 값을 확정한다
         /// </summary>
         public static bool ClientSceneSyncExpected { get; private set; }
 
@@ -99,6 +98,17 @@ namespace Geumeum.Network
             _acceptedIds.Clear();
 
             NetworkServer.RegisterHandler<AuthRequestMessage>(OnAuthRequest, false);
+            NetworkServer.RegisterHandler<AccountProofMessage>((conn, message) =>
+            {
+                if (AccountGameServer.Enabled && AccountGameServer.Instance != null)
+                {
+                    AccountGameServer.Instance.Redeem(conn, message);
+                }
+                else
+                {
+                    conn.Disconnect();
+                }
+            }, false);
         }
 
         public override void OnStopServer()
@@ -110,10 +120,15 @@ namespace Geumeum.Network
 
             _acceptedIds.Clear();
             NetworkServer.UnregisterHandler<AuthRequestMessage>();
+            NetworkServer.UnregisterHandler<AccountProofMessage>();
         }
 
         public override void OnServerAuthenticate(NetworkConnectionToClient conn)
         {
+            if (AccountGameServer.Enabled)
+            {
+                AccountGameServer.Instance.Begin(conn);
+            }
         }
 
         /// <summary> 승인된 연결의 신원을 돌려준다. 승인 전이거나 끊긴 연결이면 false </summary>
@@ -126,6 +141,7 @@ namespace Geumeum.Network
         public void ServerForget(int connectionId)
         {
             _acceptedIds.Remove(connectionId);
+            AccountGameServer.Instance?.Forget(connectionId);
         }
 
         /****************************************
@@ -134,9 +150,10 @@ namespace Geumeum.Network
 
         private void OnAuthRequest(NetworkConnectionToClient conn, AuthRequestMessage message)
         {
-            if (!string.Equals(message.Build, _buildId, StringComparison.Ordinal))
+            if (AccountGameServer.Enabled) { conn.Disconnect(); return; }
+            if (!BuildIdentity.IsCompatible(message.Build, "클라", out string buildReason))
             {
-                Reject(conn, AuthResultCode.BuildMismatch, $"빌드가 다르다: 서버={_buildId}, 클라={message.Build}");
+                Reject(conn, AuthResultCode.BuildMismatch, buildReason);
                 return;
             }
 
@@ -159,6 +176,28 @@ namespace Geumeum.Network
                 return;
             }
 
+            AcceptIdentity(conn, id, source.Label);
+        }
+
+        public Dictionary<int, ulong> AccountConnections()
+        {
+            var result = new Dictionary<int, ulong>();
+            foreach (var pair in _acceptedIds)
+            {
+                result[pair.Key] = pair.Value.Value;
+            }
+
+            return result;
+        }
+
+        public void AcceptAccount(NetworkConnectionToClient conn, ulong accountId)
+        {
+            if (!AccountGameServer.Enabled) { conn.Disconnect(); return; }
+            AcceptIdentity(conn, new PlayerPlatformId(accountId), "Account");
+        }
+
+        private void AcceptIdentity(NetworkConnectionToClient conn, PlayerPlatformId id, string label)
+        {
             var manager = NetworkManager.singleton as GeumeumNetworkManager;
             if ((manager != null) && (manager.IsAdmissionLocked))
             {
@@ -193,7 +232,7 @@ namespace Geumeum.Network
             });
             ServerAccept(conn);
 
-            Debug.Log($"[GeumeumAuthenticator] 승인: {NetworkPeerLabel.Describe(conn)}, platformId={id}, source={source.Label}");
+            Debug.Log($"[GeumeumAuthenticator] 승인: {NetworkPeerLabel.Describe(conn)}, platformId={id}, source={label}");
         }
 
         /// <summary> Steam 경로에서만 도는 세션 검증 </summary>
@@ -259,23 +298,88 @@ namespace Geumeum.Network
         {
             ClientSceneSyncExpected = false;
             NetworkClient.RegisterHandler<AuthResponseMessage>(OnAuthResponse, false);
+            NetworkClient.RegisterHandler<AccountChallengeMessage>(OnAccountChallenge, false);
         }
 
         public override void OnStopClient()
         {
+            if (_accountWait != null) { StopCoroutine(_accountWait); _accountWait = null; }
             NetworkClient.UnregisterHandler<AuthResponseMessage>();
+            NetworkClient.UnregisterHandler<AccountChallengeMessage>();
             ClientSceneSyncExpected = false;
         }
 
         public override void OnClientAuthenticate()
         {
+            if (!string.IsNullOrEmpty(LauncherGameSession.RoomId))
+            {
+                return;
+            }
+
+            if (LauncherGameSession.State != LauncherGameSession.SessionState.Disabled)
+            {
+                if (_accountWait != null)
+                {
+                    StopCoroutine(_accountWait);
+                }
+
+                _accountWait = StartCoroutine(WaitForAccount());
+                return;
+            }
+            SendClientAuthentication();
+        }
+
+        private IEnumerator WaitForAccount()
+        {
+            while (LauncherGameSession.State == LauncherGameSession.SessionState.Loading)
+            {
+                yield return null;
+            }
+
+            _accountWait = null;
+            if (!NetworkClient.isConnected)
+            {
+                yield break;
+            }
+
+            if (LauncherGameSession.State != LauncherGameSession.SessionState.Ready)
+            {
+                NetworkClient.Disconnect();
+                yield break;
+            }
+            SendClientAuthentication();
+        }
+
+        private void SendClientAuthentication()
+        {
             NetworkClient.Send(new AuthRequestMessage
             {
                 PlatformId = ResolveClaimedId(),
-                Build      = _buildId,
+                Build      = BuildIdentity.ReleaseId,
                 Nonce      = ResolveNonce(),
                 Epoch      = 0U,
             });
+        }
+
+        private async void OnAccountChallenge(AccountChallengeMessage message)
+        {
+            var connection = NetworkClient.connection;
+            try
+            {
+                string ticket = await LauncherGameSession.JoinTicketAsync(message.RoomId, message.Challenge);
+                if (NetworkClient.isConnected && ReferenceEquals(connection, NetworkClient.connection))
+                {
+                    NetworkClient.Send(new AccountProofMessage { Ticket = ticket, Build = BuildIdentity.ReleaseId });
+                }
+            }
+            catch (Exception)
+            {
+                Debug.LogWarning("[GeumeumAuthenticator] 계정 접속 티켓 검증에 실패했습니다.");
+                if (ReferenceEquals(connection, NetworkClient.connection))
+                {
+                    NetworkClient.Disconnect();
+                }
+            }
         }
 
         private static string ResolveNonce()

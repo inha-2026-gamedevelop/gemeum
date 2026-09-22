@@ -118,7 +118,7 @@ namespace Geumeum.Network
             }
 
             bool   isSteamTransport = SteamTransportSelector.IsSteamTransport(manager.transport);
-            string expected         = isSteamTransport ? "Steam" : "Dev";
+            string expected         = AccountGameServer.Enabled ? "Account" : isSteamTransport ? "Steam" : "Dev";
 
             if (!string.Equals(identity, expected, StringComparison.Ordinal))
             {

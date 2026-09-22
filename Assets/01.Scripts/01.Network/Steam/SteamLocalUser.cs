@@ -15,7 +15,7 @@ namespace Geumeum.Network
             steamId = 0UL;
             return false;
 #else
-            if (!SteamManager.Initialized)
+            if (AccountGameServer.IsAccountProcess || !SteamManager.Initialized)
             {
                 steamId = 0UL;
                 return false;
@@ -33,7 +33,7 @@ namespace Geumeum.Network
             personaName = null;
             return false;
 #else
-            if (!SteamManager.Initialized)
+            if (AccountGameServer.IsAccountProcess || !SteamManager.Initialized)
             {
                 personaName = null;
                 return false;

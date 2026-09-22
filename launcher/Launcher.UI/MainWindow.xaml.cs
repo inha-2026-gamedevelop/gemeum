@@ -39,6 +39,9 @@ public partial class MainWindow : Window
 
     private void OnClose(object sender, RoutedEventArgs e) => Close();
 
+    // 초대 링크는 로그인, 계정 서버 상태와 무관하게 항상 열 수 있어야 한다
+    private void OnDiscord(object sender, RoutedEventArgs e) => DiscordCommunity.OpenInvite(this);
+
     protected override void OnClosed(EventArgs e)
     {
         _viewModel.Dispose();

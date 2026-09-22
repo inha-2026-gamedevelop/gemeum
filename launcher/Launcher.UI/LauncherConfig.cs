@@ -4,13 +4,17 @@ using Geumeum.Patch;
 
 namespace Geumeum.Launcher;
 
-/// 런처에 내장되는 신뢰 기준. 배포 주소와 서명 공개키는 원격에서 받지 않는다(설계서 6·10장).
+/// <summary>
+/// 런처에 내장되는 신뢰 기준, 배포 주소와 서명 공개키는 원격에서 받지 않는다
+/// </summary>
 public sealed class LauncherConfig
 {
     public const string PLACEHOLDER_MARK = "CHANGE-ME";
 
     public string BaseUrl        { get; set; } = "";
     public string DefaultChannel { get; set; } = "internal";
+    public string AccountApiUrl { get; set; } = "";
+    public bool EnableGameAccounts { get; set; }
     public Dictionary<string, string> TrustedKeys { get; set; } = new();
 
     public bool HasBaseUrl => !string.IsNullOrWhiteSpace(BaseUrl) && !BaseUrl.Contains(PLACEHOLDER_MARK, StringComparison.Ordinal);
@@ -31,13 +35,17 @@ public sealed class LauncherConfig
     }
 }
 
-/// 사용자별 선택값. 설치 폴더 밖(%LOCALAPPDATA%\Geumeum)에 둔다.
+/// <summary>
+/// 사용자별 선택값. 설치 폴더 밖(%LOCALAPPDATA%\Geumeum)에 둔다
+/// </summary>
 public sealed class LauncherSettings
 {
     public string InstallRoot { get; set; } = "";
     public string Channel     { get; set; } = "";
 
+    /// <summary>
     /// 비어 있으면 런처에 내장된 주소를 쓴다. R2 전까지 팀장 PC 주소를 여기 넣는다
+    /// </summary>
     public string ServerUrl   { get; set; } = "";
 
     public static string SettingsDir  => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Geumeum");
@@ -66,7 +74,9 @@ public sealed class LauncherSettings
         return loaded;
     }
 
+    /// <summary>
     /// 배포 주소로 쓸 수 있는 http(s) 절대 주소인가. 내용 진위는 서명이 보장하므로 http도 받는다
+    /// </summary>
     public static bool IsValidServerUrl(string url)
     {
         return Uri.TryCreate(url, UriKind.Absolute, out Uri? uri)

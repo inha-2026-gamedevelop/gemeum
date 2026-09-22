@@ -81,7 +81,7 @@ namespace Geumeum.Network
         /// <summary> 어떤 사유로든 세계가 얼어 있다. 시계도 멈춘다 </summary>
         public bool IsPaused => (_pauseReasons != RunPauseReason.None);
 
-        /// <summary>Server NetworkTime when the current pause began; zero while the run is active.</summary>
+        /// <summary>Server NetworkTime when the current pause began; zero while the run is active</summary>
         public double PauseStartServerTime => _pauseStartServerTime;
 
         /// <summary> 필드 구간의 경과 시간(초). 보스전에서는 더 이상 늘지 않는다 </summary>
@@ -270,7 +270,7 @@ namespace Geumeum.Network
         }
 
         /// <summary>
-        /// 보스 사망은 AI가 사실로만 발행하고 런 종료 판단은 여기서 한다.
+        /// 보스 사망은 AI가 사실로만 발행하고 런 종료 판단은 여기서 한다
         /// 버스가 아직 없으면 뜰 때까지 기다린다 - 포기하면 보스를 죽여도 런이 끝나지 않는다
         /// </summary>
         [Server]
@@ -324,7 +324,7 @@ namespace Geumeum.Network
 
         public override void OnStopServer()
         {
-            // Mirror는 연결 해제를 먼저 알린다. 그 과정에서 남긴 재접속 상태도 여기서 버린다.
+            // Mirror는 연결 해제를 먼저 알린다. 그 과정에서 남긴 재접속 상태도 여기서 버린다
             RunParticipantRegistry.ServerClear();
             IRunResultFactsProvider factsProvider = RunResultFactsProviderLocator.Current;
             if (factsProvider != null)
@@ -568,7 +568,7 @@ namespace Geumeum.Network
         }
 
         /// <summary>
-        /// 필드의 정식 입구가 서버에서 감지한 참가자로 카운트다운을 시작한다.
+        /// 필드의 정식 입구가 서버에서 감지한 참가자로 카운트다운을 시작한다
         /// 같은 입구의 자식 collider가 겹쳐 호출돼도 최초 deadline만 유지한다
         /// </summary>
         [Server]
@@ -679,7 +679,7 @@ namespace Geumeum.Network
         }
 
         /// <summary>
-        /// 보스 구간을 연다. 시계는 여기서 켜지 않는다 - 준비와 개시를 나눈다.
+        /// 보스 구간을 연다. 시계는 여기서 켜지 않는다 - 준비와 개시를 나눈다
         /// 아레나 씬 전환과 바인딩이 끝나 RunSceneDirector가 Idle로 돌아온 뒤에
         /// ServerTickBossClock이 시계를 시작한다. 로딩 중에 제한 시간이 깎이면 안 된다
         /// </summary>
@@ -750,6 +750,7 @@ namespace Geumeum.Network
         // 정산 씬과 로비 씬 전환이 끝나기를 기다렸다가 다시 시작한다. 전환 중 StartRun은 거절된다
         private IEnumerator CoBossTrialRetry()
         {
+            bool refillBots = LobbyController.ServerInstance != null && LobbyController.ServerInstance.FillWithBots;
             while ((_phase == RunPhase.Result) && (_returnRoutine != null))
             {
                 yield return _tickWait;
@@ -776,8 +777,20 @@ namespace Geumeum.Network
 
             _bossTrialRetryRoutine = null;
 
+            if (LobbyRoleCoordinator.ServerInstance == null || !LobbyRoleCoordinator.ServerInstance.ServerAssignRoles() ||
+                (refillBots && !BotParty.TryFill()))
+            {
+                BotParty.Clear();
+                LobbyRoleCoordinator.ServerInstance?.ServerResetForNewRun();
+                Debug.LogError("[RunManager] 재시도 참가자 편성 복구 실패", this);
+                yield break;
+            }
+            (NetworkManager.singleton as GeumeumNetworkManager)?.LockAdmission();
+            LobbyController.ServerInstance?.ServerRememberRetryParty(refillBots);
             if (!StartRun(RunMode.BossTrial))
             {
+                BotParty.Clear();
+                (NetworkManager.singleton as GeumeumNetworkManager)?.UnlockAdmission();
                 Debug.LogError("[RunManager] 보스 트라이 재시도를 시작하지 못했다", this);
             }
         }
@@ -1206,7 +1219,7 @@ namespace Geumeum.Network
         {
             if (!_hasBossClockStarted)
             {
-                // 아레나로 옮기고 참조를 다시 거는 동안에는 제한 시간이 흐르지 않는다.
+                // 아레나로 옮기고 참조를 다시 거는 동안에는 제한 시간이 흐르지 않는다
                 // 전환이 없는 경로(개발 진입 등)에서는 Idle이라 바로 시작한다
                 if (RunSceneDirector.IsServerTransitioning)
                 {
@@ -1234,6 +1247,31 @@ namespace Geumeum.Network
             TryFinishRun(RunOutcome.TimeExpired);
             return true;
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+        /// <summary>개발용 시간 전진. 정상 타임라인을 통해 결계, 객주, 보스 입구를 진행한다</summary>
+        [Server]
+        public bool ServerDevAdvanceTime(float seconds)
+        {
+            if (!DevAccess.IsUnlocked || !RunId.IsValid || IsPaused ||
+                RunSceneDirector.IsServerTransitioning || _phase == RunPhase.Lobby ||
+                _phase == RunPhase.Result || float.IsNaN(seconds) || float.IsInfinity(seconds) || seconds <= 0f)
+            { return false; }
+            if (_phase == RunPhase.Boss)
+            {
+                if (!_hasBossClockStarted) { return false; }
+                _bossStartServerTime -= seconds;
+                ServerTickBossClock(GameDB.Boss.BossTimeLimitSeconds);
+            }
+            else
+            {
+                if (_mode == RunMode.BossTrial) { return false; }
+                _runStartServerTime -= seconds;
+                ServerTickFieldClock(GameDB.Barrier.FieldTimeLimitSeconds);
+            }
+            return true;
+        }
+#endif
 
         private void AdvancePhases(float elapsedSeconds)
         {
@@ -1273,13 +1311,13 @@ namespace Geumeum.Network
                 Debug.LogError($"[RunManager] GameEventBus가 없어 {previous} -> {next} 전환을 알리지 못했다", this);
             }
 
-            // 구독자가 현재 씬에서 phase 변화를 처리한 뒤에 씬을 옮긴다.
+            // 구독자가 현재 씬에서 phase 변화를 처리한 뒤에 씬을 옮긴다
             // 순서를 뒤집으면 전환으로 파괴되는 객체가 이벤트를 못 받는다
             ServerSyncSceneToPhase(next);
         }
 
         /// <summary>
-        /// RunSceneDirector가 전원 도착, 바인딩, 참가자 복구를 마친 뒤 호출한다.
+        /// RunSceneDirector가 전원 도착, 바인딩, 참가자 복구를 마친 뒤 호출한다
         /// 전실 다음 아레나를 열거나, 전환 중 확정된 Result 목적지를 다시 요청한다
         /// </summary>
         [Server]
@@ -1327,7 +1365,7 @@ namespace Geumeum.Network
 
         /// <summary>
         /// phase가 요구하는 씬으로 1회 전환한다. 씬 전환의 결정은 런 상태를 소유한 여기가 하고
-        /// 실행은 RunSceneDirector가 한다.
+        /// 실행은 RunSceneDirector가 한다
         ///
         /// 개발 씬에서는 아무것도 하지 않는다 - Director가 시작 씬 이름으로 CurrentScene을 잡는데
         /// Dev_Combat 같은 씬은 카탈로그에 없어 None이 된다. 그 상태에서 자동 전환을 걸면
@@ -1405,7 +1443,7 @@ namespace Geumeum.Network
             RunSceneDirector director = RunSceneDirector.ServerInstance;
             if ((director == null) || (director.CurrentScene == RunSceneId.None))
             {
-                // 카탈로그 밖 개발 씬은 기존처럼 같은 씬에서 보스 구간을 시험할 수 있게 한다.
+                // 카탈로그 밖 개발 씬은 기존처럼 같은 씬에서 보스 구간을 시험할 수 있게 한다
                 _bossEntranceState = BossEntranceState.Ready;
                 ServerBeginBossPhase();
                 return;
@@ -1444,8 +1482,8 @@ namespace Geumeum.Network
                 return false;
             }
 
-            // 참가자 이탈로 scheduler와 런 틱이 멈춘 상태에서는 다음 control tick이 없다.
-            // 이 구간에는 전투 판정도 멈춰 있으므로 기존의 더 높은 후보까지 여기서 확정한다.
+            // 참가자 이탈로 scheduler와 런 틱이 멈춘 상태에서는 다음 control tick이 없다
+            // 이 구간에는 전투 판정도 멈춰 있으므로 기존의 더 높은 후보까지 여기서 확정한다
             if ((IsPaused) && (_candidateOutcome != RunOutcome.None))
             {
                 ServerCommitOutcome(_candidateOutcome);

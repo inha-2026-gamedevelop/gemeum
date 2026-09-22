@@ -34,11 +34,26 @@ public partial class App : Application
 
         // 배포 주소 바꿔치기는 개발 빌드에서만 연다. 릴리스 런처는 내장 주소만 믿는다
         string? repoOverride = null;
+        string? accountOverride = null;
+        bool gameAccounts = config.EnableGameAccounts;
 #if DEBUG
         repoOverride = FindArg(e.Args, ARG_REPO);
+        if (repoOverride != null && FindArg(e.Args, "--channel") is string localChannel)
+        {
+            if (localChannel is not ("internal" or "stable")) { Shutdown(1); return; }
+            settings.Channel = localChannel;
+        }
+        accountOverride = FindArg(e.Args, "--account-api");
+        gameAccounts |= e.Args.Contains("--account-game");
 #endif
 
-        var viewModel = new MainViewModel(config, settings, repoOverride);
+        if (gameAccounts && string.IsNullOrWhiteSpace(accountOverride ?? config.AccountApiUrl))
+        {
+            MessageBox.Show("게임 계정 연결에는 계정 API 주소가 필요합니다.", "그믐 런처");
+            Shutdown(1);
+            return;
+        }
+        var viewModel = new MainViewModel(config, settings, repoOverride, accountOverride, gameAccounts);
         var window    = new MainWindow(viewModel);
         MainWindow    = window;
         window.Show();

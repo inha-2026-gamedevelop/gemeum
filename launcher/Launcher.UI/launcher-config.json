@@ -1,6 +1,8 @@
 {
   "baseUrl": "https://pub-780b594bb88c41ba9cac34715968764a.r2.dev",
   "defaultChannel": "internal",
+  "accountApiUrl": "https://3.39.107.59",
+  "enableGameAccounts": true,
   "trustedKeys": {
     "release-key-1": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEcWBx8C0kKk88KAMJi4HeoE26JnOa\n/Ip11aBNR2kydD4TNUZPaDl+PNOVyBJuAFZRzoeSJthQ0LsSWV7uzN/09g==\n-----END PUBLIC KEY-----"
   }
