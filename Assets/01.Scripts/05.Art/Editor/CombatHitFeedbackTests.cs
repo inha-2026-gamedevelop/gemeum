@@ -183,6 +183,55 @@ namespace Geumeum.Art.Tests
         }
 
         [Test]
+        public void RemoteTrailRecordsBetweenClockSnapshotsAndFreezesWhenPaused()
+        {
+            IRunTimeSource previous = RunTimeLocator.Current;
+            RunTimeLocator.Register(new FrozenTrailRunTime());
+            _rendererObject = new GameObject("RemoteTrailClockTests");
+            MeleeSlashView view = _rendererObject.AddComponent<MeleeSlashView>();
+            var blade = new SweepingBlade();
+            var cue = new PlayerActionCue
+            {
+                ExecutionId = 1, Kind = PlayerActionCueKind.Attack, Weapon = WeaponKind.Sword,
+                StartGameplayTime = 0, ImpactGameplayTime = .12, EndGameplayTime = .6,
+            };
+            try
+            {
+                view.Begin(in cue, blade, new MeleeSlashView.TrailSettings
+                {
+                    TrailSeconds = .22f, RecordBeforeImpactSeconds = .1f,
+                    RecordAfterImpactSeconds = .2f, HiltRatio = .25f,
+                    BodyColor = Color.gray, EdgeColor = Color.white,
+                });
+                double wall = Time.unscaledTimeAsDouble;
+                // 서버 원본 시각은 0에 머물러도 실제 공격 모션의 점은 기록되어야 한다.
+                for (int frame = 1; frame <= 8; ++frame)
+                {
+                    blade.AngleDegrees = frame * 15;
+                    view.TickPresentation(.02f, 0, wall + frame * .02, false, false);
+                }
+                Assert.Greater(view.SampleCount, 2);
+                Assert.Greater(view.TrailMesh.vertexCount, 0);
+                int count = view.SampleCount;
+                view.TickPresentation(10, .16, wall + 10, true, false);
+                Assert.AreEqual(count, view.SampleCount);
+                view.ReleaseCue();
+                view.TickPresentation(.3f, .5, wall + 10.3, false, false);
+                Assert.IsFalse(view.IsActive);
+            }
+            finally { RunTimeLocator.Register(previous); }
+        }
+
+        private sealed class FrozenTrailRunTime : IRunTimeSource
+        {
+            public double FieldElapsedSeconds => 0;
+            public double BossElapsedSeconds => 0;
+            public double GameplayElapsedSeconds => 0;
+            public RunPauseReason PauseReasons => RunPauseReason.None;
+            public bool IsPaused => false;
+        }
+
+        [Test]
         public void OverlappingTintsRestoreOriginalInEitherOrder()
         {
             Renderer renderer = CreateTintedRenderer();

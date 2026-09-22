@@ -38,6 +38,8 @@ namespace Geumeum.Data
             [Range(0f, 0.5f)]
             public float PitchJitter;
 
+            [Range(-0.75f, 1f)] public float PitchOffset;
+
             /// <summary> 같은 발신자가 같은 키를 다시 재생하기까지의 최소 간격(초) </summary>
             public float MinInterval;
 

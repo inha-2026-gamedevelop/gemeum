@@ -70,7 +70,7 @@ namespace Geumeum.Art
         private const float  MIN_ALPHA              = 0.12f;
         private const float  MAX_ALPHA              = 0.55f; // impact 직전 가장 진해질 때
         private const float  FORWARD_EPSILON_SQR    = 0.0001f;
-        private const float  MIN_SHAPE_SIZE         = 0.1f; // 반경·거리 SO 값이 0 이하일 때 최소 보정치
+        private const float  MIN_SHAPE_SIZE         = 0.1f; // 반경, 거리 SO 값이 0 이하일 때 최소 보정치
         private const float  FULL_CIRCLE_DEGREES    = 360f;
         private const float  MIN_FAN_ANGLE_DEGREES  = 1f;
         private const int    MIN_FAN_SEGMENTS       = 2;

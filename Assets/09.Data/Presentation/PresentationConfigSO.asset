@@ -12,20 +12,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 36771bf5bbbe45dfa158bc7869510aaf, type: 3}
   m_Name: PresentationConfigSO
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.PresentationConfigSO
+  _abilityMaterial: {fileID: 2100000, guid: a786d190cedb21a4a88d5abf9b56b9fe, type: 2}
+  _wedgeColor: {r: 1, g: 0.62, b: 0.16, a: 1}
+  _echoColor: {r: 0.62, g: 0.8, b: 0.92, a: 1}
+  _abilityLineWidth: 0.025
+  _abilityPulseSeconds: 0.28
+  _abilityBurstRadius: 0.65
+  _echoMarkRadius: 0.22
+  _remoteAbilityOpacity: 0.45
+  _bellHitStopSeconds: 0.02
+  _bellBurstHitStopSeconds: 0.04
+  _swordSkillHitStopSeconds: 0.04
+  _bowStabHitStopSeconds: 0.03
+  _abilityStreakLength: 0.85
+  _abilityGlowWidth: 0.035
+  _bowFocusRadius: 0.24
+  _echoRibbonBend: 0.35
+  _abilitySparkCount: 18
+  _abilityAfterglowSeconds: 0.38
+  _abilitySparkSize: 0.055
+  _abilityFlashRadius: 0.3
+  _abilityRadiance: 2.6
   _arenaPhaseTransitionSeconds: 6
   _arenaShrineSmoothness: 0.35
   _arenaUnderworldSmoothness: 0.9
   _lightHitStopSeconds: 0.04
   _criticalHitStopSeconds: 0.08
   _lateOneShotToleranceSeconds: 0.15
-  _damageFlashSeconds: 0.12
+  _damageFlashSeconds: 0.075
   _damageFlashColor: {r: 1, g: 0.12, b: 0.08, a: 1}
-  _meleeSlashTrailSeconds: 0.6
+  _meleeSlashTrailSeconds: 0.22
   _meleeSlashRecordBeforeImpactSeconds: 0.1
   _meleeSlashRecordAfterImpactSeconds: 0.2
   _meleeSlashHiltRatio: 0.25
-  _meleeSlashBodyColor: {r: 0.72, g: 0.09, b: 0.07, a: 0.85}
-  _meleeSlashEdgeColor: {r: 1.5, g: 1.42, b: 1.28, a: 1}
+  _meleeSlashBodyColor: {r: 0.42, g: 0.45, b: 0.48, a: 0.26}
+  _meleeSlashEdgeColor: {r: 1.8, g: 1.68, b: 1.42, a: 1}
   _meleeSlashPrefab: {fileID: 6755605753164234163, guid: b0995a10602e4554c8037a6efa6fdc6d, type: 3}
   _bellPulsePrefab: {fileID: 2509292420777381881, guid: 0d036e9c671867a41a4a4610cfc3d991, type: 3}
   _healCastPrefab: {fileID: 4942927148076373807, guid: cb04e0b109b558540811415130d76046, type: 3}

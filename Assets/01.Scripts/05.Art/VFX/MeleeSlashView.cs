@@ -12,8 +12,8 @@ namespace Geumeum.Art
 {
     /// <summary>
     /// 검 기본 공격의 검기. 판정 시각 앞뒤로 실제 검날(손잡이 쪽에서 칼끝)이 지나간 위치를 기록해
-    /// 월드 공간 리본으로 잇고, 점마다 나이를 먹여 잔상으로 지운다.
-    /// 애니메이션이 휘두른 방향과 경로를 그대로 따르므로 공격 방향이나 콤보 단을 따로 계산하지 않는다.
+    /// 월드 공간 리본으로 잇고, 점마다 나이를 먹여 잔상으로 지운다
+    /// 애니메이션이 휘두른 방향과 경로를 그대로 따르므로 공격 방향이나 콤보 단을 따로 계산하지 않는다
     /// 판정에는 관여하지 않는 로컬 표현이다
     /// </summary>
     [DisallowMultipleComponent]
@@ -72,6 +72,7 @@ namespace Geumeum.Art
         private double _recordFrom;
         private double _recordUntil;
         private float  _clock;
+        private AbilityVisualClock _visualClock;
         private int    _sampleStart;
         private int    _sampleCount;
         private bool   _isRecording;
@@ -121,12 +122,8 @@ namespace Geumeum.Art
             }
 
             IRunTimeSource runTime = RunTimeLocator.Current;
-            if (runTime.IsPaused)
-            {
-                return;
-            }
-
-            Tick(Time.unscaledDeltaTime, runTime.GameplayElapsedSeconds);
+            TickPresentation(Time.unscaledDeltaTime, runTime.GameplayElapsedSeconds,
+                Time.unscaledTimeAsDouble, runTime.IsPaused, Mirror.NetworkServer.active);
         }
 
         /****************************************
@@ -192,8 +189,20 @@ namespace Geumeum.Art
             _block.SetColor(G_EdgeColor, settings.EdgeColor);
             _renderer.SetPropertyBlock(_block);
 
+            _visualClock = default;
+            _visualClock.Sample(RunTimeLocator.Current.GameplayElapsedSeconds,
+                Time.unscaledTimeAsDouble, RunTimeLocator.Current.IsPaused, Mirror.NetworkServer.active);
+            _visualClock.ObserveCue(cue.StartGameplayTime);
             _isRecording = true;
             _isActive    = true;
+        }
+
+        /// <summary> 드문 서버 시각 갱신 사이를 보간해 원격 검기도 공격 모션 중 기록한다 </summary>
+        public void TickPresentation(float deltaSeconds, double rawTime, double wallTime,
+            bool isPaused, bool authoritative)
+        {
+            double visualTime = _visualClock.Sample(rawTime, wallTime, isPaused, authoritative);
+            if (!isPaused) { Tick(deltaSeconds, visualTime); }
         }
 
         /// <summary> 한 프레임 진행. deltaSeconds는 잔상 나이, gameplayTime은 기록 구간 판단에 쓴다 </summary>

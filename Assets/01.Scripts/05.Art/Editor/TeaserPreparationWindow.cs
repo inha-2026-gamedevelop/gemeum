@@ -12,7 +12,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Geumeum.Art.Editor
 {
-    /// <summary>Shot list, timing cues and camera pose authoring without recording.</summary>
+    /// <summary>Shot list, timing cues and camera pose authoring without recording</summary>
     public sealed class TeaserPreparationWindow : EditorWindow
     {
         /****************************************
@@ -30,7 +30,7 @@ namespace Geumeum.Art.Editor
         *                 Menu
         ****************************************/
 
-        [MenuItem("Geumeum/Art/Teaser Preparation")]
+        [MenuItem("그믐/Art/Teaser Preparation")]
         public static void Open()
         {
             GetWindow<TeaserPreparationWindow>("티저 준비");

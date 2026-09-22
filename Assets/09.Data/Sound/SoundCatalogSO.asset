@@ -38,6 +38,7 @@ MonoBehaviour:
     Is2D: 1
     Volume: 1
     PitchJitter: 0
+    PitchOffset: 0
     MinInterval: 0
   - Key: 2
     Channel: 2
@@ -47,6 +48,7 @@ MonoBehaviour:
     Is2D: 1
     Volume: 1
     PitchJitter: 0
+    PitchOffset: 0
     MinInterval: 0
   - Key: 3
     Channel: 2
@@ -56,6 +58,7 @@ MonoBehaviour:
     Is2D: 1
     Volume: 1
     PitchJitter: 0
+    PitchOffset: 0
     MinInterval: 0
   - Key: 4
     Channel: 2
@@ -65,6 +68,7 @@ MonoBehaviour:
     Is2D: 1
     Volume: 1
     PitchJitter: 0
+    PitchOffset: 0
     MinInterval: 0
   - Key: 5
     Channel: 0
@@ -73,6 +77,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 1
     PitchJitter: 0
+    PitchOffset: 0
     MinInterval: 0
   - Key: 6
     Channel: 0
@@ -81,6 +86,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 1
     PitchJitter: 0
+    PitchOffset: 0
     MinInterval: 0
   - Key: 7
     Channel: 1
@@ -91,6 +97,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.9
     PitchJitter: 0.05
+    PitchOffset: 0
     MinInterval: 0.04
   - Key: 8
     Channel: 1
@@ -99,6 +106,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.7
     PitchJitter: 0.05
+    PitchOffset: 0
     MinInterval: 0.04
   - Key: 9
     Channel: 1
@@ -109,6 +117,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 1
     PitchJitter: 0.03
+    PitchOffset: 0
     MinInterval: 0.35
   - Key: 10
     Channel: 2
@@ -118,6 +127,7 @@ MonoBehaviour:
     Is2D: 1
     Volume: 1
     PitchJitter: 0
+    PitchOffset: 0
     MinInterval: 0
   - Key: 103
     Channel: 0
@@ -127,6 +137,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 1
     PitchJitter: 0.02
+    PitchOffset: 0
     MinInterval: 0.04
   - Key: 120
     Channel: 1
@@ -136,6 +147,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.8
     PitchJitter: 0.06
+    PitchOffset: 0
     MinInterval: 0.2
   - Key: 150
     Channel: 2
@@ -145,6 +157,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.8
     PitchJitter: 0.08
+    PitchOffset: 0
     MinInterval: 0
   - Key: 100
     Channel: 1
@@ -154,6 +167,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.72
     PitchJitter: 0.04
+    PitchOffset: 0
     MinInterval: 0.05
   - Key: 101
     Channel: 1
@@ -163,6 +177,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.78
     PitchJitter: 0.04
+    PitchOffset: 0
     MinInterval: 0.05
   - Key: 102
     Channel: 1
@@ -171,6 +186,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.88
     PitchJitter: 0.03
+    PitchOffset: 0
     MinInterval: 0.05
   - Key: 110
     Channel: 1
@@ -181,6 +197,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.82
     PitchJitter: 0.03
+    PitchOffset: 0
     MinInterval: 0.05
   - Key: 160
     Channel: 1
@@ -191,6 +208,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.82
     PitchJitter: 0.03
+    PitchOffset: 0
     MinInterval: 0.08
   - Key: 161
     Channel: 1
@@ -199,6 +217,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.72
     PitchJitter: 0.02
+    PitchOffset: 0
     MinInterval: 0.1
   - Key: 162
     Channel: 1
@@ -207,6 +226,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.86
     PitchJitter: 0.02
+    PitchOffset: 0
     MinInterval: 0.1
   - Key: 163
     Channel: 1
@@ -215,6 +235,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.68
     PitchJitter: 0.04
+    PitchOffset: 0
     MinInterval: 0.08
   - Key: 164
     Channel: 0
@@ -223,6 +244,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.8
     PitchJitter: 0.02
+    PitchOffset: 0
     MinInterval: 0.08
   - Key: 170
     Channel: 2
@@ -231,6 +253,7 @@ MonoBehaviour:
     Is2D: 1
     Volume: 1
     PitchJitter: 0.02
+    PitchOffset: 0
     MinInterval: 0.12
   - Key: 171
     Channel: 2
@@ -239,6 +262,7 @@ MonoBehaviour:
     Is2D: 1
     Volume: 1
     PitchJitter: 0.02
+    PitchOffset: 0
     MinInterval: 1
   - Key: 172
     Channel: 2
@@ -247,6 +271,7 @@ MonoBehaviour:
     Is2D: 1
     Volume: 1
     PitchJitter: 0
+    PitchOffset: 0
     MinInterval: 1
   - Key: 111
     Channel: 1
@@ -257,6 +282,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.8
     PitchJitter: 0.05
+    PitchOffset: 0
     MinInterval: 0.05
   - Key: 112
     Channel: 1
@@ -265,6 +291,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.6
     PitchJitter: 0.05
+    PitchOffset: 0
     MinInterval: 0.1
   - Key: 123
     Channel: 1
@@ -276,6 +303,7 @@ MonoBehaviour:
     Is2D: 0
     Volume: 0.5
     PitchJitter: 0.08
+    PitchOffset: 0
     MinInterval: 0.2
   - Key: 140
     Channel: 2
@@ -284,4 +312,88 @@ MonoBehaviour:
     Is2D: 1
     Volume: 0.9
     PitchJitter: 0
+    PitchOffset: 0
     MinInterval: 1
+  - Key: 180
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 35459d8d9a860487c93138c6db55c11c, type: 3}
+    - {fileID: 8300000, guid: fc835db40c5894c4ca1137e9c65f35de, type: 3}
+    - {fileID: 8300000, guid: 3718ffb8b28da4e30a03c19537147aad, type: 3}
+    Is2D: 0
+    Volume: 0.8
+    PitchJitter: 0.015
+    PitchOffset: 0.1
+    MinInterval: 0.04
+  - Key: 181
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 056ca3d1310604823b68a791d3af7917, type: 3}
+    - {fileID: 8300000, guid: 0a135afeb52a248248a67e4a21a1c21d, type: 3}
+    - {fileID: 8300000, guid: b0b3c55f5134848bb941b9e99c52bca0, type: 3}
+    Is2D: 0
+    Volume: 0.9
+    PitchJitter: 0.015
+    PitchOffset: -0.15
+    MinInterval: 0.04
+  - Key: 182
+    Channel: 0
+    Clips:
+    - {fileID: 8300000, guid: da9151920998742508acb66cf5d35e92, type: 3}
+    - {fileID: 8300000, guid: 9ef8d92f4acb84b21a28ae1b1feeaaeb, type: 3}
+    Is2D: 0
+    Volume: 1
+    PitchJitter: 0.015
+    PitchOffset: -0.25
+    MinInterval: 0.04
+  - Key: 183
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 2e7f65a6cd4c54c6883ba117d3c94435, type: 3}
+    - {fileID: 8300000, guid: 879e5a150311740e692b2aaff1259509, type: 3}
+    - {fileID: 8300000, guid: 26f05ea175edf48a084d010f5efd32e1, type: 3}
+    Is2D: 0
+    Volume: 0.82
+    PitchJitter: 0.015
+    PitchOffset: -0.15
+    MinInterval: 0.04
+  - Key: 184
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 2e7f65a6cd4c54c6883ba117d3c94435, type: 3}
+    - {fileID: 8300000, guid: 879e5a150311740e692b2aaff1259509, type: 3}
+    - {fileID: 8300000, guid: 26f05ea175edf48a084d010f5efd32e1, type: 3}
+    Is2D: 0
+    Volume: 0.82
+    PitchJitter: 0.015
+    PitchOffset: 0.05
+    MinInterval: 0.04
+  - Key: 185
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 2e7f65a6cd4c54c6883ba117d3c94435, type: 3}
+    - {fileID: 8300000, guid: 879e5a150311740e692b2aaff1259509, type: 3}
+    - {fileID: 8300000, guid: 26f05ea175edf48a084d010f5efd32e1, type: 3}
+    Is2D: 0
+    Volume: 0.82
+    PitchJitter: 0.015
+    PitchOffset: 0.3
+    MinInterval: 0.04
+  - Key: 186
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 09293c5ae0da849fca0b7c49c92d0b37, type: 3}
+    Is2D: 0
+    Volume: 0.72
+    PitchJitter: 0.015
+    PitchOffset: -0.25
+    MinInterval: 0.04
+  - Key: 187
+    Channel: 1
+    Clips:
+    - {fileID: 8300000, guid: 5beec73530d1f4519a705f7034837d1a, type: 3}
+    Is2D: 0
+    Volume: 0.86
+    PitchJitter: 0.015
+    PitchOffset: -0.35
+    MinInterval: 0.04
