@@ -806,10 +806,17 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │  │                           파괴 대상 꼬리 위에 빨간 마름모(대각선 1:2) 표식을 띄운다. 표식 전용
 │  │                           자식 오브젝트를 만들어 그쪽만 옮기고 카메라 방향으로 돌린다 — 이
 │  │                           스크립트 자신의 transform(=BossPartHitbox의 판정 콜라이더)은 안 건드린다
-│  └ BossKitsuneFormView.cs MB  [구현완료] IBossPhaseSource로 PhaseIndex를 읽어 여우 귀·꼬리
-│                              (Model/SK_KITSUNEYUNA_EARS·TAIL)를 1페이즈엔 숨기고 2페이즈
-│                              진입 시 드러낸다 — 정체가 드러나는 연출. 꼬리 판정 콜라이더는
-│                              별개 오브젝트라 관여하지 않는다
+│  ├ BossKitsuneFormView.cs MB  [구현완료] IBossPhaseSource로 PhaseIndex를 읽어 여우 귀·꼬리
+│  │                           (Model/SK_KITSUNEYUNA_EARS·TAIL)를 1페이즈엔 숨기고 2페이즈
+│  │                           진입 시 드러낸다 — 정체가 드러나는 연출. 꼬리 판정 콜라이더는
+│  │                           별개 오브젝트라 관여하지 않는다
+│  └ BossScratchVfxDriver.cs MB  [구현완료·미연결] BossScratch.vfx(VFX Graph 7시스템)에 할퀴기
+│                              이벤트를 보내는 표현 전용 구동기. 타격 횟수·간격·반경을 _strikes
+│                              배열이나 SetUniformStrikes로 주입받아 1·2·3타를 같은 그래프로 낸다.
+│                              판정·콜라이더·서버 통신 없음. 아직 보스 패턴에 연결하지 않았다 —
+│                              서버 패턴은 1타/3타뿐이고 BossPatternImpactVfxView는 impact마다
+│                              생성·-forward 회전이라 방향·횟수 계약을 먼저 정해야 한다
+│                              (→ docs/unity/vfx/BOSS_DOUBLE_SCRATCH_VFX.md)
 ├ Camera/                  [구현완료] → 카메라와 락온 사양
 │  ├ CameraRig.cs          MB  추적 · 충돌 · 셰이크 · 줌. LateUpdate.
 │  │                           Target이 바뀔 수 있어야 한다 — 관전 카메라가 같은 물건이다.
