@@ -1,0 +1,22 @@
+[Unit]
+Description=Geumeum Discord account bot
+After=network-online.target geumeum-api.service
+Wants=network-online.target
+
+[Service]
+User=geumeum
+Group=geumeum
+WorkingDirectory=/opt/geumeum/backend
+EnvironmentFile=/etc/geumeum/service.env
+EnvironmentFile=/etc/geumeum/discord.env
+ExecStart=/opt/geumeum/backend/.venv/bin/python -u scripts/run_discord_bot.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

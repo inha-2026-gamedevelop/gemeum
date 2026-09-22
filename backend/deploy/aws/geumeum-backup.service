@@ -1,0 +1,8 @@
+[Unit]
+Description=Geumeum daily PostgreSQL backup
+After=postgresql.service
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/python3 /opt/geumeum/backend/deploy/aws/backup_database.py
