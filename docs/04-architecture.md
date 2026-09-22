@@ -876,21 +876,32 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           _rangeMeters는 접힌 상태 200m다. 파티원 위치를 읽기 쉽게 2026-09-15에
 │     │                           400에서 줄였다. BarrierPhaseSO의 최대 반경(400)보다 작아서
 │     │                           결계 초반에는 결계 원이 미니맵 밖으로 나간다. 맵 배경, 회전은 아직 없다.
-│     │                           펼친 지도는 MinimapExpandToggle이 500m로 바꾼다
-│     ├ MinimapExpandToggle.cs   [구현완료] M키로 미니맵을 화면 정중앙에 펼쳤다 되돌린다.
+│     │                           펼친 지도는 MinimapExpandToggle이 500m로 바꾼다. 2026-09-21부터
+│     │                           접힌 지도는 화면에 나오지 않으므로 200m는 되돌릴 값으로만 쓰인다
+│     ├ MinimapExpandToggle.cs   [구현완료] Tab키로 지도를 화면 정중앙에 펼쳤다 되돌린다.
+│     │                           2026-09-21 기획 변경 - 평시에는 지도를 아예 숨기고 여는 키만 알린다.
+│     │                           접힌 상태 = 숨김이다. CanvasGroup 알파를 0으로 두고
+│     │                           MinimapPlayerDots를 꺼서 숨은 동안 점 · 결계를 그리지 않는다.
+│     │                           GameObject를 끄지 않는 이유는 이 컴포넌트가 여는 키를 계속 받아야 해서다.
+│     │                           접힌 동안 좌측 상단에 HUD_MapHint(키캡 Tab + 지도)를 띄운다 -
+│     │                           _closedHint에 넣은 오브젝트이고, 지도 바깥에 두어야 같이 숨지 않는다.
 │     │                           확대판을 따로 두지 않고 같은 MinimapPlayerDots의 배치 · 표시 반경 ·
 │     │                           점 크기만 바꾼다. 점과 결계를 두 벌 그리면 둘이 어긋날 수 있다.
 │     │                           접힌 모습은 Awake에서 씬 값을 받아 두고 접을 때 그대로 되돌린다 -
 │     │                           코드에 위치나 크기를 적지 않아 씬에서 미니맵을 옮겨도 따라간다.
-│     │                           펼치면 배율 4배(180 -> 720px), 반경 500m, 점은 12px다.
+│     │                           펼치면 배율 5배(180 -> 900px), 반경 500m, 점은 12px다.
+│     │                           1080 세로 화면에서 위아래 90px만 남으므로 이보다 키우지 않는다.
 │     │                           게임 입력은 막지 않는다. 지도를 펼친 채 이동 · 카메라가 동작한다.
 │     │                           관리 창이 열려 HUD 캔버스가 꺼지면 접고 키를 먹지 않는다.
 │     │                           지도 배경이 아직 없어 읽히게 하려고 검은 반투명 판을 임시로 깐다 -
 │     │                           Backdrop 오브젝트이고, 배경이 들어오면 지운다.
-│     │                           접힌 지도의 링 테두리는 펼치는 동안 숨긴다 - 크기가 안 맞고 시야를 가린다.
-│     │                           _compactOnly 배열에 넣은 Graphic을 끄는 방식이라 오브젝트는 남는다.
-│     │                           M 토글과 ESC 닫기를 실제 키 입력으로, 파티원 점 생성을
-│     │                           호스트 1인에서 확인했다. 3인에서 점이 캐릭터 색으로 갈리는지는 미확인
+│     │                           접힌 지도의 링 테두리를 숨기던 _compactOnly는 지웠다 -
+│     │                           접힌 상태가 숨김이 되어 할 일이 없어졌다. 링(Ring) 오브젝트 자체도
+│     │                           2026-09-21에 씬과 프리팹에서 제거했다 - 원형 링과 사각 Backdrop이
+│     │                           어긋나 보였다. Minimap_Ring.png는 참조 없이 파일만 남아 있다.
+│     │                           Dev_HUD 플레이 모드에서 숨김 · 확대 · 복귀 · 안내 표시를 확인했고,
+│     │                           호스트 1인 접속에서 펼친 지도에 로컬 점이 찍히는 것까지 봤다.
+│     │                           Tab 키 입력 경로와 3인 접속은 미확인
 │     ├ LockOnReticle.cs         [구현완료] 락온한 대상의 중앙에 흰 점을 띄운다.
 │     │                           LockOnController가 확정한 좌표를 화면 좌표로 옮겨 그리기만 하고
 │     │                           락온 판정에는 관여하지 않는다. 대상이 카메라 뒤로 가면 숨긴다.
@@ -905,13 +916,53 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     ├ BarrierWarningBanner.cs  [미검증] 결계 축소 예고 · 축소 중 · 결계 밖 배너.
 │     │                           BarrierStateLocator snapshot만 읽고 판정은 하지 않는다.
 │     │                           RunHUD.prefab(SessionManagers 안)에 배선했다. 화면 동작은 아직 관찰하지 못했다
-│     ├ HudTimerController.cs    [구현완료] 우상단 시간 슬롯에 필드에 남은 시간을 mm:ss로 적는다.
-│     │                           상한 30:00은 GameDB.Barrier가 갖고 있어 코드에 박은 수치가 아니다.
-│     │                           런 시작 시 30:00에서 내려가는 것을 화면에서 확인했다.
+│     ├ BossTimeWarningToast.cs  [미검증] 보스 남은 시간이 03:00 아래로 내려가는 순간만 한 번 알린다.
+│     │                           조건이 참인 동안 떠 있지 않는다 - 지속 표시는 HudTimerController의 붉은 숫자가
+│     │                           맡고, 여기는 "지금 막 3분이 됐다"는 사건만 다룬다. 계속 띄우면 보스 패턴을 가린다.
+│     │                           임계를 넘는 순간을 직접 본 경우에만 띄운다 - 런 도중 들어온 사람에게 남은 30초에
+│     │                           "3분" 문구가 뜨면 거짓말이 된다(ThresholdSide.NotObserved).
+│     │                           코루틴 없이 값 하나로 세어 중복 시작·취소 문제를 만들지 않는다.
+│     │                           런타임으로 오브젝트를 붙여 1인에서 표시·자동 소멸·임계 아래 재발 억제·
+│     │                           도중 접속 무시·보스 재진입 시 재발동을 확인했다.
+│     │                           RunHUD.prefab의 BarrierWarningBanner 아래(y=-200)에 배선했다. 화면에 뜨는 것까지 확인했다.
+│     │                           3인은 아직이다 [미검증]
+│     ├ HudTimerController.cs    [구현완료] 우상단 시간 슬롯의 숫자를 mm:ss로 적는다. 구간마다 방향이 다르다 -
+│     │                           필드는 00:00에서 30:00까지 올라가고, 보스(RunPhase.Boss)는 14:00에서 내려간다.
+│     │                           필드에 강제 종료가 없어 내려가는 숫자는 없는 마감을 만든다(2026-09-20 되돌림).
+│     │                           카운트업은 내림, 카운트다운은 올림이다 - 반대로 하면 1초를 건너뛴 것처럼 보인다.
+│     │                           두 상한 모두 GameDB(Barrier · Boss)가 갖고 있어 코드에 박은 수치가 아니다.
+│     │                           2026-09-19 결정 "보스 씬에서는 보스 시계 14:00 카운트다운으로 교체,
+│     │                           44:00은 결과창에서만"을 그대로 따른다 [구현완료].
 │     │                           축소까지 남은 시간이 아니다 - 그 경고는 배너와 부적이 맡는다(HUD_DESIGN 2.2).
-│     │                           보스 시계는 아직 세지 않는다 [계획]. 표시 기준은 2026-09-19에
-│                           "보스 씬에서는 보스 시계 14:00 카운트다운으로 교체, 44:00은 결과창에서만"으로 정해졌다.
-│     │                           단계별 색 전환은 아직 없다 - 임계값을 코드에 박지 않으려면 HUD용 SO가 필요하다
+│     │                           보스 경과가 0인지로 구간을 가르지 않고 RunManager.Phase를 읽는다 -
+│     │                           보스 시계 첫 프레임이 0이라 필드 00:00이 한 번 튀기 때문이다.
+│     │                           Dev_BossTrial에서 보스 14:00 → 13:43 감소를, 일반 런에서 필드
+│     │                           00:10 → 00:18 증가와 1800초 지점의 30:00 고정을 확인했다(1인).
+│     │                           3인 확인은 아직이다 [미검증].
+│     │                           Result 단계에서 숫자가 필드 잔여로 되돌아가던 것은
+│     │                           HudVisibilityGate가 그 단계에 캔버스를 꺼서 해결했다 [구현완료].
+│     │                           결계 경고·축소 구간에는 숫자를 주묵 붉은색으로 바꾼다(2026-09-20).
+│     │                           축소 시각을 직접 세지 않고 BarrierStateLocator 스냅샷을 배너와
+│     │                           똑같이 읽는다 - 그래야 배너와 숫자가 같은 순간에 반응한다.
+│     │                           색 값은 SerializeField이고 경계 시각은 BarrierPhaseSO가 갖는다.
+│     │                           스냅샷을 주입해 붉은색 전환과 흰색 복귀를 확인했다. 정상 경로의
+│     │                           10:00 도달과 3인은 아직이다 [미검증].
+│     │                           보스 구간에서는 남은 시간이 03:00 이하면 같은 붉은색으로 바꾼다(2026-09-21).
+│     │                           결계 스냅샷을 보지 않는다 - 결계 타임라인은 보스 진입 시점에 멈추는 필드
+│     │                           시계 기준이라, 축소 구간 중에 입장하면 보스전 내내 붉게 굳는다.
+│     │                           임계 180초는 SerializeField, 상한 840초는 GameDB.Boss가 갖는다.
+│     │                           Dev_BossTrial 1인에서 남은 189.6초 흰색 → 175.7초 붉은색을 확인했다.
+│     │                           3인과 정확한 경계 시각은 아직이다 [미검증]
+│     ├ HudVisibilityGate.cs     [구현완료] 관리 창이 열려 있는 동안과 RunPhase.Result에서
+│     │                           HUD 캔버스를 끈다. GameObject가 아니라 Canvas만 꺼서
+│     │                           숨은 동안에도 바인딩과 값 갱신은 계속된다.
+│     │                           HUD는 SessionManagers 안이라 DontDestroyOnLoad로 Result 씬까지
+│     │                           따라간다. 끄지 않으면 결과창 위에 전투 HUD가 남는다.
+│     │                           씬이 아니라 단계로 판단한다 - 런이 끝나도 씬 전환이 늦게 온다.
+│     │                           Dev_BossTrial 1인 플레이에서 Result 전환 시 씬이 아직
+│     │                           Boss_Arena인 채로 캔버스가 꺼지는 것을 확인했다. 3인은 아직이다 [미검증].
+│     │                           단계는 이벤트가 없어 Update에서 읽는다 - RunManager가 단계 변경
+│     │                           이벤트를 공개하면 관리 창처럼 구독으로 바꾼다 [계획]
 │     ├ PartyHudController.cs    [구현완료] 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
 │     │                           스폰 목록만 주기로 훑고 값은 PlayerStatus 이벤트로 받는다.
 │     │                           3인 접속에서 본인을 뺀 2줄이 뜨고, 한 명이 나가면 그 줄이 사라지는 것을 확인했다.
@@ -932,8 +983,12 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │                           GameDB.Boss의 MaxHealth · GroggyGaugeMax를 쓴다.
 │                           RunHUD.prefab(SessionManagers 안)의 루트에 배선했다 -
 │                           보스 바는 기본 비활성이라 바 위에 붙이면 스스로 켜지 못한다.
-│                           호스트 1인에서 표시, 체력 · 그로기 비율 갱신,
-│                           광폭화 예고 · 발동 문구, 보스 제거 시 숨김까지 확인했다.
+│                           그로기 저항이 차오를 때는 바로 대입하지 않고 1.5초에 걸쳐 따라간다 -
+│                           서버가 기상 순간 최대치를 한 번에 되돌리는 데다 그 프레임에 기상 패턴이
+│                           함께 시작돼 화면이 끊기므로, 한 프레임이 옮길 양에도 상한을 둔다.
+│                           깎이는 쪽은 타격 결과라 즉시 반영한다.
+│                           호스트 1인에서 표시, 체력 · 그로기 비율 갱신, 그로기 진입 시 빈 바와
+│                           기상 시 차오름, 광폭화 예고 · 발동 문구, 보스 제거 시 숨김까지 확인했다.
 │                           3인 접속(L3)은 아직 확인하지 못했다 [미검증]
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
@@ -944,16 +999,22 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 ├ Systems/   [구현완료] 인벤토리, 특성 트리, 객주 상점, 장비 양도, 정산 · 리더보드
 │  ├ FunctionalManagementPanel.cs · RunStatusPanel.cs · RunResultPanel.cs ·
 │  │  RunResultViewAdapter.cs · FunctionalUiIndexedButton.cs · FunctionalUiText.cs
-│  ├ RailRowVisual.cs      MB  레일 한 줄(박스 · 아이콘 · 글자 · 밑줄)의 활성 표시를 바꾼다.
-│  │                           페이지가 바뀌면 FunctionalManagementPanel이 줄마다 호출한다
-│  └ Editor/RunManagementUiBuilder.cs  위 화면을 SessionManagers 프리팹 안에 짓는 에디터 도구
+│  ├ EscapeMenuPanel.cs    MB  ESC로 여닫는 중앙 상단 가로 바. 배낭 · 특성 · 설정 입구만 맡는다.
+│  │                           ESC 입력을 단독으로 읽어 관리창 → 설정 → 메뉴 순으로 하나씩 닫는다
+│  ├ SettingsPanel.cs      MB  설정 창. 여닫기 골격만 있고 실제 항목은 아직 없다 [계획]
+│  ├ RailRowVisual.cs      MB  좌측 레일 한 줄(박스 · 아이콘 · 글자 · 밑줄)의 활성 표시를 바꾼다.
+│  │                           레일을 ESC 메뉴로 대체해 코드에서는 더 쓰지 않는다.
+│  │                           꺼 둔 _bak_ 레일 오브젝트가 아직 참조하므로 파일은 남겨 둔다
+│  ├ Editor/RunManagementUiBuilder.cs  위 화면을 SessionManagers 프리팹 안에 짓는 에디터 도구
+│  └ Editor/EscapeMenuUiBuilder.cs  레일을 _bak_로 꺼 두고 ESC 메뉴 · 설정 골격을
+│                              RunManagementUI 프리팹 안에 짓는 에디터 도구. 다시 돌려도 된다
 └ Art/       페이드 · 트랜지션, 연출성 UI
 ```
 
-> ⚠️ **`*UiBuilder` 두 개는 임시 개발용이다.** `SteamLobbyUiBuilder`와 `RunManagementUiBuilder`는
+> ⚠️ **`*UiBuilder` 세 개는 임시 개발용이다.** `SteamLobbyUiBuilder`와 `RunManagementUiBuilder`와 `EscapeMenuUiBuilder`는
 > `new GameObject`로 uGUI 계층을 만든다 — 아래 "씬·프리팹 우선" 규칙에 어긋난다.
 > 3인 접속을 당장 돌려 보려고 만든 것이고, **UI 담당(@kjw1237)이 만들 최종 화면은 이 방식이 아니다.**
-> 최종 UI가 들어오면 두 빌더와 그 산출물은 걷어낸다. 새 UI를 이 방식으로 만들지 않는다. [예정]
+> 최종 UI가 들어오면 세 빌더와 그 산출물은 걷어낸다. 새 UI를 이 방식으로 만들지 않는다. [예정]
 
 폴더는 화면이 참조하는 게임 상태의 출처를 기준으로 그대로 나눠 두되(코드가 어느 시스템의 SyncVar · 이벤트를 읽는지 한눈에 보이도록), 소유자는 폴더 구분과 무관하게 @kjw1237 한 명이다.
 

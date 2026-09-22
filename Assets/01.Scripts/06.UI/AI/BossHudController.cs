@@ -43,6 +43,17 @@ namespace Geumeum.UI
         // 매 프레임 스폰 목록을 훑으면 그 자체가 부하다. 찾는 일만 주기로 돌린다
         private const float SEARCH_SECONDS = 0.5f;
 
+        // 그로기가 끝나면 서버가 저항을 최대치로 한 번에 되돌린다. 그대로 그리면 한 프레임 만에
+        // 빈 바가 꽉 찬 바로 바뀌어 회복했다는 것이 눈에 남지 않는다. 차오르는 데 걸리는 시간이다
+        private const float GROGGY_REFILL_SECONDS = 1.5f;
+
+        // 기상하는 프레임에는 기상 패턴이 함께 시작돼 화면이 한 번 크게 끊긴다. 그 프레임의 경과 시간을
+        // 그대로 실으면 차오르는 과정이 통째로 건너뛰어지므로, 한 프레임이 옮길 양을 묶는다
+        private const float GROGGY_REFILL_MAX_STEP_SECONDS = 1f / 30f;
+
+        // 따라갈 기준이 아직 없다는 표시. 비율은 0 이상이라 음수와 겹치지 않는다
+        private const float RATIO_UNSET = -1f;
+
         [Header("바")]
         [Tooltip("보스 바 전체. 보스가 없는 동안 통째로 숨긴다")]
         [SerializeField] private GameObject _root = null;
@@ -70,20 +81,25 @@ namespace Geumeum.UI
         // 같은 문구를 매 프레임 다시 적으면 TMP가 메시를 다시 만든다
         private EnrageState _shownEnrage = EnrageState.None;
 
+        // 지금 화면에 그려져 있는 그로기 비율
+        private float _shownGroggyRatio = RATIO_UNSET;
+
         /****************************************
         *              Unity Event
         ****************************************/
 
         private void OnEnable()
         {
-            _nextSearchTime = 0f;
+            _nextSearchTime   = 0f;
+            _shownGroggyRatio = RATIO_UNSET;
             Show(false);
         }
 
         private void OnDisable()
         {
-            _boss           = null;
-            _bossController = null;
+            _boss             = null;
+            _bossController   = null;
+            _shownGroggyRatio = RATIO_UNSET;
             Show(false);
         }
 
@@ -107,6 +123,9 @@ namespace Geumeum.UI
                     Show(false);
                     return;
                 }
+
+                // 다른 보스로 바뀌었을 수 있다. 앞 판의 비율에서 이어 차오르지 않게 한다
+                _shownGroggyRatio = RATIO_UNSET;
             }
 
             Show(true);
@@ -157,16 +176,32 @@ namespace Geumeum.UI
         }
 
         /// <summary>
-        /// 남은 저항을 그대로 그린다. 0이면 그로기 상태라 빈 바가 정상이다.
+        /// 남은 저항을 그린다. 0이면 그로기 상태라 빈 바가 정상이다.
         /// 보스가 스폰된 직후에는 서버가 최대치를 아직 넣지 않아 0으로 내려오는데,
-        /// 그 짧은 구간도 빈 바로 보이는 것이 "저항이 남았다"고 잘못 읽히는 것보다 낫다
+        /// 그 짧은 구간도 빈 바로 보이는 것이 "저항이 남았다"고 잘못 읽히는 것보다 낫다.
+        ///
+        /// 차오르는 쪽만 시간을 들여 따라간다. 깎이는 쪽은 때린 결과를 바로 보여줘야 하므로 즉시 맞춘다
         /// </summary>
         private void ApplyGroggyFill()
         {
-            float max   = (GameDB.IsInitialized) ? GameDB.Boss.GroggyGaugeMax : 0f;
-            float gauge = (_bossController == null) ? 0f : _bossController.GroggyGauge;
+            float max    = (GameDB.IsInitialized) ? GameDB.Boss.GroggyGaugeMax : 0f;
+            float gauge  = (_bossController == null) ? 0f : _bossController.GroggyGauge;
+            float wanted = (max > 0f) ? Mathf.Clamp01(gauge / max) : 0f;
 
-            SetFill(_groggyFill, gauge, max);
+            if ((_shownGroggyRatio <= RATIO_UNSET) || (wanted <= _shownGroggyRatio))
+            {
+                _shownGroggyRatio = wanted;
+            }
+            else
+            {
+                // 시간 배율을 늦추는 연출 중에도 바는 같은 속도로 찬다
+                float delta = Mathf.Min(Time.unscaledDeltaTime, GROGGY_REFILL_MAX_STEP_SECONDS);
+                float step  = delta / GROGGY_REFILL_SECONDS;
+
+                _shownGroggyRatio = Mathf.Min(_shownGroggyRatio + step, wanted);
+            }
+
+            SetFillRatio(_groggyFill, _shownGroggyRatio);
         }
 
         private void ApplyEnrage()
@@ -214,16 +249,19 @@ namespace Geumeum.UI
 
         private static void SetFill(Image fill, float current, float max)
         {
+            SetFillRatio(fill, (max > 0f) ? Mathf.Clamp01(current / max) : 0f);
+        }
+
+        private static void SetFillRatio(Image fill, float ratio)
+        {
             if (fill == null)
             {
                 return;
             }
 
-            float wanted = (max > 0f) ? Mathf.Clamp01(current / max) : 0f;
-
-            if (!Mathf.Approximately(fill.fillAmount, wanted))
+            if (!Mathf.Approximately(fill.fillAmount, ratio))
             {
-                fill.fillAmount = wanted;
+                fill.fillAmount = ratio;
             }
         }
 
