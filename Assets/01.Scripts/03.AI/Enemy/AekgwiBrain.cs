@@ -7,7 +7,7 @@ using Geumeum.Common;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 액귀 행동 결정: 사거리 유지 · 후퇴하며 저주 투사체를 시전한다.
+    /// 액귀 행동 결정: 사거리 유지, 후퇴하며 저주 투사체를 시전한다
     /// 실제 투사체 스폰은 EnemyController가 IsRangedAttack을 보고 수행한다
     /// </summary>
     public sealed class AekgwiBrain : EnemyBrainBase
@@ -19,8 +19,8 @@ namespace Geumeum.AI
         public enum BrainState
         {
             Idle,      // 대상 없음 또는 인지 범위 밖
-            Chase,     // 인지 범위 안, 시전 사거리 밖 — 접근 필요
-            Retreat,   // 시전 사거리 안이지만 대상이 너무 가까움 — 거리를 벌린다
+            Chase,     // 인지 범위 안, 시전 사거리 밖 - 접근 필요
+            Retreat,   // 시전 사거리 안이지만 대상이 너무 가까움 - 거리를 벌린다
             Return,    // 스폰 지점 기준 리시 범위를 벗어나 추적을 포기하고 복귀 중
             Telegraph, // 사거리 유지 구간, 선딜 진행 중
             Cast,      // 선딜 끝, 이번 틱에 투사체 발사
@@ -117,6 +117,14 @@ namespace Geumeum.AI
         }
 
         /// <summary> 비공격 상태에서 일반 피격을 당하면 EnemyController가 호출한다 </summary>
+        public override bool TryEnterSkillStagger(float duration)
+        {
+            if (Status.IsDead || _state == BrainState.Knockback) { return false; }
+            _state = BrainState.Stagger;
+            _stateTimer = Status.StaggerDuration - duration;
+            return true;
+        }
+
         public override void EnterStagger()
         {
             if (Status.IsDead || (_state == BrainState.Knockback))

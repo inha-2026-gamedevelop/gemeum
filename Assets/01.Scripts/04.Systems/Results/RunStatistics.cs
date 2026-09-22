@@ -28,7 +28,7 @@ namespace Geumeum.Systems
 
         private sealed class ParticipantTotals
         {
-            public readonly ulong ParticipantIdValue;
+            public readonly ParticipantId Participant;
 
             public bool          HasCharacter;
             public CharacterKind Character;
@@ -47,16 +47,17 @@ namespace Geumeum.Systems
             public int   ResonanceCounterCount;
             public float CounterReductionTotal;
 
-            public ParticipantTotals(ulong participantIdValue)
+            public ParticipantTotals(ParticipantId participantIdValue)
             {
-                ParticipantIdValue = participantIdValue;
+                Participant = participantIdValue;
             }
 
             public RunParticipantResultSnapshot ToSnapshot()
             {
                 return new RunParticipantResultSnapshot
                 {
-                    ParticipantIdValue    = ParticipantIdValue,
+                    ParticipantIdValue    = Participant.Value,
+                    ParticipantKind       = Participant.Kind,
                     HasCharacter          = HasCharacter,
                     Character             = Character,
                     DamageDealt           = DamageDealt,
@@ -76,15 +77,15 @@ namespace Geumeum.Systems
         private readonly struct LifeKey : IEquatable<LifeKey>
         {
             private readonly RunPlayerLifeFactKind _kind;
-            private readonly ulong                 _actor;
-            private readonly ulong                 _target;
+            private readonly ParticipantId         _actor;
+            private readonly ParticipantId         _target;
             private readonly uint                  _generation;
 
             public LifeKey(in RunPlayerLifeFact fact)
             {
                 _kind       = fact.Kind;
-                _actor      = fact.Actor.Value;
-                _target     = fact.Target.Value;
+                _actor      = fact.Actor;
+                _target     = fact.Target;
                 _generation = fact.DeathGeneration;
             }
 
@@ -111,7 +112,7 @@ namespace Geumeum.Systems
         private readonly struct CounterKey : IEquatable<CounterKey>
         {
             private readonly RunCounterKind _kind;
-            private readonly ulong          _actor;
+            private readonly ParticipantId  _actor;
             private readonly uint           _sceneRevision;
             private readonly uint           _entity;
             private readonly byte           _part;
@@ -120,7 +121,7 @@ namespace Geumeum.Systems
             public CounterKey(in RunCounterFact fact)
             {
                 _kind          = fact.Kind;
-                _actor         = fact.Actor.Value;
+                _actor         = fact.Actor;
                 _sceneRevision = fact.Target.SceneRevisionValue;
                 _entity        = fact.Target.EntityNetId;
                 _part          = fact.Target.PartId;
@@ -156,15 +157,15 @@ namespace Geumeum.Systems
 
         [SerializeField] private ScoreRuleSO _scoreRule = null;
 
-        private readonly Dictionary<ulong, ParticipantTotals> _participants =
-            new Dictionary<ulong, ParticipantTotals>();
+        private readonly Dictionary<ParticipantId, ParticipantTotals> _participants =
+            new Dictionary<ParticipantId, ParticipantTotals>();
         private readonly HashSet<uint> _enemyDeaths = new HashSet<uint>();
         private readonly HashSet<LifeKey> _lifeFacts = new HashSet<LifeKey>();
         private readonly HashSet<CounterKey> _counterFacts = new HashSet<CounterKey>();
         private readonly List<RunParticipantStateFact> _participantStateBuffer =
             new List<RunParticipantStateFact>(Constants.Network.MAX_PLAYERS);
-        private readonly List<ulong> _participantIdBuffer =
-            new List<ulong>(Constants.Network.MAX_PLAYERS);
+        private readonly List<ParticipantId> _participantIdBuffer =
+            new List<ParticipantId>(Constants.Network.MAX_PLAYERS);
 
         private CollectionState _state = CollectionState.Idle;
         private RunId _activeRun = default;
@@ -286,6 +287,15 @@ namespace Geumeum.Systems
             snapshot.RemainingCurrency  = PartyWalletLocator.Current.Balance;
             snapshot.RemainingHealthSum = remainingHealth;
             snapshot.Participants       = participants;
+            snapshot.PartyKind          = RunPartyKind.HumansOnly;
+            for (int i = 0; i < participants.Length; ++i)
+            {
+                if (participants[i].ParticipantKind == ParticipantKind.Bot)
+                {
+                    snapshot.PartyKind = RunPartyKind.BotAssisted;
+                    break;
+                }
+            }
             snapshot.ResultRevision     = _lastResultRevision;
             snapshot.FactsState         = RunResultFactsState.Authoritative;
 
@@ -432,10 +442,10 @@ namespace Geumeum.Systems
 
         private ParticipantTotals GetOrCreate(ParticipantId participant)
         {
-            if (!_participants.TryGetValue(participant.Value, out ParticipantTotals totals))
+            if (!_participants.TryGetValue(participant, out ParticipantTotals totals))
             {
-                totals = new ParticipantTotals(participant.Value);
-                _participants.Add(participant.Value, totals);
+                totals = new ParticipantTotals(participant);
+                _participants.Add(participant, totals);
             }
 
             return totals;
@@ -469,7 +479,7 @@ namespace Geumeum.Systems
             }
 
             _participantIdBuffer.Clear();
-            foreach (KeyValuePair<ulong, ParticipantTotals> pair in _participants)
+            foreach (KeyValuePair<ParticipantId, ParticipantTotals> pair in _participants)
             {
                 ParticipantTotals totals = pair.Value;
                 if ((!totals.HasCharacter) || (!totals.HasHealth))

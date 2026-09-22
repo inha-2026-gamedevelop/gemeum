@@ -12,11 +12,11 @@ using Geumeum.Dev;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 2페이즈, 시험하는 판. Phase1State의 네 템플릿을 SO 형상으로 재사용한다.
-    /// 패턴 6은 3연타 마지막 타 패링, 8은 살아 있는 플레이어 순차 처형, 9는 3단 펄스다.
-    /// 꼬리 봉인 뒤에는 7에 차사 패링 창, 9 종료에 무녀 공명을 이관하고 9의 신궁 중단과 공존한다.
-    /// 조건부 10은 남은 원혼 수를 반복 수로 snapshot해 이미 수락된 백귀야행을 끝까지 실행한다.
-    /// 일반 선택은 거리, 쿨다운, 직전 패턴, 조건부, 꼬리 봉인을 필터링한다.
+    /// 2페이즈, 시험하는 판. Phase1State의 네 템플릿을 SO 형상으로 재사용한다
+    /// 패턴 6은 3연타 마지막 타 패링, 8은 살아 있는 플레이어 순차 처형, 9는 3단 펄스다
+    /// 꼬리 봉인 뒤에는 7에 차사 패링 창, 9 종료에 무녀 공명을 이관하고 9의 신궁 중단과 공존한다
+    /// 조건부 10은 남은 원혼 수를 반복 수로 snapshot해 이미 수락된 백귀야행을 끝까지 실행한다
+    /// 일반 선택은 거리, 쿨다운, 직전 패턴, 조건부, 꼬리 봉인을 필터링한다
     /// </summary>
     public sealed class Phase2State : BossPhaseStateBase
     {
@@ -608,7 +608,7 @@ namespace Geumeum.AI
             }
         }
 
-        // 현재 실행만 패링 결과를 받는다. 이전 공격의 늦은 통지는 버린다.
+        // 현재 실행만 패링 결과를 받는다. 이전 공격의 늦은 통지는 버린다
         private void HandleAttackParried(BossAttackExecution execution, uint parriedByNetId)
         {
             if ((IsExited) || (execution == null) || (!ReferenceEquals(execution, _activeExecution))
@@ -649,6 +649,8 @@ namespace Geumeum.AI
             BossAttackExecution execution = new BossAttackExecution(
                 MELEE_PARRY_WINDOW_DURATION, _activeAttackInstanceId, repeatIndex,
                 HandleAttackParried);
+            uint sequenceId = _activeAttackInstanceId;
+            execution.SequenceActive = () => IsAttackWindup(sequenceId);
 
             if (parryTarget.OpenParryWindow(execution, key, now, impactTime))
             {

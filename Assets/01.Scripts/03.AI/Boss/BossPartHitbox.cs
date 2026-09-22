@@ -7,7 +7,7 @@ using Geumeum.Common;
 namespace Geumeum.AI
 {
     /// <summary> 시각 꼬리 본과 분리된 고정 서버 판정 콜라이더 </summary>
-    public sealed class BossPartHitbox : MonoBehaviour, IDamageable, IAimAssistTarget,
+    public sealed class BossPartHitbox : MonoBehaviour, IDamageable, IDamageHealthSource, IAimAssistTarget,
         ITargetPartIdSource
     {
         [SerializeField] private BossPartController _parts;
@@ -17,6 +17,7 @@ namespace Geumeum.AI
         [SerializeField] private GameObject         _visualRoot;
 
         public byte PartId => _partId;
+        public float Health => _parts == null ? 0f : _parts.PartSnapshot.GetHealth(_partId);
         public bool IsDead => (_parts == null) || _parts.PartSnapshot.IsBroken(_partId);
         public Vector3 AimPoint => transform.TransformPoint(_aimOffset);
         public byte TargetPartId => _partId;

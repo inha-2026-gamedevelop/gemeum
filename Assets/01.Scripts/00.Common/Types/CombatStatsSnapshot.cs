@@ -24,6 +24,33 @@ namespace Geumeum.Common
         public float SpiritCostMultiplier;
         public float MinimumResourceCost;
 
+        public float BasicStaminaReduction;
+        public float CounterDurationBonus;
+        public float ParryStaminaBonus;
+        public float CounterRecoveryReduction;
+        public float CounterThirdCombo;
+        public float SecondComboDamagePercent;
+        public float ComboWindowBonus;
+        public float ThirdHitSkillCooldown;
+        public float SkillSecondCombo;
+        public float RollBasicStaminaReduction;
+        public float MissSkillRecoveryReduction;
+        public float RollSkillDamagePercent;
+        public float SideStepSkill;
+        public float BowBasicStaminaReduction;
+        public float BowSkillStaminaReduction;
+        public float WedgeDurationBonus;
+        public float WedgeFirstHitCooldown;
+        public float WedgeNormalBurstPercent;
+        public float PrecisionStaminaReduction;
+        public float WedgePrecisionBurstPercent;
+        public float PrecisionPierceBonus;
+        public float PrecisionFollowThrough;
+        public float BowRollBasicReduction;
+        public float BowComboWindowBonus;
+        public float WedgeRollReduction;
+        public float RollShotRecoveryReduction;
+
         public float ParryGaugeGain;
         public float ParryWindowBonus;
         public float CriticalMultiplierMin;
@@ -39,8 +66,23 @@ namespace Geumeum.Common
 
         public float HealAmount;
         public float HealRadius;
-        public float SupportBuffDamageMultiplier;
-        public float SupportBuffDuration;
+        public float HealSpiritCostReduction;
+
+        // 공명진(R). 진을 만드는 순간의 시전자 값으로 고정하고 수혜자 장비로 다시 늘리지 않는다
+        public float FieldRadius;
+        public float FieldDuration;
+        public float FieldTailDuration;
+        public float FieldDamageMultiplier;
+        public float SkillSpiritCostReduction;
+        public float FieldEchoExtendSeconds;
+        public float FieldHealEchoDiscount;
+        public float FieldHealAfterglowRatio;
+
+        // 잔향(Q)
+        public float EchoSpiritCostReduction;
+        public float EchoDurationBonus;
+        public float EchoFieldDamageMultiplier;
+        public float BellFirstHitSpiritGain;
 
         /****************************************
         *              Properties
@@ -55,6 +97,33 @@ namespace Geumeum.Common
         public bool Equals(CombatStatsSnapshot other)
         {
             return ((Revision == other.Revision) &&
+                    (BasicStaminaReduction.Equals(other.BasicStaminaReduction)) &&
+                    (CounterDurationBonus.Equals(other.CounterDurationBonus)) &&
+                    (ParryStaminaBonus.Equals(other.ParryStaminaBonus)) &&
+                    (CounterRecoveryReduction.Equals(other.CounterRecoveryReduction)) &&
+                    (CounterThirdCombo.Equals(other.CounterThirdCombo)) &&
+                    (SecondComboDamagePercent.Equals(other.SecondComboDamagePercent)) &&
+                    (ComboWindowBonus.Equals(other.ComboWindowBonus)) &&
+                    (ThirdHitSkillCooldown.Equals(other.ThirdHitSkillCooldown)) &&
+                    (SkillSecondCombo.Equals(other.SkillSecondCombo)) &&
+                    (RollBasicStaminaReduction.Equals(other.RollBasicStaminaReduction)) &&
+                    (MissSkillRecoveryReduction.Equals(other.MissSkillRecoveryReduction)) &&
+                    (RollSkillDamagePercent.Equals(other.RollSkillDamagePercent)) &&
+                    (SideStepSkill.Equals(other.SideStepSkill)) &&
+                    (BowBasicStaminaReduction.Equals(other.BowBasicStaminaReduction)) &&
+                    (BowSkillStaminaReduction.Equals(other.BowSkillStaminaReduction)) &&
+                    (WedgeDurationBonus.Equals(other.WedgeDurationBonus)) &&
+                    (WedgeFirstHitCooldown.Equals(other.WedgeFirstHitCooldown)) &&
+                    (WedgeNormalBurstPercent.Equals(other.WedgeNormalBurstPercent)) &&
+                    (PrecisionStaminaReduction.Equals(other.PrecisionStaminaReduction)) &&
+                    (WedgePrecisionBurstPercent.Equals(other.WedgePrecisionBurstPercent)) &&
+                    (PrecisionPierceBonus.Equals(other.PrecisionPierceBonus)) &&
+                    (PrecisionFollowThrough.Equals(other.PrecisionFollowThrough)) &&
+                    (BowRollBasicReduction.Equals(other.BowRollBasicReduction)) &&
+                    (BowComboWindowBonus.Equals(other.BowComboWindowBonus)) &&
+                    (WedgeRollReduction.Equals(other.WedgeRollReduction)) &&
+                    (RollShotRecoveryReduction.Equals(other.RollShotRecoveryReduction)) &&
+
                     (MaxHealth.Equals(other.MaxHealth)) &&
                     (MeleeAttackPower.Equals(other.MeleeAttackPower)) &&
                     (RangedAttackPower.Equals(other.RangedAttackPower)) &&
@@ -76,8 +145,19 @@ namespace Geumeum.Common
                     (BurstShotInterval.Equals(other.BurstShotInterval)) &&
                     (HealAmount.Equals(other.HealAmount)) &&
                     (HealRadius.Equals(other.HealRadius)) &&
-                    (SupportBuffDamageMultiplier.Equals(other.SupportBuffDamageMultiplier)) &&
-                    (SupportBuffDuration.Equals(other.SupportBuffDuration)));
+                    (HealSpiritCostReduction.Equals(other.HealSpiritCostReduction)) &&
+                    (FieldRadius.Equals(other.FieldRadius)) &&
+                    (FieldDuration.Equals(other.FieldDuration)) &&
+                    (FieldTailDuration.Equals(other.FieldTailDuration)) &&
+                    (FieldDamageMultiplier.Equals(other.FieldDamageMultiplier)) &&
+                    (SkillSpiritCostReduction.Equals(other.SkillSpiritCostReduction)) &&
+                    (FieldEchoExtendSeconds.Equals(other.FieldEchoExtendSeconds)) &&
+                    (FieldHealEchoDiscount.Equals(other.FieldHealEchoDiscount)) &&
+                    (FieldHealAfterglowRatio.Equals(other.FieldHealAfterglowRatio)) &&
+                    (EchoSpiritCostReduction.Equals(other.EchoSpiritCostReduction)) &&
+                    (EchoDurationBonus.Equals(other.EchoDurationBonus)) &&
+                    (EchoFieldDamageMultiplier.Equals(other.EchoFieldDamageMultiplier)) &&
+                    (BellFirstHitSpiritGain.Equals(other.BellFirstHitSpiritGain)));
         }
 
         public override bool Equals(object obj) => ((obj is CombatStatsSnapshot other) && (Equals(other)));
@@ -105,6 +185,22 @@ namespace Geumeum.Common
         public float ResolveSpiritCost(float baseCost)
         {
             return ResolveResourceCost(baseCost, SpiritCostMultiplier);
+        }
+
+        /// <summary>
+        /// 비율 감소를 먼저 적용한 뒤 노드가 주는 절대 감소를 뺀다
+        /// 비용은 0 아래로 내려가지 않고, 절대 감소가 붙으면 SO 하한도 그만큼 밀린다
+        /// </summary>
+        public float ResolveSpiritCost(float baseCost, float flatReduction)
+        {
+            float cost = ResolveSpiritCost(baseCost);
+            if ((flatReduction <= 0f) || float.IsNaN(flatReduction) ||
+                float.IsInfinity(flatReduction))
+            {
+                return cost;
+            }
+
+            return Math.Max(0f, cost - flatReduction);
         }
 
         private float ResolveResourceCost(float baseCost, float multiplier)

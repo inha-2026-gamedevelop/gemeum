@@ -167,17 +167,37 @@ namespace Geumeum.Combat
             uint requestId,
             uint holdGeneration)
         {
+            ActionRejection rejection = ServerBeginPrecisionShot(
+                runIdValue, sceneRevisionValue, requestId, holdGeneration);
+            if (connectionToClient == null)
+            {
+                return;
+            }
+
+            if (rejection == ActionRejection.None)
+            {
+                TargetPrecisionBeginAccepted(holdGeneration);
+            }
+            else
+            {
+                TargetPrecisionRejected(holdGeneration, rejection);
+            }
+        }
+
+        /// <summary> 런, 씬, 홀드 세대를 검증하여 정밀 사격을 준비한다. 여기서는 발사하지 않는다 </summary>
+        [Server]
+        public ActionRejection ServerBeginPrecisionShot(
+            uint runIdValue, uint sceneRevisionValue, uint requestId, uint holdGeneration)
+        {
             if (!IsCurrentServerContext(runIdValue, sceneRevisionValue))
             {
-                TargetPrecisionRejected(holdGeneration, ActionRejection.State);
-                return;
+                return ActionRejection.State;
             }
 
             if ((!_requestIds.TryAccept(requestId)) || (holdGeneration == 0u)
                 || (holdGeneration <= _lastServerGeneration))
             {
-                TargetPrecisionRejected(holdGeneration, ActionRejection.Duplicate);
-                return;
+                return ActionRejection.Duplicate;
             }
 
             _lastServerGeneration = holdGeneration;
@@ -185,15 +205,13 @@ namespace Geumeum.Combat
             double gameTime = RunTimeLocator.Current.GameplayElapsedSeconds;
             if (!TryBuildBeginContext(gameTime, out PlayerActionContext context))
             {
-                TargetPrecisionRejected(holdGeneration, ActionRejection.NotReady);
-                return;
+                return ActionRejection.NotReady;
             }
 
             ActionRejection rejection = PlayerActionPipeline.Evaluate(context);
             if (rejection != ActionRejection.None)
             {
-                TargetPrecisionRejected(holdGeneration, rejection);
-                return;
+                return rejection;
             }
 
             _activeRunIdValue       = runIdValue;
@@ -201,7 +219,7 @@ namespace Geumeum.Combat
             _activeHoldGeneration   = holdGeneration;
             _holdStartGameTime      = gameTime;
             _state                  = PrecisionShotState.Holding;
-            TargetPrecisionBeginAccepted(holdGeneration);
+            return ActionRejection.None;
         }
 
         [Command]
@@ -212,13 +230,18 @@ namespace Geumeum.Combat
             uint holdGeneration,
             PrecisionAimRay aim)
         {
-            PrecisionReleaseDecision decision = ServerResolveRelease(
+            PrecisionReleaseDecision decision = ServerReleasePrecisionShot(
                 runIdValue,
                 sceneRevisionValue,
                 requestId,
                 holdGeneration,
                 aim,
                 out ActionRejection rejection);
+
+            if (connectionToClient == null)
+            {
+                return;
+            }
 
             if (decision == PrecisionReleaseDecision.Fire)
             {
@@ -233,6 +256,16 @@ namespace Geumeum.Combat
             }
 
             TargetPrecisionRejected(holdGeneration, rejection);
+        }
+
+        /// <summary> 홀드 경계 이전에는 취소, 이후에는 기존 발사 게이트로 처리한다 </summary>
+        [Server]
+        public PrecisionReleaseDecision ServerReleasePrecisionShot(
+            uint runIdValue, uint sceneRevisionValue, uint requestId,
+            uint holdGeneration, PrecisionAimRay aim, out ActionRejection rejection)
+        {
+            return ServerResolveRelease(runIdValue, sceneRevisionValue,
+                requestId, holdGeneration, aim, out rejection);
         }
 
         [Server]
@@ -304,22 +337,34 @@ namespace Geumeum.Combat
             uint requestId,
             uint holdGeneration)
         {
+            if ((ServerCancelPrecisionShot(runIdValue, sceneRevisionValue, requestId, holdGeneration))
+                && (connectionToClient != null))
+            {
+                TargetPrecisionCancelled(holdGeneration);
+            }
+        }
+
+        /// <summary> Ready 이후라도 발사 없이 홀드만 취소한다. 평타 전환도 이 경로를 쓴다 </summary>
+        [Server]
+        public bool ServerCancelPrecisionShot(
+            uint runIdValue, uint sceneRevisionValue, uint requestId, uint holdGeneration)
+        {
             if ((!IsCurrentServerContext(runIdValue, sceneRevisionValue))
                 || (_activeRunIdValue != runIdValue)
                 || (_activeSceneRevisionValue != sceneRevisionValue)
                 || (!_requestIds.TryAccept(requestId)))
             {
-                return;
+                return false;
             }
 
             if ((_activeHoldGeneration != holdGeneration)
                 || ((_state != PrecisionShotState.Holding) && (_state != PrecisionShotState.Ready)))
             {
-                return;
+                return false;
             }
 
             ServerCancelHold();
-            TargetPrecisionCancelled(holdGeneration);
+            return true;
         }
 
         /****************************************
@@ -343,7 +388,7 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            bool isOtherActionInProgress = ((_roll != null) && (_roll.IsRolling))
+            bool isOtherActionInProgress = _status.IsHitReacting || ((_roll != null) && (_roll.IsRolling))
                 || ((_parry != null) && (_parry.IsActionInProgress(NetworkTime.time)))
                 || ((_heal != null) && (_heal.IsActionInProgress(NetworkTime.time)))
                 || (_attack.IsBaseActionInProgress(NetworkTime.time));
@@ -583,7 +628,7 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            bool isOtherActionInProgress = ((_roll != null) && (_roll.IsRolling))
+            bool isOtherActionInProgress = _status.IsHitReacting || ((_roll != null) && (_roll.IsRolling))
                 || ((_parry != null) && (_parry.IsActionInProgress(NetworkTime.time)))
                 || ((_heal != null) && (_heal.IsActionInProgress(NetworkTime.time)))
                 || (_attack.IsBaseActionInProgress(NetworkTime.time))
@@ -604,6 +649,17 @@ namespace Geumeum.Combat
                 _status.Stamina,
                 0f);
             return true;
+        }
+
+        [Server]
+        public void ServerInterruptForHit()
+        {
+            uint generation = _activeHoldGeneration;
+            ServerCancelHold();
+            if (generation != 0u && connectionToClient != null)
+            {
+                TargetPrecisionCancelled(generation);
+            }
         }
 
         [Server]

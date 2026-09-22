@@ -20,6 +20,19 @@ namespace Geumeum.AI
 {
     public partial class EnemyController
     {
+        private double _skillStaggerResistEnd;
+
+        [Server]
+        public bool TryApplyWeaponSkillStagger(float duration, float resistance)
+        {
+            double now = RunTimeLocator.Current.GameplayElapsedSeconds;
+            if (_status == null || _status.IsDead || _brain == null || now < _skillStaggerResistEnd ||
+                float.IsNaN(duration) || float.IsInfinity(duration) || duration <= 0f) { return false; }
+            if (!_brain.TryEnterSkillStagger(duration)) { return false; }
+            _skillStaggerResistEnd = now + duration + Mathf.Max(0f, resistance);
+            return true;
+        }
+
         /****************************************
         *                Fields
         ****************************************/
@@ -29,7 +42,7 @@ namespace Geumeum.AI
         private const float PROJECTILE_RANGE_MARGIN = 1.5f; // 시전 사거리보다 이만큼 더 날아갈 여유를 준다
         private const float PROJECTILE_SPAWN_HEIGHT = 1.2f; // 바닥에 붙어 날아가지 않도록 몬스터 루트 기준으로 띄우는 높이(m)
 
-        // 타격 순간 사거리를 그대로 쓰면 몬스터가 멈춰 선 자리에서 한 걸음만 밀려도 전부 빗나간다.
+        // 타격 순간 사거리를 그대로 쓰면 몬스터가 멈춰 선 자리에서 한 걸음만 밀려도 전부 빗나간다
         // 투사체와 같은 방식으로 여유를 준다
         private const float MELEE_HIT_RANGE_MARGIN = 1.2f;
         private const int   TARGET_SCAN_BUFFER_SIZE = 8;    // 파티 최대 인원(3)보다 넉넉히 잡은 NonAlloc 버퍼 크기
@@ -94,7 +107,7 @@ namespace Geumeum.AI
                 return;
             }
 
-            // 씬 오브젝트 간 OnStartServer 호출 순서는 Mirror가 보장하지 않는다 —
+            // 씬 오브젝트 간 OnStartServer 호출 순서는 Mirror가 보장하지 않는다 -
             // 스케줄러가 아직 안 떴을 수 있으니, 뜰 때까지 기다렸다가 등록한다
             _schedulerWaitRoutine = StartCoroutine(CoWaitForScheduler());
         }
@@ -402,7 +415,7 @@ namespace Geumeum.AI
                 if ((!DamageTargetResolver.TryResolve(_scanBuffer[i], out IDamageable damageable)) ||
                     EnemyTargetRules.IsUnavailable(damageable))
                 {
-                    continue; // 다운·관전 중인 플레이어는 때려도 무의미하다, 살아있는 대상만 노린다
+                    continue; // 다운, 관전 중인 플레이어는 때려도 무의미하다, 살아있는 대상만 노린다
                 }
 
                 Transform candidate = ((Component)damageable).transform;
@@ -485,7 +498,7 @@ namespace Geumeum.AI
             float reach = _brain.MeleeHitRange * MELEE_HIT_RANGE_MARGIN;
             if (reach <= 0f)
             {
-                // 사거리 값이 비어 있으면 이 검사로 공격을 막지 않는다.
+                // 사거리 값이 비어 있으면 이 검사로 공격을 막지 않는다
                 // 데이터가 빠진 것을 전투 불능으로 갚게 하면 원인 찾기가 더 어려워진다
                 Debug.LogWarning($"[EnemyController] {_status.Kind}의 근접 사거리가 0이다, 타격 시점 검사를 건너뛴다", this);
                 return true;

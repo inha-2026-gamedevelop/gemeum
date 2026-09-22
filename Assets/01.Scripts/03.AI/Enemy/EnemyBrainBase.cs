@@ -7,7 +7,7 @@ using Geumeum.Common;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 잡귀 행동 결정 베이스. 서버에서만 Tick되며, 실제 이동 · 공격 실행은 EnemyController가 담당한다
+    /// 잡귀 행동 결정 베이스. 서버에서만 Tick되며, 실제 이동, 공격 실행은 EnemyController가 담당한다
     /// </summary>
     public abstract class EnemyBrainBase
     {
@@ -55,14 +55,14 @@ namespace Geumeum.AI
         public virtual bool IsRangedAttack => false;
 
         /// <summary>
-        /// 타격이 확정되는 순간 대상이 이 거리 안에 있어야 근접 공격이 들어간다.
+        /// 타격이 확정되는 순간 대상이 이 거리 안에 있어야 근접 공격이 들어간다
         /// 선딜 동안 대상이 굴러 빠져나가면 빗나가야 하므로, 공격을 시작할 때가 아니라
-        /// EnemyController가 피해를 주기 직전에 다시 잰다.
+        /// EnemyController가 피해를 주기 직전에 다시 잰다
         /// 기본은 시전 사거리이고, 돌진처럼 멈춰 서는 자리가 따로 있는 몬스터는 덮어쓴다
         /// </summary>
         public virtual float MeleeHitRange => Status.AttackRange;
 
-        /// <summary> 선딜 · 공격 판정 중이면 true. true인 동안은 일반 피격으로 경직하지 않는다 </summary>
+        /// <summary> 선딜, 공격 판정 중이면 true. true인 동안은 일반 피격으로 경직하지 않는다 </summary>
         public virtual bool IsAttackCommitted => false;
 
         /// <summary> 현재 표현 상태, EnemyController가 매 틱 읽어 클라이언트에 동기화한다 </summary>
@@ -72,9 +72,9 @@ namespace Geumeum.AI
         public virtual int AttackVariant => 0;
 
         /// <summary>
-        /// 지금 이 순간이 대상의 실제 패링 판정 구간(windowStart~windowEnd) 안이면 true, 표현 전용.
+        /// 지금 이 순간이 대상의 실제 패링 판정 구간(windowStart~windowEnd) 안이면 true, 표현 전용
         /// 공격 모션 시작과 실제 패링 판정 구간 사이에 시간차가 있는 몬스터가 이 시그널로 플레이어에게
-        /// "지금이 진짜 패링 타이밍"을 알려준다 — 패링 창을 열지 않는 몬스터는 항상 false
+        /// "지금이 진짜 패링 타이밍"을 알려준다 - 패링 창을 열지 않는 몬스터는 항상 false
         /// </summary>
         public virtual bool IsParryWindowVisuallyOpen => false;
 
@@ -134,10 +134,12 @@ namespace Geumeum.AI
         /// <summary> 비공격 상태에서 일반 피격을 당했을 때 EnemyController가 호출한다 </summary>
         public virtual void EnterStagger() { }
 
-        /// <summary> 피격 누적이 문턱에 도달했거나 패링당했을 때 EnemyController · 구현체가 호출한다 </summary>
+        public virtual bool TryEnterSkillStagger(float duration) => false;
+
+        /// <summary> 피격 누적이 문턱에 도달했거나 패링당했을 때 EnemyController, 구현체가 호출한다 </summary>
         public virtual void EnterKnockback() { }
 
-        /// <summary> 인지 범위 밖에서도 공격당하면 EnemyController가 호출한다, Target을 먼저 채운 뒤 호출해야 한다.
+        /// <summary> 인지 범위 밖에서도 공격당하면 EnemyController가 호출한다, Target을 먼저 채운 뒤 호출해야 한다
         /// Idle 상태일 때만 Chase로 강제 전환한다, 이미 다른 행동 중이면 끼어들지 않는다 </summary>
         public virtual void ForceAggro() { }
     }

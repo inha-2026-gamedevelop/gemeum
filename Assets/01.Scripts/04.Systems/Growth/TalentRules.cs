@@ -113,8 +113,8 @@ namespace Geumeum.Systems
                 (node.EffectKind == TalentEffectKind.None) ||
                 (!TalentEffectRules.IsCompatible(node.WeaponKind, node.EffectKind)) ||
                 (!TalentEffectRules.IsApplicableValue(node.EffectKind, node.Value)) ||
-                (node.ColumnIndex < 0) || (node.ColumnIndex >= tree.ColumnsPerWeapon) ||
-                (node.RowIndex < 0) || (node.RowIndex >= tree.NodesPerColumn) ||
+                (node.ColumnIndex < 0) || (node.ColumnIndex >= tree.MaxColumnsPerWeapon) ||
+                (node.RowIndex < 0) || (node.RowIndex >= tree.MaxRowsPerColumn) ||
                 (node.PointCost <= 0) || (!IsFinite(node.Value)))
             {
                 return false;
@@ -123,13 +123,18 @@ namespace Geumeum.Systems
             return tree.TryGetColumn(node.WeaponKind, node.ColumnIndex, out _);
         }
 
+        /// <summary>
+        /// 선행을 실제 연결 관계로 확인한다. 화면이 선을 어떻게 그리든
+        /// 구매 가능 여부는 여기서만 정해진다
+        /// </summary>
         private static bool HasPrerequisites(TalentTreeSO tree,
             in TalentAllocationSnapshot allocation, in TalentTreeSO.NodeEntry node)
         {
-            for (int row = 0; row < node.RowIndex; ++row)
+            foreach (int required in tree.EnumeratePrerequisites(node))
             {
-                if ((!tree.TryGetNode(node.WeaponKind, node.ColumnIndex, row,
-                        out TalentTreeSO.NodeEntry prerequisite)) ||
+                if ((!tree.TryGetNode(required, out TalentTreeSO.NodeEntry prerequisite)) ||
+                    (prerequisite.WeaponKind != node.WeaponKind) ||
+                    (prerequisite.NodeId == node.NodeId) ||
                     (!allocation.Contains(prerequisite.NodeId)))
                 {
                     return false;

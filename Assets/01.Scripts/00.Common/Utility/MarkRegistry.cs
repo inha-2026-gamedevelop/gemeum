@@ -59,7 +59,7 @@ namespace Geumeum.Common
         *                Fields
         ****************************************/
 
-        // 소유자(ParticipantId.Value)마다 슬롯 배열 하나. 파티가 세 명이라 순회 비용이 문제되지 않는다
+        // 소유자(ParticipantId)마다 슬롯 배열 하나. 파티가 세 명이라 순회 비용이 문제되지 않는다
         private const int MAX_REAPPLICATION_HISTORY = 32;
 
         private readonly struct ReapplicationRecord
@@ -74,13 +74,13 @@ namespace Geumeum.Common
             }
         }
 
-        private static readonly Dictionary<ulong, MarkSlot[]> _slotsByOwner =
-            new Dictionary<ulong, MarkSlot[]>();
+        private static readonly Dictionary<ParticipantId, MarkSlot[]> _slotsByOwner =
+            new Dictionary<ParticipantId, MarkSlot[]>();
 
-        // 슬롯에서 밀려난 대상도 원래 지속 시간이 끝날 때까지 재부여할 수 없어야 한다.
-        // 만료된 기록은 TryApply 때 정리하고, 활성 기록에는 상한을 둬 정적 캐시가 자라지 않게 한다.
-        private static readonly Dictionary<ulong, List<ReapplicationRecord>> _reapplicationByOwner =
-            new Dictionary<ulong, List<ReapplicationRecord>>();
+        // 슬롯에서 밀려난 대상도 원래 지속 시간이 끝날 때까지 재부여할 수 없어야 한다
+        // 만료된 기록은 TryApply 때 정리하고, 활성 기록에는 상한을 둬 정적 캐시가 자라지 않게 한다
+        private static readonly Dictionary<ParticipantId, List<ReapplicationRecord>> _reapplicationByOwner =
+            new Dictionary<ParticipantId, List<ReapplicationRecord>>();
 
         /****************************************
         *                Methods
@@ -130,7 +130,7 @@ namespace Geumeum.Common
                 return false;
             }
 
-            List<ReapplicationRecord> history = ResolveHistory(owner.Value);
+            List<ReapplicationRecord> history = ResolveHistory(owner);
             PruneHistory(history, serverTime);
 
             for (int i = 0; i < history.Count; ++i)
@@ -149,10 +149,10 @@ namespace Geumeum.Common
                 return false;
             }
 
-            MarkSlot[] slots = ResolveSlots(owner.Value, slotCount);
+            MarkSlot[] slots = ResolveSlots(owner, slotCount);
 
-            // 슬롯 안의 같은 대상도 재부여하지 않는다. 재부여 이력 검사는 슬롯에서 밀려난 대상까지 포함한다.
-            // 매 타격마다 부여 시각을 갱신하면 "종료 전 3초에 걸었다"는 조건이 무너진다.
+            // 슬롯 안의 같은 대상도 재부여하지 않는다. 재부여 이력 검사는 슬롯에서 밀려난 대상까지 포함한다
+            // 매 타격마다 부여 시각을 갱신하면 "종료 전 3초에 걸었다"는 조건이 무너진다
             for (int i = 0; i < slots.Length; ++i)
             {
                 if ((slots[i].IsActiveAt(serverTime)) && (slots[i].Target.Equals(target)))
@@ -197,7 +197,7 @@ namespace Geumeum.Common
                 return false;
             }
 
-            if (!_slotsByOwner.TryGetValue(owner.Value, out MarkSlot[] slots))
+            if (!_slotsByOwner.TryGetValue(owner, out MarkSlot[] slots))
             {
                 return false;
             }
@@ -221,7 +221,7 @@ namespace Geumeum.Common
                 return false;
             }
 
-            foreach (KeyValuePair<ulong, MarkSlot[]> pair in _slotsByOwner)
+            foreach (KeyValuePair<ParticipantId, MarkSlot[]> pair in _slotsByOwner)
             {
                 MarkSlot[] slots = pair.Value;
 
@@ -238,7 +238,7 @@ namespace Geumeum.Common
         }
 
         /// <summary>
-        /// 기준 시각으로부터 window 초 안에 이 대상에 걸린 표식이 있는가.
+        /// 기준 시각으로부터 window 초 안에 이 대상에 걸린 표식이 있는가
         /// 누가 걸었는지는 보지 않는다 - 무녀가 둘이어도 카운터는 한 번이다
         /// </summary>
         public static bool IsMarkedWithin(TargetRef target, double serverTime, double window)
@@ -249,7 +249,7 @@ namespace Geumeum.Common
                 return false;
             }
 
-            foreach (KeyValuePair<ulong, MarkSlot[]> pair in _slotsByOwner)
+            foreach (KeyValuePair<ParticipantId, MarkSlot[]> pair in _slotsByOwner)
             {
                 MarkSlot[] slots = pair.Value;
 
@@ -287,7 +287,7 @@ namespace Geumeum.Common
                 return 0;
             }
 
-            foreach (KeyValuePair<ulong, MarkSlot[]> pair in _slotsByOwner)
+            foreach (KeyValuePair<ParticipantId, MarkSlot[]> pair in _slotsByOwner)
             {
                 MarkSlot[] slots = pair.Value;
                 for (int i = 0; i < slots.Length; ++i)
@@ -300,19 +300,19 @@ namespace Geumeum.Common
                         continue;
                     }
 
-                    destination.Add(new ParticipantId(pair.Key));
+                    destination.Add(pair.Key);
                     break;
                 }
             }
 
-            destination.Sort((left, right) => left.Value.CompareTo(right.Value));
+            destination.Sort((left, right) => left.CompareTo(right));
             return destination.Count;
         }
 
         /// <summary> 이 소유자가 지금 유지 중인 표식 수 </summary>
         public static int CountActive(ParticipantId owner, double serverTime)
         {
-            if ((!owner.IsValid) || (!_slotsByOwner.TryGetValue(owner.Value, out MarkSlot[] slots)))
+            if ((!owner.IsValid) || (!_slotsByOwner.TryGetValue(owner, out MarkSlot[] slots)))
             {
                 return 0;
             }
@@ -335,7 +335,7 @@ namespace Geumeum.Common
         {
             slot = default;
 
-            if ((!owner.IsValid) || (!_slotsByOwner.TryGetValue(owner.Value, out MarkSlot[] slots)))
+            if ((!owner.IsValid) || (!_slotsByOwner.TryGetValue(owner, out MarkSlot[] slots)))
             {
                 return false;
             }
@@ -357,8 +357,8 @@ namespace Geumeum.Common
                 return;
             }
 
-            _slotsByOwner.Remove(owner.Value);
-            _reapplicationByOwner.Remove(owner.Value);
+            _slotsByOwner.Remove(owner);
+            _reapplicationByOwner.Remove(owner);
         }
 
         /// <summary> 대상이 사라졌을 때 그 대상의 슬롯과 재부여 이력을 거둔다 </summary>
@@ -369,7 +369,7 @@ namespace Geumeum.Common
                 return;
             }
 
-            foreach (KeyValuePair<ulong, MarkSlot[]> pair in _slotsByOwner)
+            foreach (KeyValuePair<ParticipantId, MarkSlot[]> pair in _slotsByOwner)
             {
                 MarkSlot[] slots = pair.Value;
 
@@ -382,7 +382,7 @@ namespace Geumeum.Common
                 }
             }
 
-            foreach (KeyValuePair<ulong, List<ReapplicationRecord>> pair in _reapplicationByOwner)
+            foreach (KeyValuePair<ParticipantId, List<ReapplicationRecord>> pair in _reapplicationByOwner)
             {
                 List<ReapplicationRecord> history = pair.Value;
 
@@ -404,7 +404,7 @@ namespace Geumeum.Common
                 return;
             }
 
-            foreach (KeyValuePair<ulong, MarkSlot[]> pair in _slotsByOwner)
+            foreach (KeyValuePair<ParticipantId, MarkSlot[]> pair in _slotsByOwner)
             {
                 MarkSlot[] slots = pair.Value;
 
@@ -417,7 +417,7 @@ namespace Geumeum.Common
                 }
             }
 
-            foreach (KeyValuePair<ulong, List<ReapplicationRecord>> pair in _reapplicationByOwner)
+            foreach (KeyValuePair<ParticipantId, List<ReapplicationRecord>> pair in _reapplicationByOwner)
             {
                 List<ReapplicationRecord> history = pair.Value;
 
@@ -445,7 +445,7 @@ namespace Geumeum.Common
             ClearAll();
         }
 
-        private static List<ReapplicationRecord> ResolveHistory(ulong ownerValue)
+        private static List<ReapplicationRecord> ResolveHistory(ParticipantId ownerValue)
         {
             if (_reapplicationByOwner.TryGetValue(ownerValue, out List<ReapplicationRecord> history))
             {
@@ -473,7 +473,7 @@ namespace Geumeum.Common
             return (!double.IsNaN(value)) && (!double.IsInfinity(value));
         }
 
-        private static MarkSlot[] ResolveSlots(ulong ownerValue, int slotCount)
+        private static MarkSlot[] ResolveSlots(ParticipantId ownerValue, int slotCount)
         {
             if ((_slotsByOwner.TryGetValue(ownerValue, out MarkSlot[] slots)) && (slots.Length == slotCount))
             {

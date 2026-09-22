@@ -35,6 +35,7 @@ namespace Geumeum.Systems.Tests
                     WeaponKind = WeaponKind.Bow,
                     ColumnIndex = 0,
                     DisplayName = "연사",
+                    NodeCount = 3,
                 },
             });
             Set(_tree, "_nodes", new[]
@@ -68,12 +69,12 @@ namespace Geumeum.Systems.Tests
                 4u, true, WeaponKind.Bow, 3, new[] { 1, 2, 3 });
 
             Assert.IsTrue(CombatStatCalculator.TryBuild(
-                _combat, _arrow, _tree, weapon, growth, allocation, 1.1f, 8u,
+                _combat, _arrow, _tree, weapon, growth, allocation, 8u,
                 out CombatStatsSnapshot stats));
 
             Assert.AreEqual(1.15f, stats.AttackSpeedMultiplier, 0.0001f);
-            Assert.AreEqual(132f, stats.RangedAttackPower, 0.0001f,
-                "장비 100 x 특성 피해 1.2 x 지원 버프 1.1");
+            Assert.AreEqual(120f, stats.RangedAttackPower, 0.0001f,
+                "장비 100 x 특성 피해 1.2. 공명진 계수는 이 snapshot에 들어오지 않는다");
             Assert.AreEqual(2, stats.PierceCount);
             Assert.AreEqual(2, stats.BurstShotCount);
             Assert.AreEqual(0.12f / 1.15f, stats.BurstShotInterval, 0.0001f);
@@ -95,7 +96,7 @@ namespace Geumeum.Systems.Tests
                 WeaponKind.Bow);
 
             Assert.IsTrue(CombatStatCalculator.TryBuild(
-                _combat, _arrow, _tree, weapon, growth, allocation, 1f, 1u,
+                _combat, _arrow, _tree, weapon, growth, allocation, 1u,
                 out CombatStatsSnapshot stats));
             Assert.AreEqual(1f, stats.AttackSpeedMultiplier);
             Assert.AreEqual(_combat.RangedStaminaCost * 0.88f,
@@ -103,24 +104,107 @@ namespace Geumeum.Systems.Tests
         }
 
         [Test]
-        public void BellHealingCostAndSupportUseAcceptedCombinedValues()
+        public void BellHealingAndFieldUseAcceptedCombinedValues()
+        {
+            BuildBellTree(TalentEffectKind.FieldTailSeconds, 0.5f);
+
+            WeaponCombatSnapshot weapon = BellWeapon(25f);
+            GrowthState growth = new GrowthState(4, 0, 127f, 2u, 5);
+            TalentAllocationSnapshot allocation = new TalentAllocationSnapshot(
+                2u, true, WeaponKind.Bell, 5, new[] { 11, 12, 13, 14, 15 });
+
+            Assert.IsTrue(CombatStatCalculator.TryBuild(
+                _combat, _arrow, _tree, weapon, growth, allocation, 3u,
+                out CombatStatsSnapshot stats));
+
+            Assert.AreEqual(_combat.HealAmount * 1.25f, stats.HealAmount, 0.0001f);
+            Assert.AreEqual(_combat.HealSpiritCost * 0.9f,
+                stats.ResolveSpiritCost(_combat.HealSpiritCost), 0.0001f);
+            Assert.AreEqual(_combat.HealSpiritCost * 0.9f - 2f,
+                stats.ResolveSpiritCost(_combat.HealSpiritCost, 2f), 0.0001f,
+                "절대 감소는 비율 감소 뒤에 한 번만 뺀다");
+
+            Assert.AreEqual(_combat.BellFieldRadius + 0.3f, stats.FieldRadius, 0.0001f);
+            Assert.AreEqual(_combat.BellFieldDuration, stats.FieldDuration, 0.0001f,
+                "끝노드를 사지 않으면 지속은 그대로다");
+            Assert.AreEqual(_combat.BellFieldDamageMultiplier,
+                stats.FieldDamageMultiplier, 0.0001f);
+            Assert.AreEqual(2.375f, stats.FieldTailDuration, 0.0001f,
+                "1.5 x (1 + 25%) + 특성 0.5");
+            Assert.AreEqual(2f, stats.SkillSpiritCostReduction, 0.0001f);
+        }
+
+        [Test]
+        public void EquipmentBuffDurationOnlyExtendsTailAndStopsAtCap()
+        {
+            // 「함께 걷는 울림」: 반경을 넓히는 대신 지속을 깎는다
+            BuildBellTree(TalentEffectKind.FieldWideningRadiusBonus, 0.7f);
+
+            WeaponCombatSnapshot weapon = BellWeapon(100f);
+            GrowthState growth = new GrowthState(4, 0, 127f, 2u, 5);
+            TalentAllocationSnapshot allocation = new TalentAllocationSnapshot(
+                2u, true, WeaponKind.Bell, 5, new[] { 11, 12, 13, 14, 15 });
+
+            Assert.IsTrue(CombatStatCalculator.TryBuild(
+                _combat, _arrow, _tree, weapon, growth, allocation, 4u,
+                out CombatStatsSnapshot stats));
+
+            Assert.AreEqual(_combat.BellFieldTailMaximum, stats.FieldTailDuration, 0.0001f,
+                "장비 401이 커져도 이탈 유지 상한을 넘지 않는다");
+            Assert.AreEqual(_combat.BellFieldRadius + 0.3f + 0.7f, stats.FieldRadius, 0.0001f);
+            Assert.AreEqual(_combat.BellFieldDuration - _combat.BellFieldWideningDurationPenalty,
+                stats.FieldDuration, 0.0001f);
+            Assert.AreEqual(_combat.BellFieldDamageMultiplier,
+                stats.FieldDamageMultiplier, 0.0001f,
+                "장비 401은 진 자체 수명과 공격력 계수에 관여하지 않는다");
+        }
+
+        [Test]
+        public void RetiredBellEffectsAreRejected()
         {
             Set(_tree, "_columns", new[]
             {
                 new TalentTreeSO.ColumnEntry
                 {
-                    WeaponKind = WeaponKind.Bell,
-                    ColumnIndex = 0,
+                    WeaponKind = WeaponKind.Bell, ColumnIndex = 0, NodeCount = 1,
+                },
+            });
+            Set(_tree, "_nodes", new[]
+            {
+                BellNode(11, 0, TalentEffectKind.SupportBuffPercent, 5f),
+            });
+
+            GrowthState growth = new GrowthState(4, 0, 127f, 2u, 1);
+            TalentAllocationSnapshot allocation = new TalentAllocationSnapshot(
+                2u, true, WeaponKind.Bell, 1, new[] { 11 });
+
+            Assert.IsFalse(CombatStatCalculator.TryBuild(
+                _combat, _arrow, _tree, BellWeapon(0f), growth, allocation, 5u, out _),
+                "은퇴한 405 노드는 이름만 남기고 적용하지 않는다");
+        }
+
+        private void BuildBellTree(TalentEffectKind lastEffect, float lastValue)
+        {
+            Set(_tree, "_columns", new[]
+            {
+                new TalentTreeSO.ColumnEntry
+                {
+                    WeaponKind = WeaponKind.Bell, ColumnIndex = 0, NodeCount = 5,
                 },
             });
             Set(_tree, "_nodes", new[]
             {
                 BellNode(11, 0, TalentEffectKind.HealAmountPercent, 10f),
                 BellNode(12, 1, TalentEffectKind.SpiritCostPercent, -10f),
-                BellNode(13, 2, TalentEffectKind.SupportBuffPercent, 5f),
+                BellNode(13, 2, TalentEffectKind.SkillSpiritCost, 2f),
+                BellNode(14, 3, TalentEffectKind.FieldRadiusBonus, 0.3f),
+                BellNode(15, 4, lastEffect, lastValue),
             });
+        }
 
-            WeaponCombatSnapshot weapon = new WeaponCombatSnapshot
+        private static WeaponCombatSnapshot BellWeapon(float buffDurationPercent)
+        {
+            return new WeaponCombatSnapshot
             {
                 InstanceId   = 2u,
                 WeaponKind   = WeaponKind.Bell,
@@ -129,21 +213,8 @@ namespace Geumeum.Systems.Tests
                 Option0Kind  = EquipmentOptionKind.HealAmount,
                 Option0Value = 15f,
                 Option1Kind  = EquipmentOptionKind.BuffDuration,
-                Option1Value = 25f,
+                Option1Value = buffDurationPercent,
             };
-            GrowthState growth = new GrowthState(4, 0, 127f, 2u, 3);
-            TalentAllocationSnapshot allocation = new TalentAllocationSnapshot(
-                2u, true, WeaponKind.Bell, 3, new[] { 11, 12, 13 });
-
-            Assert.IsTrue(CombatStatCalculator.TryBuild(
-                _combat, _arrow, _tree, weapon, growth, allocation, 1f, 3u,
-                out CombatStatsSnapshot stats));
-            Assert.AreEqual(_combat.HealAmount * 1.25f, stats.HealAmount, 0.0001f);
-            Assert.AreEqual(_combat.HealSpiritCost * 0.9f,
-                stats.ResolveSpiritCost(_combat.HealSpiritCost), 0.0001f);
-            Assert.AreEqual(1.05f, stats.SupportBuffDamageMultiplier, 0.0001f);
-            Assert.AreEqual(_combat.SupportBuffDuration * 1.25f,
-                stats.SupportBuffDuration, 0.0001f);
         }
 
         private static TalentTreeSO.NodeEntry Node(int id, int row,

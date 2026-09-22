@@ -15,9 +15,9 @@ using Geumeum.Network;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 보스 본체 HP와 현재 피해 배율을 관리한다.
+    /// 보스 본체 HP와 현재 피해 배율을 관리한다
     /// </summary>
-    public partial class BossStatus : NetworkBehaviour, IDamageable, IDamagePresentationSource
+    public partial class BossStatus : NetworkBehaviour, IDamageable, IDamageHealthSource, IDamagePresentationSource
     {
         /****************************************
         *                Fields
@@ -40,7 +40,7 @@ namespace Geumeum.AI
         /// <summary> 0~1. 다음 페이즈 진입 판정(EnterHealthRatio)에 쓴다 </summary>
         public float HealthRatio => (_maxHealth <= Constants.Combat.HEALTH_EPSILON) ? 0f : (_health / _maxHealth);
 
-        /// <summary> 사망 시 서버에서 발생한다, killerNetId를 전달한다. 이벤트 발행 · 오브젝트 정리는 BossController가 한다 </summary>
+        /// <summary> 사망 시 서버에서 발생한다, killerNetId를 전달한다. 이벤트 발행, 오브젝트 정리는 BossController가 한다 </summary>
         public event Action<uint> Died;
 
         /// <summary> 치명타가 아닌 모든 피격에서 발생한다, attackerNetId 전달 </summary>

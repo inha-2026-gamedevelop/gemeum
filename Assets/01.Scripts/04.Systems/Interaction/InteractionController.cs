@@ -10,8 +10,8 @@ using Geumeum.Common;
 namespace Geumeum.Systems
 {
     /// <summary>
-    /// 플레이어의 상호작용 창구. 물건마다 Command를 만들지 않고 여기 하나만 둔다.
-    /// 클라이언트는 후보를 찾아 안내 문구를 띄우고 netId만 보내며, 판정은 전부 서버가 다시 한다.
+    /// 플레이어의 상호작용 창구. 물건마다 Command를 만들지 않고 여기 하나만 둔다
+    /// 클라이언트는 후보를 찾아 안내 문구를 띄우고 netId만 보내며, 판정은 전부 서버가 다시 한다
     /// 클라이언트가 보낸 후보는 "무엇을 하려 했는가"일 뿐 승인 근거가 아니다
     /// </summary>
     [DisallowMultipleComponent]
@@ -32,6 +32,9 @@ namespace Geumeum.Systems
         public uint ActorNetId => netId;
         public Vector3 ActorPosition => transform.position;
         public string PromptText => (_client != null) ? _client.PromptText : null;
+        public KeyCode InteractKey => _interactKey;
+        public uint CandidateNetId => _client == null ? 0u : _client.CandidateNetId;
+        public event System.Action<InteractionResult, InventoryResult, WeaponCombatSnapshot> InteractionCompleted;
 
         private void Update()
         {

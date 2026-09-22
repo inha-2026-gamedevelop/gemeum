@@ -27,6 +27,14 @@ namespace Geumeum.Combat
 
         // 락온 대상
         private Transform _lockOnTarget = null;
+        private PlayerAttack _attack;
+        private PlayerRollController _roll;
+
+        private void Awake()
+        {
+            _attack = GetComponent<PlayerAttack>();
+            _roll   = GetComponent<PlayerRollController>();
+        }
 
         /****************************************
         *              Properties
@@ -47,7 +55,16 @@ namespace Geumeum.Combat
         {
             get
             {
-                if (TryGetLockOnFacing(out Vector2 lockOnFacing))
+                // 구르기는 서버가 방향을 확정하고 몸이 그쪽으로 간다. 락온이나 공격 방향이
+                // 이기면 모델은 다른 곳을 본 채 옆으로 밀려가므로 가장 먼저 판단한다.
+                // 서버는 충돌하는 행동을 취소한 뒤에만 구르기를 허가하므로 우선순위가 겹치지 않는다.
+                // 로컬 예측 방향은 구르기 방향을 모르니 서버 확정값만 읽는다
+                if (IsRolling) { return _serverFacing; }
+
+                if (_attack != null && _attack.UsesActionFacing) { return _attack.ActionFacing; }
+
+                if (!(UseLocalState && LocalPlacementAim.SuppressesCombatInput) &&
+                    TryGetLockOnFacing(out Vector2 lockOnFacing))
                 {
                     return lockOnFacing;
                 }
@@ -56,7 +73,12 @@ namespace Geumeum.Combat
             }
         }
 
-        /// <summary> 공격 판정이 향하는 평면 방향 </summary>
+        /// <summary>
+        /// 행동이 방향을 직접 정하는 구간인지. 화면은 이때 회전을 보간하지 않고 즉시 맞춘다
+        /// 공격과 구르기가 해당한다 - 뒤구르기를 보간하면 도는 동안 진행 방향과 모델이 어긋난다
+        /// </summary>
+        public bool UsesActionFacing =>
+            ((_attack != null) && _attack.UsesActionFacing) || IsRolling;
         public Vector2 AimDirection => FacingDirection;
 
         /// <summary> 락온이 걸려 있는지 </summary>
@@ -68,6 +90,9 @@ namespace Geumeum.Combat
         private Vector2 Velocity => UseLocalState ? _localVelocity : _serverVelocity;
 
         private bool UseLocalState => (isOwned) && (!isServer) && (_hasLocalState);
+
+        /// <summary> 서버가 확정해 모든 관찰자에게 동기화된 구르기 진행 여부 </summary>
+        private bool IsRolling => (_roll != null) && _roll.IsRolling;
 
         /****************************************
         *              Public API
@@ -116,7 +141,7 @@ namespace Geumeum.Combat
         }
 
         /// <summary>
-        /// 소유 클라이언트가 방향만 즉시 반영한다. 속도는 건드리지 않는다.
+        /// 소유 클라이언트가 방향만 즉시 반영한다. 속도는 건드리지 않는다
         ///
         /// 공격처럼 제자리에서 방향만 바뀌는 행동에 쓴다. 서버가 확정한 방향은 SyncVar로 오지만,
         /// 소유 클라이언트는 자기 화면에서 로컬 예측값을 그리므로 여기서도 같이 돌려 놓지 않으면
@@ -144,7 +169,7 @@ namespace Geumeum.Combat
         ****************************************/
 
         /// <summary> 락온 중 바라볼 방향. 대상 위치에서 그때그때 만든다 </summary>
-        private bool TryGetLockOnFacing(out Vector2 facing)
+        public bool TryGetLockOnFacing(out Vector2 facing)
         {
             facing = Vector2.zero;
 

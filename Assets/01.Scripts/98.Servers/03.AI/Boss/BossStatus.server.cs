@@ -16,6 +16,13 @@ namespace Geumeum.AI
 {
     public partial class BossStatus
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+        [Server]
+        internal void ServerDevSetHealthRatio(float ratio)
+        {
+            _health = _maxHealth * Mathf.Clamp01(ratio);
+        }
+#endif
         /****************************************
         *              Server API
         ****************************************/

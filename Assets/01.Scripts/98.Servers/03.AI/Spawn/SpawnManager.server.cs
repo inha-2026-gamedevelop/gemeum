@@ -141,7 +141,7 @@ namespace Geumeum.AI
             _clusters.AddRange(FindObjectsByType<SpawnCluster>(FindObjectsInactive.Exclude));
         }
 
-        // 런이 끝나면 남은 잡귀를 지우고 점유와 카운트를 되돌린다.
+        // 런이 끝나면 남은 잡귀를 지우고 점유와 카운트를 되돌린다
         // 목록만 비우고 개체를 두면 다음 판 필드에 이전 판의 잡귀가 서 있다
         [Server]
         private void HandleRunReset(RunResetEvent evt)
@@ -150,10 +150,10 @@ namespace Geumeum.AI
             ServerResetState();
         }
 
-        // 이 매니저가 스폰한 개체만 지운다. 보스처럼 다른 곳이 만든 것은 건드리지 않는다.
+        // 이 매니저가 스폰한 개체만 지운다. 보스처럼 다른 곳이 만든 것은 건드리지 않는다
         //
         // 키를 복사해 돌린다. 지금은 파괴가 사망 이벤트를 발행하지 않지만, 나중에 종료 경로에
-        // 발행이 하나 붙으면 HandleEnemyDied가 순회 중인 사전을 고쳐 그 자리에서 터진다.
+        // 발행이 하나 붙으면 HandleEnemyDied가 순회 중인 사전을 고쳐 그 자리에서 터진다
         // 런당 한 번뿐이라 이 복사가 비싸지 않다
         [Server]
         private void ServerDespawnAll()
@@ -181,7 +181,7 @@ namespace Geumeum.AI
             if (!_isPhaseActive)
             {
                 _nextSpawnGameplayTime = double.PositiveInfinity;
-                return; // 이 구간엔 스폰 설정이 없다 (Lobby, Shrink3, Boss, Result) — 신규 스폰 중단
+                return; // 이 구간엔 스폰 설정이 없다 (Lobby, Shrink3, Boss, Result) - 신규 스폰 중단
             }
 
             _targetConcurrent = UnityEngine.Random.Range(_currentPhase.ConcurrentMin, _currentPhase.ConcurrentMax + 1);

@@ -11,7 +11,7 @@ using Geumeum.Network;
 namespace Geumeum.Combat
 {
     /// <summary>
-    /// 화면에 띄울 사람 이름. Steam 경로면 Steam 이름이고, KCP 개발 경로면 신원 번호다.
+    /// 화면에 띄울 사람 이름. Steam 경로면 Steam 이름이고, KCP 개발 경로면 신원 번호다
     /// 서버는 남의 Steam 이름을 알 수 없으므로 각자 자기 이름을 한 번 올려 보낸다
     /// </summary>
     public class PlayerNameTag : NetworkBehaviour, IDisplayNamed
@@ -23,13 +23,16 @@ namespace Geumeum.Combat
         private const int MAX_NAME_LENGTH = 24; // 이름표가 화면을 가리지 않는 길이
 
         [SyncVar] private string _displayName = string.Empty;
+        private PlayerStatus _status;
+        private void Awake() { _status = GetComponent<PlayerStatus>(); }
 
         /****************************************
         *              Properties
         ****************************************/
 
         /// <summary> 비어 있을 수 있다. 그때는 부르는 쪽이 대체 문구를 정한다 </summary>
-        public string DisplayName => _displayName;
+        public string DisplayName => _status != null && _status.Participant.Kind == ParticipantKind.Bot
+            ? $"봇 {_status.Participant.Value}" : _displayName;
 
         /****************************************
         *              Client Callbacks
@@ -38,6 +41,28 @@ namespace Geumeum.Combat
         public override void OnStartAuthority()
         {
             CmdSetDisplayName(ResolveLocalName());
+        }
+
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
+            ApplyAccountName();
+        }
+
+        private bool ApplyAccountName()
+        {
+            if (!AccountGameServer.Enabled)
+            {
+                return false;
+            }
+
+            if (connectionToClient != null && AccountGameServer.Instance != null
+                && AccountGameServer.Instance.TryGetNickname(connectionToClient.connectionId, out string nickname))
+            {
+                _displayName = nickname;
+            }
+
+            return true;
         }
 
         /****************************************
@@ -49,6 +74,11 @@ namespace Geumeum.Combat
         [Command]
         private void CmdSetDisplayName(string requested)
         {
+            if (ApplyAccountName())
+            {
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(requested))
             {
                 return;

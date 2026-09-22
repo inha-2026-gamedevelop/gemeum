@@ -95,6 +95,35 @@ namespace Geumeum.AI
         *                Tests
         ****************************************/
 
+        [Test]
+        public void DevPhaseRestartCancelsAttackAndCanReturnToPhaseOne()
+        {
+            var database = ScriptableObject.CreateInstance<GameDatabaseSO>();
+            Set(database, "_boss", _data);
+            Set(_data, "_maxHealth", TEST_HEALTH);
+            Set(_data, "_phases", new[]
+            {
+                new BossPatternSO.PhaseEntry { PhaseIndex = 1, EnterHealthRatio = 1f },
+                new BossPatternSO.PhaseEntry { PhaseIndex = 2, EnterHealthRatio = 0.6f },
+            });
+            GameDB.Initialize(database);
+            BossPhaseStateBase old = CreateWindup(1);
+            try
+            {
+                Assert.IsTrue(_controller.ServerDevRestartPhase(2));
+                Assert.AreEqual(2, _controller.CurrentPhaseIndex);
+                Assert.AreEqual(60f, _status.Health, 0.001f);
+                Assert.IsFalse(_controller.TelegraphCue.IsActive);
+                Assert.IsNull(Get(old, "_activeExecution"));
+                Assert.IsTrue(_controller.ServerDevRestartPhase(1));
+                Assert.AreEqual(1, _controller.PhaseSnapshot.PhaseIndex);
+                Assert.AreEqual(TEST_HEALTH, _status.Health);
+                Assert.IsFalse(_controller.ServerDevRestartPhase(99));
+                Assert.AreEqual(1, _controller.CurrentPhaseIndex);
+            }
+            finally { GameDB.ResetStatic(); UnityEngine.Object.DestroyImmediate(database); }
+        }
+
         [TestCase(1)]
         [TestCase(2)]
         public void CancelClosesWindowOnceAndClearsExecution(int phaseIndex)
@@ -143,6 +172,61 @@ namespace Geumeum.AI
 
             Assert.AreEqual(90f, Get(_controller, "_groggyGauge"));
             Assert.IsFalse(_controller.TelegraphCue.IsActive);
+        }
+
+        [Test]
+        public void DeflectKeepsSequenceAndGroggyButFinalCounterStillCancelsOnce()
+        {
+            var phase = CreateWindup(1);
+            var type = Get(phase, "_activeExecution").GetType();
+            object execution = Activator.CreateInstance(type, new object[] { .32f, ATTACK_ID, (byte)0, null });
+            type.GetProperty("IsDeflect").SetValue(execution, true);
+            Set(phase, "_activeExecution", execution);
+            Invoke(phase, "HandleAttackParried", execution, 17u);
+            Invoke(phase, "HandleAttackParried", execution, 17u);
+            Assert.AreEqual(100f, Get(_controller, "_groggyGauge"));
+            Assert.AreEqual(ATTACK_ID, Get(phase, "_activeAttackInstanceId"));
+            Assert.AreEqual("Windup", Get(phase, "_state").ToString());
+            Assert.AreEqual(17u, Get(phase, "_deflectedDefender"));
+            object final = Activator.CreateInstance(type, new object[] { .32f, ATTACK_ID, (byte)2, null });
+            Set(phase, "_activeExecution", final);
+            Invoke(phase, "HandleAttackParried", final, 17u);
+            Invoke(phase, "HandleAttackParried", final, 17u);
+            Assert.AreEqual(90f, Get(_controller, "_groggyGauge"));
+            Assert.AreEqual(0u, Get(phase, "_activeAttackInstanceId"));
+        }
+
+        private sealed class DeflectVictim : MonoBehaviour, IDamageable
+        {
+            public float Health = 100f;
+            public bool IsDead => Health <= 0;
+            public void TakeDamage(in DamageInfo damage) { Health -= damage.Amount; }
+        }
+
+        [Test]
+        public void DeflectFiltersOnlyItsDefenderAcrossDuplicateColliders()
+        {
+            var first = new GameObject("defender", typeof(NetworkIdentity), typeof(DeflectVictim), typeof(SphereCollider));
+            var second = new GameObject("bystander", typeof(NetworkIdentity), typeof(DeflectVictim), typeof(SphereCollider));
+            try
+            {
+                first.layer = second.layer = 30;
+                first.transform.position = Vector3.forward;
+                second.transform.position = Vector3.forward + Vector3.right;
+                first.AddComponent<SphereCollider>();
+                typeof(NetworkIdentity).GetProperty("netId").SetValue(first.GetComponent<NetworkIdentity>(), 17u);
+                typeof(NetworkIdentity).GetProperty("netId").SetValue(second.GetComponent<NetworkIdentity>(), 18u);
+                Physics.SyncTransforms();
+                var runner = typeof(BossController).Assembly.GetType("Geumeum.AI.BossPatternRunner");
+                var hit = runner.GetMethod("ExecuteMeleeArc");
+                hit.Invoke(null, new object[] { Vector3.zero, Vector3.forward, 3f, 360f, 10f, 1u, 1 << 30, null, 17u });
+                Assert.AreEqual(100f, first.GetComponent<DeflectVictim>().Health);
+                Assert.AreEqual(90f, second.GetComponent<DeflectVictim>().Health);
+                hit.Invoke(null, new object[] { Vector3.zero, Vector3.forward, 3f, 360f, 10f, 1u, 1 << 30, null, 0u });
+                Assert.AreEqual(90f, first.GetComponent<DeflectVictim>().Health);
+                Assert.AreEqual(80f, second.GetComponent<DeflectVictim>().Health);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(first); UnityEngine.Object.DestroyImmediate(second); }
         }
 
         [TestCase(1)]
@@ -652,7 +736,7 @@ namespace Geumeum.AI
         }
         /// <summary>
         /// HandleDied는 보스 사망 사실을 GameEventBus로 발행한다. EditMode에는 버스가 없어
-        /// 오류 로그가 남고, NUnit은 처리하지 않은 오류 로그를 실패로 본다.
+        /// 오류 로그가 남고, NUnit은 처리하지 않은 오류 로그를 실패로 본다
         /// 사망 사실이 실제로 발행되는지는 RunManager 쪽 검증의 몫이다
         /// </summary>
         private static void ExpectMissingEventBusError()

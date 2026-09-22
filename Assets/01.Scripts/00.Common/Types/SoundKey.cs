@@ -44,5 +44,13 @@ namespace Geumeum.Common
         BossTailBreak = 170,
         BossGateOpen  = 171,
         BossPhaseShift = 172,
+        WedgePlace = 180,
+        WedgeCrack = 181,
+        WedgeBurst = 182,
+        EchoFirst = 183,
+        EchoSecond = 184,
+        EchoThird = 185,
+        EchoRecall = 186,
+        EchoBurst = 187,
     }
 }

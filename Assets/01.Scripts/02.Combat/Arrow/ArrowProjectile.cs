@@ -38,6 +38,12 @@ namespace Geumeum.Combat
 
         [SyncVar] private float   _speed;
         private float   _damage;
+        private float _basePower;
+        private CombatStatsSnapshot _talents;
+        private bool _followThroughArmed;
+        private bool _followThroughUsed;
+        private uint _ownerGeneration;
+        private PlayerAttack _abilityOwner;
         private HitStrength _strength;
         private uint    _attackerNetId;
         private ParticipantId _attacker;
@@ -75,7 +81,7 @@ namespace Geumeum.Combat
         *                Client
         ****************************************/
 
-        // 서버는 위치를 매 틱 보내지 않는다. 방향과 속도만 받아 각자 같은 직선을 그린다.
+        // 서버는 위치를 매 틱 보내지 않는다. 방향과 속도만 받아 각자 같은 직선을 그린다
         // 판정은 서버에서만 하므로 여기 계산은 보여주기 전용이고, 틀려도 게임 결과가 갈리지 않는다
         private void Update()
         {
@@ -105,6 +111,11 @@ namespace Geumeum.Combat
         {
             _direction         = snapshot.Direction.normalized;
             _damage            = snapshot.Damage;
+            _basePower = snapshot.BasePower;
+            _talents = snapshot.Talents; _followThroughArmed = false; _followThroughUsed = false;
+            if (NetworkServer.spawned.TryGetValue(snapshot.AttackerNetId, out NetworkIdentity owner))
+            { _abilityOwner = owner.GetComponent<PlayerAttack>(); }
+            _ownerGeneration = _abilityOwner != null ? _abilityOwner.CombatGeneration : 0;
             _strength          = snapshot.Strength;
             _attackerNetId     = snapshot.AttackerNetId;
             _attacker          = snapshot.Attacker;
@@ -173,6 +184,10 @@ namespace Geumeum.Combat
 
         private void ServerTick(float deltaTime)
         {
+            if ((RunManager.ServerInstance != null && RunManager.ServerInstance.RunId.Value != _runIdValue) ||
+                (RunSceneDirector.ServerInstance != null && RunSceneDirector.ServerInstance.Revision.Value != _sceneRevisionValue))
+            { NetworkServer.Destroy(gameObject); return; }
+
             if (!_initialized)
             {
                 return;
@@ -199,7 +214,7 @@ namespace Geumeum.Combat
             bool  isBlocked   = TryFindWorldBlock(origin, step, out float blockDistance, out Vector3 blockPoint);
             float travelLimit = (isBlocked) ? blockDistance : step;
 
-            // 화살은 콜라이더로 부딪히지 않고 이 구간을 쓸어 판정한다.
+            // 화살은 콜라이더로 부딪히지 않고 이 구간을 쓸어 판정한다
             // 콜라이더만 그리면 정작 맞는 자리가 안 보이므로 쓸어 간 선을 남긴다
             GGizmo.Line(GGizmoChannel.Combat, origin, origin + (_direction * travelLimit),
                 (isBlocked) ? Color.red : new Color(1f, 0.95f, 0.5f, 0.9f), GIZMO_SECONDS);
@@ -446,11 +461,37 @@ namespace Geumeum.Combat
                 }
 
                 _piercedTargets.Add(damageable);
+                float healthBefore = damageable is IDamageHealthSource health ? health.Health : 0f;
+                bool followThrough = _followThroughArmed && damageable is Geumeum.AI.EnemyStatus &&
+                    _abilityOwner != null && _abilityOwner.CanApplyArrowTalent && _abilityOwner.CombatGeneration == _ownerGeneration;
+                if (followThrough) { _followThroughArmed = false; _followThroughUsed = true; }
                 damageable.TakeDamage(new DamageInfo(
                     _damage,
                     _attackerNetId,
                     _attacker,
                     _strength));
+
+                if (damageable is IDamageHealthSource after && after.Health < healthBefore)
+                {
+                    _abilityOwner?.ServerPresentArrowHit(_hitBuffer[i].point);
+                    // Broad phase consumes the arrow before its center reaches the surface
+                    // Extend only through its contact skin; keep the narrow center-line test
+                    float narrowDistance = step + _hitRadius;
+                    if (Physics.Raycast(origin, _direction, out RaycastHit wall, narrowDistance, _worldMask, QueryTriggerInteraction.Ignore))
+                    { narrowDistance = wall.distance; }
+                    bool burst = PlayerAttack.ServerNotifyDirectHit(_attackerNetId, _actionId, _isPrecision, false,
+                        damageable, _hitBuffer[i].point, origin, _direction, narrowDistance, _basePower, _talents, _ownerGeneration);
+                    if (followThrough)
+                    {
+                        damageable.TakeDamage(new DamageInfo(_basePower * _talents.PrecisionFollowThrough,
+                            _attackerNetId, _attacker, HitStrength.Heavy));
+                    }
+
+                    if (burst && !_followThroughUsed && _isPrecision && _talents.PrecisionFollowThrough > 0)
+                    {
+                        _followThroughArmed = true;
+                    }
+                }
 
                 if (_isPrecision)
                 {

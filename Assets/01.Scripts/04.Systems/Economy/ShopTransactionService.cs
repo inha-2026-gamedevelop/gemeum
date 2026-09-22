@@ -22,14 +22,14 @@ namespace Geumeum.Systems
         private readonly struct StreamKey : IEquatable<StreamKey>
         {
             public readonly uint  RunIdValue;
-            public readonly ulong ParticipantValue;
+            public readonly ParticipantId ParticipantValue;
             public readonly uint  NetworkObjectGenerationValue;
             public readonly TransactionOperation Operation;
 
             public StreamKey(in TransactionRequestHeader header, ParticipantId participant)
             {
                 RunIdValue             = header.RunIdValue;
-                ParticipantValue       = participant.Value;
+                ParticipantValue       = participant;
                 NetworkObjectGenerationValue = header.NetworkObjectGenerationValue;
                 Operation              = header.Operation;
             }

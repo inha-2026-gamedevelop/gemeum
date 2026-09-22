@@ -19,13 +19,13 @@ using Geumeum.Systems;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 잡귀 공통 실행부. Brain의 판단을 받아 실제 추적 · 공격을 수행하고 사망 이벤트를 발행한다.
+    /// 잡귀 공통 실행부. Brain의 판단을 받아 실제 추적, 공격을 수행하고 사망 이벤트를 발행한다
     /// EnemyKind로 알맞은 Brain을 골라 데이터 구동한다, 종류별 상속은 쓰지 않는다
     /// </summary>
     [RequireComponent(typeof(EnemyStatus))]
     [RequireComponent(typeof(NavMeshAgent))]
     public partial class EnemyController : NetworkBehaviour, IPrecisionInterruptTarget,
-        IEnemyPresentationSource
+        IEnemyPresentationSource, IWeaponSkillStaggerTarget
     {
 
         [SerializeField] private EnemyStatus     _status;
@@ -36,17 +36,19 @@ namespace Geumeum.AI
         *                Events
         ****************************************/
 
-        /// <summary> 표현 전용 컴포넌트(EnemyAnimationController)가 구독한다. 서버 · 클라이언트 모두에서 값이 바뀔 때마다 발생한다 </summary>
+        /// <summary> 표현 전용 컴포넌트(EnemyAnimationController)가 구독한다. 서버, 클라이언트 모두에서 값이 바뀔 때마다 발생한다 </summary>
         public event Action<EnemyVisualState> VisualStateChanged;
 
         /// <summary> 공격 모션 인덱스가 바뀔 때마다 발생한다, VisualStateChanged와 같은 틱에 함께 갱신된다 </summary>
         public event Action<int> AttackVariantChanged;
 
-        /// <summary> 실제 패링 판정 구간(근사치) 진입 · 이탈마다 발생한다, 표현 전용 </summary>
+        /// <summary> 실제 패링 판정 구간(근사치) 진입, 이탈마다 발생한다, 표현 전용 </summary>
         public event Action<bool> ParryWindowVisuallyOpenChanged;
 
         public EnemyVisualState VisualState => _visualState;
         public int AttackVariant => _attackVariant;
+        /// <summary> 예약 대응의 취소 검증용 식별자. 패링 판정 창 시각은 공개하지 않는다 </summary>
+        public uint ObservedAttackExecutionId => _brain == null ? 0u : _brain.ActiveAttackExecutionId;
         public bool IsParryWindowVisuallyOpen => _isParryWindowVisuallyOpen;
 
         public bool IsHerding => (_brain != null) && _brain.IsHerding;
@@ -87,19 +89,19 @@ namespace Geumeum.AI
         *             SyncVar Hooks
         ****************************************/
 
-        /// <summary> _visualState 동기화 훅, 서버 · 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
+        /// <summary> _visualState 동기화 훅, 서버, 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
         private void OnVisualStateChanged(EnemyVisualState oldState, EnemyVisualState newState)
         {
             VisualStateChanged?.Invoke(newState);
         }
 
-        /// <summary> _attackVariant 동기화 훅, 서버 · 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
+        /// <summary> _attackVariant 동기화 훅, 서버, 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
         private void OnAttackVariantChanged(int oldVariant, int newVariant)
         {
             AttackVariantChanged?.Invoke(newVariant);
         }
 
-        /// <summary> _isParryWindowVisuallyOpen 동기화 훅, 서버 · 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
+        /// <summary> _isParryWindowVisuallyOpen 동기화 훅, 서버, 클라이언트 양쪽에서 값이 바뀔 때 호출된다 </summary>
         private void OnParryWindowVisuallyOpenChanged(bool oldValue, bool newValue)
         {
             ParryWindowVisuallyOpenChanged?.Invoke(newValue);

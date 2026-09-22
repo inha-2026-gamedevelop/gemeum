@@ -11,6 +11,8 @@ namespace Geumeum.Combat
     {
         public Vector3      Origin             { get; }
         public Vector3      Direction          { get; }
+        public float        BasePower { get; }
+        public CombatStatsSnapshot Talents { get; }
         public float        Damage             { get; }
         public HitStrength  Strength           { get; }
         public float        Speed              { get; }
@@ -54,11 +56,13 @@ namespace Geumeum.Combat
             uint sceneRevisionValue,
             int targetMask,
             uint guidanceTargetNetId,
-            byte guidanceTargetPart)
+            byte guidanceTargetPart, float basePower = 0f, in CombatStatsSnapshot talents = default)
         {
+            Talents = talents;
             Origin              = origin;
             Direction           = direction;
             Damage              = damage;
+            BasePower = basePower > 0f ? basePower : damage;
             Strength            = strength;
             Speed               = speed;
             HitRadius           = hitRadius;
@@ -78,6 +82,43 @@ namespace Geumeum.Combat
             TargetMask          = targetMask;
             GuidanceTargetNetId = guidanceTargetNetId;
             GuidanceTargetPart  = guidanceTargetPart;
+        }
+
+        /// <summary>
+        /// 비용이 확정되는 순간의 공명진 계수를 이 발사에 한 번만 접는다
+        /// 이미 날아간 화살은 원천이 사라져도 다시 계산하지 않는다
+        /// </summary>
+        public ArrowFireSnapshot WithResonance(float multiplier)
+        {
+            if (float.IsNaN(multiplier) || float.IsInfinity(multiplier) ||
+                (multiplier <= 1f))
+            {
+                return this;
+            }
+
+            return new ArrowFireSnapshot(
+                Origin,
+                Direction,
+                Damage * multiplier,
+                Strength,
+                Speed,
+                HitRadius,
+                GuidanceDuration,
+                PierceCount,
+                BurstShotCount,
+                BurstShotInterval,
+                ResourceCost,
+                RecoveryDuration,
+                AttackerNetId,
+                Attacker,
+                ActionId,
+                ShotIndex,
+                IsPrecision,
+                RunIdValue,
+                SceneRevisionValue,
+                TargetMask,
+                GuidanceTargetNetId,
+                GuidanceTargetPart, BasePower * multiplier, Talents);
         }
 
         public ArrowFireSnapshot WithShotIndex(int shotIndex)
@@ -104,7 +145,7 @@ namespace Geumeum.Combat
                 SceneRevisionValue,
                 TargetMask,
                 GuidanceTargetNetId,
-                GuidanceTargetPart);
+                GuidanceTargetPart, BasePower, Talents);
         }
     }
 }

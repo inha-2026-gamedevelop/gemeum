@@ -262,6 +262,51 @@ namespace Geumeum.Combat.Tests
         *                Helpers
         ****************************************/
 
+        [Test]
+        public void SharedBeginAndEarlyReleaseDoNotFireOrConsumeStamina()
+        {
+            using (var fixture = new PrecisionServerFixture(0))
+            {
+                Assert.AreEqual(ActionRejection.None,
+                    fixture.Controller.ServerBeginPrecisionShot(7u, 2u, 1u, 5u));
+                float stamina = fixture.Status.Stamina;
+                Assert.AreEqual(PrecisionReleaseDecision.Cancel,
+                    fixture.Release(2u, out ActionRejection rejection));
+                Assert.AreEqual(ActionRejection.None, rejection);
+                Assert.AreEqual(stamina, fixture.Status.Stamina);
+                Assert.AreEqual(0, fixture.SpawnedArrowCount);
+                Assert.AreEqual(PrecisionShotState.Idle, fixture.Controller.State);
+            }
+        }
+
+        [Test]
+        public void ExplicitCancelOfReadyHoldDoesNotFire()
+        {
+            using (var fixture = new PrecisionServerFixture(0))
+            {
+                fixture.PrepareReadyHold();
+                float stamina = fixture.Status.Stamina;
+                Assert.IsFalse(fixture.Controller.ServerCancelPrecisionShot(7u, 2u, 1u, 4u));
+                Assert.AreEqual(PrecisionShotState.Ready, fixture.Controller.State);
+                Assert.IsTrue(fixture.Controller.ServerCancelPrecisionShot(7u, 2u, 2u, 5u));
+                Assert.AreEqual(PrecisionShotState.Idle, fixture.Controller.State);
+                Assert.AreEqual(stamina, fixture.Status.Stamina);
+                Assert.AreEqual(0, fixture.SpawnedArrowCount);
+            }
+        }
+
+        [Test]
+        public void SharedBeginRejectsPausedRun()
+        {
+            using (var fixture = new PrecisionServerFixture(0))
+            {
+                Set(RunManager.ServerInstance, "_pauseReasons", RunPauseReason.ParticipantMissing);
+                Assert.AreEqual(ActionRejection.State,
+                    fixture.Controller.ServerBeginPrecisionShot(7u, 2u, 1u, 5u));
+                Assert.AreEqual(PrecisionShotState.Idle, fixture.Controller.State);
+            }
+        }
+
         private static GameObject CreateServerController(out PrecisionShotController controller)
         {
             typeof(NetworkServer).GetProperty(nameof(NetworkServer.active)).SetValue(null, true);
@@ -455,24 +500,12 @@ namespace Geumeum.Combat.Tests
                 uint requestId,
                 out ActionRejection rejection)
             {
-                object[] arguments =
-                {
-                    RUN_ID,
-                    SCENE_REVISION,
-                    requestId,
-                    HOLD_GENERATION,
-                    new PrecisionAimRay
+                return Controller.ServerReleasePrecisionShot(
+                    RUN_ID, SCENE_REVISION, requestId, HOLD_GENERATION, new PrecisionAimRay
                     {
                         Origin = new Vector3(0f, 1.6f, -4.5f),
                         Direction = Vector3.forward,
-                    },
-                    ActionRejection.None,
-                };
-
-                PrecisionReleaseDecision decision = (PrecisionReleaseDecision)Invoke(
-                    Controller, "ServerResolveRelease", arguments);
-                rejection = (ActionRejection)arguments[5];
-                return decision;
+                    }, out rejection);
             }
 
             public void Dispose()
@@ -541,8 +574,11 @@ namespace Geumeum.Combat.Tests
                     BurstShotCount              = 1,
                     HealAmount                  = 40f,
                     HealRadius                  = 6f,
-                    SupportBuffDamageMultiplier = 1f,
-                    SupportBuffDuration         = 6f,
+                    FieldRadius                 = 3f,
+                    FieldDuration               = 6f,
+                    FieldTailDuration           = 1.5f,
+                    FieldDamageMultiplier       = 1.1f,
+                    EchoFieldDamageMultiplier   = 1f,
                 };
                 return participant.IsValid;
             }

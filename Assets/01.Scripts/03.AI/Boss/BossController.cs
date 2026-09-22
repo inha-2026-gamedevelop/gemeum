@@ -17,9 +17,9 @@ using Geumeum.Network;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 보스 실행부. HP 비율로 페이즈 전환을 커밋하고 현재 페이즈에 Tick을 위임한다.
-    /// 대상 스캔과 예고 상태 동기화도 여기서 맡는다. 페이즈 State는 언제 무엇을 쓸지만 정한다.
-    /// 패턴 판정 자체는 BossPatternRunner가 한다.
+    /// 보스 실행부. HP 비율로 페이즈 전환을 커밋하고 현재 페이즈에 Tick을 위임한다
+    /// 대상 스캔과 예고 상태 동기화도 여기서 맡는다. 페이즈 State는 언제 무엇을 쓸지만 정한다
+    /// 패턴 판정 자체는 BossPatternRunner가 한다
     /// </summary>
     [RequireComponent(typeof(BossStatus))]
     public partial class BossController : NetworkBehaviour, IBossTelegraphSource, IBossPhaseSource,
@@ -41,7 +41,7 @@ namespace Geumeum.AI
         *                Fields
         ****************************************/
 
-        private const float TARGET_SCAN_INTERVAL    = 12f;  // 근접 어그로 재평가 주기(BOSS_PATTERN_CONTRACT.md 5장)
+        private const float TARGET_SCAN_INTERVAL    = 12f;  // 근접 어그로 재평가 주기
         private const float TARGET_SCAN_RADIUS      = 30f;  // 보스 사거리들보다 넉넉히 잡는다
         private const int   TARGET_SCAN_BUFFER_SIZE = Constants.Network.MAX_PLAYERS * 4;
         private const int   MAX_ACTIVE_TELEGRAPHS   = 8;
@@ -86,7 +86,7 @@ namespace Geumeum.AI
         public bool IsEnraged => _isEnraged;
 
         /// <summary>
-        /// 남은 그로기 저항. 0이 되는 순간 그로기에 들어간다.
+        /// 남은 그로기 저항. 0이 되는 순간 그로기에 들어간다
         /// 최대치는 밸런스 데이터(BossPatternSO.GroggyGaugeMax)라 비율은 읽는 쪽에서 만든다
         /// </summary>
         public float GroggyGauge => _groggyGauge;
@@ -149,7 +149,7 @@ namespace Geumeum.AI
         ****************************************/
 
         /// <summary>
-        /// 서버 실행을 멈춘다. terminate면 다시 시작하지 않는다 - 사망, 런 이탈, 스폰 해제가 여기다.
+        /// 서버 실행을 멈춘다. terminate면 다시 시작하지 않는다 - 사망, 런 이탈, 스폰 해제가 여기다
         /// 비활성화는 재개 가능한 정지라 페이즈 State를 종료시키지 않고 진행 중인 공격만 취소한다
         /// </summary>
         private void StopServerExecution(bool terminate)
@@ -235,7 +235,7 @@ namespace Geumeum.AI
                 return;
             }
 
-            // 씬 오브젝트 간 OnStartServer 호출 순서는 Mirror가 보장하지 않는다 —
+            // 씬 오브젝트 간 OnStartServer 호출 순서는 Mirror가 보장하지 않는다 -
             // 스케줄러가 아직 안 떴을 수 있으니, 뜰 때까지 기다렸다가 등록한다
             if (_schedulerWaitRoutine == null)
             {
@@ -314,21 +314,21 @@ namespace Geumeum.AI
         *               ClientRpc
         ****************************************/
 
-        // 판정과 별개로 각 클라이언트가 그로기 진입 피드백을 재생한다.
+        // 판정과 별개로 각 클라이언트가 그로기 진입 피드백을 재생한다
         [ClientRpc]
         private void RpcGroggyEnter()
         {
             CombatFeedbackLocator.Current.PlayGroggyEnter();
         }
 
-        // 패턴 임팩트 VFX 신호(러프, 이슈 검증용) — 표현 전용 컴포넌트가 구독한다
+        // 패턴 임팩트 VFX 신호(러프, 이슈 검증용) - 표현 전용 컴포넌트가 구독한다
         [ClientRpc]
         private void RpcPatternImpact(BossPatternSO.PatternTemplate template, Vector3 origin, Vector3 forward)
         {
             PatternImpact?.Invoke(template, origin, forward);
         }
 
-        // 패턴 예고 VFX 신호(러프, 이슈 검증용) — 표현 전용 컴포넌트가 구독한다
+        // 패턴 예고 VFX 신호(러프, 이슈 검증용) - 표현 전용 컴포넌트가 구독한다
         [ClientRpc]
         private void RpcPatternTelegraphVfx(BossPatternSO.PatternTemplate template, Vector3 origin, Vector3 forward)
         {

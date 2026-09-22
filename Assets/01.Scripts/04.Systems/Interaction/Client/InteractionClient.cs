@@ -20,6 +20,7 @@ namespace Geumeum.Systems
         private float _nextScanTime;
 
         public string PromptText => (_localCandidate != null) ? _localCandidate.PromptText : null;
+        public uint CandidateNetId => _localCandidateNetId;
 
         public InteractionClient(IInteractionRequestSource requests)
         {
@@ -76,13 +77,16 @@ namespace Geumeum.Systems
                     continue;
                 }
 
-                if (!interactable.CanInteract(_requests.ActorNetId))
+                // 호스트도 순수 클라이언트와 같은 후보를 보여 준다. 실패 이유는 서버 응답으로 알린다
+                bool preview = interactable is DroppedItem drop ? drop.Equipment.HasEquipment :
+                    interactable is ShopInteractionPoint shop ? shop.IsOpen : interactable.CanInteract(_requests.ActorNetId);
+                if (!preview)
                 {
                     continue;
                 }
 
                 float distanceSquared = (identity.transform.position - _requests.ActorPosition).sqrMagnitude;
-                if (distanceSquared >= nearestSquared)
+                if (distanceSquared > range * range || distanceSquared >= nearestSquared)
                 {
                     continue;
                 }

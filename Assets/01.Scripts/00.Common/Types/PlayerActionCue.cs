@@ -9,9 +9,11 @@ namespace Geumeum.Common
         Attack = 1,
         Heal   = 2,
         Parry  = 3,
+        EchoRecall = 4,
+        WeaponSkill = 5,
     }
 
-    /// <summary>서버가 수락한 플레이어 행동의 표현 시간표.</summary>
+    /// <summary>서버가 수락한 플레이어 행동의 표현 시간표</summary>
     [Serializable]
     public struct PlayerActionCue
     {

@@ -15,6 +15,7 @@ namespace Geumeum.Common
 
         // 검 (차사) 전용
         ParryGaugeGain        = 200, // 패링 게이지 축적량 증가 (절대값)
+        CounterDuration       = 203, // 반격 표식 유지시간 (초)
         ParryWindow           = 201, // 패링 판정 창 증가 (초)
         CriticalMultiplierMin = 202, // 치명의 일격 최소 배율 상승 (절대값)
 

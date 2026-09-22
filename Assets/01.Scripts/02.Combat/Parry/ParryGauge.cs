@@ -18,6 +18,79 @@ namespace Geumeum.Combat
         ****************************************/
 
         [SyncVar(hook = nameof(OnGaugeChanged))] private float _gauge = 0f;
+        [SyncVar] private byte _counterMarks;
+        [SyncVar] private double _counterExpires;
+        private uint _counterAttacker, _counterSequence;
+        private byte _counterHit;
+        private IParrySequenceSource _counterSource;
+        private NetworkIdentity _counterTarget;
+        private bool _sequenceEnded;
+        private PlayerStatus _counterStatus;
+        private PlayerRollController _counterRoll;
+        private PlayerWeapon _counterWeapon;
+        private static double CounterTime => RunTimeLocator.Current.GameplayElapsedSeconds;
+        public byte CounterMarks => CounterTime < _counterExpires ? _counterMarks : (byte)0;
+        public float CounterRemaining => CounterMarks > 0 ? (float)(_counterExpires - CounterTime) : 0f;
+        public bool CounterTargetAlive => _counterTarget != null &&
+            (!_counterTarget.TryGetComponent(out IDamageable damage) || !damage.IsDead);
+
+        private void Awake()
+        {
+            _counterStatus = GetComponent<PlayerStatus>();
+            _counterRoll = GetComponent<PlayerRollController>();
+            _counterWeapon = GetComponent<PlayerWeapon>();
+        }
+
+        private void Update()
+        {
+            if (!isServer || _counterMarks == 0)
+            {
+                return;
+            }
+
+            if (CounterMarks == 0 || _counterTarget == null ||
+                (_counterTarget.TryGetComponent(out IDamageable damage) && damage.IsDead) ||
+                _counterStatus == null || _counterStatus.IsDead || _counterStatus.IsSwallowed || _counterStatus.IsHitReacting ||
+                (_counterRoll != null && _counterRoll.IsRolling) || _counterWeapon == null || !_counterWeapon.HasWeapon ||
+                _counterWeapon.Weapon != WeaponKind.Sword || Geumeum.Network.RunSceneDirector.IsServerTransitioning)
+            { ServerReset(); return; }
+            if (!_sequenceEnded && (_counterSource == null || !_counterSource.IsSequenceActive))
+            {
+                _sequenceEnded = true;
+                _counterExpires = System.Math.Min(_counterExpires, CounterTime + GameDB.Combat.CounterEndGrace);
+            }
+        }
+
+        [Server]
+        public void ServerAddCounter(uint attacker, uint window, IParryable source, float durationBonus)
+        {
+            if (!GameDB.IsInitialized || !NetworkServer.spawned.TryGetValue(attacker, out var target))
+            {
+                return;
+            }
+
+            var sequence = source as IParrySequenceSource;
+            uint execution = sequence?.AttackInstanceId ?? window;
+            byte hit = sequence?.RepeatIndex ?? 0;
+            bool same = CounterMarks > 0 && attacker == _counterAttacker && execution == _counterSequence;
+            if (same && hit == _counterHit)
+            {
+                return;
+            }
+
+            _counterMarks = (byte)(same ? Mathf.Min(3, _counterMarks + 1) : 1);
+            _counterAttacker = attacker; _counterSequence = execution; _counterHit = hit;
+            _counterTarget = target; _counterSource = sequence; _sequenceEnded = false;
+            _counterExpires = CounterTime + GameDB.Combat.CounterDuration + Mathf.Max(0f, durationBonus);
+        }
+
+        [Server]
+        public byte ServerReserveCounter()
+        {
+            byte count = CounterMarks;
+            _counterMarks = 0; _counterExpires = 0;
+            return count;
+        }
 
         /****************************************
         *                Events
@@ -69,7 +142,7 @@ namespace Geumeum.Combat
         /// <summary> 게이지를 담는다 </summary>
         public void Capture(RunParticipantSnapshot snapshot)
         {
-            snapshot.ParryGauge = _gauge;
+            snapshot.ParryGauge = 0f; // 반격은 런/씬 이동에 보관하지 않는다
         }
 
         public bool Validate(RunParticipantSnapshot snapshot, out string failure)
@@ -94,7 +167,8 @@ namespace Geumeum.Combat
 
             float max = GameDB.IsInitialized ? GameDB.Combat.ParryGaugeMax : snapshot.ParryGauge;
 
-            _gauge = Mathf.Clamp(snapshot.ParryGauge, 0f, max);
+            _gauge = 0f;
+            _counterMarks = 0; _counterExpires = 0;
             return true;
         }
 
@@ -146,6 +220,7 @@ namespace Geumeum.Combat
         public void ServerReset()
         {
             _gauge = 0f;
+            _counterMarks = 0; _counterExpires = 0; _counterSource = null; _counterTarget = null;
         }
     }
 }

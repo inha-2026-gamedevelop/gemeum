@@ -23,5 +23,8 @@ namespace Geumeum.Combat
 
         /// <summary> 자원이 모자란다 </summary>
         Resource = 6,
+
+        /// <summary> 방향이나 조준 입력이 유효하지 않다 </summary>
+        InvalidInput = 7,
     }
 }

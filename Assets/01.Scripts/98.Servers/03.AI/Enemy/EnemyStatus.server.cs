@@ -92,7 +92,7 @@ namespace Geumeum.AI
 
             _maxHealth           = stat.MaxHealth   * enhance.HealthMultiplier;
             _attackPower         = stat.AttackPower * enhance.AttackMultiplier;
-            _aggroRange          = stat.AggroRange; // 사거리 · 타이밍은 강화 배수 대상이 아니다
+            _aggroRange          = stat.AggroRange; // 사거리, 타이밍은 강화 배수 대상이 아니다
             _attackRange         = stat.AttackRange;
             _windupDuration      = stat.WindupDuration;
             _attackCooldown      = stat.AttackCooldown;

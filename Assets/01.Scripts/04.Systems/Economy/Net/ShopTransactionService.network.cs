@@ -75,9 +75,6 @@ namespace Geumeum.Systems
             ShopItemKind itemKind, uint expectedInventoryRevision,
             NetworkConnectionToClient sender = null)
         {
-            RequestArguments arguments = new RequestArguments(0u, itemKind, slot, -1,
-                0u, 0u, expectedInventoryRevision);
-
             if (!TransactionServiceUtility.TryGetPlayer(sender, out NetworkIdentity player,
                     out ParticipantId participant, out InventoryController inventory))
             {
@@ -94,33 +91,8 @@ namespace Geumeum.Systems
                 return;
             }
 
-            StreamKey stream = new StreamKey(header, participant);
-            if (TryReplay(stream, header.RequestId, arguments, out ShopTransactionResult replay))
-            {
-                SendResult(sender, replay);
-                return;
-            }
-
-            var resourceTarget = player.GetComponent<IResourceTransactionTarget>();
-            if ((resourceTarget == null) || _isCommitting || inventory.IsTransactionLocked ||
-                resourceTarget.IsResourceTransactionLocked)
-            {
-                SendResult(sender, MakeResult(header, itemKind,
-                    TransactionRejection.InvalidState, default));
-                return;
-            }
-
-            ShopTransactionResult result = ServerUsePotion(header, slot, itemKind,
-                expectedInventoryRevision, player, participant, inventory, resourceTarget,
-                stream, arguments, out bool remembered);
-            if (!remembered)
-            {
-                result.InventoryRevision = inventory.Revision;
-                result.ResourceRevision  = resourceTarget.ResourceRevision;
-                Remember(stream, header.RequestId, arguments, result);
-            }
-
-            SendResult(sender, result);
+            SendResult(sender, ServerRequestPotion(player.netId, header, slot,
+                itemKind, expectedInventoryRevision));
         }
 
         [Command(requiresAuthority = false)]

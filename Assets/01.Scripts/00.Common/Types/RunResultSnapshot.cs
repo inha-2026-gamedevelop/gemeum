@@ -15,6 +15,7 @@ namespace Geumeum.Common
         public uint       RunIdValue;
         public RunMode    Mode;
         public RunOutcome Outcome;
+        public RunPartyKind PartyKind;
 
         public float FieldElapsedSeconds;
         public float BossElapsedSeconds;

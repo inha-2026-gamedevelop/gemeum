@@ -157,6 +157,62 @@ namespace Geumeum.Systems
             }
         }
 
+        /// <summary> 인증된 Command 또는 서버 제어자가 요청한다. 참가자 신원은 요청 값이 아닌 서버 객체에서 읽는다 </summary>
+        [Server]
+        public ShopTransactionResult ServerRequestPotion(uint actorNetId,
+            TransactionRequestHeader header, int slot, ShopItemKind itemKind,
+            uint expectedInventoryRevision)
+        {
+            if (!TransactionServiceUtility.TryGetPlayer(actorNetId, out NetworkIdentity player,
+                    out ParticipantId participant, out InventoryController inventory))
+            {
+                return MakeResult(header, itemKind, TransactionRejection.InvalidRequest, default);
+            }
+
+            RunManager run = RunManager.ServerInstance;
+            RunSceneDirector director = RunSceneDirector.ServerInstance;
+            if ((run == null) || (director == null) || (!run.RunId.IsValid) ||
+                (!director.Revision.IsValid))
+            {
+                return MakeResult(header, itemKind, TransactionRejection.InvalidState, default);
+            }
+
+            TransactionRejection headerResult = TransactionRequestRules.ValidateHeader(header,
+                TransactionOperation.UsePotion, run.RunId, director.Revision, player.netId,
+                run.IsPaused, RunSceneDirector.IsServerTransitioning);
+            if (headerResult != TransactionRejection.None)
+            {
+                return MakeResult(header, itemKind, headerResult, default);
+            }
+
+            RequestArguments arguments = new RequestArguments(0u, itemKind, slot, -1,
+                0u, 0u, expectedInventoryRevision);
+            StreamKey stream = new StreamKey(header, participant);
+            if (TryReplay(stream, header.RequestId, arguments, out ShopTransactionResult replay))
+            {
+                return replay;
+            }
+
+            var resourceTarget = player.GetComponent<IResourceTransactionTarget>();
+            if ((resourceTarget == null) || (_isCommitting) || (inventory.IsTransactionLocked) ||
+                (resourceTarget.IsResourceTransactionLocked))
+            {
+                return MakeResult(header, itemKind, TransactionRejection.InvalidState, default);
+            }
+
+            ShopTransactionResult result = ServerUsePotion(header, slot, itemKind,
+                expectedInventoryRevision, player, participant, inventory, resourceTarget,
+                stream, arguments, out bool remembered);
+            if (!remembered)
+            {
+                result.InventoryRevision = inventory.Revision;
+                result.ResourceRevision = resourceTarget.ResourceRevision;
+                Remember(stream, header.RequestId, arguments, result);
+            }
+
+            return result;
+        }
+
         [Server]
         private ShopTransactionResult ServerUsePotion(in TransactionRequestHeader header,
             int slot, ShopItemKind itemKind, uint expectedInventoryRevision,
@@ -338,7 +394,7 @@ namespace Geumeum.Systems
                     TransactionRejection.None, replacement);
                 success.InventoryRevision = inventory.Revision;
                 success.WalletRevision    = _wallet != null ? _wallet.Revision : 0u;
-                // 장착 SyncVar hook도 재진입할 수 있으므로 결과와 순서를 먼저 확정한다.
+                // 장착 SyncVar hook도 재진입할 수 있으므로 결과와 순서를 먼저 확정한다
                 Remember(stream, header.RequestId, arguments, success);
                 remembered = true;
 

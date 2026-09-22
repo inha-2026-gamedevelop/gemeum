@@ -45,6 +45,27 @@ namespace Geumeum.Systems.Tests
         }
 
         [Test]
+        public void DevEquippedChangeInvalidatesCombatStatsAndPreservesIdentity()
+        {
+            _fixture.Sender.Status.ServerApplyGrowth(new GrowthState(1, 0, 100f, 1u, 0));
+            var item = MakeWeapon(27u);
+            Assert.AreEqual(InventoryResult.Success, _fixture.Sender.Inventory.ServerTryStoreEquipment(item, _fixture.Sender.Inventory.Revision));
+            Assert.AreEqual(InventoryResult.Success, _fixture.Sender.Inventory.ServerTryEquip(0, item.InstanceId, _fixture.Sender.Inventory.Revision));
+            Assert.IsTrue(_fixture.Sender.Inventory.TryBuildLoadout(_fixture.Sender.Participant, out var before));
+            uint revision = _fixture.Sender.Inventory.LoadoutRevision;
+            item.AttackPower = 42f;
+            Assert.AreEqual(InventoryResult.Success, _fixture.Sender.Inventory.ServerDevReplaceEquipped(item));
+            Assert.AreEqual(revision + 1u, _fixture.Sender.Inventory.LoadoutRevision);
+            Assert.IsTrue(_fixture.Sender.Inventory.TryBuildLoadout(_fixture.Sender.Participant, out var after));
+            Assert.AreEqual(42f, after.MeleeAttackPower);
+            Assert.AreNotEqual(before.Revision, after.Revision);
+            Assert.AreEqual(27u, _fixture.Sender.Inventory.EquippedWeapon.InstanceId);
+            item.InstanceId = 99u;
+            Assert.AreEqual(InventoryResult.InvalidItem, _fixture.Sender.Inventory.ServerDevReplaceEquipped(item));
+            Assert.AreEqual(revision + 1u, _fixture.Sender.Inventory.LoadoutRevision);
+        }
+
+        [Test]
         public void PurchaseCommitsOnceAndFailureLeavesBothSourcesUnchanged()
         {
             ShopTransactionResult first = _fixture.Purchase(_fixture.Sender,
@@ -76,6 +97,55 @@ namespace Geumeum.Systems.Tests
                 _fixture.Sender.Inventory.Revision, out _, out _);
             Assert.AreEqual(TransactionRejection.StaleWalletRevision, stale.Rejection);
             Assert.AreEqual(440, _fixture.Wallet.Balance);
+            Assert.AreEqual(1u, _fixture.Sender.Inventory.Revision);
+        }
+
+        [Test]
+        public void OwnerlessPotionEntryReplaysWithoutDoubleConsumption()
+        {
+            _fixture.Sender.SetResources(25f, 100f, 80f);
+            Assert.AreEqual(InventoryResult.Success,
+                _fixture.Sender.Inventory.ServerTryStoreConsumable(
+                    ShopItemKind.HealthPotion, 1, 3, 3, 0u));
+            Assert.IsNull(_fixture.Sender.Identity.connectionToClient);
+            var header = new TransactionRequestHeader
+            {
+                RunIdValue = RUN_ID,
+                SceneRevisionValue = SCENE_REVISION,
+                NetworkObjectGenerationValue = _fixture.Sender.Identity.netId,
+                RequestId = 1u,
+                Operation = TransactionOperation.UsePotion,
+            };
+
+            ShopTransactionResult first = _fixture.ShopService.ServerRequestPotion(
+                _fixture.Sender.Identity.netId, header, 0, ShopItemKind.HealthPotion, 1u);
+            ShopTransactionResult replay = _fixture.ShopService.ServerRequestPotion(
+                _fixture.Sender.Identity.netId, header, 0, ShopItemKind.HealthPotion, 1u);
+            Assert.IsTrue(first.Succeeded);
+            Assert.IsTrue(replay.Succeeded);
+            Assert.AreEqual(65f, _fixture.Sender.Status.Health);
+            Assert.AreEqual(2u, _fixture.Sender.Inventory.Revision);
+        }
+
+        [Test]
+        public void OwnerlessPotionEntryRejectsAnotherActorsBinding()
+        {
+            _fixture.Sender.SetResources(25f, 100f, 80f);
+            Assert.AreEqual(InventoryResult.Success,
+                _fixture.Sender.Inventory.ServerTryStoreConsumable(
+                    ShopItemKind.HealthPotion, 1, 3, 3, 0u));
+            var header = new TransactionRequestHeader
+            {
+                RunIdValue = RUN_ID,
+                SceneRevisionValue = SCENE_REVISION,
+                NetworkObjectGenerationValue = _fixture.Recipient.Identity.netId,
+                RequestId = 1u,
+                Operation = TransactionOperation.UsePotion,
+            };
+            ShopTransactionResult result = _fixture.ShopService.ServerRequestPotion(
+                _fixture.Sender.Identity.netId, header, 0, ShopItemKind.HealthPotion, 1u);
+            Assert.IsFalse(result.Succeeded);
+            Assert.AreEqual(25f, _fixture.Sender.Status.Health);
             Assert.AreEqual(1u, _fixture.Sender.Inventory.Revision);
         }
 

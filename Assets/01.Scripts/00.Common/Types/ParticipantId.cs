@@ -3,8 +3,8 @@ using System;
 
 namespace Geumeum.Common
 {
-    /// <summary> 런 참가자의 영속 신원. 인증을 마친 <see cref="PlayerPlatformId"/>에서 결정한다 </summary>
-    public readonly struct ParticipantId : IEquatable<ParticipantId>
+    /// <summary> 참가자 종류와 신원. 사람은 인증된 플랫폼 ID, 봇은 서버 발급 번호를 쓴다 </summary>
+    public readonly struct ParticipantId : IEquatable<ParticipantId>, IComparable<ParticipantId>
     {
         /****************************************
         *                Fields
@@ -13,20 +13,27 @@ namespace Geumeum.Common
         public static readonly ParticipantId None = new ParticipantId(0UL);
 
         public readonly ulong Value;
+        public readonly ParticipantKind Kind;
 
         /****************************************
         *              Properties
         ****************************************/
 
-        public bool IsValid => (Value != 0UL);
+        public bool IsValid => ((Value != 0UL) &&
+            ((Kind == ParticipantKind.Human) || (Kind == ParticipantKind.Bot)));
 
         /****************************************
         *              Constructors
         ****************************************/
 
-        public ParticipantId(ulong value)
+        public ParticipantId(ulong value) : this(ParticipantKind.Human, value)
+        {
+        }
+
+        public ParticipantId(ParticipantKind kind, ulong value)
         {
             Value = value;
+            Kind = kind;
         }
 
         /****************************************
@@ -39,13 +46,19 @@ namespace Geumeum.Common
             return new ParticipantId(platformId.Value);
         }
 
-        public bool Equals(ParticipantId other) => (Value == other.Value);
+        public bool Equals(ParticipantId other) => ((Kind == other.Kind) && (Value == other.Value));
+
+        public int CompareTo(ParticipantId other)
+        {
+            int kind = Kind.CompareTo(other.Kind);
+            return (kind != 0) ? kind : Value.CompareTo(other.Value);
+        }
 
         public override bool Equals(object obj) => ((obj is ParticipantId other) && (Equals(other)));
 
-        public override int GetHashCode() => Value.GetHashCode();
+        public override int GetHashCode() => (Value.GetHashCode() ^ ((int) Kind * 397));
 
-        public override string ToString() => Value.ToString();
+        public override string ToString() => $"{Kind}:{Value}";
 
         public static bool operator ==(ParticipantId left, ParticipantId right) => left.Equals(right);
 

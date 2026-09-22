@@ -249,6 +249,11 @@ namespace Geumeum.Combat
 
             _activeWeapon = Instantiate(source, hand);
             ApplyWeaponTransform();
+            var grip = _activeModel.GetComponent<Geumeum.Art.PlayerWeaponGrip>();
+            if (grip != null)
+            {
+                grip.ConfigureWeapon(_currentWeapon);
+            }
         }
 
         private static Vector3 ResolveScale(Vector3 scale)

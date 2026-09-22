@@ -62,13 +62,19 @@ namespace Geumeum.AI
             return offset;
         }
 
+        public bool IsRepeatDeflectable(in BossPatternSO.PatternEntry pattern, int repeatIndex)
+        {
+            return !IsRepeatParryable(pattern, repeatIndex) && pattern.DeflectableRepeatIndices != null &&
+                System.Array.IndexOf(pattern.DeflectableRepeatIndices, repeatIndex) >= 0;
+        }
+
         public bool IsRepeatParryable(in BossPatternSO.PatternEntry pattern, int repeatIndex)
         {
             return pattern.IsParryable &&
                 ((ParryableRepeatIndex < 0) || (ParryableRepeatIndex == repeatIndex));
         }
 
-        /// <summary>첫 예고 시각은 유지하고 뒤 impact 사이 간격만 서버 난수로 흔든다.</summary>
+        /// <summary>첫 예고 시각은 유지하고 뒤 impact 사이 간격만 서버 난수로 흔든다</summary>
         public void BuildImpactSchedule(in BossPatternSO.PatternEntry pattern,
             System.Random random, float[] destination)
         {

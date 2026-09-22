@@ -62,10 +62,10 @@ namespace Geumeum.Systems
         private readonly struct ReviveLossKey : IEquatable<ReviveLossKey>
         {
             public readonly uint RunIdValue;
-            public readonly ulong ParticipantValue;
+            public readonly ParticipantId ParticipantValue;
             public readonly uint DeathGeneration;
 
-            public ReviveLossKey(uint runIdValue, ulong participantValue, uint deathGeneration)
+            public ReviveLossKey(uint runIdValue, ParticipantId participantValue, uint deathGeneration)
             {
                 RunIdValue       = runIdValue;
                 ParticipantValue = participantValue;
@@ -164,7 +164,7 @@ namespace Geumeum.Systems
                 }
                 catch (Exception e)
                 {
-                    // SyncVar hook 밖으로 예외가 나가면 Mirror hook guard도 복구되지 않는다.
+                    // SyncVar hook 밖으로 예외가 나가면 Mirror hook guard도 복구되지 않는다
                     Debug.LogError($"[CurrencyManager] 잔액 observer 실패: {e}", this);
                 }
             }
