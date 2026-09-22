@@ -62,19 +62,40 @@ namespace Geumeum.Combat
             _loadoutProvider = GetComponent<ICombatLoadoutProvider>();
         }
 
+        [Server]
+        public void ServerInterruptForHit()
+        {
+            _isCasting = false;
+            _castEndServerTime = 0d;
+            _actionLockEndServerTime = 0d;
+            CancelPresentation();
+        }
+
         private void Update()
         {
+            // 설치 조준 중의 우클릭은 취소로 쓰인다. 여기까지 내려오면 취소가 곧 치유가 된다
             if ((!isLocalPlayer) || (!LocalGameplayInputGate.AllowsGameplayInput) ||
+                LocalPlacementAim.SuppressesCombatInput ||
                 (!Input.GetKeyDown(_healKey)))
             {
                 return;
             }
 
-            // 치유는 방울 전용이다. 무기를 안 보고 보내면 검·활을 든 사람이 우클릭할 때마다
-            // 서버까지 갔다가 NoWeapon으로 거부돼 화면에 거부 로그가 뜬다.
-            // 우클릭은 무기마다 다른 행동에 걸려 있으므로, 내 무기가 아니면 이 요청은 아예 안 보낸다.
+            // 치유는 방울 전용이다. 무기를 안 보고 보내면 검, 활을 든 사람이 우클릭할 때마다
+            // 서버까지 갔다가 NoWeapon으로 거부돼 화면에 거부 로그가 뜬다
+            // 우클릭은 무기마다 다른 행동에 걸려 있으므로, 내 무기가 아니면 이 요청은 아예 안 보낸다
             // 서버는 그대로 검증한다 - 여기는 입력을 걸러 주는 것뿐이다
             if ((_weapon == null) || (!_weapon.HasWeapon) || (_weapon.Weapon != WeaponKind.Bell))
+            {
+                return;
+            }
+
+            RequestLocalHeal();
+        }
+
+        private void RequestLocalHeal()
+        {
+            if (_attack != null && _attack.TryBufferCombatAction(3, RequestLocalHeal))
             {
                 return;
             }
@@ -116,17 +137,21 @@ namespace Geumeum.Combat
         [Command]
         private void CmdRequestHeal(uint requestId)
         {
+            ActionRejection rejection = ServerRequestHeal(requestId);
+            if ((rejection != ActionRejection.None) && (connectionToClient != null))
+            {
+                TargetHealRejected(rejection);
+            }
+        }
+
+        /// <summary> 사람과 서버 제어자가 동일한 비용, 쿨다운으로 치유를 요청한다 </summary>
+        [Server]
+        public ActionRejection ServerRequestHeal(uint requestId)
+        {
             EnsureRunResumedSubscription();
 
-            ActionRejection rejection = PlayerActionPipeline.TryExecute(
+            return PlayerActionPipeline.TryExecute(
                 ref _requestIds, requestId, this, NetworkTime.time);
-
-            if (rejection == ActionRejection.None)
-            {
-                return;
-            }
-
-            TargetHealRejected(rejection);
         }
 
         /****************************************
@@ -152,7 +177,7 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            bool isOtherActionInProgress = ((_roll != null) && (_roll.IsRolling))
+            bool isOtherActionInProgress = _status.IsHitReacting || ((_roll != null) && (_roll.IsRolling))
                 || ((_parry != null) && (_parry.IsActionInProgress(serverTime)))
                 || ((_attack != null) && (_attack.IsActionInProgress(serverTime)))
                 || (_isCasting);
@@ -169,7 +194,8 @@ namespace Geumeum.Combat
                 serverTime,
                 _cooldownEndServerTime,
                 _status.Spirit,
-                _pendingLoadout.ResolveSpiritCost(GameDB.Combat.HealSpiritCost));
+                _pendingLoadout.ResolveSpiritCost(GameDB.Combat.HealSpiritCost,
+                    _pendingLoadout.HealSpiritCostReduction));
 
             return true;
         }
@@ -258,19 +284,14 @@ namespace Geumeum.Combat
             float   radiusSqr   = _committedLoadout.HealRadius *
                 _committedLoadout.HealRadius;
             int     healedCount = 0;
-            int     buffedCount = 0;
+            bool    fieldHeal   = false;
             ParticipantId healer = _status.Participant;
             _healedNames.Clear();
 
-            // 파티가 세 명이라 연결 목록을 도는 편이 물리 쿼리보다 싸고 레이어 설정에 기대지 않는다
-            foreach (NetworkConnectionToClient conn in NetworkServer.connections.Values)
+            // 연결이 없는 서버 참가자도 치유 대상에 포함한다
+            foreach (PlayerStatus target in PlayerStatus.ServerPlayers)
             {
-                if ((conn == null) || (conn.identity == null))
-                {
-                    continue;
-                }
-
-                if (!conn.identity.TryGetComponent(out PlayerStatus target))
+                if (target == null)
                 {
                     continue;
                 }
@@ -281,32 +302,91 @@ namespace Geumeum.Combat
                     continue;
                 }
 
-                // 결계 회복 배수와 최대 HP는 TryRestoreHealth가 이미 적용한다. 여기서 또 곱하면 두 번 걸린다.
+                // 결계 회복 배수와 최대 HP는 TryRestoreHealth가 이미 적용한다. 여기서 또 곱하면 두 번 걸린다
                 // 쓰러진 사람도 그 안에서 거부되므로 치유가 부활을 대신하지 않는다
-                if (target.TryRestoreHealth(_committedLoadout.HealAmount, healer, out _))
+                if (target.TryRestoreHealth(_committedLoadout.HealAmount, healer,
+                        out float applied) && (applied > 0f))
                 {
                     ++healedCount;
                     _healedNames.Add(GDebug.Who(target.netId));
-                }
 
-                if ((!target.IsDead) && (!target.IsSwallowed) &&
-                    (_committedLoadout.SupportBuffDamageMultiplier > 1f) &&
-                    target.TryGetComponent(out ISupportBuffTarget buffTarget) &&
-                    buffTarget.ServerApplySupportBuff(
-                        _committedLoadout.SupportBuffDamageMultiplier,
-                        _committedLoadout.SupportBuffDuration))
-                {
-                    ++buffedCount;
+                    // 「지키는 길」의 연계는 자기 진 안 부상자를 실제로 회복시켰을 때만 열린다
+                    // 초과치유나 진 밖 치유로는 열리지 않는다
+                    if ((!fieldHeal) && (_attack != null) &&
+                        _attack.ServerIsInsideField(target.transform.position))
+                    {
+                        fieldHeal = true;
+                    }
                 }
             }
 
-            GDebug.Server($"{GDebug.Who(netId)} 치유 -> {healedCount}명, 지원 {buffedCount}명 " +
+            int afterglowCount = ApplyFieldHealBonuses(fieldHeal, healer);
+
+            GDebug.Server($"{GDebug.Who(netId)} 치유 -> {healedCount}명, 여운 {afterglowCount}명 " +
                 $"[{string.Join(", ", _healedNames)}]");
             _healedNames.Clear();
-            TargetHealResult(healedCount);
+            if (connectionToClient != null)
+            {
+                TargetHealResult(healedCount);
+            }
             RpcHealResolved(_activePresentationActionId, healedCount,
                 RunTimeLocator.Current.GameplayElapsedSeconds);
             _activePresentationActionId = 0u;
+        }
+
+        /// <summary>
+        /// 진 안 치유가 실제로 성공했을 때의 연계 노드를 처리한다
+        /// 한 진 1회 사용 여부를 먼저 확정하고, 추가 치유는 파생 효과라
+        /// 다시 환급, 치유 유발, 잔향, 노드 권한을 만들지 않는다
+        /// </summary>
+        [Server]
+        private int ApplyFieldHealBonuses(bool fieldHeal, ParticipantId healer)
+        {
+            if ((!fieldHeal) || (_attack == null))
+            {
+                return 0;
+            }
+
+            if (_committedLoadout.FieldHealEchoDiscount > 0f)
+            {
+                _attack.ServerGrantEchoDiscount(_committedLoadout.FieldHealEchoDiscount,
+                    GameDB.Combat.BellFieldHealDiscountWindow);
+            }
+
+            if ((_committedLoadout.FieldHealAfterglowRatio <= 0f) ||
+                (!_attack.ServerTryConsumeFieldAfterglow()))
+            {
+                return 0;
+            }
+
+            // 공명진 버프와 무관한 기본 치유량이 기준이다
+            float bonus = _committedLoadout.HealAmount *
+                _committedLoadout.FieldHealAfterglowRatio;
+            if (bonus <= 0f)
+            {
+                return 0;
+            }
+
+            int count = 0;
+            foreach (PlayerStatus target in PlayerStatus.ServerPlayers)
+            {
+                if ((target == null) || target.IsDead || target.IsSwallowed)
+                {
+                    continue;
+                }
+
+                // 기준은 치유 반경이 아니라 진의 유효 체류다
+                if ((!_attack.ServerIsInsideField(target.transform.position)) ||
+                    (!target.TryRestoreHealth(bonus, healer, out float applied)) ||
+                    (applied <= 0f))
+                {
+                    continue;
+                }
+
+                ++count;
+            }
+
+            return count;
         }
 
         [ClientRpc]

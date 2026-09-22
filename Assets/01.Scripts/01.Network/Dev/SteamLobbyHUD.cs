@@ -26,7 +26,7 @@ namespace Geumeum.Network
         *                Fields
         ****************************************/
 
-        // PC 3대를 각자 조작해야 해서 마우스로 패널을 누르는 것보다 단축키가 빠르다.
+        // PC 3대를 각자 조작해야 해서 마우스로 패널을 누르는 것보다 단축키가 빠르다
         //
         // F1~F12는 전부 차 있다. 코드 기본값이 KeyCode.None이고 씬과 프리팹에 값이 들어 있는
         // 키(GeumeumNetworkManager의 _devStartHostKey=F1, _devAbandonRunKey=F3)가 있어
@@ -54,7 +54,7 @@ namespace Geumeum.Network
 
         private void Awake()
         {
-            // 이 도구의 단축키(Home / PageDown / End)가 치트 해제 차례와 겹친다.
+            // 이 도구의 단축키(Home / PageDown / End)가 치트 해제 차례와 겹친다
             // 잠긴 동안 켜져 있으면 해제 키를 치는 것만으로 로비가 만들어지고 호스트가 열린다
             DevAccess.GateComponent(this);
         }
@@ -63,7 +63,7 @@ namespace Geumeum.Network
         {
             // Steam 전송이 아니어도 패널은 등록한다. 전송을 바꾸고 다시 켰을 때
             // 패널이 없으면 왜 없는지 알기 어렵다
-            DevPanelHost.Register(PANEL_ID, PANEL_TITLE, Build, Handle);
+            // 방 생성, 참가, 초대, 나가기는 정식 로비 UI에서 제공한다
 
             if (!SteamTransportSelector.IsSteamTransport(Transport.active))
             {

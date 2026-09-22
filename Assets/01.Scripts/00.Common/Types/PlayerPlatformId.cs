@@ -4,7 +4,7 @@ using System;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 재접속에도 유지되는 플레이어 신원. Steam 빌드에서는 SteamID64, 개발 KCP 경로에서는 실행 인자로 준 대체 값이다.
+    /// 재접속에도 유지되는 플레이어 신원. Steam 빌드에서는 SteamID64, 개발 KCP 경로에서는 실행 인자로 준 대체 값이다
     /// connectionId는 재접속마다 새로 발급되어 같은 사람을 알아볼 수 없으므로 슬롯 키로 이 값을 쓴다
     /// </summary>
     public readonly struct PlayerPlatformId : IEquatable<PlayerPlatformId>

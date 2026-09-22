@@ -16,6 +16,49 @@ namespace Geumeum.Systems
 {
     public partial class InventoryController
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+        /// <summary>개발 테스트: 같은 장착 장비의 수치만 변경하고 전투 캐시와 함께 공개한다</summary>
+        [Server]
+        public InventoryResult ServerDevReplaceEquipped(in WeaponCombatSnapshot replacement)
+        {
+            InventoryResult state = ValidateEquipState();
+            if (state != InventoryResult.Success) { return state; }
+            if (_transactionLocked || _loadoutRevision == uint.MaxValue ||
+                !InventoryRules.IsValidItem(replacement) || !_serverHasEquippedWeapon ||
+                replacement.InstanceId != _serverEquippedWeapon.InstanceId ||
+                replacement.WeaponKind != _serverEquippedWeapon.WeaponKind)
+            {
+                return InventoryResult.InvalidItem;
+            }
+            var plan = new EquippedEquipmentWrite(_loadoutRevision, _serverEquippedWeapon, replacement);
+            _transactionLocked = true;
+            try
+            {
+                if (_weaponTarget == null ||
+                    !_weaponTarget.ServerTryAcquireEquippedWeapon(replacement, out EquipmentWeaponWrite weaponPlan))
+                {
+                    return InventoryResult.InvalidState;
+                }
+                try
+                {
+                    ServerApplyEquippedTransaction(plan);
+                    _weaponTarget.ServerApplyEquippedWeapon(weaponPlan);
+                    TryPublishWeaponTarget(weaponPlan);
+                    ServerPublishEquippedTransaction(plan);
+                    return InventoryResult.Success;
+                }
+                finally { _weaponTarget.ServerReleaseEquippedWeapon(); }
+            }
+            finally { _transactionLocked = false; }
+        }
+#endif
+        [Server]
+        public bool ServerCopySlots(InventorySlotSnapshot[] destination)
+        {
+            if (destination == null || destination.Length < InventorySnapshot.SLOT_COUNT) { return false; }
+            for (int i = 0; i < InventorySnapshot.SLOT_COUNT; ++i) { destination[i] = _inventory.GetSlot(i); }
+            return true;
+        }
         /****************************************
         *              Unity Event
         ****************************************/
@@ -25,15 +68,10 @@ namespace Geumeum.Systems
             ServerResetSlots();
             TryBindGrowthParticipant();
 
-            // NetworkBehaviour 실행 순서와 무관하게 TalentController의 초기 세대를 맞춘다.
+            // NetworkBehaviour 실행 순서와 무관하게 TalentController의 초기 세대를 맞춘다
             if ((_talentProvider != null) && (_talentProvider.Revision != 0u))
             {
                 ServerRegisterTalentRevision(_talentProvider.Revision);
-            }
-
-            if ((_buffProvider != null) && (_buffProvider.Revision != 0u))
-            {
-                _lastBuffRevision = _buffProvider.Revision;
             }
         }
 
@@ -655,7 +693,7 @@ namespace Geumeum.Systems
             catch (Exception e)
             {
                 // SyncList는 값을 바꾼 뒤 observer를 호출한다. 한 observer의 실패가
-                // 다음 칸과 revision 공개를 끊지 않도록 슬롯 단위로 격리한다.
+                // 다음 칸과 revision 공개를 끊지 않도록 슬롯 단위로 격리한다
                 Debug.LogError($"[InventoryController] {write.SlotIndex}번 슬롯 observer 실패: {e}",
                     this);
             }
@@ -725,7 +763,7 @@ namespace Geumeum.Systems
                 return false;
             }
 
-            // 특성 UI가 첫 공격보다 먼저 열려도 기본 무기 loadout을 여기서 확정한다.
+            // 특성 UI가 첫 공격보다 먼저 열려도 기본 무기 loadout을 여기서 확정한다
             if ((_loadoutRevision == 0u) && (!ServerEnsureEquippedWeapon()))
             {
                 return false;
@@ -796,7 +834,7 @@ namespace Geumeum.Systems
                 return false;
             }
 
-            // 무기가 없는 상태로 담긴 snapshot은 역할 무기와 맞출 대상이 없다.
+            // 무기가 없는 상태로 담긴 snapshot은 역할 무기와 맞출 대상이 없다
             // 이때 무기 일치를 요구하면 로비 전환이 항상 실패한다
             bool isUnarmed = IsUnarmedSnapshot(snapshot.EquippedWeapon);
 
@@ -818,7 +856,6 @@ namespace Geumeum.Systems
             _loadoutRevision   = 1u;
             _lastGrowthRevision = ResolveGrowthRevision(snapshot.Participant);
             _lastTalentRevision = snapshot.TalentAllocation.Revision;
-            _lastBuffRevision = (_buffProvider == null) ? 0u : _buffProvider.Revision;
 
             EnsureSlotCount();
             for (int i = 0; i < InventorySnapshot.SLOT_COUNT; ++i)
@@ -864,7 +901,7 @@ namespace Geumeum.Systems
             if ((!_serverHasEquippedWeapon) && (_loadoutRevision == 0u))
             {
                 // The basic weapon is loadout revision one even when the first equip request
-                // replaces it before it has ever been published.
+                // replaces it before it has ever been published
                 _loadoutRevision = 1u;
             }
 
@@ -1186,7 +1223,6 @@ namespace Geumeum.Systems
             _loadoutRevision   = 0u;
             _lastGrowthRevision = 0u;
             _lastTalentRevision = 0u;
-            _lastBuffRevision = 0u;
             _transactionLocked = false;
 
             _hasLastEquipRequest = false;

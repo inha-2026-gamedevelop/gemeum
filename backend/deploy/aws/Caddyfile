@@ -1,0 +1,12 @@
+# Replace api.example.com with the same domain as GEUMEUM_PUBLIC_ORIGIN.
+api.example.com {
+    request_body {
+        max_size 1MB
+    }
+    reverse_proxy 127.0.0.1:8766 {
+        # Only this loopback proxy is trusted by Uvicorn. Overwrite incoming headers.
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto https
+    }
+    header Strict-Transport-Security "max-age=31536000"
+}

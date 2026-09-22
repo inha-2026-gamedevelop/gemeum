@@ -1,597 +1,266 @@
-# 그믐 (晦) — 미구현 항목 구현 로드맵
+# 그믐 (晦) — 구현 로드맵
 
-> 기준일: 2026-09-07 · **최종 수정 2026-09-08** · 기준 코드: `feature/Minsung`
-> 출처: 2026-09-07 전체 리팩터링 조사(C# 219개 · docs 53개 · `Assets/09.Data` 27개 정적 대조)
-> 상위 문서: [주간 계획](06-weekly-plan.md)이 이 문서의 색인이다. **일정·담당·우선순위는 그쪽이 정본이고, 여기는 항목별 "어떻게 만드는가"만 다룬다.**
+> 기준: 2026-09-22 현재 작업 트리. 코드 존재와 실제 플레이 검증을 구분한다.
+> 상위 문서: [주간 계획](06-weekly-plan.md)이 일정·담당·우선순위의 정본이다. 여기는 항목별 "지금 어디까지 됐고 무엇을 어떻게 만드는가"만 다룬다.
 
 ### 변경 이력
 
 | 날짜 | 변경점 |
 |---|---|
-| **2026-09-08** | **U36 누락 YAML 23개 해소(완료)** · 인벤토리 2칸으로 U08 축소 · U14에 개인 지표와 평가 추가 · U34 타격감을 5항목으로 고정 · **U41 컷씬·시네머신 신설** · U29·U40을 티저 필수로 승격 · 에셋 도입 조건 신설(9장) |
-| 2026-09-07 | 초판 — U01~U40 |
+| **2026-09-19** | **전면 개정.** 09-08 판을 폐기하고 현재 코드를 파트별로 전수 대조해 다시 썼다. U01~U41 중 24개를 완료로 정리하고 남은 항목만 상세히 남겼다. 신규 항목: **U42 보스 Unity Behavior 전환**, U43 릴리스 씬 채우기, U44 봇 파티 검증·튜닝, U45 창귀 예고 뷰·일시정지 보정. 인벤토리 2칸 → 12칸 실물 반영. ML-Agents는 제출 전 착수 보류로 기록. 본문에서 날짜 표기를 제거했다 |
+| 2026-09-08 | U36 YAML 해소 · U41 컷씬 신설 · 에셋 도입 조건 |
+| 2026-09-07 | 초판 U01~U40 |
 
 ---
 
 ## 0. 이 문서를 읽는 법
 
-- **U01~U40**은 "문서에는 있는데 코드에 없거나 덜 된 것"의 전수 목록이다. 기능 아이디어가 아니라 **이미 승인된 계약의 미구현분**이다. 새 기능 제안은 하나도 없다.
-- 각 항목의 `현재 코드`는 2026-09-07 기준 사실이다. 파일:줄은 변하므로 착수 시 다시 연다.
-- `권장 접근`은 기존 구조를 최대한 재사용하는 안이고, `대안`은 더 빠르지만 나중에 비싸지는 안이다. 대안을 고르려면 그 이유를 인수인계에 남긴다.
-- `공수`는 추정 인·일(1인·일 = 실작업 8시간)이다. **완료일 보장이 아니다.** 에셋 대기·기획 재결정은 별도 경과시간이다.
-- 모든 항목은 [네트워크 권위](unity/NETWORK_AUTHORITY.md)를 따른다. `권위` 줄이 서버/로컬 경계를 다시 적는 이유는 그 항목에서 특히 헷갈리기 때문이다.
+- **U번호는 유지한다.** 인수인계·커밋 메시지·다른 문서가 이 번호를 참조한다. 완료된 항목도 번호를 비우지 않고 1장 표에 남긴다.
+- `상태`는 셋 중 하나다. **완료** = 코드·에셋 배선까지 있음. **부분** = 남은 일이 구체적으로 있음. **미착수** = 코드 없음.
+- 완료라도 대부분 **L3(3PC) 미검증**이다. 검증 등급은 [주간 계획 4장](06-weekly-plan.md)을 따르고, 여기서는 "코드가 있는가"만 판단한다.
+- 수치는 전부 SO에 있다. 이 문서에 적힌 값은 확인용이며 정본은 `Assets/09.Data/`다.
 - 씬·프리팹·meta가 필요한 항목은 그렇게 표시했다. [씬·에셋 안전](unity/SCENE_AND_ASSET_SAFETY.md) 절차가 먼저다.
 
-**2026-09-07에 확정한 것.** 조사가 남긴 열린 질문 중 아래는 이미 답이 있다. 각 항목의 선행 조건에서 "결정됨"으로 표시한다.
-
-| 결정 | 내용 |
-|---|---|
-| 값 충돌 | **현재 에셋이 정본.** 페이즈 진입 비율 0.5 · 창귀 인식 9m 유지. 누락 YAML은 Inspector 실효값을 확인한 뒤 같은 값으로 저장 |
-| 보스 종료 경합 | **서버 단일 결과 + 전환 시 진행 중 공격·패링 창 취소.** [BOSS_DESIGN 5장](unity/BOSS_DESIGN.md)이 이미 명시 |
-| 이탈 대기 포기 | **호스트만** 종료할 수 있다 |
-| 표식 수명 | 일반 표식(8초 · 2슬롯)과 보스 낙인(3초)은 **별개 의미로 유지** |
-| 결계 중심 | **현재 이동 구조 유지** + 후보 유효 영역 제한 |
-| 특성 범위 | 핵심 변형만 이번 납기, 나머지 유보 |
-| 리더보드 | 로컬 결과 표시·기록까지. 온라인 등록은 유보 |
-| 락온 서버 검증 | 현재 거리·생존 검사 유지. 시야 강화는 3인 기준선 확보 후 |
-| 원혼 임시값 | 200 HP / 8초 승인. 삼켜짐은 **사망이 아니다** — 게임 디자인 10.4 (2026-09-08 정정) |
-| 보스 트라이 | P2, 핵심 루프 통과 후 |
-| FrameRecorder | 개발 빌드에서만 필수 |
-| 부활 수치 소유 | `CombatConfigSO` |
+**검증 수단이 바뀌었다.** 로비 "빈자리 봇 충원"으로 사람 1명 + 봇 2명 런이 가능해져 단일 PC에서 전체 루프를 반복할 수 있다. 다만 **봇 2명은 사람 2명의 대체가 아니다.** 원격 클라이언트의 RTT·예측·표현 경로는 실제 사람 접속에서만 검증된다.
 
 ---
 
-## 1. 검증·기반 (P0, W1~W2)
+## 1. 완료 항목
 
-### U01 실제 3인 기준선 재확보
+아래 구현은 코드·배선 기준이다. 과거 테스트 수를 현재 검증으로 승계하지 않으며 변경 범위의 기능 검증과 외부 PC 3인 L3를 별도로 수행한다.
 
-**기능 추가가 아니라 검증 미완이다.** 과거 Steam 접속 성공과 전투·전환 기록은 대상 범위가 서로 다르다.
+| U | 항목 | 핵심 위치 | L3 확인 포인트 |
+|---|---|---|---|
+| U02 | 필드 → 전실 → 보스 게이트 · 30초 강제 이동 · 결과 → 로비 | `RunManager.ServerTryStartBossEntranceCountdown` · `BossEntranceRules` · `Field.unity`의 `BossEntranceTrigger` | 동시 진입 시 전환 1회, 느린 1인 잔류 없음 |
+| U03 | 보스 사망 → Victory | `BossController.server.HandleDied` → `EnemyDiedEvent.ForBoss` → `RunManager.HandleEnemyDied` | 실제 처치로 Result 도달 |
+| U04 | 이탈 대기 취소 UI | `06.UI/Systems/RunStatusPanel` · `RunManager.ServerTryAbandonParticipantWait` | 호스트만 포기 가능 |
+| U05 | 표식 런·씬 수명 | `MarkRegistry.ClearAll/ClearOwner/ClearEntity/ClearTarget` 소비자 10곳 | 씬 전환 후 옛 표식 공명 없음 |
+| U06 | 장비 전투 snapshot | `InventoryController : ICombatLoadoutProvider` · `CombatStatCalculator.TryBuild` | 원격 장비 피해 반영 |
+| U07 | 파티 공유 경험치 · 레벨업 | `GrowthManager.server.ServerAwardEnemyExperience` | 늦은 참가자 레벨 동기 |
+| U08 | 장비 생성 · 드랍 · **12칸** 인벤토리 · 줍기 · 양도 | `DropDirector.server` · `DroppedItem.server.ServerTryPickup` · `EquipmentTransferService` | 동시 줍기 단일 소유 |
+| U09 | 상호작용 서버 검증 | `InteractionController.network.ServerRequestInteract` · `InteractionRules.Evaluate` | 전투 후 5초 규칙 |
+| U10 | 팀 재화 · 상점 · 물약 | `CurrencyManager.server` 2단계 원자 구매 · `ShopTransactionService.server` | 동시 구매 잔액 |
+| U11 | 교환 · 재조정권 · 상승권 · 특성 초기화 | `EquipmentTransferService` · `ShopTransactionService.Request*Ticket` · `TalentController.server.ServerTryReset` | 수락 지연 중 재접속 |
+| U12 | 특성 39개(무기별 13) · 연사/관통/치유/버프 | `TalentTreeSO.asset` · `CombatStatCalculator` | 3인 각자 다른 특성 |
+| U13 | 부활 재화 차감 | `ReviveController` → `PartyWalletLocator.TryApplyReviveLoss` (사망 세대 키로 1회) | 관전 만료 vs 구조 경합 |
+| U14 | 결과 집계 · 정산 · 개인 지표 · 평가 등급 · 로컬 리더보드 | `RunStatistics` · `ScoreRuleSO._evaluationGrades` · `RunLeaderboardStore` | 3인 동일 점수 |
+| U16 | 정밀 사격 · 자유 조준 · 시전 취소 카운터 | `PrecisionShotController` · `PlayerAttack.ServerTryBuildPrecisionShot` · `BossController.TryInterruptPrecisionShot` | 호스트 외 상하 조준 |
+| U17 | 보스 패턴 종료 · 페이즈/그로기 취소 | `BossPhaseStateBase.CancelActiveAttack/Exit` 호출부 7곳 | 전환 직후 옛 패링 창 없음 |
+| U19 | 꼬리 3덩이 · 1그로기 1파괴 · 25% 게이트 · 봉인·이관 | `BossPartController.server` · `BossPartHitbox` | 3인 동시 타격 1파괴 |
+| U20 | 그로기 3직업 진입로 · 본체×1.5 · 꼬리×3 | `ServerRecordParryCounter` · `TryInterruptPrecisionShot` · `ServerNotifyPatternEnded` | 무녀 2명 배율 |
+| U21 | 패턴 SO 이관 · 선택기 · 연타 · 엇박 | `BossPatternSO.asset` 10패턴 · `BossPatternSelector` · `BossPatternExecutionSpec` | — (잔여 상수는 U42에서) |
+| U22 | 광폭화 · 경고 · 14분 | `TickEnrageState` · `BossHudController.ApplyEnrage` | pause 중 정지 |
+| U23 | 원혼 셋 · 8초 창 · 백귀야행 · 삼켜짐 | `BossSoulController.server` · `PlayerStatus : IBossSwallowTarget` | 마지막 원혼 vs 만료 경합 |
+| U24 | 스폰의 결계 소비 · 몰이 · 재강화 | `SpawnManager.server.HandleBarrierSnapshot` · `EnemyController.server.ServerBeginHerding` | 교전 중 HP 급증 없음 |
+| U36 | SO 누락 YAML · 부트 검증 | 23필드 명시 완료 · `GeumeumBootValidator` | — |
+| U37 | 릴리스 개발도구 분리 | `GeumeumBootValidator.SceneProfile` · `FrameRecorder`는 개발 빌드만 | 릴리스 빌드 실측 1회 |
+| U38 | 락온 서버 검증 · 고정 PartId | `LockOnController.ServerSetLockOn` · `ITargetPartIdSource` | 런 phase 검사는 없음(허용) |
 
-- 현재 코드: `PlayerAttack` · `RunSceneDirector` 등 구현은 존재
+**완료로 보지만 문서와 다른 것.** 인벤토리는 12칸(4×3)이고 `SessionManagers.prefab`에 슬롯 12개가 실물로 있다. 이전 "2칸" 결정은 폐기됐다. 상점 창구 이름은 `ShopKeeper`가 아니라 `ShopTransactionService` + `ShopInteractionPoint`다.
+
+---
+
+## 2. 남은 항목 — 기반 · 검증
+
+### U01 자체 계정 릴레이 실제 3PC 기준선
+
+- 상태: **부분.** 단일 PC 다중 프로세스(KCP, M2)로 사람 3 · 사람 1 + 봇 2 · 사람 2 + 봇 1 전체 루프 통과 기록이 있다. AWS 릴레이 경유 동일 PC 검증도 있으나 서로 다른 회선 PC 3대 M3는 별도다.
 - 권위: 판정 서버 / 입력·표현 로컬
-- 권장 접근: **동일 빌드**로 이동·락온·창귀 패링·화살·치유·구조·전환·2연속 런을 3PC에서 기록. 결과별 빌드·호스트·시나리오·로그를 남긴다
-- 대안: 로컬 3창을 먼저 통과시키고 실제 3PC를 뒤로 — 준비는 빠르지만 RTT·PC별 로드 편차 발견이 늦어진다
-- 선행: 동일 소스 빌드 · 외부 에셋 동기화 · 3인 시간 확보
-- 위험: 호스트만 성공, 원격 창 지연, 전환 중 상태 소실. **실패는 새 회귀와 기존 결함으로 나눠 기록한다**
-- 공수: 3인·일 (첫 합동 세션 1일 × 3명). 담당 전원
+- 권장 접근: 같은 빌드로 자체 계정 AWS 릴레이 3PC를 우선 확인하고 직접 KCP·Steam 호환 경로는 별도 회귀한다. 이동·락온·창귀 패링 20회·화살·치유·구조·전환·2연속 런을 한 세션에 본다. 실패는 새 회귀와 기존 결함으로 나눠 기록한다
+- 선행: 팀원 PC의 `99.ThirdParty` 동기화(URP_KitsuneYuna 패키지 각자 임포트) · 3인 시간
+- 위험: 호스트만 성공, 원격 예측 어긋남, Steam 로비 무기 선호 누락(15일 수정분 미검증)
+- 공수: 3인·일. 담당 전원
 
-### U36 SO 부트 검증 확대 · 누락 YAML 확인
+### U39 화살 · 저주 투사체 원격 표현
 
-- 현재 코드: `GeumeumBootValidator`는 결계·시작 레벨·스폰만 검사. 보스 HP/패턴 참조 검증 없음
-- 권위: 서버 시작과 에디터의 데이터 검증. **거부 조건 추가는 현재 시작 가능한 설정을 거부하는 동작 변경**이다
-- 권장 접근: 현재 허용 범위를 먼저 기록하고 패턴 참조 · 유한 시간 · min/max 관계를 단계별로 추가. Camera/Combat/Boss의 누락 YAML 필드는 Inspector 실효값을 확인한 뒤 **같은 값**으로 명시한다
-- 대안: 에디터 메뉴에서만 검사 — 잘못된 빌드 데이터의 서버 부트를 막지 못한다
-- 선행: 값 충돌 결정(결정됨) · 실제 Unity 로드 결과
-- 위험: 호스트만 다른 SO를 읽어 부트 실패, 빌드별 누락 필드 초기값이 다름
+- 상태: **부분.** `ArrowProjectile.prefab`은 `NetworkTransformUnreliable`(서버→클라, 보간)이 있고, `CurseProjectile.prefab`에는 NetworkTransform이 없다. 두 투사체의 원격 표현 방식이 다르다
+- 권장 접근: U01 세션에서 발사·유도·일시정지·파괴를 같은 서버 시각으로 비교한다. 저주 투사체가 원격에서 어긋나면 화살과 같은 방식으로 맞춘다. 전송 방식 자체는 바꾸지 않는다
 - 공수: 1인·일. 담당 @AidenKim923
 
-**누락 YAML 필드 — 2026-09-08 해소 완료.** 23개 필드를 Inspector 실효값 그대로 에셋에 명시했다.
+### U44 봇 파티 검증 · 스킬 프로필 튜닝 — 신규
 
-Unity에서 확인한 사실: **필드가 YAML에 없어도 0이 되지 않고 C# 초기화자 값이 그대로 쓰인다.** 즉 동작은 처음부터 옳았고, 문제는 값이 파일에 안 보여서 **담당자가 조정할 수 없고 리뷰도 안 된다**는 것이었다.
+- 상태: **구현 완료, 튜닝 전.** Unity Behavior 그래프(`Resources/BT/PlayerBehavior`) · `PlayerBrain` · `BotParty` · `PlayerBotSpawner` · `03.AI/PlayerBot/` · `BotConfig`/`BotSkillProfile` SO. 로비 봇 충원 버튼까지 있다. M2에서 세 편성 모두 루프 통과
+- 권위: 봇 판단은 서버 전용. 사람 입력은 기존 Command 경로 유지
+- 권장 접근: ① Steam 3PC에서 사람 1 + 봇 2로 원격 클라가 봇을 올바르게 보는지 확인. ② 사람 3명 기록 몇 판을 `BotSkillProfile`의 반응 지연·누락·오차 노브와 비교해 "사람보다 조금 못한" 수준으로 맞춘다. ③ 자연 완주(개발 명령 없이 원혼 창 통과) 1회 관찰
+- 하지 않는 것: **ML-Agents 학습형 봇은 제출 전 착수하지 않는다.** [설계 초안](unity/PLAYER_BT_ML_AGENTS_DESIGN.md)은 후속 연구로 보관한다. 사람 10런 기록으로 프로필을 맞추는 쪽이 같은 목표를 훨씬 싸게 달성한다
+- 위험: 봇 검증 통과를 사람 3인 L3 통과로 착각하는 것. 봇이 게이트를 먼저 밟거나 결계 밖에서 죽는 행동은 설계 4.10의 규칙이 실제로 지켜지는지 관찰해야 안다
+- 공수: 2인·일. 담당 @AidenKim923
 
-| SO | 명시한 필드 | 값 |
+---
+
+## 3. 남은 항목 — 보스 · 잡귀
+
+### U42 보스 Unity Behavior 전환 — 신규
+
+플레이어를 `com.unity.behavior` 그래프로 옮긴 것과 같은 방식으로 보스 판단부를 옮긴다. **행동을 바꾸는 작업이 아니라 구조를 바꾸는 작업이다.** 전환 전후 패턴 선택·타이밍·판정 결과가 같아야 한다.
+
+- 현재 구조: 2단 FSM. 상단은 `BossController`가 페이즈 1/2 × `GroggyPhase` × `BossEncounterStage` × `BossFinalState`를 직접 들고, 하단은 `Phase1State`(757줄)·`Phase2State`(681줄)가 `AttackState{Idle, Windup, Recovery}`를 돈다. 틱 진입은 `AuthorityTickScheduler` → `BossController.ServerTick`
+- **BT로 옮길 판단부**: `TickIdle`의 후보 구성(`BuildCandidates` · `IsDistanceEligible` · 오프닝 시퀀스 1→2→4 · 순간 접근 뒤 패턴 1 강제) · `BossPatternSelector.TrySelect` · `SelectTargetExcludingLast` · 상단 전이 조건(`TickGroggyState` · `CommitPendingPhaseTransitions` · `TickEnrageState`의 임계값) · `BossSoulController`의 창 만료·성공 판정
+- **BT 밖에 남길 실행·네트워크부**: `ServerBeginTelegraph/ServerCancelTelegraph`(SyncList) · `CommitPhaseSnapshot` · `Rpc*` · `BossPatternRunner.ExecuteMeleeArc` · `ServerApplyPatternDamage`(삼켜짐 전환) · 패링 창 수명 · 공격 ID 발급 · `StopServerExecution/ResumeServerExecution`. **돌진 이동(`Self.position` 직접 갱신, `Phase1State.TickWindup`)도 실행부로 뺀다.** 지금은 State 안에 섞여 있다
+- 권장 접근:
+  1. 두 Phase State의 공통 흐름(선택 → `BeginAttack` → 예고 발행 → `TickWindup` → `ResolveImpact` → `TickRecovery`)을 "실행기" 하나로 추출한다. 페이즈 차이는 후보 패턴 목록과 공격 간격뿐이다
+  2. 플레이어와 같은 규칙으로 그래프를 만든다. 서버에서만 `BehaviorGraphAgent` 추가, 자동 Update 끄고 권위 틱에서 `Tick`, 동기식(한 틱에 판단 완료, `Wait`/`Repeat` 없음), 게임 전용 리프는 `Action` 상속 하나(`BossBehaviorAction`)로 통일
+  3. 루트 `Try In Order`: 정지·전환 게이트 → 그로기/기상 예고 → 원혼 창·실패 공격 → 광폭화 판정 → 대상 재평가 → 패턴 선택·개시 → 대기. 우선순위는 지금 `ServerTick`의 호출 순서 그대로다
+  4. 잔여 상수를 이때 SO로 옮긴다: `MELEE_PARRY_WINDOW_DURATION 0.32f`(두 State 중복) · `DASH_TRACK_RATIO 0.5` · `TARGET_EXCLUSION_SCAN_RADIUS 30`. `SelectionWeight`는 선언만 있고 소비처가 없으니 선택기에 연결하거나 필드를 지운다. `ResolveLegacyShape`는 도달 불가라 삭제
+  5. 기존 EditMode(`BossPatternSelectorTests` · `BossExecutionTests` · `BossAdvancedRulesTests` · `BossEnrageTests`)가 그대로 통과해야 한다. 선택기는 순수 클래스라 리프 안에서 그대로 호출한다
+- 하지 않는 것: 패턴 추가, 난수 호출 순서 변경, 잡귀 3종 Brain 전환(별도 판단. 잡귀는 `EnemyController.server`가 이미 판단/실행을 나눠 놓아 급하지 않다)
+- 선행: 없음. U17~U23이 완료라 지금이 가장 싼 시점이다. **밸런싱(W7) 전에 끝내야** 10월에 수치를 만질 때 코드 재빌드가 없다
+- 위험: 전환 중 두 경로가 동시에 켜져 예고가 두 번 나가는 것 → 플레이어 전환 때처럼 리프가 기존 실행기를 호출하고 State 코드를 지운다. 동기식 그래프 제약을 어기면 한 틱에 판단이 끝나지 않는다
+- 공수: 5인·일. 담당 @oname36-creator, 그래프 수명·네트워크 연결은 @AidenKim923. **P0(구조), W3~W4**
+- 씬·프리팹: `Boss_Proxy.prefab`에 Agent 컴포넌트가 붙는다. 프리팹 변경, meta 동반
+
+### U18 텔레그래프 표현 · U45 창귀 예고 뷰 · 일시정지 보정
+
+- 상태: **부분.** 보스 `BossTelegraphView`가 4템플릿·다중 cue·패링 가능 색 구분까지 그린다. 남은 것은 둘이다
+  - **창귀 전용 예고 뷰가 없다.** `EnemyParryWindowFlash`(렌더러 색)가 전부다. 사람이 패링을 배우는 교보재가 창귀인데 화면에 돌진 방향·범위가 안 보인다
+  - **일시정지 시각 보정이 없다.** `UpdateAlpha`가 `RunTimeLocator.IsPaused`를 보지 않아 이탈 대기 중 예고가 계속 진행한다
+- 권장 접근: 창귀는 `EnemyVisualState.Telegraph` 전이와 `EnemySO.WindupDuration`·`ChargeHitRadius`로 서버 절대 시각 기준 레인 하나를 그린다. 보스 뷰의 메시 빌더를 재사용한다. 일시정지는 두 뷰가 `RunTimeLocator`의 정지 누적을 빼고 진행률을 계산한다
+- 공수: 2인·일. 담당 @oname36-creator + @AidenKim923. P1
+
+### U20 기상 예고 표현
+
+- 상태: **부분.** 서버는 `WakeWarning` 단계를 커밋하지만 `BossAnimationView`가 Groggy와 같은 자세로 묶고, HUD는 Stage를 읽지 않는다
+- 권장 접근: `BossPhaseSnapshot.Stage == WakeWarning`에서 기상 모션 트리거와 보스 바 색 변화. 직후 패턴 2(예고 0.8초)가 고정이라 이 2초가 보이지 않으면 예고가 장식이 된다
+- 공수: 1인·일. 담당 @oname36-creator. P1
+
+### U25 거점 조합 프리셋 · 접두사 행동 · 밤 modifier
+
+- 상태: **미착수.** `SpawnConfigSO`는 비율 추첨만, `EnemySO.EnhanceEntry`는 배수와 `PrefixName`만. 속도 +30% · 사망 장판 · 1회 부활 코드 없음
+- 권장 접근: 프리셋 5종(무리·돌격대·저주진·혼성·창귀 무리)을 `SpawnConfigSO`에 배열로 추가하고 구간별 풀에서 고른다. 접두사 행동은 `EnemySO`에 필드 셋과 Brain의 작은 분기로 끝낸다
+- 공수: 2.5인·일. 담당 @oname36-creator. **P2 선택** — W4 미통과 시 잘린다
+
+### 창귀 기상 공격
+
+- 상태: **미착수.** `Changgwi_StandUp.fbx`는 있으나 `ChanggwiLocomotion.controller`에 상태가 없고 `TickKnockback`은 곧장 `PatrolIdle`로 돌아간다
+- 공수: 1인·일. 담당 @oname36-creator. P2
+
+---
+
+## 4. 남은 항목 — 표현 · UI · 씬
+
+### U43 릴리스 씬 채우기 — 신규
+
+코드는 거의 다 있는데 **릴리스 씬이 비어 있는** 항목을 하나로 묶는다. 이대로 릴리스 빌드를 만들면 타이틀이 빈 화면이다.
+
+| 씬 | 현재 | 필요한 것 |
 |---|---|---|
-| `CameraConfigSO` | `_defaultPitch` | 22 |
-| `CombatConfigSO` | `_bellStartupDuration` · `_bellRecoveryDuration` · `_bellStaminaCost` · `_bellRange` · `_bellAngle` · `_bellBasePower` | 0.2 / 0.35 / 6 / 3.5 / 360 / 6 |
-| `CombatConfigSO` | `_spiritGainPerHit` · `_spiritGainMaxPerSwing` | 5 / 15 |
-| `CombatConfigSO` | `_markDuration` · `_markSlotCount` | 8 / 2 |
-| `CombatConfigSO` | `_healSpiritCost` · `_healCastDuration` · `_healRecoveryDuration` · `_healRadius` · `_healAmount` · `_healCooldownDuration` | 25 / 0.4 / 0.4 / 6 / 40 / 4 |
-| `CombatConfigSO` | `_rescueRadius` · `_rescueDuration` · `_rescueCurrencyLossRatio` · `_reviveBarrierInsetRatio` | 3 / 3 / 0.1 / 0.9 |
-| `BossPatternSO` | `_wonhonHealth` · `_finalGauntletWindowSeconds` | 200 / 8 |
+| `Title.unity` | 3.5 KB, 사실상 빈 씬. `TitleMenuController`는 `Dev_Title`에만 있다 | 시작·종료·Steam 로비 진입 버튼 배선 |
+| `BossEntrance.unity` | 바닥·조명·스폰 3개뿐 | 전실 대기 공간, 트라이 편성 UI 자리(U35) |
+| `Boss_Arena.unity` | 바이너리 직렬화. `BossSpawner`·`BossArenaPhaseView` 포함 확인 | 소품·재질 최종본(U40) |
+| `Field.unity` | `Ground` + 문 3조각 + 클러스터 3개 프로토타입 | 실제 지형(U31 실측과 함께) |
+| 빌드 씬 목록 | 릴리스 7 + `Main`·`Dev_Combat`·`Dev_Title`·`Dev_Lobby`·`Dev_BossTrial` 혼입 | 릴리스 빌드 프로필에서 Dev 씬 제외 |
 
-`ArrowConfigSO`는 누락이 없었다. `_guidanceAbortAngle`(35°)은 `SerializeField`가 아니라 **코드 상수**이며, SO 이관은 별도 판단 대상이다.
+- 권위: UI 로컬 / 입장·역할·준비·런 시작 서버(이미 있음)
+- 위험: 씬은 머지가 안 된다. **씬 하나에 한 사람만** 들어간다. 타이틀·전실은 @kjw1237, 아레나·필드는 @AidenKim923
+- 공수: 4인·일. **P0, W3~W4**
 
-> ⚠️ **에셋을 Unity에서 통째로 재저장하지 말 것.** `BossPatternSO`를 재저장하면 `PatternIds`가 16진 블롭으로, 한글 `DisplayName`이 유니코드 이스케이프로 바뀐다. **값은 같지만 사람이 읽을 수 없게 된다.** 밸런스 값은 담당자가 파일에서 직접 보고 고치므로 이 손실이 크다. 필드 추가는 텍스트로 직접 넣고 Unity에서 로드 결과만 확인한다.
+### U27 HUD
 
-**남은 것:** 부트 검증(`GeumeumBootValidator`) 확대는 아직이다. 현재 결계·시작 레벨·스폰만 검사한다.
+- 상태: **부분.** `RunHUD.prefab`에 자원 바 3종 · 파티 플레이트 · 보스 바(HP·그로기 게이지·광폭화 경고) · 시간 · 미니맵(도트·위험 오버레이·결계 원) · 결계 경고 배너 · 관리 창 중 HUD 숨김이 있다
+- 남은 것:
+  - 락온 표식(`LockOnReticle`)과 미니맵 펼치기(`MinimapExpandToggle`)는 **`Dev_HUD`에만 있고 `RunHUD.prefab`에 없다.** 옮기기만 하면 된다
+  - `WeaponAbilityHUD`가 현재 반격 표식·무기 능력 상태를 표시한다. 후속은 실제 배선·가독성·원격 변화 검증이며 구 패링 게이지 위젯을 새로 만들지 않는다.
+  - 봇 참가자의 "AI" 배지(설계 8장)
+- 공수: 2인·일. 담당 @kjw1237. P0
 
-### U37 릴리스 개발도구 의존 · 씬검사 프로필
+### U28 씬 UI 배선 · EventSystem
 
-- 현재 코드: `GeumeumBootValidator`가 Main에서 `FrameRecorder`를 요구. `GDebug`는 호출부 Conditional 방식이라 Dev 폴더에 있다는 이유만으로 타입이 제외되지 않는다
-- 권위: 개발 검사와 로그 정책. **서버 판정 호출을 조건부로 제거해서는 안 된다**
-- 권장 접근: 개발/릴리스 검사 프로필을 분리한다(결정됨: 개발 빌드에서만 필수). 릴리스 빌드에서 타입 의존과 씬 요구를 실제로 확인하고, 디버그 타입 전체를 기계적으로 `#if`로 감싸지 않는다
-- 대안: 릴리스에도 요구 유지 — 실제 씬에 개발 측정기를 계속 둬야 한다
-- 선행: 실제 릴리스 빌드와 씬. 파일 이동 시 meta 동반
-- 위험: 개발 3인 테스트는 통과하는데 릴리스 호스트는 측정기가 없다며 시작 실패
-- 공수: 1인·일. 담당 @AidenKim923. W1에 분리, W6에 릴리스 확인
+- 상태: **부분.** `Boot.unity` → `SessionManagers.prefab`이 프로젝트 유일 EventSystem(`RunEventSystem`)과 HUD·관리 창·결과·상태 패널·로비 무기 패널을 전역으로 들고 간다. 로비 준비·무기 선호·봇 충원은 `LobbyWeaponPanel`이 코드로 생성한다. 결과 패널도 전역
+- 남은 것: 타이틀 씬 버튼(U43) · 릴리스 빌드 clean build에서 Boot부터 전 경로 1회
+- 공수: 1인·일. 담당 @kjw1237. P0
 
-### U38 락온 서버 대상 검증 · 부위 해석 일관성
+### U35 보스 트라이 편성 UI · 전실 배치
 
-- 현재 코드: `LockOnController` Command는 대상 존재·생존·거리를 검사. 부위 index · 적 레이어 · 시야는 로컬 후보 필터와 범위가 다르다
-- 권위: 선택 입력 로컬 / 유도·동기화 대상의 허용 여부 서버
-- 권장 접근: 기존 Command에서 허용 대상 · 부위 · 요청자 생존 · 런 phase를 검증. 시야 규칙은 결정대로 지금 넣지 않는다. **자식 배열 순번을 쓰는 `PartIndex`가 고정 `PartId`로 바뀌어야 하는지 U19와 함께 확인**
-- 대안: 로컬 후보 규칙을 서버 공통 함수로 공유 — 카메라 시야와 서버 허용 규칙의 차이를 명시하기 어렵다
-- 선행: U19 부위 계약. 실제 프리팹 배열 순서와 `AimAssistPoint` 배선 확인
-- 위험: 원격이 아군이나 잘못된 부위를 선택, 자식 순서 차이로 서로 다른 부위에 유도
-- 공수: 1.5인·일. 담당 @AidenKim923
+- 상태: **부분.** 서버(`BossTrialDirector` · `BossTrialRules` · `BossTrialLoadoutSO`)와 개발 패널·`Dev_BossTrial` 씬은 있다. **정식 편성 UI와 전실 공간이 없다.** 편성 포인트는 임시값(예산 100 · 등급 10/25/45/불가 · 물약 10 · 최대 3)
+- 선행: U43 전실. 필드 30분 시점 기대 획득량 실측
+- 공수: 2인·일. 담당 @kjw1237. **P2 선택**
 
-### U39 화살 · 저주 투사체 원격 표현 회귀 검증
+### U29 · U40 보스 아레나 연출 · 재질 · 소품
 
-- 현재 코드: `ArrowProjectile` · `CurseProjectile`은 원격에서 방향/속도로 표현을 진행하고 서버는 scheduler에서 판정. 프리팹의 NetworkTransform 설정은 조사에 미포함
-- 권위: 궤적·명중 서버 / 원격 이동은 시각 표현
-- 권장 접근: U01에서 발사 · 유도 방향 갱신 · 일시정지 · 파괴를 **동일 시각 기준**으로 비교. 오차를 확인한 뒤에만 생성 시각/위치 복원 같은 최소 보완을 정한다
-- 대안: 호스트/원격 녹화 화면만 비교 — 동일 시각의 서버 위치 근거가 없어 원인 분리가 안 된다
-- 선행: 동일 빌드 · 실제 프리팹 · 3PC. **전송 방식 변경은 범위 밖**
-- 위험: 한 클라에서 화살이 앞서거나 정지 중에도 움직임, 서버 명중과 벽 통과 표현이 다름
-- 공수: 1인·일 (검증만). 담당 @AidenKim923
+- 상태: **부분.** `BossArenaPhaseView`는 권위 연동·늦은 접속 복원·6초 보간까지 코드 완료. 안개·하늘 프로파일 실물 있음. 소품·반사·최종 재질은 미완
+- 선행: U43 아레나 씬 소유자 결정
+- 공수: 1.5인·일. 담당 @AidenKim923. P1(티저에 보스가 들어간다)
 
----
+### U31 맵 반경 실측 · 랜드마크 제약
 
-## 2. 런 흐름 (P0, W1~W2)
+- 상태: **부분.** 제약 로직(`BarrierPhaseSO.RequiredLandmarks` · `BarrierMapBinding` · 폴백 중심)과 Field 씬 랜드마크 3종 배선은 완료. **`_maxRadius 400`은 실측 근거가 없는 초기값**이고 필드가 프로토타입이라 실측할 지형 자체가 없다
+- 권장 접근: 실제 지형이 들어온 뒤 3차 결계 최종 반경 안에 보스 입구가 들어오는지 100판 시뮬레이션(에디터 메뉴)으로 확인한다. 미해결 결정(3차 편향 · 입구 이동 · 반경 확대)은 이때 정한다
+- 공수: 2인·일. 담당 @kjw1237 + @AidenKim923. P0(지형 도착 즉시)
 
-### U02 필드 → 입구 → 보스, 결과 → 로비 실제 런 흐름
+### U26 애니메이션 계약
 
-- 현재 코드: `RunManager`는 제한 시각에 `ServerBeginBossPhase`; `RunSceneDirector`는 전환 골격. 개발 F5 경로는 있으나 **필드 게이트/30초 강제 이동 연결 없음**
-- 권위: 서버. 어느 플레이어가 먼저 진입해도 파티 전체의 씬·시계 결과가 같아야 한다
-- 권장 접근: `RunManager`가 게이트 시작·만료를 소유하고 `RunSceneDirector`로 1회 전환. **보스 시계는 전실 준비·복구 완료 뒤 시작.** UI는 서버 마감 시각을 읽는다
-- 대안: 게이트 컴포넌트가 마감 시각을 소유하고 Director를 호출 — `RunManager`와 시계 책임이 나뉜다
-- 선행: U01 · 맵 입구 위치(U31) · 플레이어 carrier. 씬 변경 필요
-- 위험: 동시 진입으로 전환 2회, 느린 1인만 전실 잔류, 로딩 중 보스 제한 감소
-- 공수: 4인·일. 담당 @AidenKim923
-
-### U03 보스 사망 → Victory 확정
-
-- **2026-09-08 구현 완료(미검증).** `BossController.HandleDied`가 `EnemyDiedEvent(IsBoss: true)`를 발행하고 `RunManager`가 구독해 `TryFinishRun(RunOutcome.Victory)`를 부른다. 새 이벤트 타입을 만들지 않고 `IsBoss` 플래그가 이미 있던 기존 이벤트를 썼다. `EnemyKind.Boss = 3`을 enum 맨 뒤에 추가했다. **L2·L3 미실시 — 실제로 보스를 죽여 Result에 도달하는 것은 관찰하지 않았다**
-- 권위: 서버. 승리와 시간초과·전멸이 경합하는 **단일 결과**
-- 권장 접근: AI가 Common의 보스 사망 사실을 1회 발행하고 `RunManager`가 기존 `TryFinishRun`/`RunOutcomeArbiter`에 연결. 종료 우선순위는 `RunManager` 한 곳에 명시(결정됨: 서버 단일 결과)
-- 대안: `RunManager`가 등록된 보스 생명 상태를 서버 tick에서 조회 — 보스 등록·씬 수명 의존이 늘어난다
-- 선행: U01 · Common payload 계약 협의
-- 위험: 원격 2인이 서로 다른 승패 수신, 보상 두 번, 이미 Result인데 타임아웃 재확정
-- 공수: 1.5인·일. 담당 @AidenKim923 + @oname36-creator
-
-### U04 이탈 대기 취소 UI
-
-- 현재 코드: `RunManager.AbortRun` 서버 API 있음. 06.UI에 대기/포기 UI 없음
-- 권위: 포기 승인·런 종료 서버 / 대기 표시·버튼 입력 로컬
-- 권장 접근: 기존 UI에 pause 사유·이탈자·포기 버튼 연결. 플레이어 소유 Command에서 **호스트 여부**(결정됨)·정지 사유·현재 런을 확인한 뒤 `AbortRun`
-- 대안: 로비 종료 메뉴 재사용 — 런 대기와 세션 종료 의미가 섞인다
-- 선행: U02. 씬 변경 필요
-- 위험: 원격 한 명이 타인의 새 런을 종료, 정지 사유 하나만 풀려 조기 재개
-- 공수: 1인·일. 담당 @kjw1237 + @AidenKim923
-
-### U05 표식의 런·씬 수명 정리
-
-- 현재 코드: `MarkRegistry` 있음. 런타임 호출은 `PlayerAttack.TryApply`뿐이고 `ClearAll`/`ClearOwner` 소비자 없음(테스트 제외)
-- 권위: 서버. 표식이 피해·카운터에 영향
-- 권장 접근: `RunResetEvent`/씬 전환 커밋에 정리 정책을 연결하고 `TargetRef`의 RunId·SceneRevision 검사. 재접속 시 소유자 유지/제거 정책 명시. 보스 낙인은 별개 의미(결정됨)이므로 같은 저장 창구에 종류·대상·만료를 구분한다
-- 대안: 조회 시 만료 정리 + 런 종료만 명시적으로 비움 — 대상 파괴 직후 표시 갱신이 늦다
-- 선행: U02. Common API 이름 유지
-- 위험: 이전 씬 netId 재사용, 오래된 표식 공명, 무녀 2명 슬롯 간섭
-- 공수: 1인·일. 담당 @AidenKim923
-
----
-
-## 3. 장비 · 성장 · 경제 (Systems, P0~P1, W2~W5)
-
-### U09 InteractionController 서버 검증
-
-- 현재 코드: `IInteractable` 계약 있음. `InteractionController` 없음
-- 권위: 서버가 거리·시야·생명·전투 중 여부·대상 revision·소유권 검증 / 입력·가이드 로컬
-- 권장 접근: 플레이어 소유 Command **한 경로**에서 `PlayerActionGate` 공통 조건 + 대상별 조건을 확인, 검증 후에만 `IInteractable` 실행. 위치는 `04.Systems/Interaction/`
-- 대안: 상점·줍기 컴포넌트마다 서버 검증 — 같은 규칙을 여러 곳에서 고치게 된다
-- 선행: G키/동시 요청/전투 중 정의 · U08·U10 데이터. 플레이어 프리팹 변경
-- 위험: 원격에서 멀리 있는 상점 구매, 다른 사람 아이템 이동, 재전송 이중 처리
-- 공수: 2인·일. 담당 @AidenKim923 + @kjw1237
-
-### U08 장비 생성 · 드랍 · 2칸 인벤토리 · 소유권
-
-- 현재 코드(2026-09-08): **`EquipmentGenerator`(04.Systems/Equipment) 구현됨** — 등급 가중치 추첨 · 공격력 · 무기별 옵션 추첨 · 장비 인스턴스 ID 발급(1부터, 고갈 시 예외) · 유한성/범위 검증. `System.Random` 주입식이라 서버가 시드를 쥔다. **`InventoryController`(NetworkBehaviour, 전 변경 `[Server]`, revision 낙관적 동시성, `IRunStateCarrier`/`IRunResettable`로 재접속 복구) 골격도 구현됨.** EditMode 27건 통과. **남은 것: `DroppedItem`(월드 드랍) · `EnemyDiedEvent` 연결 · 줍기/양도 요청 경로 · SyncList 전송.** L2·L3 미실시
-- 권위: 서버. 난수·아이템 소유·보상은 권위 상태
-- 권장 접근: SO 기반 장비 인스턴스/고유 ID · 서버 난수 생성, `EnemyDiedEvent`에서 드랍 1회, **2칸 인벤토리**(2026-09-08 개정) 변경 후 최소 SyncList 결과 전송. 보스 팀 보상은 별도 1회. 물약은 슬롯이 아니라 별도 소지 한도
-- 대안: 장비 소유를 `PlayerWeapon`에 먼저 집중 — 드랍/줍기와 장착 책임이 한 클래스에 몰린다
-- 선행: U09 · U06 snapshot 공통 필드. 프리팹/씬 변경, meta 동반
-- 위험: 동시 줍기 2인 소유, 드랍 재전송 중복, 재접속 시 슬롯 증식
-- 공수: **3.5인·일**(4칸→2칸 축소로 감소). 담당 @kjw1237
-
-### U06 장비 전투 snapshot 제공 · 소비
-
-- 현재 코드: `CombatStatsSnapshot` · `WeaponCombatSnapshot` · `ICombatLoadoutProvider` 존재. 구현 provider와 `PlayerAttack` 소비 연결 없음
-- 권위: 서버. 공격력·비용·치명·특성은 결과값
-- 권장 접근: Systems의 장비 계산기가 기존 인터페이스를 구현하고 `PlayerAttack`/`Parry`/`Heal`이 서버 실행 직전에 snapshot을 읽음. **기본 공격 수치는 현재 `CombatConfigSO` fallback을 명시**
-- 대안: `PlayerWeapon` carrier에 유효값 snapshot 저장 — 장비 원본과 전투 파생값의 책임이 섞인다
-- 선행: U08 장비 인스턴스 · 옵션 합산 규칙
-- 위험: 한 클라만 새 장비 피해, 재접속 뒤 캐릭터는 복구돼도 장비 수치 초기화
-- 공수: 3인·일. 담당 @kjw1237 + @AidenKim923
-
-### U07 파티 공유 경험치 · 레벨업
-
-- 현재 코드: `LevelCurveSO`와 `PlayerStatus` 시작 레벨/HP 초기화 존재. `GrowthManager` 없음
-- 권위: 서버. 모든 참가자의 레벨·HP·포인트에 영향
-- 권장 접근: Systems가 `EnemyDiedEvent`를 1회 소비해 파티 XP 지급, `LevelCurveSO`에 따라 레벨/최대 HP/특성 포인트 갱신. **이탈 참가자 snapshot에도 동일 적용**
-- 대안: 런 경계에서만 재계산 — 필드 중 레벨 상승 즉시 반영 계약을 못 지킨다
-- 선행: U08 보상 집계 경계 · 참가자 registry와 `IRunStateCarrier` 연결
-- 위험: 이탈자만 XP 누락, 사망 중 레벨업이 생명 상태를 부활로 덮음
-- 공수: 2인·일. 담당 @kjw1237
-
-### U10 팀 재화 · 상점 원자 구매 · 소모품
-
-- 현재 코드: `ShopSO` 데이터 있음. `CurrencyManager`/`ShopKeeper` 없음
-- 권위: 서버. 팀 공유 잔액과 구매가 경합
-- 권장 접근: `CurrencyManager`에 수입/소비 창구, `ShopKeeper`가 phase·가격·재고/소지 제한·요청 ID를 검사해 **잔액 차감 + 지급을 한 서버 실행으로** 완료. 효과는 `IRecoveryTarget` 경유
-- 대안: 상점 컴포넌트가 지갑까지 소유 — 전투 보상·부활 비용·정산의 공통 접근이 복잡해진다
-- 선행: U08·U09 · 객주 위치(결정됨: 2차 결계 중심 부근). 씬/프리팹 변경, meta 동반
-- 위험: 2명이 같은 잔액으로 구매, 물약 소지 상한 우회, 실패 구매에 돈만 차감
-- 공수: 4인·일. 담당 @kjw1237
-
-### U13 부활 재화 차감
-
-- 현재 코드: `ReviveController`는 회복 실행 후 TODO. `currencyLossRatio`를 받으나 실제 차감 없음
-- 권위: 서버. 자동·구조 차감 결과가 같아야 한다
-- 권장 접근: `CurrencyManager`의 **멱등** 소비 창구를 부활 확정과 같은 처리에서 사용. 자동 20%/구조 10%는 `CombatConfigSO`(결정됨), **동일 사망 세대로 1회만** 결제
-- 대안: 부활 시작 시 예약, 실패 시 환불 — 취소·이탈·런 종료의 환불 경로가 추가된다
-- 선행: U10 · 두 명이 동시에 구조할 때 단일 부활 확정 규칙
-- 위험: 관전 만료와 구조 완료 경합으로 두 번 결제, 잔액 부족 처리 불일치
-- 공수: 1인·일. 담당 @AidenKim923 + @kjw1237
-
-### U11 장비 교환 · 재조정 · 등급 상승 · 특성 초기화
-
-- 현재 코드: 인스턴스/인벤토리/특성 모델이 없어 실행 없음
-- 권위: 서버. 요청·수락·비용·소유권을 동시에 확정
-- 권장 접근: 인벤토리 revision과 아이템 ID를 요청/수락에 넣고 **양쪽 상태를 다시 검증**한 뒤 두 슬롯을 함께 교체. 재조정권·상승권·초기화도 같은 재화/인벤토리 경로
-- 대안: 구매 요청의 모드로 분기 — 실패 사유와 재시도 처리가 복잡해진다
-- 선행: U08·U10·U12. UI/프리팹 변경
-- 위험: 수락 지연 중 드랍/재접속, 아이템 증식, 권만 사라짐, 옵션 중복 반영
-- 공수: 2인·일. 담당 @kjw1237. P1
-
-### U12 특성 노드 · 연사/관통/치유강화/버프 변형
-
-- 현재 코드: `TalentTreeSO` 2열×5, `_nodes=[]`. `TalentController` 없음. 기본 치유·기본 관통은 있음
-- 권위: 서버. 투사체 수·피해·판정창·회복량을 결정
-- 권장 접근: `TalentController`가 SO 노드·선행·비용을 검증하고 U06 snapshot에 변형을 제공. **`PlayerAttack` 공통 요청을 유지**하며 검/활/방울별 실행 변형을 단계별 연결. 핵심 변형만 이번 납기(결정됨)
-- 대안: 각 공격 클래스에서 특성을 직접 읽음 — snapshot·HUD와 동일 계산을 반복
-- 선행: 차사 둘째 열/버프/옵션 합산 규칙 · U06·U07. SO 값은 담당자 확정
-- 위험: 3인 각자 다른 특성 결과, 연사 모든 발마다 자원·게이지 중복 소비
-- 공수: 4인·일. 담당 @kjw1237 + @AidenKim923. P1
-
-### U14 결과 집계 · 정산 provider · 리더보드
-
-- 현재 코드: `ScoreRuleSO` 계산식 있음. `RunManager` 4필드 0, Null provider만
-- 권위: 서버 결과 1회 계산 / 로컬 UI·파일 출력. 트라이 등록 제외는 서버 확정 snapshot 기준
-- 권장 접근: Systems가 `IRunResultProvider` 구현·등록. 처치/사망/잔액/HP를 런별 집계해 `ScoreRuleSO` 호출. 제한 합 − 두 경과를 계산하고 결과 revision별 1회 저장. 로컬 기록까지(결정됨)
-- **2026-09-08 추가 — 결과창 개인 지표와 평가** ([게임 디자인 11.4](02-game-design.md))
-  - 참가자별 **누적 피해량·치유량·구조 횟수**를 서버가 집계한다. `DamageInfo.AttackerNetId`가 이미 있어 구조 변경 없이 누적 가능
-  - `RunResultSnapshot`에 **참가자별 배열을 추가**한다. Mirror 직렬화가 바뀌므로 3인 확인 필요
-  - 이탈자 누적치는 `RunParticipantRegistry` 스냅샷에 함께 보존한다
-  - **옥황상제 평가 등급 경계는 `ScoreRuleSO`에 둔다.** 코드 상수로 박지 않는다
-- 대안: `RunManager`가 `ScoreRuleSO`를 직접 호출 — Systems 정산 책임이 Network에 섞인다
-- 선행: U03·U07·U10·U13. 결과 씬 UI
-- 위험: 서버는 0점인데 클라별 점수 다름, 실패/트라이가 기록됨, 2회차가 이전 기록을 덮음
-- 공수: **5인·일**(개인 지표·평가 +2). 담당 @kjw1237 + @AidenKim923
-
----
-
-## 4. 보스 (AI, P0~P1, W1~W5)
-
-### U17 보스 패턴 종료 · 페이즈/그로기 취소 계약
-
-- 현재 코드(2026-09-08): `CancelActiveAttack`/`Exit`를 두 페이즈에 연결. 전환·그로기·사망·Result·런 초기화·서버 종료에서 실행/패링 창/예고를 정리한다. 대상 소실과 중복 패링도 차단하며, 패링 키는 보스 전체 공격 ID를 사용한다. 전환 잠금은 SO의 `TransitionLockDuration`을 읽는다. **구현됨, L2·L3 대기.**
-- 권위: 서버. 오래된 패링창·공격 타이머는 게임 결과를 바꾼다
-- 권장 접근: `BossPhaseStateBase`에 취소/종료 창구를 두고 전환·그로기·사망에서 **모든 활성 execution/window/cue를 공격 ID로 정리**(결정됨). 재개는 새 공격 상태부터
-- 대안: 각 PhaseState가 자기 취소를 책임짐 — 공통 전환·사망 경로에서 누락되기 쉽다
-- 선행: U18 cue 취소 · 전환 잠금 타이밍 계약
-- 위험: 다른 State인데 원격은 옛 창에 패링 성공, 그로기 종료 즉시 지연된 공격 판정
-- 공수: 3인·일. 담당 @oname36-creator. **AI 파트의 첫 착수 항목**
-
-### U18 보스 · 창귀 텔레그래프 Begin/Cancel 표현
-
-- 현재 코드(2026-09-12): 보스는 `BossTelegraphCue`를 SyncVar+SyncList(`TelegraphCues`, 최대 8개 동시)로 전달하고 `IBossTelegraphSource`로 조회/변경을 공개한다. 공격 ID별 취소는 멱등이며 `IsPendingAt`으로 만료를 검사한다. **보스 전용 view(`BossTelegraphView.cs`)를 구현해 4템플릿(부채꼴·원·레인) 전부 확인함(1인 로컬 테스트).** 반복별·대상별 다중 cue는 뷰가 키(공격ID·반복순서·대상)별로 각자 그려 지원한다. **남은 것: 창귀 전용 view, 일시정지 시각 보정, 3인 접속에서 원격 클라이언트 동기화 검증.**
-- 권위: 도형/대상/발동 시각 서버 / 데칼·사운드·UI는 각 클라 재생
-- 권장 접근: 기존 `BossTelegraphCue`와 공격 ID를 확장하되 **취소 멱등 · 늦은 수신 만료** 처리. 4템플릿 view가 서버 절대시각으로 진행률만 계산. 창귀는 최소 cue부터
-- 대안: `BossArenaPhaseView`가 공격 cue까지 읽음 — 아레나 연출과 개별 공격 표시의 수명이 섞인다
-- 선행: U17 · 데칼 소재/피처 · 씬 배선. 신규 view는 meta 동반
-- 위험: 늦은 Begin이 Cancel 후 도착해 유령 장판, 3인 목표 원이 같은 좌표에 겹침
-- 공수: 3인·일. 담당 @oname36-creator + @AidenKim923
-
-### U21 보스 템플릿 SO · 선택기 · 연타 · 엇박 계약
-
-- 현재 코드: `BossPatternSO.PatternEntry`는 7필드. Phase1/2에 거리·각도·돌진·반복 **상수**. 거리 후보/단일 쿨다운/오프닝 1→2→4/9번 3펄스는 부분 구현
-- 권위: 서버. 패턴 선택·대상 고정·반복 시각은 판정
-- 권장 접근: 4템플릿 유지, 필드별 소비를 표로 고정하고 per-pattern cooldown/weight·repeat·cancel 조건을 SO로 이관. **기존 난수 호출 순서와 동일 값 이관은 별도 PR, 선택 동작 변경은 그다음**
-- 대안: PhaseState 선택 표 유지 + 데이터만 확장 — 패턴 튜닝 때마다 코드 표도 고쳐야 한다
-- 선행: 담당자가 비어 있는 계약 값 확정 · U17·U18. SO schema/asset 동시 변경
-- 위험: 호스트 전환 후 선택 목록 잔류, 지연 클라에 repeat cue 누락, 오프닝을 런 재시작에서 건너뜀
-- 공수: 3인·일. 담당 @oname36-creator. P1
-
-**이관할 코드 상수** (조사 V23): `Phase1State`/`Phase2State`의 템플릿별 Range · AngleDegrees · DashSpeed 등. 모든 패턴 행에 동일 값으로 넣은 뒤 Unity에서 확인한다.
-
-### U19 꼬리 3덩이 · 1그로기 1파괴 · 25% 게이트
-
-- 현재 코드: `BossPatternSO` 꼬리 데이터 있음. `BossStatus.TakeDamage`는 본체 단순 피해, 부위 controller 없음
-- 권위: 서버가 부위 HP·파괴·본체 하한 확정 / 클라 실루엣·게이지 표시
-- 권장 접근: `BossStatus`에 본체 하한 정책, 별도 작은 부위 상태를 `BossController`가 소유. `TargetRef.PartId`로 몸통/꼬리 구분. **한 그로기에서 활성 덩이만 피해받고 다음 덩이는 다음 그로기에 개방**
-- 대안: `BossController`가 꼬리 HP·Collider 매핑까지 직접 보유 — 본체와 부위 규칙이 한 클래스에 집중
-- 선행: U17·U18·U20 · 콜라이더/조준점 순서 고정. 프리팹/씬 변경, meta 동반
-- 위험: 한 화살이 본체+꼬리 중복 피해, 3인 동시 타격으로 두 덩이 파괴, 25% 아래 오버킬
-- 공수: 4인·일. 담당 @oname36-creator. P1
-
-### U20 그로기 3직업 진입로 · 피해 배율 · 기상 예고
-
-- 현재 코드(2026-09-08): 차사 패링과 **무녀 표식 공명**이 연결됐다. 카운터 패턴은 SO의 `CounterPatternIds`(차사 1·6 · 신궁 5·9 · 무녀 4·8)로 데이터화했고, 공명은 패턴이 회복으로 넘어가는 시점에 `BrandWindow`(3초) 안에 걸린 표식이 있을 때만 **공격당 1회** 성립한다. `GroggyBodyDamageMultiplier`는 적용·복원까지 구현됨. **남은 것: 신궁 시전 취소(U16 선행), 꼬리 배율(U19 선행), 기상 예고 표현**
-- 권위: 카운터·피해 배율·면역 서버 / 기상 예고는 서버 시각을 읽는 로컬 표현
-- 권장 접근: `ServerReduceGroggyGauge`를 서버 결과에서만 호출. 정밀 시전 취소/패턴 종료 표식 조건을 **once-per-attack**으로 연결, `BossStatus`/부위에서 현재 groggy 배율 적용
-- 대안: 각 직업 카운터가 전용 서버 메서드 호출 — 공통 게이지 수명 검증이 중복
-- 선행: U05·U16·U17 · 낙인 3초/표식 8초 의미(결정됨: 별개)
-- 위험: 무녀 2명 배율 곱중첩, 면역 중 지연된 카운터 통과, 한 연타에 카운터 3번
-- 공수: 3인·일. 담당 @oname36-creator + @AidenKim923. P1
-
-### U22 광폭화 · 경고 · 보스 14분 종료 정합
-
-- 현재 코드: `RunManager` 840초 실패 존재. `EnrageStartSeconds` 810/`Warning` 720 소비자 없음
-- 권위: 광폭화 수치·발동 서버 / 경고 표현 로컬
-- 권장 접근: `BossController`가 `IRunTimeSource` 보스 시계를 읽어 warning/enrage를 **한 번씩** 확정. 배율은 SO, 판정 종료는 `RunManager`에 유지
-- 대안: `RunManager`가 광폭화 이벤트를 직접 발행 — Network가 보스 전용 규칙을 알게 된다
-- 선행: U02·U17·U18 · 광폭화 적용 정책/배율 데이터
-- 위험: 느린 클라에 경고 없이 강한 공격, pause에서 enrage 진행, 사망과 840초 경합
-- 공수: 1.5인·일. 담당 @oname36-creator. P1
-
-### U23 원혼 셋 · 최종 창 · 백귀야행(10) · 삼켜짐
-
-- 현재 코드: `BossPatternSO` 초기값 200/8초와 Pattern10 데이터 있음. Phase2State 선택은 6~9, **원혼 실행·삼켜짐 생명 계약 없음**
-- 권위: 서버가 창·원혼 HP·카운터·실패 피해·삼켜짐 타이머와 구조 확정 / 로컬 예고·결과 표현
-- 권장 접근: Phase2State에 최종 구간 상태 추가, 부위 완료 후 1회 진입. 원혼 3종은 기존 피해·패링·표식 계약 재사용, 백귀야행은 기존 템플릿으로 1회, 삼켜짐은 **사망이 아닌 별도 상태**로 생명 상태/전멸 경로에 연결(결정됨). 10초 타이머 · 2초 상호작용 구조 · HP 30% 복귀이고, 만료된 사람만 그때 일반 사망으로 전환한다. **전멸 판정과 사망 횟수·감점에 넣지 않는다.** 무적이 풀리면 남아 있던 사람은 끌려나온 것으로 처리한다 ([게임 디자인 10.4](02-game-design.md))
-- 대안: `BossController`가 최종 구간을 직접 소유 — Phase2State와 최종 패턴 실행 책임이 나뉜다
-- 선행: U19·U20·U21. 프리팹/씬 변경, meta 동반
-- 위험: 타임아웃 직전 마지막 원혼 제거 경합, 한 명의 삼켜짐이 전멸/구조와 충돌
-- 공수: 4인·일. 담당 @oname36-creator + @AidenKim923. P1
-
----
-
-## 5. 잡귀 · 스폰 (AI, P1~P2, W3~W5)
-
-### U24 SpawnManager 실제 결계 중심/반경 소비 · 잡귀 몰이
-
-- 현재 코드: `SpawnManager.RefreshClusterRange`는 고정 `BarrierCenter` 마커 + 단계 목표 반경. `BarrierController`는 중심 이동 존재
-- 권위: 서버. 어느 잡귀가 활성/몰이/강화되는지 파티에 공통
-- 권장 접근: `IBarrierState`를 기존 Locator로 읽고 phase/축소 진행 계약에 맞춰 클러스터 갱신. 살아 있는 개체는 **별도 몰이 상태로 이동**. 재강화는 몰이 시점에만([게임 디자인 14.7](02-game-design.md))
-- 대안: 단계가 바뀔 때만 스냅샷 갱신 — 축소 중 이동 중심과 스폰 기준이 어긋난다
-- 선행: 결계 중심(결정됨: 이동 유지) · U01. **현재 동작을 바꾸는 별도 기능 작업**
-- 위험: 각 클라가 다른 중심으로 몬스터 예상, 몰이 시 교전 중 HP 급증, 2회차 마커 참조 소실
-- 공수: 2.5인·일. 담당 @oname36-creator + @kjw1237. P1
-
-### U25 거점 조합 · 접두사 행동 · 밤 modifier
-
-- 현재 코드: `SpawnManager` 비율 추첨/동시 목표 존재. `EnemySO` 강화 배수만 있고 조합 preset · 속도 +30%/사망 장판/1회 부활 없음
-- 권위: 서버. 개체 구성과 부활/장판 피해를 결정
-- 권장 접근: `EnemySO`/`SpawnConfigSO`에 필요한 작은 데이터만 추가하고 기존 Brain 상태에 modifier 적용. 기본 수치/스폰 당시 고정과 몰이 예외를 구분
-- 대안: 프리팹 변형으로 조합 고정 — 조합별 에셋 배선과 중복 데이터가 늘어난다
-- 선행: U24·U08 · 행동별 SO·VFX. 신규 prefab/meta 가능
-- 위험: 죽음 이벤트가 드랍을 두 번, 되살아난 개체만 클라에서 영구 사망
-- 공수: 2.5인·일. 담당 @oname36-creator. **P2 선택**
-
----
-
-## 6. 전투 확장 (Combat, P1~P2, W3~W5)
-
-### U16 정밀 사격 · 자유 조준 3D ray · 총구 차폐
-
-- 현재 코드: `PlayerAttack`은 Vector2 `AimDirection`을 수평화. 락온일 때 `TargetAimPoint` 보정/유도만. 정밀 시전/중단 카운터 없음
-- 권위: 입력 ray/조준점 로컬 / 서버가 출처·각도·거리·시각·사선·시전 상태·자원 검증
-- 권장 접근: `PlayerAttack`의 기존 요청 프로토콜 아래 정밀 시전 상태와 서버 검증된 방향 추가. 자유 조준 ray → 목표점 → 총구 방향 흐름을 서버가 재검증하고 **보스 취소 가능 창에 한 번만 카운터**
-- 대안: 서버 확정 락온 부위 위치만 정밀 조준 입력으로 — 자유 조준 계약 범위가 좁아진다
-- 선행: 락온 계약(결정됨: 기본 유도 유지) · U17·U20. UI 조준점과 전용 모션
-- 위험: 호스트만 위아래 조준 성공, 벽 뒤 총구 관통, 시전 끝/피격 같은 tick 결과 역전
-- 공수: 4인·일. 담당 @AidenKim923. P1
-
-### U15 Weapon 실행 계약 · ArrowLauncher · WeaponAbilityConfigSO
-
-- 현재 코드: `PlayerAttack`/`FireArrow`가 직접 실행·스폰. 독립 실행기/Launcher/SO 없음
-- 권위: 현재 서버 Command 경계 유지
-- 권장 접근: **당장 새 클래스를 형식상 만들지 않는다.** U12가 `PlayerAttack` 분기를 실제로 늘릴 때 기존 Command 아래 순수 실행 계약을 추출하고 스폰만 `ArrowLauncher`에 위임. 데이터는 먼저 `CombatConfigSO` 재사용
-- 대안: `PlayerAttack` 내부 private 함수로 유지 — 책임 분리 목적에는 덜 유리
-- 선행: U06·U12의 실제 중복이 확인될 때만. 새 파일이면 meta 동반
-- 위험: 새 launcher에 Command가 생겨 자원/스폰 두 경로로 실행
-- 공수: 2인·일. 담당 @AidenKim923. **P2 선택**
-
----
-
-## 7. 표현 · UI · 씬 (P0~P2)
-
-### U27 HUD 자원 바 밖의 전투 · 파티 · 보스 · 시간 · 결과 UI
-
-- 현재 코드: `HUDController`는 `PlayerStatus.Local`의 3개 바 직접 구독. `LocalCombatState`·`PartyDebugOverlay`는 있으나 정식 전체 HUD/결과 없음
-- 권위: 로컬 읽기·표시. 입력이 결과를 바꾸면 소유 Command로 서버 검증
-- 권장 접근: 기존 Canvas에 파티 3인/보스 부위/패링/표식/씬별 시계 슬롯 연결. **늦은 바인딩·재바인딩·OnDisable 해제를 명시**하고 실제 값은 기존 view/SyncVar 읽기
-- 대안: `HUDController`에서 각 SyncVar 직접 구독 — 런/씬 재바인딩 규칙이 UI마다 반복
-- 선행: U02·U06·U14·U19. 이미지 크롭/9-slice · 씬 변경
-- 위험: 내 HP에 다른 사람 값 바인딩, 3인이 서로 다른 보스 시계·결과, 재접속 뒤 중복 구독
-- 공수: 4인·일. 담당 @kjw1237. P0
-
-### U28 Title/Lobby/Field/BossEntrance/Result 씬 실제 연결
-
-- 현재 코드: `TitleMenuController`·`TitleScreenController`·`RunSceneCatalog`·BuildSettings 있음. 씬 본문은 조사에 미포함이라 버튼 배선은 "없음"으로 단정 불가
-- 권위: UI 로컬 / 입장·역할·준비·런 시작 서버
-- 권장 접근: 기존 7개 씬 유지, 버튼 → `LobbyController`/`RunSceneDirector` 경로 연결. **새 씬을 늘리지 않고** clean build에서 Boot부터 전 경로 확인
-- 대안: `TitleMenuController`에 씬별 버튼 처리 집중 — 각 씬 수명·참조 해제 관리가 어렵다
-- 선행: U02·U04·U27 · 실제 씬 자료와 소유자 협의. 씬 변경
-- 위험: 원격 준비 완료가 씬 전환 중 소실, 두 개의 매니저/WeatherMaker 공존
-- 공수: 2인·일. 담당 @kjw1237 + @AidenKim923. P0
-
-### U26 플레이어 · 적 · 보스 애니메이션 실행 계약
-
-- 현재 코드: `PlayerAnimationController`·`EnemyAnimationController` 존재. 완전한 ActionCue/ControllerSet/공통 Override 계약과 보스 모션 연결 없음
-- 권위: 서버는 동작 ID·시각 / 로컬은 Animator. **애니메이션 이벤트가 판정 시각을 정하지 않는다**
-- 권장 접근: 기존 `PlayerPresentation`/`EnemyVisualState`·RPC를 유지하며 빠진 공격/패링/치유/보스 cue만 연결. 모션 길이·이동 루트·Cancel 테스트를 캐릭터×무기로 검수
-- 대안: 문서의 공통 Override 구성을 전체 모델에 먼저 적용 — 현재 작동하는 스트레이프/무기 조합의 회귀 검수량이 크다
-- 선행: U17·U18 · 클립 조달/리타게팅 · 프리팹/Animator 변경, meta 동반
-- 위험: 호스트만 root motion 이동, 원격만 공격 멈춤, 전환 후 다른 무기 클립 재생
-- 공수: 3인·일. 담당 @AidenKim923. P1
-
-### U29 보스 실제 페이즈 신호 → 아레나 연출
-
-- 현재 코드: `BossArenaPhaseView`와 즉시 재질 교체 있음. `ShowPhase` runtime 정식 호출 없음(Dev 제외)
-- 권위: 서버의 페이즈/전환 시각 원본 / 루트·날씨·재질·사운드 클라 표현
-- 권장 접근: `BossController`의 phase SyncVar/전환 결과를 읽는 Art binding 추가. **늦게 접속한 클라도 현재 phase 즉시 복원.** 15초 전환 표현은 9/19 이후 연출 단계에서만
-- 대안: view가 매 프레임 조회 — 전환 시작 시각과 취소를 별도로 추적해야 한다
-- 선행: U17·U18 · 실제 아레나/재질. 씬 변경
-- 위험: 한 클라만 1페이즈 날씨, 전환 중 접속자는 루트 둘 다 켜짐, 서버는 2P인데 화면 1P
-- 공수: 2인·일. 담당 @AidenKim923. **P1 — 티저에 보스가 들어가므로 필수**(2026-09-08 승격)
-
-### U30 사운드 실물 · 방울/치유 키 · 로컬/원격 믹싱
-
-- 현재 코드: `SfxPlayer`·`BgmPlayer`·`SoundVolume` 존재. `SoundCatalogSO`는 SFX Clips=[]/BGM Clip 0, 방울/치유 키 없음
-- 권위: 게임 결과 원본 서버 / 재생·믹싱·개인 볼륨 로컬
-- 권장 접근: 기존 Catalog에 클립·키 연결, 적 사망/보스 예고 호출과 3인 동시음 청취. Remote 감쇠는 실제 Mixer에서 확인. **BGM 26분 고정 길이를 런 제한으로 쓰지 않는다**
-- 대안: AudioSource에 직접 배선 — Catalog의 볼륨·중복 제거·키 관리가 중복
-- 선행: 클립·믹서 제공 · 조달 증빙([라이선스 대장](licenses/THIRD_PARTY_ASSETS.md)) · U18·U26
-- 위험: 남의 2명 소리가 하나로 합쳐짐, 원격 사운드가 패링음을 가림, pause 뒤 BGM 재시작
+- 상태: **부분.** 플레이어(`PlayerActionCue` · 히트스톱)와 잡귀는 완료. **보스는 `BossAnimationView`가 `Attack`·`Dead` 트리거 2종뿐.** 그로기·기상·페이즈 전환·부위 파괴 모션 미연결
 - 공수: 2인·일. 담당 @AidenKim923. P1
 
-### U31 맵 반경 실측 · 보스 입구/객주 포함 제약
+### U30 사운드 · U34 타격 사운드
 
-- 현재 코드: `BarrierController` 무작위 중심 있음. `MaxRadius` 400은 실측 근거 없는 초기값. 입구/객주 위치 보장 없음
-- 권위: 서버가 유효 결계 중심 확정 / 지형·배치는 에디터 데이터
-- 권장 접근: 기존 중심 추첨에 고정 랜드마크 포함 제약을 검증(결정됨: 이동 구조 유지 + 유효 영역 제한). **먼저 실제 맵을 실측**해 SO와 시작점/입구/객주 위치를 확정
-- 대안: 고정 중심 배치로 맵을 맞춤 — 현재 중심 이동 기획을 바꿔야 한다
-- 선행: 실제 맵. 씬 변경, meta 동반 이동 가능
-- 위험: 파티 3인 중 1명만 길막, 마지막 결계 밖 입구 때문에 전환 불가
-- 공수: 2인·일. 담당 @kjw1237 + @AidenKim923. P0
-
-### U32 DayCycleSO와 실제 날씨의 런 시계 연결
-
-- 현재 코드: `DayCycleSO._presets=[]`. `WeatherRainScheduleScript`는 WeatherMaker 시각을 읽음. `DayCycleController` 없음
-- 권위: 시각 원본은 서버 런 시계 / 날씨 렌더링 로컬
-- 권장 접근: `IRunTimeSource`로 필드 시간을 받아 `DayCycleSO` 변환을 표현단에 연결. 보스는 자정 고정, 이탈 pause에서 날씨가 어떻게 유지될지 명시
-- 대안: phase 이벤트마다 시각 보정 — pause/재접속 보정 경로가 더 필요
-- 선행: U02·U31 · 실제 WeatherMaker 설정. 씬/프로파일 변경
-- 위험: 느린 접속자가 낮, pause 동안 밤으로 넘어가 전투 색 대비가 다름
+- 상태: **부분.** SFX 37엔트리 클립 연결 완료(`ArtProductionWiringHelper`가 자동 배선). 방울·치유·표식·패링 키도 있다. **누락 4키: `StaminaEmpty` · `FootstepWet` · `BossHurt` · `BossGroggyEnd`. BGM 4트랙 전부 빈 클립**
+- 권장 접근: 4키는 보유 번들(RPG & Fantasy Sounds)에서 고른다. BGM은 조달 문제라 P1이지만 26분 고정 길이를 런 제한으로 쓰지 않는다
 - 공수: 1인·일. 담당 @AidenKim923. P1
 
-### U33 카메라 개인 옵션 · 근접 가림 · 조준 표시
+### U34 타격감 5항목
 
-- 현재 코드: `CameraRig`에 추적·셰이크·충돌 있고 감도·반전 기본값은 SO. 디더 페이드와 정식 개인 옵션 UI 미구현
-- 권위: 클라 로컬. 개인 카메라 설정은 서버 명중 판정을 바꾸지 않는다
-- 권장 접근: 기존 카메라 API에 개인 설정 저장과 옵션 UI 연결. 최소 거리 가림은 제공 셰이더 범위에서 검토
-- 대안: 감도/반전만 먼저 — 가림/조준 표시는 별도 납기
-- 선행: U27 · 실제 셰이더와 옵션 API. **9/19 이후에만 착수**
-- 위험: 개인 감도가 원격 화면까지 영향, 재접속 후 설정 초기화
-- 공수: 1인·일. 담당 @AidenKim923 + @kjw1237. **P2 선택**
+- 상태: **4/5 완료.** 셰이크 · 히트스톱 · 피격 플래시(프리팹 5개 배선) · 검기 VFX 완료. 타격 사운드만 위 4키 누락
+- 남은 결정: Bloom intensity(현재 0이라 검기 칼끝이 발광하지 않음) · 치유·표식 VFX 아군 색 교체
+- 공수: 0.5인·일. P1
 
-### U34 검기 · 치유 · 표식 VFX 연결
+### U32 DayCycle 프리셋
 
-- 현재 코드(2026-09-18): 셰이크·히트스톱 연결, 검기(`MeleeSlashView`·`Geumeum/MeleeSlash`)와 피격 플래시(`DamageFlashView`) 구현. 타격 사운드 일부 클립과 치유·표식 VFX 색 문법 교체(임시 청록 에셋)가 남음. L2·L3 미검증
-- 권위: 서버 확정 공격 결과와 시각을 읽는 로컬 표현. **클라가 피해 판정 크기를 정하지 않는다**
-- 권장 접근: 기존 피드백과 공격 cue에 로컬 VFX 연결. 검기 크기는 `CombatConfigSO`, 표식·치유 표현은 각 효과의 서버 수명과 맞춤
-- **2026-09-08 — 타격감은 5항목으로 고정한다.** 범위가 무한히 늘어나는 것을 막기 위해 완료 조건을 못 박는다
+- 상태: **부분.** `DayCycleController`가 Field에 배치돼 런 시계로 WeatherMaker 시각을 쓴다. **`DayCycleSO._presets`가 빈 배열**이라 조명 프리셋 보간은 동작하지 않는다
+- 공수: 0.5인·일. 담당 @AidenKim923. P1
 
-  | # | 항목 | 상태 |
-  |---|---|---|
-  | 1 | 카메라 셰이크 | **완료** — `CombatFeedbackImpl`이 `PlayHit`/`ParrySuccess`/`Critical`/`GroggyEnter`/`PartBreak` 5종에 이미 연결 |
-  | 2 | 히트스톱 | **완료** - `CombatFeedbackImpl.PlayHit`이 `PlayerAnimationController.PlayHitStop`을 부른다. 길이는 `PresentationConfigSO` |
-  | 3 | 피격 플래시 | **구현(2026-09-18)** - `DamageFlashView`가 동기화된 체력 감소(`IDamagePresentationSource`)에 반응. 플레이어, 잡귀 3종, 보스(모델만). 패링 창 강조와 겹침은 `RendererTintRegistry`가 조정 |
-  | 4 | 타격 사운드 | **부분** - `MeleeHit`·`MeleeCritical`·`ArrowHit` 등은 클립 연결됨. `BossHurt`·`BossGroggyEnd`·`StaminaEmpty`·`FootstepWet` 클립 없음 (U30) |
-  | 5 | 검기 VFX | **구현(2026-09-18)** - `MeleeSlashView` + `Geumeum/MeleeSlash` 셰이더. 판정 시각 앞뒤로 실제 검날 경로(`IWeaponBladeSource`)를 기록해 리본으로 그리고 잔상으로 지운다. 조정값은 `PresentationConfigSO` |
+### U41 컷씬 · 시네머신
 
-  **다섯 개가 화면에 나오면 완료다.** 이후 수치 조정은 기능이 아니라 10/22 이후 폴리싱 구간의 일이다
-- 대안: Animator 표현 이벤트로 VFX만 재생 — 취소·지연 재생 동기화 정리가 더 필요
-- 선행: U18·U26 · 색 문법([class-identity 15.3](class-identity-and-boss-2026-09-03.md)) · 실제 에셋. 프리팹 변경, meta 동반
-- 위험: 호스트와 RPC 수신 경로가 겹쳐 효과 두 번 생성, 취소한 공격의 검기가 남음
-- 공수: **3인·일**(5항목 전체. 셰이크가 이미 끝나 감소). 담당 @AidenKim923. **P1 — 10/15 빌드 필수**
+- 상태: **미착수.** Cinemachine 패키지 없음, Timeline만 있음, playable 0건
+- 권장 접근: 컷씬 1개 × 15초, 객주 폭로 하나. 각 클라가 서버 확정 시각을 읽어 재생하고 **컷씬 중 서버 판정을 멈추지 않는다**. 실패 시 정지 화면 + 텍스트
+- 선행: 갓·너울 에셋, 갓이 머리 메시와 분리될 것
+- 공수: 5인·일. 담당 @AidenKim923. P1 — **절단선 5번**
 
-### U35 보스 트라이 편성 · 재시도 · 정산 제외
+### U33 카메라 개인 옵션 · 근접 가림
 
-- 현재 코드(2026-09-18): 서버 흐름 구현. `BossTrialLoadoutSO`(시작 레벨 10 · 편성 포인트 · 등급별 비용 · 물약 상한), `BossTrialRules` 예산 검증, `BossTrialDirector`(전실 편성 수집 · 적용 · 재시도 · 모드 요청), `RunManager`가 트라이에서 필드를 건너뛰고 전실에서 편성을 기다린다. 리더보드 제외는 `RunResultSnapshot.IsLeaderboardEligible`이 이미 막는다. 개발용 설정 씬 `Dev_BossTrial`(레벨 · 무기 · 장비 등급/공격력/옵션 · 특성 · 물약을 정하고 그대로 시작)까지 구현하고 에디터 Play로 보스 구간 진입까지 확인했다. **정식 편성 UI와 전실 공간 배치는 남음**(@kjw1237). 편성 포인트는 실측 전 임시값. 3인 L3 미검증
-- 권위: 편성·시작·재설정·정산 제외 서버 / 편성 UI 로컬
-- 권장 접근: 기존 로비와 7개 씬 흐름 재사용. mode별 편성 예산과 loadout을 서버가 검증하고 기존 snapshot으로 이동. **재시작 시 보스·부위·표식·시계를 함께 초기화**
-- 대안: 개발용 보스 재시작 UI 재사용 — 제출용 편성 검증과 안내를 추가 정리해야 한다
-- 선행: U02·U06·U12·U14·U19·U23. 전실 UI와 씬 변경
-- 위험: 트라이가 정식 리더보드에 등록, 두 번째 시도에 꼬리·그로기 상태 잔류
-- 공수: 2인·일. 담당 @AidenKim923 + @kjw1237. **P2 선택**(결정됨: 핵심 루프 통과 후)
+- 상태: **미착수.** 옵션 UI·PlayerPrefs 저장·디더 페이드 없음. `CameraRig`는 SO 기본값만 읽는다
+- 공수: 1인·일. **P2 선택**
 
-### U40 보스 아트 실측 · 재질 보간 · 소품 연결
+### U15 Weapon 실행 계약 · ArrowLauncher
 
-- 현재 코드: `BossArenaPhaseView`는 재질 즉시 교체. 소품·파티클·반사 최종 출력은 미완
-- 권위: 서버 phase와 전환 시각을 읽는 로컬 표현
-- 권장 접근: 기존 아레나 루트와 재질을 유지하고 계획된 6초 smoothness 보간과 부위 실루엣 연결. 크기와 안개는 실제 씬에서 측정한 뒤 판단. **9/19 이후**
-- 대안: 즉시 교체 유지 + 색 대비·실루엣만 검수 — 승인된 전환 표현 요구가 남는다
-- 선행: U29 · 실제 재질·클립·소품. 씬/에셋 변경
-- 위험: 늦게 접속한 클라에서 반사·페이즈 루트가 다름, 전환 중 셰이더 값 초기화
-- 공수: 1.5인·일. 담당 @AidenKim923. **P1 — 티저 필수**(2026-09-08 승격)
-
-### U41 컷씬 · 시네머신 타임라인 (2026-09-08 신설)
-
-- 현재 코드: 없음. 시네머신 타임라인을 쓰는 연출 코드가 조사 범위에 없었다
-- 권위: 전적으로 로컬 표현. **컷씬 중 서버 판정을 멈추지 않는다** — 멈추면 3인의 시계가 어긋난다
-- 권장 접근: **컷씬 1개 × 15초, 객주 폭로 하나만 만든다.** 시네머신 타임라인으로 카메라·모션·페이드를 구성하고, 재생은 각 클라이언트가 서버가 확정한 시각을 읽어 시작한다
-- 대안: 사전 렌더 영상 재생 — 만들기는 쉽지만 플레이어 외형·무기가 반영되지 않는다
-- 선행: 갓·너울 에셋, 객주와 보스의 동일 외형, **갓이 머리 메시에서 분리될 것**. 씬 변경 필요
-- 위험: 컷씬 중 피해 판정이 계속되어 컷씬이 끝나자마자 죽어 있음. 늦게 접속한 클라이언트가 컷씬을 건너뛰지 못함
-- **실패 시 대체:** 정지 화면 + 텍스트. 서사가 없는 것보다 낫다
-- 기각한 후보: 프롤로그(스킵된다) · 보스 조우(페이즈 전환 15초 연출로 대체) · 엔딩(결과창으로 대체)
-- 공수: **5인·일**(컷씬 3 + 시네머신 구성 2). 담당 @AidenKim923. **P1 — 10/15 빌드 필수**
+- 상태: **의도적 미착수.** `PlayerAttack`이 직접 스폰한다. 중복이 실제로 생길 때만 추출한다. **P2 선택**
 
 ---
 
-## 8. 코드 TODO 주석 처리 (2026-09-07)
+## 5. 문서에 없었는데 생긴 것
 
-조사 시점 TODO 22줄 중 **낡은 5건은 2026-09-07에 정리했고**, 나머지는 위 U 항목이 닫힐 때 함께 지운다.
+로드맵 항목이 아니지만 검증·유지보수 범위에 들어간다.
 
-| 위치 | 상태 | 연결 |
+| 기능 | 위치 | 비고 |
 |---|---|---|
-| `ArrowConfigSO` 비행 속도 미정 | **삭제** — 에셋 30m/s 확정 | — |
-| `BossPatternSO` 패턴 미정 | **삭제** — 10패턴·2페이즈 채워짐 | — |
-| `CombatConfigSO` 부활 수치 소유 | **확정 주석으로 교체** — 이 SO 소유 | U13 |
-| `PlayerStatus` 전환 중 전멸 판정 | **정정** — `IsServerTransitioning` 가드 이미 있음 | U01 검증 |
-| `SpawnManager` BarrierController 없음 | **정정** — 이미 있음, 소비 연결만 남음 | U24 |
-| `Constants` 물리 충돌 매트릭스 | 유지 | U31 |
-| `BarrierPhaseSO` 맵 실측 후 반경 | 유지 | U31 |
-| `DayCycleSO` 조명 프리셋 | 유지 | U32 |
-| `TalentTreeSO` 노드 수치 | 유지 | U12 |
-| `CombatStatsSnapshot` 특수 옵션 배수 | 유지 | U06 |
-| `RunParticipantSnapshot` 인벤토리·특성 | 유지 | U06·U08·U12 |
-| `RunManager` 집계 4필드 | 유지 | U14 |
-| `RunManager` 보스 사망 Result | 유지 | U03 |
-| `ReviveController` 재화 차감 | 유지 | U13 |
-| `BossController` ×4 (취소·카운터·잠금·cue) | 유지 | U17·U18·U20 |
-| `Phase1State`/`Phase2State` 템플릿 필드 SO 이관 | 유지 | U21 |
-| `BossArenaPhaseView` 6초 보간 | 유지 | U40 |
+| 참가자 종류 · 파티 종류 분리 | `ParticipantKind` · `RunPartyKind` · `ParticipantDirectory` | 리더보드가 봇 파티 기록을 분리해 읽는다. 결과 네트워크 필드가 바뀌어 **호스트·클라 같은 빌드 필수** |
+| 빌드 신원 검증 | `01.Network/Identity/BuildIdentity` + `GeumeumAuthenticator` | 버전 불일치 접속 차단 |
+| 런처 · 패치 배포 | 저장소 루트 `launcher/`(.NET) · [패치 시스템 설계](unity/PATCH_SYSTEM_DESIGN.md) | 팀원 빌드 배포용. 게임 코드와 무관 |
+| 자동 검증 하네스 | `01.Network/Dev/VerificationCommandDriver`(1,432줄) · `tools/verify-*.ps1` | HTTP로 M2 시나리오 자동 실행. L3 대체 아님 |
+| `RendererTintRegistry` | `00.Common/Utility/` | 피격 플래시와 패링 창 강조의 틴트 충돌 중재 |
+| `Dev_BossTrial` · `Dev_HUD` | 개발 씬 | 빌드 목록 혼입 주의(U43) |
 
 ---
 
-## 9. 외부 에셋 도입 조건 (2026-09-08)
-
-2026-09-08에 도입을 결정한 에셋과, 각각에 붙는 조건이다. **조건 없이 넣으면 판정이나 성능이 깨진다.**
+## 6. 외부 에셋 도입 조건
 
 | 에셋 | 용도 | 조건 |
 |---|---|---|
-| **PhysioBrush** (본 물리·지글) | 너울·옷자락·꼬리 2차 모션 | 🔴 **표현 본에만 건다.** 판정 콜라이더는 흔들리지 않는 본에 붙인다 |
-| **HTrace AO** (URP AO) | 티저·인게임 화질 | 🔴 **렌더 프로파일을 분리한다.** 3인 테스트는 AO를 끈 프로파일로 |
-| RPG & Fantasy Sounds (1,000종) | `SoundCatalogSO` 13키 (U30) | 🟢 조건 없음 |
-| Easy Effect/UI Viewer | 에디터 툴, HUD 작업 보조 | 🟢 조건 없음 |
-| RPG Character Mecanim Pack | 모션 보충 (U26) | 🟢 리타게팅 확인만 |
-| Sketchfab 의상 (상·하의) | 객주 = 보스 1페이즈 동일 외형 | 🟡 **한 벌이어야 한다.** 서로 다른 옷이면 폭로가 읽히지 않는다 |
-| Meshy AI 갓 | 컷씬 탈착 소품 (U41) | 🟡 **머리 메시와 분리된 독립 오브젝트일 것.** 상업 이용 권리 확인 |
+| **PhysioBrush** (본 물리) | 너울·옷자락·꼬리 2차 모션 | **표현 본에만 건다.** 꼬리는 부위 판정 대상이라 판정 콜라이더는 흔들리지 않는 본에 붙인다. 리깅 단계에서만 가능 |
+| **HTrace AO** | 티저·인게임 화질 | **렌더 프로파일 분리.** 3인 테스트는 AO를 끈 프로파일로. 한 대만 프레임이 떨어지면 네트워크 문제와 구분이 안 된다 |
+| RPG & Fantasy Sounds | `SoundCatalogSO` 누락 4키 · BGM | 조건 없음 |
+| RPG Character Mecanim Pack | 보스 모션 보충(U26) | 리타게팅 확인 |
+| Sketchfab 의상 | 객주 = 보스 1페이즈 동일 외형 | 한 벌이어야 폭로가 읽힌다 |
+| Meshy AI 갓 | 컷씬 소품(U41) | 머리 메시와 분리된 독립 오브젝트. 생성일·플랜 기록 |
+| UnityChanSpringBone (도입됨) | 보스 프록시 의상 | 적용 완료 |
 
-### 왜 지글이 판정을 깨뜨리는가
-
-꼬리는 **부위 파괴 판정 대상**이다(U19 — 3덩이, 각 1,350 HP, 25% 하드 게이트). 서버가 `PartId`로 어느 덩이가 맞았는지 확정한다.
-
-여기에 지글 물리를 걸면 **본이 각 클라이언트에서 따로 계산**되므로, 서버가 보는 꼬리 위치와 각자 화면의 꼬리 위치가 달라진다. 화살을 맞췄는데 서버는 빗나갔다고 하거나, 3인이 서로 다른 위치의 꼬리를 본다.
-
-**해법은 리깅 단계에서만 적용 가능하다.** 시각용 본과 판정용 본을 나누고, 지글은 시각용에만 건다. 나중에는 바꾸기 어렵다. 너울·옷자락은 판정과 무관하므로 제약이 없다.
-
-### 왜 AO 프로파일을 분리하는가
-
-AO는 화면 전체 렌더 비용이다. 3인 중 한 대만 프레임이 떨어지면 **그 사람만 입력이 밀린다.** 그 상태로 3인 테스트를 하면 네트워크 문제인지 성능 문제인지 구분할 수 없다.
-
-URP는 렌더러 에셋을 여러 개 둘 수 있으므로, **티저 촬영용과 플레이 테스트용을 나눈다.**
-
-### 임포트 시점
-
-| 시점 | 에셋 |
-|---|---|
-| 아무 때나 | 사운드 번들 · Easy Effect Viewer · Mecanim 팩 |
-| **전체 루프 관통 확인 이후** | **HTrace**(렌더러 변경) · **PhysioBrush**(물리·리깅 변경) |
-
-**관통 스프린트 한복판에 렌더러나 물리를 바꾸지 않는다.** 관통이 실패했을 때 코드 탓인지 에셋 탓인지 구분할 수 없게 된다.
-
-### 라이선스 기록
-
-구매·생성 즉시 [외부 에셋 라이선스 기록](licenses/THIRD_PARTY_ASSETS.md)의 증빙 요건 7항목을 채운다. **제출 조건(D-P1-5)이다.** Meshy 같은 AI 생성물은 **생성 시점의 플랜에 따라 상업 이용 권리가 달라지므로** 생성일과 플랜을 함께 기록한다.
+**임포트 시점.** 사운드·Mecanim 팩은 아무 때나. **HTrace·PhysioBrush는 3PC 관통 확인 이후.** 관통 스프린트 중에 렌더러나 물리를 바꾸지 않는다. 구매·생성 즉시 [라이선스 기록](licenses/THIRD_PARTY_ASSETS.md) 7항목을 채운다.
 
 ---
 
-## 10. 이 문서의 검증 한계
+## 7. 이 문서의 검증 한계
 
-- **정적 조사 기준이다.** 씬·프리팹·머티리얼·외부 에셋·meta는 조사에 포함되지 않았다. "코드에 없음"이 "기능 없음"과 같지 않다
-- 공수는 담당자가 해당 파트의 현재 코드를 이미 아는 상태를 가정한다. 학습·조달·기획 재결정은 별도다
-- 이 문서는 우선순위와 일정을 정하지 않는다. [주간 계획](06-weekly-plan.md)이 정한다
+- 정적 조사 기준이다. 바이너리 씬(`Boss_Arena.unity`)은 문자열 검색으로만 확인했다.
+- "완료"는 코드·배선 존재를 뜻하며 3PC 통과를 뜻하지 않는다. 검증 등급은 [주간 계획 4장](06-weekly-plan.md).
+- 공수는 담당자가 해당 파트를 이미 아는 상태를 가정한다.
+- 우선순위와 일정은 이 문서가 정하지 않는다. [주간 계획](06-weekly-plan.md)이 정한다.

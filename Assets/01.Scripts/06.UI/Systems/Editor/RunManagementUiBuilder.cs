@@ -26,15 +26,19 @@ namespace Geumeum.UI.Editor
         private static readonly Color G_Text = new Color(0.96f, 0.95f, 0.91f, 1f);
         private static readonly Color G_MutedText = new Color(0.70f, 0.75f, 0.80f, 1f);
 
-        // Dev_HUD 씬 @RunManagementUI 스킨 기준 좌표.
-        // 창 로컬 단위는 캔버스 기준 해상도(1280x720)와 같고, 페이지도 창과 같은 좌표계를 쓴다.
+        // Dev_HUD 씬 @RunManagementUI 스킨 기준 좌표
+        // 창 로컬 단위는 캔버스 기준 해상도(1280x720)와 같고, 페이지도 창과 같은 좌표계를 쓴다
         private const float WINDOW_WIDTH = 1280f;
         private const float WINDOW_HEIGHT = 720f;
         private const float CONTENT_CENTER_X = 476f;  // 우측 콘텐츠 칸 중심(안쪽 322~630)
 
+        // 특성 격자. FunctionalManagementPanel의 TALENT_BUTTON_COUNT와 같아야 한다
+        private const int TALENT_COLUMNS = 4;
+        private const int TALENT_ROWS    = 5;
+
         /// <summary>
-        /// PrefabUtility.LoadPrefabContents로 연 session root와 생산 TMP font를 넘긴다.
-        /// 기존 자식이 있으면 중복 구성을 막고 false를 반환한다.
+        /// PrefabUtility.LoadPrefabContents로 연 session root와 생산 TMP font를 넘긴다
+        /// 기존 자식이 있으면 중복 구성을 막고 false를 반환한다
         /// </summary>
         public static bool Configure(GameObject sessionPrefabContents, TMP_FontAsset font)
         {
@@ -137,6 +141,9 @@ namespace Geumeum.UI.Editor
             FunctionalManagementPanel panel = modal.AddComponent<FunctionalManagementPanel>();
             SetReference(panel, "_canvasGroup", canvasGroup);
             SetReference(panel, "_closeButton", closeButton);
+            // 레일이 사라진 뒤로 지금 페이지를 알려주는 건 이 제목뿐이다 - 빼먹으면
+            // 재생성한 프리팹에서 탭을 옮겨도 제목이 "배낭"에 멈춘다
+            SetReference(panel, "_pageTitle", title);
             SetReference(panel, "_shopTabButton", shopTab);
             SetReference(panel, "_inventoryPage", inventoryPage);
             SetReference(panel, "_talentPage", talentPage);
@@ -151,6 +158,7 @@ namespace Geumeum.UI.Editor
             SetReference(panel, "_usePotionButton", inventory.UsePotionButton);
             SetReference(panel, "_useTicketButton", inventory.UseTicketButton);
             SetReference(panel, "_targetEquippedButton", inventory.TargetEquippedButton);
+            SetReference(panel, "_openTransferButton", inventory.OpenTransferButton);
             SetReference(panel, "_talentPointText", talent.PointText);
             SetReference(panel, "_talentStatusText", talent.StatusText);
             SetArray(panel, "_talentColumnTexts", talent.ColumnTexts);
@@ -217,6 +225,12 @@ namespace Geumeum.UI.Editor
             references.UseTicketButton = CreateButton("UseTicket", parent, "티켓 사용",
                 font, new Vector2(93f, 26f), new Vector2(471f, -255f), G_Primary,
                 out _, 10.5f);
+
+            // 레일이 사라져 보내는 쪽이 양도 페이지로 갈 입구가 없어졌다.
+            // 물약·티켓 줄 아래에 한 칸만 두고 ESC 메뉴의 버튼 셋은 건드리지 않는다
+            references.OpenTransferButton = CreateButton("OpenTransfer", parent,
+                "장비 양도", font, new Vector2(93f, 26f),
+                new Vector2(369f, -285f), G_SurfaceRaised, out _, 10.5f);
             return references;
         }
 
@@ -231,23 +245,25 @@ namespace Geumeum.UI.Editor
                 StatusText = CreateText("TalentStatus", parent, string.Empty,
                     font, 10f, TextAlignmentOptions.Left, new Vector2(308f, 30f),
                     new Vector2(CONTENT_CENTER_X, -184f), G_MutedText),
-                ColumnTexts = new TMP_Text[2],
-                TalentButtons = new FunctionalUiIndexedButton[10],
+                ColumnTexts = new TMP_Text[TALENT_COLUMNS],
+                TalentButtons = new FunctionalUiIndexedButton[TALENT_COLUMNS * TALENT_ROWS],
             };
 
-            for (int column = 0; column < 2; ++column)
+            // 방울의 연결 트리가 뿌리 1개와 세 갈래를 쓰므로 4열까지 자리를 만든다
+            // 콘텐츠 칸(322~630) 안에 들어가도록 폭을 줄였다
+            for (int column = 0; column < TALENT_COLUMNS; ++column)
             {
-                float x = 397f + (column * 158f);
+                float x = 359f + (column * 78f);
                 references.ColumnTexts[column] = CreateText($"TalentColumn{column}",
-                    parent, "특성", font, 14f, TextAlignmentOptions.Center,
-                    new Vector2(150f, 28f), new Vector2(x, 168f), G_Text);
-                for (int row = 0; row < 5; ++row)
+                    parent, "특성", font, 11f, TextAlignmentOptions.Center,
+                    new Vector2(74f, 28f), new Vector2(x, 168f), G_Text);
+                for (int row = 0; row < TALENT_ROWS; ++row)
                 {
-                    int index = (column * 5) + row;
+                    int index = (column * TALENT_ROWS) + row;
                     references.TalentButtons[index] = CreateIndexedButton(
                         $"TalentNode{index}", parent, "특성 확인 중", font, index,
-                        new Vector2(150f, 52f),
-                        new Vector2(x, 118f - (row * 62f)), G_SurfaceRaised, 10.5f);
+                        new Vector2(74f, 52f),
+                        new Vector2(x, 118f - (row * 62f)), G_SurfaceRaised, 8.5f);
                 }
             }
 
@@ -525,6 +541,7 @@ namespace Geumeum.UI.Editor
             public Button UsePotionButton;
             public Button UseTicketButton;
             public Button TargetEquippedButton;
+            public Button OpenTransferButton;
         }
 
         private sealed class TransferReferences

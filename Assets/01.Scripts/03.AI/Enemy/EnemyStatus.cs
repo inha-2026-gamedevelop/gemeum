@@ -17,7 +17,7 @@ namespace Geumeum.AI
     /// <summary>
     /// 잡귀 HP와 결계 단계별 강화 배수를 관리한다. IDamageable 구현
     /// </summary>
-    public partial class EnemyStatus : NetworkBehaviour, IDamageable, IDamagePresentationSource
+    public partial class EnemyStatus : NetworkBehaviour, IDamageable, IDamageHealthSource, IDamagePresentationSource
     {
         /****************************************
         *                Fields
@@ -54,7 +54,7 @@ namespace Geumeum.AI
         public float     RewardMultiplier    => _rewardMultiplier;
         public uint      LastHerdingRevision => _lastHerdingRevision;
 
-        /// <summary> 사망 시 서버에서 발생한다, killerNetId를 전달한다. 이벤트 발행 · 오브젝트 정리는 EnemyController가 한다 </summary>
+        /// <summary> 사망 시 서버에서 발생한다, killerNetId를 전달한다. 이벤트 발행, 오브젝트 정리는 EnemyController가 한다 </summary>
         public event Action<uint> Died;
 
         /// <summary> 치명타가 아닌 모든 피격에서 발생한다, attackerNetId 전달. 인지 범위 밖이어도 공격자를 강제 인식시키는 데 쓴다 </summary>

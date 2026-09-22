@@ -15,10 +15,10 @@ using Geumeum.Common;
 namespace Geumeum.Dev
 {
     /// <summary>
-    /// 개발용 패널을 모아 브라우저에 보낼 상태를 만들고, 브라우저가 누른 것을 게임에 적용한다.
+    /// 개발용 패널을 모아 브라우저에 보낼 상태를 만들고, 브라우저가 누른 것을 게임에 적용한다
     ///
-    /// 게임 화면 위에 IMGUI로 그리면 전투 화면을 덮고 창 크기가 게임 창에 갇힌다.
-    /// 그래서 조작은 별도 브라우저 창에 두고, 게임 화면에는 월드에 붙는 표시만 남긴다.
+    /// 게임 화면 위에 IMGUI로 그리면 전투 화면을 덮고 창 크기가 게임 창에 갇힌다
+    /// 그래서 조작은 별도 브라우저 창에 두고, 게임 화면에는 월드에 붙는 표시만 남긴다
     /// 통신은 DevWebServer가 하고, 여기는 무엇을 보여 줄지와 무엇을 눌렀는지만 다룬다
     /// </summary>
     public class DevPanelHost : PersistentSingleton<DevPanelHost>
@@ -28,8 +28,8 @@ namespace Geumeum.Dev
         ****************************************/
 
         /// <summary>
-        /// 패널 하나를 등록한다. 호스트가 아직 없어도 안전하다.
-        /// build는 주기마다 현재 값을 다시 적고, handle은 브라우저가 누른 것을 받는다.
+        /// 패널 하나를 등록한다. 호스트가 아직 없어도 안전하다
+        /// build는 주기마다 현재 값을 다시 적고, handle은 브라우저가 누른 것을 받는다
         /// 둘 다 메인 스레드에서만 불린다
         /// </summary>
         public static void Register(string id, string title, Action<DevPanelBuilder> build,
@@ -175,7 +175,7 @@ namespace Geumeum.Dev
         ****************************************/
 
         /// <summary>
-        /// 브라우저가 보낸 조작을 줄 세운다. 서버 스레드에서 불린다.
+        /// 브라우저가 보낸 조작을 줄 세운다. 서버 스레드에서 불린다
         /// 여기서 바로 적용하면 Unity API를 다른 스레드에서 부르게 되어 그 자리에서 예외가 난다
         /// </summary>
         public static void EnqueueCommandBody(string body)

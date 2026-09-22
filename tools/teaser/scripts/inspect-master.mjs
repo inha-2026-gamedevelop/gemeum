@@ -29,7 +29,7 @@ export function inspectMaster(input) {
     full = measure(input);
     if (Math.abs(Number(full.input_i)+14) > .5) failures.push('Integrated loudness must be -14 ±0.5 LUFS.');
     if (Number(full.input_tp) > -1) failures.push('True peak must be <= -1 dBTP.');
-    // Equal 3-second windows, each measured independently; do not mix gated full-file IL with window IL.
+    // Equal 3-second windows, each measured independently; do not mix gated full-file IL with window IL
     before = measure(input,45,3);
     after = measure(input,48,3);
     dropLu = Number(before.input_i)-Number(after.input_i);

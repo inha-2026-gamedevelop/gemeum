@@ -1,4 +1,4 @@
-// Shared by CLI validation and the Remotion preview; frame ranges are [start, end).
+// Shared by CLI validation and the Remotion preview; frame ranges are [start, end)
 export function validatePlan(plan) {
   const errors = [];
   const check = (condition, message) => { if (!condition) errors.push(message); };
@@ -81,7 +81,7 @@ export function audioSettings(cue) {
     fadeInFrames: cue.fadeInFrames ?? 0, fadeOutFrames: cue.fadeOutFrames ?? 0};
 }
 
-// Frame passed here is relative to the cue, after trimming the source.
+// Frame passed here is relative to the cue, after trimming the source
 export function audioGain(cue, localFrame) {
   if (localFrame < 0 || localFrame >= cue.durationFrames) return 0;
   const mix = audioSettings(cue);

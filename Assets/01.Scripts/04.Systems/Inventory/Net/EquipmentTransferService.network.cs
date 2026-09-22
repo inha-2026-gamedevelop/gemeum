@@ -61,6 +61,8 @@ namespace Geumeum.Systems
             Remember(stream, header.RequestId, arguments, result);
             SendResult(sender, result);
 
+            if (result.Succeeded) { ServerAcceptBotOffer(result.Offer.OfferId); }
+
             if (result.Succeeded &&
                 NetworkServer.spawned.TryGetValue(result.Offer.RecipientNetId,
                     out NetworkIdentity recipientIdentity) &&

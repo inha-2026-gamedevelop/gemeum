@@ -13,6 +13,7 @@ using Geumeum.Common;
 namespace Geumeum.Network
 {
     /// <summary> 로비 한 자리. SyncList로 전송되므로 값 타입이고 참조를 담지 않는다 </summary>
+    [System.Serializable]
     public struct LobbySlot
     {
         /// <summary> 재접속에도 유지되는 슬롯의 진짜 주인. connectionId는 매번 바뀐다 </summary>
@@ -20,6 +21,7 @@ namespace Geumeum.Network
 
         public int            ConnectionId;
         public uint           PlayerNetId;
+        public bool           IsRoomOwner;
         public bool           IsReady;
         public bool           HasWeapon;
         public WeaponKind     Weapon;
@@ -47,6 +49,10 @@ namespace Geumeum.Network
             public readonly bool           HasCharacter;
             public readonly CharacterKind  Character;
 
+            /// <summary> 로비에서 고른 희망도 같이 들고 있는다. 돌아온 뒤 다음 런의 편성이 이것을 본다 </summary>
+            public readonly bool           HasPreference;
+            public readonly CharacterKind  PreferredCharacter;
+
             public VacatedSeat(Vector3 position, in LobbySlot slot)
             {
                 Position      = position;
@@ -54,6 +60,8 @@ namespace Geumeum.Network
                 Weapon        = slot.Weapon;
                 HasCharacter = slot.HasCharacter;
                 Character    = slot.Character;
+                HasPreference      = slot.HasPreference;
+                PreferredCharacter = slot.PreferredCharacter;
             }
         }
 
@@ -116,6 +124,7 @@ namespace Geumeum.Network
                 PlatformId         = ResolvePlatformId(conn),
                 ConnectionId       = conn.connectionId,
                 PlayerNetId        = (conn.identity == null) ? 0u : conn.identity.netId,
+                IsRoomOwner        = LobbyController.ServerCanManageRoom(conn),
                 IsReady            = false,
                 HasWeapon          = false,
                 Weapon             = default,
@@ -162,7 +171,7 @@ namespace Geumeum.Network
             return _slots[index];
         }
 
-        /// <summary> 씬 이동으로 교체된 플레이어와 로비 슬롯의 표시용 연결을 갱신한다. </summary>
+        /// <summary> 씬 이동으로 교체된 플레이어와 로비 슬롯의 표시용 연결을 갱신한다 </summary>
         [Server]
         public void ServerRefreshPlayerBindings()
         {
@@ -231,6 +240,8 @@ namespace Geumeum.Network
             slot.Weapon        = seat.Weapon;
             slot.HasCharacter = seat.HasCharacter;
             slot.Character    = seat.Character;
+            slot.HasPreference      = seat.HasPreference;
+            slot.PreferredCharacter = seat.PreferredCharacter;
             _slots[index]      = slot;
 
             ParticipantId participant = new ParticipantId(platformId);

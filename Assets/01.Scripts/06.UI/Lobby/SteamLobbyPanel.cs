@@ -18,11 +18,11 @@ using Geumeum.Network;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// Steam 로비 조작 화면.
+    /// Steam 로비 조작 화면
     ///
-    /// 방을 만들거나 로비 ID로 참가하고, 정원이 다 차면 소유자가 호스트를 연다.
+    /// 방을 만들거나 로비 ID로 참가하고, 정원이 다 차면 소유자가 호스트를 연다
     /// 상태는 SteamSessionCoordinator와 SteamLobbyService가 들고 있고 여기서는 읽기만 한다 -
-    /// 화면이 원본을 따로 기억하면 두 값이 어긋나는 순간을 아무도 못 잡는다.
+    /// 화면이 원본을 따로 기억하면 두 값이 어긋나는 순간을 아무도 못 잡는다
     /// </summary>
     public class SteamLobbyPanel : MonoBehaviour
     {
@@ -30,7 +30,7 @@ namespace Geumeum.UI
         *              Constants
         ****************************************/
 
-        // 런 단계는 클라이언트로 SyncVar 훅만 오고 구독할 이벤트가 없다.
+        // 런 단계는 클라이언트로 SyncVar 훅만 오고 구독할 이벤트가 없다
         // 로비 화면 하나 갱신하는 데 매 프레임을 쓸 이유는 없어 낮은 주기로만 확인한다
         private const float PHASE_POLL_SECONDS = 0.25f;
 
@@ -81,7 +81,7 @@ namespace Geumeum.UI
         private TMP_Text          _weaponStatus;
         private GameObject        _fallbackEventSystem;
 
-        // 화면이 떠 있는 동안 커서와 게임 입력을 가진다.
+        // 화면이 떠 있는 동안 커서와 게임 입력을 가진다
         // 이게 없으면 뒤에 선 플레이어가 커서를 잠가 ESC를 눌러야만 버튼이 눌린다
         private LocalGameplayInputToken _inputToken;
 
@@ -113,7 +113,7 @@ namespace Geumeum.UI
         }
 
         /// <summary>
-        /// CameraRig가 매 프레임 커서를 다시 잠그므로 그 뒤에 한 번 더 되돌린다.
+        /// CameraRig가 매 프레임 커서를 다시 잠그므로 그 뒤에 한 번 더 되돌린다
         /// Maintain은 토큰이 살아 있을 때만 동작해 다른 모달과 겹쳐도 안전하다
         /// </summary>
         private void LateUpdate()
@@ -133,13 +133,13 @@ namespace Geumeum.UI
         ****************************************/
 
         /// <summary>
-        /// uGUI 클릭을 받으려면 씬에 EventSystem이 있어야 한다.
+        /// uGUI 클릭을 받으려면 씬에 EventSystem이 있어야 한다
         ///
-        /// 출시 씬(Boot, Field, Result ...)에는 EventSystem이 없고 Dev_HUD와 Dev_Title에만 있다.
+        /// 출시 씬(Boot, Field, Result ...)에는 EventSystem이 없고 Dev_HUD와 Dev_Title에만 있다
         /// 없으면 버튼도 입력칸도 눌리지 않으므로 - 화면은 보이는데 아무 반응이 없다 -
-        /// 여기서 하나 만든다. 씬 파일을 고치면 머지가 안 되므로 실행 중에 만든다.
+        /// 여기서 하나 만든다. 씬 파일을 고치면 머지가 안 되므로 실행 중에 만든다
         ///
-        /// 씬을 넘어가도 계속 필요해 DontDestroyOnLoad로 남긴다.
+        /// 씬을 넘어가도 계속 필요해 DontDestroyOnLoad로 남긴다
         /// 이미 있으면 만들지 않는다 - EventSystem이 둘이면 Unity가 경고를 낸다
         /// </summary>
         private void EnsureEventSystem()
@@ -276,7 +276,7 @@ namespace Geumeum.UI
         private void OnSessionStateChanged(SteamSessionState state) => Refresh();
 
         /// <summary>
-        /// 런이 시작되면 화면을 접는다.
+        /// 런이 시작되면 화면을 접는다
         ///
         /// 단계 변화는 클라이언트에 SyncVar 훅으로만 오고 구독할 이벤트가 없어
         /// 여기서만 낮은 주기로 본다. 로비를 벗어나면 코루틴도 같이 끝낸다
@@ -325,7 +325,7 @@ namespace Geumeum.UI
                 return;
             }
 
-            // 시작을 누른 뒤로는 접속과 런 시작이 자동으로 이어지므로 화면을 접는다.
+            // 시작을 누른 뒤로는 접속과 런 시작이 자동으로 이어지므로 화면을 접는다
             // 호스트를 열지 못해 Gathering으로 되돌아오면 다시 뜬다
             bool isPastLobby = ((session.State == SteamSessionState.StartingHost) ||
                                 (session.State == SteamSessionState.Connecting) ||
@@ -358,7 +358,7 @@ namespace Geumeum.UI
         {
             if (canStart)
             {
-                return "정원이 찼다. 시작 후 각자 준비 완료를 누르면 출발한다";
+                return "편성 로비를 열 수 있습니다. 인원이 부족하면 방장이 봇 충원을 선택하세요.";
             }
 
             if (!lobby.IsOwner)
@@ -383,7 +383,7 @@ namespace Geumeum.UI
 
         private void BuildWeaponSelection()
         {
-            // 기존 로비 프리팹의 글꼴, 버튼을 재사용한다. 씬별 별도 배선이 필요 없다.
+            // 기존 로비 프리팹의 글꼴, 버튼을 재사용한다. 씬별 별도 배선이 필요 없다
             var panel = (RectTransform)_startButton.transform.parent;
             panel.sizeDelta += new Vector2(0f, WEAPON_PANEL_EXTRA_HEIGHT);
             foreach (Transform child in panel)
@@ -502,7 +502,7 @@ namespace Geumeum.UI
         }
 
         /// <summary>
-        /// 클립보드의 로비 ID를 입력칸에 넣는다.
+        /// 클립보드의 로비 ID를 입력칸에 넣는다
         ///
         /// 메신저로 주고받으면 앞뒤 공백이나 줄바꿈이 섞여 들어오고, 그대로 넣으면
         /// 숫자로 읽히지 않는다. 숫자만 남기고 넣은 뒤 무엇이 들어갔는지 알린다

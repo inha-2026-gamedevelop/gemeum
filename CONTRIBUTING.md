@@ -77,7 +77,7 @@ feat: 패링 판정을 서버 타임스탬프 기준으로 처리
 |---|---|
 | `Assets/00.Scenes/Dev_Combat.unity` | 네트워크 · 전투 (@AidenKim923) |
 | `Assets/00.Scenes/Dev_AI.unity` | 몬스터 · 보스 (@oname36-creator) |
-| `Assets/00.Scenes/Dev_System.unity` **(미생성)** | 게임플레이 시스템 (@kjw1237) |
+| `Assets/00.Scenes/Dev_System/` 내 담당 씬 | 게임플레이 시스템 (@kjw1237) |
 | `Assets/00.Scenes/Dev_Art.unity` **(미생성)** | 테크니컬 아트 (@AidenKim923 겸임) |
 | `Assets/00.Scenes/Main.unity` | **통합 담당자만** |
 
@@ -181,3 +181,9 @@ PR이 커지면 리뷰가 형식적으로 변하고, 충돌 해결 비용이 급
 - 인벤토리 확장
 - 프로토타입 단계(08.30–09.19)에서의 카메라 연출 작업
 - 마감 주(10.31)의 신규 기능 추가
+
+## 문서 공유
+
+팀 계약·API·재현 절차·담당자 전달은 `docs/`에 둔다. 개인 계정·세션 기록은 팀 문서의 의존 자료로 만들지 않는다. 분류·본문 갱신·링크 검증은 [문서 관리 기준](docs/DOCUMENTATION_POLICY.md)을 따른다.
+
+공유할 소스·설정과 비밀값·생성물의 구분, 이미 추적된 제외 파일의 처리는 [저장소 포함·제외 기준](docs/REPOSITORY_HYGIENE.md)을 따른다.

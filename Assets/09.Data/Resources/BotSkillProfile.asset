@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb9f7ecc61124ba8a6322a328c4723ec, type: 3}
+  m_Name: BotSkillProfile
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.BotSkillProfileSO
+  VisionAngle: 150
+  VisionRange: 25
+  ReactionMean: 0.28
+  ReactionSigma: 0.06
+  ReactionMin: 0.15
+  ReactionMax: 0.45
+  MissChance: 0.08
+  ObservationRetrySeconds: 1
+  AimSigmaDegrees: 1.5
+  StaminaReserve: 25
+  TimingSigma: 0.09
+  WrongDirectionChance: 0.1
+  FalseParryChance: 0.1
+  MaxTrackedThreats: 2
+  RollLeadSeconds: 0.3
+  AttackCommitSeconds: 0.7
+  HitMemorySeconds: 3

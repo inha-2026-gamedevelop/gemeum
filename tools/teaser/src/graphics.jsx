@@ -16,7 +16,7 @@ export function Ink({amount, id = 'ink'}) {
   if (amount <= 0) return null;
   if (amount >= 1) return <AbsoluteFill style={{backgroundColor: editorial.ink}} />;
   const p = amount * amount * (3 - 2 * amount);
-  // Fixed irregular lobes and fixed turbulence seed: no flicker or random seek state.
+  // Fixed irregular lobes and fixed turbulence seed: no flicker or random seek state
   const centers = [[760,580,1], [1010,520,.91], [840,710,.72], [1190,610,.82], [590,440,.69]];
   return <svg viewBox="0 0 1920 1080" style={{position: 'absolute', width: '100%', height: '100%'}}>
     <defs><filter id={id} x="-30%" y="-50%" width="160%" height="200%" colorInterpolationFilters="sRGB">
@@ -48,7 +48,7 @@ export function Subtitle({overlay, frame}) {
     textShadow: '0 2px 3px #000, 0 0 12px #000, 0 0 26px #000'}}>{overlay.text}</div>;
 }
 
-// Reused unchanged in review, standalone alpha exports, and the preview reel.
+// Reused unchanged in review, standalone alpha exports, and the preview reel
 export function EditorialLayers({plan, frame}) {
   const title = plan.overlays.find(o => o.kind === 'title' && frame >= o.startFrame && frame < o.startFrame+o.durationFrames);
   const endInk = plan.overlays.find(o => o.id === 'title-ink' && frame >= o.startFrame && frame < o.startFrame+o.durationFrames);

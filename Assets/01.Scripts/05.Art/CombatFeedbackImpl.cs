@@ -53,7 +53,11 @@ namespace Geumeum.Art
             if ((localStatus != null) &&
                 localStatus.TryGetComponent(out PlayerAnimationController animation))
             {
-                animation.PlayHitStop(duration);
+                PlayerWeapon weapon = localStatus.GetComponent<PlayerWeapon>();
+                if (weapon != null && weapon.Weapon == WeaponKind.Bow) { return; }
+                float stop = weapon != null && weapon.Weapon == WeaponKind.Bell && GameDB.IsInitialized
+                    ? GameDB.Presentation.BellHitStopSeconds : duration;
+                animation.PlayHitStop(stop);
             }
         }
 

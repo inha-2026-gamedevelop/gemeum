@@ -5,7 +5,7 @@ using UnityEngine.AI;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 씬에 배치되는 잡귀 거점 마커. 위치는 고정이고 구성(종류·수)은 SpawnManager가 매번 랜덤으로 정한다
+    /// 씬에 배치되는 잡귀 거점 마커. 위치는 고정이고 구성(종류, 수)은 SpawnManager가 매번 랜덤으로 정한다
     /// </summary>
     public class SpawnCluster : MonoBehaviour
     {

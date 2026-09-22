@@ -122,7 +122,7 @@ namespace Geumeum.Systems
             }
 
             // revision 창구가 먼저 새 loadout 세대를 예약한다. 이후 원본 변경은
-            // List 추가와 값 대입뿐이라 observer 예외나 재진입이 끼어들지 않는다.
+            // List 추가와 값 대입뿐이라 observer 예외나 재진입이 끼어들지 않는다
             _serverNodeIds.Add(node.NodeId);
             _spentPoints += node.PointCost;
             _revision = nextRevision;
@@ -231,6 +231,10 @@ namespace Geumeum.Systems
         private TalentAllocationResult ValidateMutation(uint expectedRevision,
             bool requiresNextRevision = true)
         {
+            if (TryGetComponent(out Geumeum.Combat.PlayerAttack attack) && attack.BlocksTalentMutation)
+            {
+                return TalentAllocationResult.InvalidState;
+            }
             if ((_revision == 0u) || (!_hasWeapon) || (_publishPending) ||
                 (_loadoutRevisionTarget == null) || (_growthParticipant == null) ||
                 (!_growthParticipant.Participant.IsValid))
@@ -263,7 +267,7 @@ namespace Geumeum.Systems
             }
             catch (Exception e)
             {
-                // SyncList 원본 변경은 이미 끝난 서버 원본을 되돌리지 않는다.
+                // SyncList 원본 변경은 이미 끝난 서버 원본을 되돌리지 않는다
                 Debug.LogError($"[TalentController] 특성 배분 공개 실패: {e}", this);
             }
         }

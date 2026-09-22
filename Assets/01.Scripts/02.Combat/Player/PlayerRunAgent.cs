@@ -28,8 +28,8 @@ namespace Geumeum.Combat
         private PlayerStatus     _status     = null;
         private PlayerController _controller = null;
 
-        // PlayerStatus가 먼저 OnStopServer를 받으면 참가자 신원을 지운다.
-        // 결과 원본은 컴포넌트 종료 순서와 무관하게 마지막 상태를 기록해야 한다.
+        // PlayerStatus가 먼저 OnStopServer를 받으면 참가자 신원을 지운다
+        // 결과 원본은 컴포넌트 종료 순서와 무관하게 마지막 상태를 기록해야 한다
         private ParticipantId _resultParticipant = ParticipantId.None;
 
         // 상태를 담고 붓는 컴포넌트들
@@ -117,6 +117,8 @@ namespace Geumeum.Combat
                 return false;
             }
 
+            // 봇은 Spawn 이후 신원을 받는다. 종료 콜백 순서와 무관하게 결과 신원을 보존한다
+            CacheResultParticipant();
             return true;
         }
 
@@ -194,6 +196,7 @@ namespace Geumeum.Combat
                 restored &= _carriers[i].Restore(snapshot);
             }
 
+            if (restored) { CacheResultParticipant(); }
             return restored;
         }
 

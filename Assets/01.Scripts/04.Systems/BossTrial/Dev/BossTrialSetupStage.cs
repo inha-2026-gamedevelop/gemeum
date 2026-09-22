@@ -16,7 +16,7 @@ namespace Geumeum.Systems
 {
     /// <summary>
     /// 보스 트라이 설정 화면. Dev_BossTrial 씬에 홀로 놓여 레벨, 무기, 장비 옵션, 특성을 직접 정하고
-    /// 그 편성 그대로 런을 시작한다. 30분을 걷지 않고 보스 앞 상태를 손으로 만드는 밸런싱 도구다.
+    /// 그 편성 그대로 런을 시작한다. 30분을 걷지 않고 보스 앞 상태를 손으로 만드는 밸런싱 도구다
     /// 값 검증은 서버와 같은 BossTrialRules를 쓰므로 여기서 통과한 편성은 서버에서도 통과한다
     /// </summary>
     public class BossTrialSetupStage : MonoBehaviour
@@ -95,7 +95,7 @@ namespace Geumeum.Systems
 
         /// <summary>
         /// 무기는 런이 시작될 때 로비가 확정한다. 접속 직후 자동 준비로 바로 시작해 버리면
-        /// 선호가 늦어 다른 무기로 확정되므로, 선호를 보낸 뒤에 준비를 누른다.
+        /// 선호가 늦어 다른 무기로 확정되므로, 선호를 보낸 뒤에 준비를 누른다
         /// 로비 씬으로 넘어가면서 앞선 요청이 버려질 수 있어 로스터가 받아들일 때까지 다시 보낸다
         /// </summary>
         private void AdvanceStart()

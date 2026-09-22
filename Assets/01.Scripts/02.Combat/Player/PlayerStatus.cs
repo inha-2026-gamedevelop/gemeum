@@ -32,7 +32,7 @@ namespace Geumeum.Combat
         [SyncVar] private bool            _isInvincible = false; // 일시 무적
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
-        // 개발용 무한 자원. SyncVar인 이유는 켠 사람 화면에 상태를 보여 주기 위해서다.
+        // 개발용 무한 자원. SyncVar인 이유는 켠 사람 화면에 상태를 보여 주기 위해서다
         // 판정은 전부 서버에서만 본다
         [SyncVar] private bool            _devInfiniteResources = false;
 #endif
@@ -49,9 +49,74 @@ namespace Geumeum.Combat
         private bool  _resourceStateInitialized;
         private bool  _resourceTransactionLocked;
         private uint  _serverDamageGeneration;
+        [SyncVar] private PlayerHitReactionCue _hitReaction;
+        private double _nextHitReactionGameplayTime;
+        private PlayerAttack _hitAttack;
+        private PrecisionShotController _hitPrecision;
+        private HealController _hitHeal;
+        private PlayerRollController _hitRoll;
+        private ParryController _hitParry;
+
+        private void Awake()
+        {
+            _hitAttack = GetComponent<PlayerAttack>();
+            _hitPrecision = GetComponent<PrecisionShotController>();
+            _hitHeal = GetComponent<HealController>();
+            _hitRoll = GetComponent<PlayerRollController>();
+            _hitParry = GetComponent<ParryController>();
+        }
+
+        public PlayerHitReactionCue HitReaction => _hitReaction;
+        public bool IsHitReacting => !IsDead && !IsSwallowed &&
+            _hitReaction.IsActiveAt(RunTimeLocator.Current.GameplayElapsedSeconds);
+
+        private void ResetHitReaction()
+        {
+            _hitReaction = default;
+            _nextHitReactionGameplayTime = 0d;
+        }
+
+        [Server]
+        private void ServerReactToHit(in DamageInfo damage)
+        {
+            if (IsDead || IsSwallowed)
+            {
+                _hitAttack?.ResetForNewRun();
+                ResetHitReaction();
+                return;
+            }
+
+            double now = RunTimeLocator.Current.GameplayElapsedSeconds;
+            if (damage.AttackerNetId == DamageInfo.NO_ATTACKER || !IsFinite(now) ||
+                now < _nextHitReactionGameplayTime || !GameDB.IsInitialized)
+            {
+                return;
+            }
+
+            float duration = GameDB.Combat.PlayerHitReactionDuration;
+            float resistance = GameDB.Combat.PlayerHitReactionResistanceDuration;
+            if (!IsFinite(duration) || duration <= 0f || !IsFinite(resistance))
+            {
+                return;
+            }
+
+            _hitReaction = new PlayerHitReactionCue
+            {
+                Generation = _serverDamageGeneration,
+                StartGameplayTime = now,
+                EndGameplayTime = now + duration,
+            };
+            _nextHitReactionGameplayTime = _hitReaction.EndGameplayTime + Math.Max(0f, resistance);
+            _hitAttack?.ServerInterruptForHit();
+            _hitPrecision?.ServerInterruptForHit();
+            _hitHeal?.ServerInterruptForHit();
+            _hitRoll?.ServerInterruptForHit();
+            _hitParry?.ServerInterruptForHit();
+        }
 
         // 서버가 스폰한 플레이어 전부
         private static readonly List<PlayerStatus> G_ServerPlayers = new List<PlayerStatus>();
+        public static IReadOnlyList<PlayerStatus> ServerPlayers => G_ServerPlayers;
 
         private double _lastStaminaSpendServerTime = -1.0; // 서버 전용
 
@@ -62,6 +127,8 @@ namespace Geumeum.Combat
         private bool _isRunStateReady = false; // 서버 전용
 
         private ParticipantId _participant = ParticipantId.None;
+        [SyncVar] private ParticipantKind _replicatedParticipantKind;
+        [SyncVar] private ulong _replicatedParticipantValue;
 
         /****************************************
         *              Properties
@@ -79,7 +146,8 @@ namespace Geumeum.Combat
         public uint            ResourceRevision => (_resourceStateInitialized && isServer)
             ? _serverResourceRevision : _resourceRevision;
         public bool            IsResourceTransactionLocked => _resourceTransactionLocked;
-        public ParticipantId   Participant  => _participant;
+        public ParticipantId   Participant  => isServer ? _participant :
+            new ParticipantId(_replicatedParticipantKind, _replicatedParticipantValue);
         public bool            IsSwallowed  => (_lifeState == PlayerLifeState.Swallowed);
         public uint            SwallowGeneration => _swallowGeneration;
         public uint            DamageGeneration => _serverDamageGeneration;
@@ -122,7 +190,7 @@ namespace Geumeum.Combat
         public bool IsDead => ((_lifeState == PlayerLifeState.Downed) || (_lifeState == PlayerLifeState.Spectating));
 
         /// <summary>
-        /// 이 화면의 주인. UI가 체력 바를 누구 것으로 그릴지 여기서 정한다.
+        /// 이 화면의 주인. UI가 체력 바를 누구 것으로 그릴지 여기서 정한다
         /// 관전 중에도 자기 인스턴스는 그대로 남으므로 바뀌지 않는다
         /// </summary>
         public static PlayerStatus Local { get; private set; }
@@ -136,6 +204,7 @@ namespace Geumeum.Combat
 
         /// <summary> 동기화된 체력이 줄었다. 피격 플래시가 쓴다 </summary>
         public event System.Action HealthDecreased;
+        public event System.Action<uint> ServerDamagedBy;
 
         /// <summary> 스태미나가 바뀌었다. (현재, 최대) </summary>
         public event System.Action<float, float> StaminaChanged;
@@ -241,7 +310,7 @@ namespace Geumeum.Combat
                 }
                 catch (Exception e)
                 {
-                    // SyncVar hook 밖으로 예외가 나가면 Mirror hook guard도 복구되지 않는다.
+                    // SyncVar hook 밖으로 예외가 나가면 Mirror hook guard도 복구되지 않는다
                     Debug.LogError($"[PlayerStatus] {resourceName} observer 실패: {e}", this);
                 }
             }
@@ -307,6 +376,7 @@ namespace Geumeum.Combat
             G_ServerPlayers.Remove(this);
             BossSwallowTargetRegistry.Unregister(this);
             GrowthParticipantLocator.Unregister(this);
+            ParticipantDirectory.Unregister(_participant, netIdentity);
             _participant = ParticipantId.None;
             _resourceTransactionLocked = false;
             _resourceStateInitialized  = false;
@@ -443,6 +513,11 @@ namespace Geumeum.Combat
 
             if (snapshot.Participant.IsValid)
             {
+                if (!ParticipantDirectory.Register(snapshot.Participant, netIdentity))
+                {
+                    return false;
+                }
+
                 SetParticipant(snapshot.Participant);
                 GrowthParticipantLocator.Register(this);
             }
@@ -467,6 +542,7 @@ namespace Geumeum.Combat
             _serverSpirit   = (combat == null) ? snapshot.Spirit :
                 Mathf.Clamp(snapshot.Spirit, 0f, combat.SpiritMax);
             _lifeState      = lifeState;
+            ResetHitReaction();
             _swallowGeneration = snapshot.SwallowGeneration;
             _swallowedEndGameplayTime = (lifeState == PlayerLifeState.Swallowed)
                 ? RunTimeLocator.Current.GameplayElapsedSeconds +
@@ -508,11 +584,12 @@ namespace Geumeum.Combat
             TryApplyStartingState();
         }
 
-        /// <summary> 서버가 참가자 신원을 확정할 때 호출하는 테스트와 개발 fixture용 창구 </summary>
+        /// <summary> 서버가 참가자 신원을 확정하고 객체, 성장 목록에 등록한다 </summary>
         [Server]
         public bool ServerSetParticipantId(ParticipantId participant)
         {
-            if (!participant.IsValid)
+            if ((!participant.IsValid) ||
+                (!ParticipantDirectory.Register(participant, netIdentity)))
             {
                 return false;
             }
@@ -587,7 +664,15 @@ namespace Geumeum.Combat
                 return;
             }
 
+            if (!ParticipantDirectory.Register(_participant, netIdentity))
+            {
+                Debug.LogError($"[PlayerStatus] 참가자 중복 등록: {_participant}", this);
+                return;
+            }
+
             GrowthParticipantLocator.Register(this);
+            _replicatedParticipantKind = _participant.Kind;
+            _replicatedParticipantValue = _participant.Value;
 
             if (GrowthProviderLocator.HasProvider &&
                 GrowthProviderLocator.Current.TryGetState(_participant, out GrowthState growth))
@@ -604,6 +689,7 @@ namespace Geumeum.Combat
             }
 
             GrowthParticipantLocator.Unregister(this);
+            ParticipantDirectory.Unregister(_participant, netIdentity);
             _participant = participant;
         }
 
@@ -735,6 +821,7 @@ namespace Geumeum.Combat
             _swallowGeneration = 0u;
             _swallowedEndGameplayTime = 0.0;
             _serverDamageGeneration = 0u;
+            ResetHitReaction();
 
             _serverResourceRevision    = 0u;
             _resourceRevision          = 0u;
@@ -861,6 +948,7 @@ namespace Geumeum.Combat
             }
 
             AdvanceDamageGeneration();
+            ServerDamagedBy?.Invoke(damage.AttackerNetId);
             ServerAdvanceResourceRevision();
             if (_serverHealth <= Constants.Combat.HEALTH_EPSILON)
             {
@@ -882,6 +970,8 @@ namespace Geumeum.Combat
 
             _health = _serverHealth;
             ServerRecordHealthState();
+            _hitAttack?.ServerDiscardCombatRewardsOnDamage();
+            ServerReactToHit(in damage);
         }
 
         [Server]
@@ -1232,7 +1322,7 @@ namespace Geumeum.Combat
             }
 #endif
 
-            if (_stamina < amount)
+            if (_stamina - (_hitAttack != null ? _hitAttack.ReservedSkillStamina : 0f) < amount)
             {
                 return false;
             }
@@ -1254,6 +1344,15 @@ namespace Geumeum.Combat
             _stamina = GameDB.Combat.StaminaMax;
         }
 
+        [Server]
+        public void ServerRestoreStamina(float amount)
+        {
+            if (GameDB.IsInitialized && !float.IsNaN(amount) && !float.IsInfinity(amount) && amount > 0f)
+            {
+                _stamina = Mathf.Min(GameDB.Combat.StaminaMax, _stamina + amount);
+            }
+        }
+
         /// <summary> 신력이 충분할 때만 원자적으로 차감한다. 자연 회복 시간에는 영향을 주지 않는다 </summary>
         [Server]
         public bool TrySpendSpirit(float amount)
@@ -1272,7 +1371,7 @@ namespace Geumeum.Combat
             }
 #endif
 
-            if (_serverSpirit < amount)
+            if (_serverSpirit - (_hitAttack != null ? _hitAttack.ReservedSkillSpirit : 0f) < amount)
             {
                 return false;
             }
@@ -1298,7 +1397,7 @@ namespace Geumeum.Combat
         public bool DevInfiniteResources => _devInfiniteResources;
 
         /// <summary>
-        /// 개발용 무한 자원을 켜고 끈다. 자기 캐릭터에만 걸리고 남의 판정은 건드리지 않는다.
+        /// 개발용 무한 자원을 켜고 끈다. 자기 캐릭터에만 걸리고 남의 판정은 건드리지 않는다
         /// 판정은 전부 서버가 하므로 클라이언트가 값을 직접 바꾸지 않고 서버에 부탁한다
         /// </summary>
         [Command]

@@ -1,18 +1,18 @@
 // 검 기본 공격 검기. MeleeSlashView가 실제 검날 경로로 만든 리본을 그린다.
 // uv0.x는 점의 나이(0 방금, 1 사라짐), uv0.y는 손잡이 쪽 0에서 칼끝 1, uv0.z는 칼끝이 지나온 거리다.
 // 새 점일수록 진하고 칼끝 테두리가 밝으며, 늙은 점은 옅어지면서 노이즈로 갉아먹혀 잔상으로 사라진다.
-// 색 문법상 아군 표현이라 몸통은 주묵 붉은색, 앞날은 한지 백색이다. 값은 PresentationConfigSO가 넘긴다
+// 몸통은 옅은 강철색, 앞날은 따뜻한 백색이며 PresentationConfigSO가 색을 정한다
 Shader "Geumeum/MeleeSlash"
 {
     Properties
     {
-        _BodyColor       ("Body Color", Color)               = (0.72, 0.09, 0.07, 0.85)
-        [HDR] _EdgeColor ("Edge Color", Color)               = (1.5, 1.42, 1.28, 1)
-        _EdgeWidth       ("Edge Width", Range(0.01, 1))      = 0.28
+        _BodyColor       ("Body Color", Color)               = (0.42, 0.45, 0.48, 0.26)
+        [HDR] _EdgeColor ("Edge Color", Color)               = (1.8, 1.68, 1.42, 1)
+        _EdgeWidth       ("Edge Width", Range(0.01, 1))      = 0.09
         _HeadGlow        ("Head Glow", Range(0, 2))          = 0.6
         _HeadLength      ("Head Glow Length", Range(0.01, 1)) = 0.2
-        _AgeFalloff      ("Age Falloff", Range(0.2, 4))      = 0.8
-        _ErodeStart      ("Erode Start Age", Range(0, 0.95)) = 0.45
+        _AgeFalloff      ("Age Falloff", Range(0.2, 4))      = 1.8
+        _ErodeStart      ("Erode Start Age", Range(0, 0.95)) = 0.2
         _NoiseScale      ("Erosion Noise Scale", Vector)     = (3, 4, 0, 0)
     }
 
@@ -102,7 +102,7 @@ Shader "Geumeum/MeleeSlash"
                 float life = pow(saturate(1.0 - age), _AgeFalloff);
 
                 // 몸통은 손잡이 쪽으로 갈수록 옅어지고, 앞날은 칼끝 테두리에 몰린다
-                float body     = smoothstep(0.0, 0.7, v);
+                float body     = smoothstep(0.25, 0.9, v) * .35;
                 float edge     = smoothstep(1.0 - _EdgeWidth, 1.0 - (_EdgeWidth * 0.25), v);
                 float headGlow = (1.0 - smoothstep(0.0, _HeadLength, age)) * _HeadGlow;
 
@@ -115,8 +115,9 @@ Shader "Geumeum/MeleeSlash"
 
                 float  edgeMix = saturate(edge + (headGlow * 0.5));
                 float3 color   = lerp(_BodyColor.rgb, _EdgeColor.rgb, edgeMix);
-                float  alpha   = saturate((_BodyColor.a * body) + edge + (headGlow * 0.4));
-                alpha *= life * erode;
+                float filament = lerp(.65, 1.0, ValueNoise(float2(distance * 18, v * 42)));
+                float  alpha   = saturate((_BodyColor.a * body) + edge * .72 + (headGlow * 0.16));
+                alpha *= life * erode * filament;
 
                 return half4(color * alpha, alpha);
             }

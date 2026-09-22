@@ -60,10 +60,28 @@ namespace Geumeum.Combat
             _lockOn       = GetComponent<LockOnController>();
         }
 
+        [Server]
+        public void ServerInterruptForHit()
+        {
+            _isRolling = false;
+            _rollEndServerTime = 0d;
+            _rollDirection = Vector2.zero;
+        }
+
         private void Update()
         {
             if ((!isOwned) || (!LocalGameplayInputGate.AllowsGameplayInput) ||
                 (!Input.GetKeyDown(Constants.Player.KEY_ROLL)))
+            {
+                return;
+            }
+
+            RequestLocalRoll();
+        }
+
+        private void RequestLocalRoll()
+        {
+            if (_attack != null && _attack.TryBufferCombatAction(4, RequestLocalRoll))
             {
                 return;
             }
@@ -99,17 +117,27 @@ namespace Geumeum.Combat
         [Command]
         private void CmdRequestRoll(uint requestId, Vector2 requestedDirection)
         {
-            _pendingDirection = requestedDirection;
-
-            ActionRejection rejection = PlayerActionPipeline.TryExecute(
-                ref _requestIds, requestId, this, NetworkTime.time);
-
-            if (rejection == ActionRejection.None)
+            ActionRejection rejection = ServerRequestRoll(requestId, requestedDirection);
+            if ((rejection != ActionRejection.None) && (connectionToClient != null))
             {
-                return;
+                TargetActionRejected(rejection);
+            }
+        }
+
+        /// <summary> 방향 입력을 검사하고 기존 행동 게이트로 구르기를 요청한다 </summary>
+        [Server]
+        public ActionRejection ServerRequestRoll(uint requestId, Vector2 requestedDirection)
+        {
+            if ((!PlayerInputRules.IsFinite(requestedDirection.x)) ||
+                (!PlayerInputRules.IsFinite(requestedDirection.y)))
+            {
+                return ActionRejection.InvalidInput;
             }
 
-            TargetActionRejected(rejection);
+            _pendingDirection = requestedDirection;
+
+            return PlayerActionPipeline.TryExecute(
+                ref _requestIds, requestId, this, NetworkTime.time);
         }
 
         /****************************************
@@ -125,8 +153,8 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            bool isOtherActionInProgress = ((_parry != null) && (_parry.IsActionInProgress(serverTime)))
-                || ((_attack != null) && (_attack.IsActionInProgress(serverTime)));
+            bool isOtherActionInProgress = _status.IsHitReacting || ((_parry != null) && (_parry.IsActionInProgress(serverTime)))
+                || ((_attack != null) && (_attack.IsActionInProgress(serverTime) && !_attack.CanRollCancelWeaponSkill));
 
             RunPhase phase    = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
             bool     isPaused = ((RunManager.ServerInstance != null) && (RunManager.ServerInstance.IsPaused));
@@ -140,13 +168,18 @@ namespace Geumeum.Combat
                 serverTime,
                 _rollEndServerTime,
                 _status.Stamina,
-                GameDB.Combat.RollStaminaCost);
+                _attack != null ? _attack.ResolveRollCost(GameDB.Combat.RollStaminaCost) : GameDB.Combat.RollStaminaCost);
 
             return true;
         }
 
         public bool TrySpendResource(in PlayerActionContext context)
         {
+            if (_attack != null && _attack.CanRollCancelWeaponSkill)
+            {
+                if (_status.Stamina < context.ResourceCost) { return false; }
+                _attack.ServerCancelWeaponSkillForRoll();
+            }
             return _status.TrySpendStamina(context.ResourceCost);
         }
 
@@ -154,6 +187,7 @@ namespace Geumeum.Combat
         {
             CombatConfigSO combat = GameDB.Combat;
 
+            _attack?.ServerDidRoll();
             _rollDirection = ResolveServerDirection(_pendingDirection);
 
             if (_presentation != null)
@@ -258,7 +292,14 @@ namespace Geumeum.Combat
                 return false;
             }
 
-            Vector2 facing = _presentation.FacingDirection;
+            // 락온 백스텝은 "대상에게서 물러난다"는 뜻이므로 대상 방향을 직접 읽는다.
+            // 구르기 중에는 FacingDirection이 진행 중인 구르기 방향이라 이어서 요청하면
+            // 대상이 아니라 오던 길을 되돌아가게 된다
+            if (!_presentation.TryGetLockOnFacing(out Vector2 facing))
+            {
+                facing = _presentation.FacingDirection;
+            }
+
             if (facing.sqrMagnitude <= (Constants.Player.MOVE_INPUT_EPSILON * Constants.Player.MOVE_INPUT_EPSILON))
             {
                 return false;

@@ -1,9 +1,6 @@
 # LOD · 컬링 현황
 
-`Main.unity` 기준으로 **무엇이 켜져 있고 무엇이 꺼져 있는지** 기록한 문서다.
-성능 문제를 만났을 때 "이건 이미 되어 있나?"를 매번 다시 조사하지 않기 위해 남긴다.
-
-측정: 2026-09-01, Unity 에디터에서 직접 조회.
+이 문서는 2026-09-01 `Main.unity` 측정 스냅샷이다. 현재 런타임 기준은 `Release/Field.unity`이므로 아래 수량과 병목 결론은 재측정 전까지 참고값으로만 사용한다.
 성능 최적화 일반론은 [엔지니어링 패턴](UNITY_ENGINEERING_PATTERNS.md), 씬·에셋 규칙은 [씬·에셋 안전](SCENE_AND_ASSET_SAFETY.md).
 
 ---
@@ -13,7 +10,7 @@
 | 기능 | 상태 | 비고 |
 |---|---|---|
 | LODGroup | **적용** | 씬에 275개. Map Decor 바위 전부 |
-| SRP Batcher | **켜짐** | 드로우콜은 이미 병목이 아니다 |
+| SRP Batcher | **켜짐** | 실제 병목은 현재 런타임 씬에서 측정해야 함 |
 | 지형 나무 빌보드 | **켜짐** | 90m 밖 빌보드 전환 |
 | 지형 풀 컬링 | **켜짐** | 40m 밖 미표시 |
 | GPU 스키닝 | **켜짐** | |
@@ -107,7 +104,7 @@ LOD3 → 컬링 : 1.7%
 
 ### SRP Batcher가 켜져 있다는 것의 의미
 
-바위는 셰이더 1종(`Shader Graphs/PW_General_ShaderGraph_URP`)에 머티리얼 6종이다. SRP Batcher가 이미 묶고 있으므로 **드로우콜을 줄이는 작업(메시 병합 등)은 지금 효과가 없다.** 병목은 드로우콜이 아니라 LOD0 삼각형 수다.
+바위는 셰이더 1종(`Shader Graphs/PW_General_ShaderGraph_URP`)에 머티리얼 6종이다. SRP Batcher는 켜져 있지만, 드로우콜과 LOD0 삼각형 중 무엇이 현재 병목인지는 `Release/Field`의 Profiler와 Frame Debugger 측정으로 판단한다.
 
 ### GPU Resident Drawer
 
@@ -155,7 +152,7 @@ Unity 6 URP의 기능으로, 컬링과 인스턴싱을 GPU로 넘긴다. 나무 
 | 바꾸려는 것 | 어디에 저장되나 | 필요한 것 |
 |---|---|---|
 | `lodBias` | `ProjectSettings/QualitySettings.asset` | 팀 합의 |
-| 오클루전 베이크 | `Main.unity` + 신규 에셋 | 통합 담당자 |
+| 오클루전 베이크 | `Release/Field.unity` + 신규 에셋 | 통합 담당자 |
 | GPU Resident Drawer | `PC_RPAsset` | 팀 합의 + 셰이더 호환 확인 |
 | 지형 컬링 거리 | TerrainData (LFS) | 테크니컬 아트 |
 

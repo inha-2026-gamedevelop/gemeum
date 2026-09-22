@@ -1,0 +1,1173 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-7537210296524088631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b27bb6d9a2c8d540a10dff10acc543e, type: 3}
+  m_Name: PlayerBehavior Debug Info
+  m_EditorClassIdentifier: Unity.Behavior::Unity.Behavior.BehaviorGraphDebugInfo
+  m_CodeBreakPointsList: []
+--- !u!114 &-3662052783779977019
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db920e62f70f420bb33c771449926fa4, type: 3}
+  m_Name: PlayerBehavior
+  m_EditorClassIdentifier: Unity.Behavior::Unity.Behavior.BehaviorGraph
+  Graphs:
+  - rid: 6055006571812618393
+  m_DebugInfo: {fileID: -7537210296524088631}
+  m_WasCompileWithPlaceholderNode: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 6055006571812618393
+      type: {class: BehaviorGraphModule, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        AuthoringAssetID:
+          m_Value0: 15304878682048740723
+          m_Value1: 855571673367508537
+        m_DebugInfo: {fileID: -7537210296524088631}
+        BlackboardReference:
+          rid: 6055006571812618394
+        BlackboardGroupReferences: []
+        Root:
+          rid: 6055006633537045406
+        m_VersionTimestamp: 639256948356559200
+    - rid: 6055006571812618394
+      type: {class: BlackboardReference, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        m_Blackboard:
+          rid: 6055006571812618396
+        m_Source: {fileID: 6043196531843506191}
+    - rid: 6055006571812618396
+      type: {class: Blackboard, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        m_Variables:
+        - rid: 6055006633537045408
+    - rid: 6055006633537045387
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 0
+    - rid: 6055006633537045388
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 1
+    - rid: 6055006633537045391
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 2
+    - rid: 6055006633537045399
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 3
+    - rid: 6055006633537045400
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 4
+    - rid: 6055006633537045401
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 9
+    - rid: 6055006633537045402
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 5
+    - rid: 6055006633537045403
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 6
+    - rid: 6055006633537045404
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 7
+    - rid: 6055006633537045405
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 8
+    - rid: 6055006633537045406
+      type: {class: Start, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        ID:
+          m_Value0: 17349034531516703001
+          m_Value1: 8120089750275090891
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: -2
+        m_Child:
+          rid: 6055006633537045407
+        Repeat: 0
+        AllowMultipleRepeatsPerTick: 1
+    - rid: 6055006633537045407
+      type: {class: SelectorComposite, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        ID:
+          m_Value0: 17804221649374497064
+          m_Value1: 17192458548185180943
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045406
+        m_Children:
+        - rid: 6055006633537045409
+        - rid: 6055006633537045410
+        - rid: 6055006633537045411
+        m_RegisteredObservers: []
+    - rid: 6055006633537045408
+      type: {class: 'BlackboardVariable`1[[UnityEngine.GameObject, UnityEngine.CoreModule]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 1
+          m_Value1: 0
+        Name: Self
+        m_Value: {fileID: 0}
+    - rid: 6055006633537045409
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 7229760197602124552
+          m_Value1: 10773071538498431737
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045407
+        Step:
+          rid: 6055006633537045387
+    - rid: 6055006633537045410
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 6807054915952183063
+          m_Value1: 18049801430328687233
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045407
+        Step:
+          rid: 6055006633537045388
+    - rid: 6055006633537045411
+      type: {class: SequenceComposite, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        ID:
+          m_Value0: 2552986649474161934
+          m_Value1: 14475253763125434571
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045407
+        m_Children:
+        - rid: 6055006633537045412
+        - rid: 6055006633537045413
+        m_RegisteredObservers: []
+    - rid: 6055006633537045412
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 2552986649474161934
+          m_Value1: 14475253763125434571
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045411
+        Step:
+          rid: 6055006633537045391
+    - rid: 6055006633537045413
+      type: {class: SelectorComposite, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        ID:
+          m_Value0: 4335563829881908650
+          m_Value1: 1535350685870830727
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045411
+        m_Children:
+        - rid: 6055006633537045414
+        - rid: 6055006633537045415
+        - rid: 6055006633537045416
+        - rid: 6055006633537045417
+        - rid: 6055006633537045418
+        - rid: 6055006633537045419
+        - rid: 6055006633537045420
+        m_RegisteredObservers: []
+    - rid: 6055006633537045414
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 513383524676385812
+          m_Value1: 12140809214412295059
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045413
+        Step:
+          rid: 6055006633537045399
+    - rid: 6055006633537045415
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 14441655580937551653
+          m_Value1: 14295793329339936881
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045413
+        Step:
+          rid: 6055006633537045400
+    - rid: 6055006633537045416
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 16126581207978280081
+          m_Value1: 18184047617250409135
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045413
+        Step:
+          rid: 6055006633537045401
+    - rid: 6055006633537045417
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 18393923586153817577
+          m_Value1: 2019666653361586889
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045413
+        Step:
+          rid: 6055006633537045402
+    - rid: 6055006633537045418
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 6100911594074967328
+          m_Value1: 1596459159328509664
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045413
+        Step:
+          rid: 6055006633537045403
+    - rid: 6055006633537045419
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 5481580374623820282
+          m_Value1: 14628126116003212186
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045413
+        Step:
+          rid: 6055006633537045404
+    - rid: 6055006633537045420
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 2104381125290093199
+          m_Value1: 6463817068555232946
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045413
+        Step:
+          rid: 6055006633537045405
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bad8f2220607dac4db5082ff333fafb8, type: 3}
+  m_Name: PlayerBehavior
+  m_EditorClassIdentifier: Unity.Behavior.Authoring::Unity.Behavior.BehaviorAuthoringGraph
+  Blackboard: {fileID: 3282243070921331539}
+  m_Description: Server decision BT. Left-to-right priority. One synchronous evaluation
+    per authority tick; On Start Repeat OFF. Bot perception is throttled by BotConfig.
+    Wait/Repeat nodes are not supported here.
+  m_Nodes:
+  - rid: 6055006571812618402
+  - rid: 6055006571812618403
+  - rid: 6055006571812618404
+  - rid: 6055006571812618405
+  - rid: 6055006571812618406
+  - rid: 6055006571812618407
+  - rid: 6055006571812618408
+  - rid: 6055006571812618409
+  - rid: 6055006571812618410
+  - rid: 6055006571812618411
+  - rid: 6055006571812618412
+  - rid: 6055006571812618413
+  - rid: 6055006582232842265
+  m_VersionTimestamp: 639256948356559200
+  m_SerializedVersion: 3
+  m_DebugInfo: {fileID: -7537210296524088631}
+  m_RuntimeGraph: {fileID: -3662052783779977019}
+  AssetID:
+    m_Value0: 15304878682048740723
+    m_Value1: 855571673367508537
+  Story:
+    Story: 
+    StoryVariableNames: []
+    Variables: []
+  m_NodeModelsInfo:
+  - Name: On Start
+    Story: 
+    RuntimeTypeString: Unity.Behavior.Start, Unity.Behavior, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    RuntimeTypeID:
+      m_Value0: 3335272451348827663
+      m_Value1: 11549843281177505721
+    Variables: []
+    NamedChildren: []
+    IsPlaceholder: 0
+  - Name: Try In Order
+    Story: 
+    RuntimeTypeString: Unity.Behavior.SelectorComposite, Unity.Behavior, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
+    RuntimeTypeID:
+      m_Value0: 11477120919463386923
+      m_Value1: 7730102824742023565
+    Variables: []
+    NamedChildren: []
+    IsPlaceholder: 0
+  - Name: Player Decision
+    Story: '[Step]'
+    RuntimeTypeString: Geumeum.Combat.PlayerBehaviorAction, Assembly-CSharp, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
+    RuntimeTypeID:
+      m_Value0: 12342819412778134213
+      m_Value1: 11552452653165173120
+    Variables:
+    - Name: Step
+      Type:
+        m_SerializableType: Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp, Version=0.0.0.0,
+          Culture=neutral, PublicKeyToken=null
+      Tooltip: 
+    NamedChildren: []
+    IsPlaceholder: 0
+  m_Blackboards: []
+  m_MainBlackboardAuthoringAsset: {fileID: 3282243070921331539}
+  m_CommandBuffer:
+    m_Commands: []
+  m_SubgraphsInfo: []
+  m_BlackboardMissingManagedRef: 0
+  m_GraphMissingManagedRef: 0
+  m_HasMissingTypeInManagedRef: 0
+  m_EnumDependencyCache:
+    Entries:
+    - EnumTypeId: Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp
+      SignatureHash: db66dfac6b39188e8dd2b57250a12aa1
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 6055006571812618402
+      type: {class: StartNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: 0, y: 0}
+        ID:
+          m_Value0: 17349034531516703001
+          m_Value1: 8120089750275090891
+        Parents: []
+        PortModels:
+        - rid: 6055006571812618414
+        NodeType:
+          m_SerializableType: Unity.Behavior.Start, Unity.Behavior, Version=0.0.0.0,
+            Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 3335272451348827663
+          m_Value1: 11549843281177505721
+        m_FieldValues: []
+        Repeat: 0
+        AllowMultipleRepeatsPerTick: 1
+    - rid: 6055006571812618403
+      type: {class: CompositeNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: 0, y: 160}
+        ID:
+          m_Value0: 17804221649374497064
+          m_Value1: 17192458548185180943
+        Parents: []
+        PortModels:
+        - rid: 6055006571812618415
+        - rid: 6055006571812618416
+        NodeType:
+          m_SerializableType: Unity.Behavior.SelectorComposite, Unity.Behavior, Version=0.0.0.0,
+            Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 11477120919463386923
+          m_Value1: 7730102824742023565
+        m_FieldValues: []
+    - rid: 6055006571812618404
+      type: {class: ActionNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: -600, y: 340}
+        ID:
+          m_Value0: 7229760197602124552
+          m_Value1: 10773071538498431737
+        Parents: []
+        PortModels:
+        - rid: 6055006571812618417
+        - rid: 6055006571812618418
+        NodeType:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorAction, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 12342819412778134213
+          m_Value1: 11552452653165173120
+        m_FieldValues:
+        - rid: 6055006571812618419
+    - rid: 6055006571812618405
+      type: {class: ActionNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: -300, y: 340}
+        ID:
+          m_Value0: 6807054915952183063
+          m_Value1: 18049801430328687233
+        Parents: []
+        PortModels:
+        - rid: 6055006571812618420
+        - rid: 6055006571812618421
+        NodeType:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorAction, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 12342819412778134213
+          m_Value1: 11552452653165173120
+        m_FieldValues:
+        - rid: 6055006571812618422
+    - rid: 6055006571812618406
+      type: {class: ActionNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: 300, y: 340}
+        ID:
+          m_Value0: 2552986649474161934
+          m_Value1: 14475253763125434571
+        Parents: []
+        PortModels:
+        - rid: 6055006571812618423
+        - rid: 6055006571812618424
+        NodeType:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorAction, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 12342819412778134213
+          m_Value1: 11552452653165173120
+        m_FieldValues:
+        - rid: 6055006571812618425
+    - rid: 6055006571812618407
+      type: {class: CompositeNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: 300, y: 510}
+        ID:
+          m_Value0: 4335563829881908650
+          m_Value1: 1535350685870830727
+        Parents: []
+        PortModels:
+        - rid: 6055006571812618426
+        - rid: 6055006571812618427
+        NodeType:
+          m_SerializableType: Unity.Behavior.SelectorComposite, Unity.Behavior, Version=0.0.0.0,
+            Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 11477120919463386923
+          m_Value1: 7730102824742023565
+        m_FieldValues: []
+    - rid: 6055006571812618408
+      type: {class: ActionNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: -500, y: 710}
+        ID:
+          m_Value0: 513383524676385812
+          m_Value1: 12140809214412295059
+        Parents: []
+        PortModels:
+        - rid: 6055006571812618428
+        - rid: 6055006571812618429
+        NodeType:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorAction, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 12342819412778134213
+          m_Value1: 11552452653165173120
+        m_FieldValues:
+        - rid: 6055006571812618430
+    - rid: 6055006571812618409
+      type: {class: ActionNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: -180, y: 710}
+        ID:
+          m_Value0: 14441655580937551653
+          m_Value1: 14295793329339936881
+        Parents: []
+        PortModels:
+        - rid: 6055006571812618431
+        - rid: 6055006571812618432
+        NodeType:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorAction, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 12342819412778134213
+          m_Value1: 11552452653165173120
+        m_FieldValues:
+        - rid: 6055006571812618433
+    - rid: 6055006571812618410
+      type: {class: ActionNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: 460, y: 710}
+        ID:
+          m_Value0: 18393923586153817577
+          m_Value1: 2019666653361586889
+        Parents: []
+        PortModels:
+        - rid: 6055006571812618434
+        - rid: 6055006571812618435
+        NodeType:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorAction, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 12342819412778134213
+          m_Value1: 11552452653165173120
+        m_FieldValues:
+        - rid: 6055006571812618436
+    - rid: 6055006571812618411
+      type: {class: ActionNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: 780, y: 710}
+        ID:
+          m_Value0: 6100911594074967328
+          m_Value1: 1596459159328509664
+        Parents: []
+        PortModels:
+        - rid: 6055006571812618437
+        - rid: 6055006571812618438
+        NodeType:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorAction, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 12342819412778134213
+          m_Value1: 11552452653165173120
+        m_FieldValues:
+        - rid: 6055006571812618439
+    - rid: 6055006571812618412
+      type: {class: ActionNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: 1100, y: 710}
+        ID:
+          m_Value0: 5481580374623820282
+          m_Value1: 14628126116003212186
+        Parents: []
+        PortModels:
+        - rid: 6055006571812618440
+        - rid: 6055006571812618441
+        NodeType:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorAction, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 12342819412778134213
+          m_Value1: 11552452653165173120
+        m_FieldValues:
+        - rid: 6055006571812618442
+    - rid: 6055006571812618413
+      type: {class: ActionNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: 1420, y: 710}
+        ID:
+          m_Value0: 2104381125290093199
+          m_Value1: 6463817068555232946
+        Parents: []
+        PortModels:
+        - rid: 6055006571812618443
+        - rid: 6055006571812618444
+        NodeType:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorAction, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 12342819412778134213
+          m_Value1: 11552452653165173120
+        m_FieldValues:
+        - rid: 6055006571812618445
+    - rid: 6055006571812618414
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618402
+        m_Connections:
+        - rid: 6055006571812618415
+    - rid: 6055006571812618415
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: InputPort
+        m_PortDataFlowType: 0
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618403
+        m_Connections:
+        - rid: 6055006571812618414
+    - rid: 6055006571812618416
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618403
+        m_Connections:
+        - rid: 6055006571812618417
+        - rid: 6055006571812618420
+        - rid: 6055006571812618423
+    - rid: 6055006571812618417
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: InputPort
+        m_PortDataFlowType: 0
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618404
+        m_Connections:
+        - rid: 6055006571812618416
+    - rid: 6055006571812618418
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618404
+        m_Connections: []
+    - rid: 6055006571812618419
+      type: {class: BehaviorGraphNodeModel/FieldModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        FieldName: Step
+        Type:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        LocalValue:
+          rid: 6055006571812618446
+        LinkedVariable:
+          rid: -2
+    - rid: 6055006571812618420
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: InputPort
+        m_PortDataFlowType: 0
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618405
+        m_Connections:
+        - rid: 6055006571812618416
+    - rid: 6055006571812618421
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618405
+        m_Connections: []
+    - rid: 6055006571812618422
+      type: {class: BehaviorGraphNodeModel/FieldModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        FieldName: Step
+        Type:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        LocalValue:
+          rid: 6055006571812618447
+        LinkedVariable:
+          rid: -2
+    - rid: 6055006571812618423
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: InputPort
+        m_PortDataFlowType: 0
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618406
+        m_Connections:
+        - rid: 6055006571812618416
+    - rid: 6055006571812618424
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618406
+        m_Connections:
+        - rid: 6055006571812618426
+    - rid: 6055006571812618425
+      type: {class: BehaviorGraphNodeModel/FieldModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        FieldName: Step
+        Type:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        LocalValue:
+          rid: 6055006571812618448
+        LinkedVariable:
+          rid: -2
+    - rid: 6055006571812618426
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: InputPort
+        m_PortDataFlowType: 0
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618407
+        m_Connections:
+        - rid: 6055006571812618424
+    - rid: 6055006571812618427
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618407
+        m_Connections:
+        - rid: 6055006571812618428
+        - rid: 6055006571812618431
+        - rid: 6055006571812618434
+        - rid: 6055006571812618437
+        - rid: 6055006571812618440
+        - rid: 6055006571812618443
+        - rid: 6055006582232842266
+    - rid: 6055006571812618428
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: InputPort
+        m_PortDataFlowType: 0
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618408
+        m_Connections:
+        - rid: 6055006571812618427
+    - rid: 6055006571812618429
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618408
+        m_Connections: []
+    - rid: 6055006571812618430
+      type: {class: BehaviorGraphNodeModel/FieldModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        FieldName: Step
+        Type:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        LocalValue:
+          rid: 6055006571812618449
+        LinkedVariable:
+          rid: -2
+    - rid: 6055006571812618431
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: InputPort
+        m_PortDataFlowType: 0
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618409
+        m_Connections:
+        - rid: 6055006571812618427
+    - rid: 6055006571812618432
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618409
+        m_Connections: []
+    - rid: 6055006571812618433
+      type: {class: BehaviorGraphNodeModel/FieldModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        FieldName: Step
+        Type:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        LocalValue:
+          rid: 6055006571812618450
+        LinkedVariable:
+          rid: -2
+    - rid: 6055006571812618434
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: InputPort
+        m_PortDataFlowType: 0
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618410
+        m_Connections:
+        - rid: 6055006571812618427
+    - rid: 6055006571812618435
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618410
+        m_Connections: []
+    - rid: 6055006571812618436
+      type: {class: BehaviorGraphNodeModel/FieldModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        FieldName: Step
+        Type:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        LocalValue:
+          rid: 6055006571812618451
+        LinkedVariable:
+          rid: -2
+    - rid: 6055006571812618437
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: InputPort
+        m_PortDataFlowType: 0
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618411
+        m_Connections:
+        - rid: 6055006571812618427
+    - rid: 6055006571812618438
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618411
+        m_Connections: []
+    - rid: 6055006571812618439
+      type: {class: BehaviorGraphNodeModel/FieldModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        FieldName: Step
+        Type:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        LocalValue:
+          rid: 6055006571812618452
+        LinkedVariable:
+          rid: -2
+    - rid: 6055006571812618440
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: InputPort
+        m_PortDataFlowType: 0
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618412
+        m_Connections:
+        - rid: 6055006571812618427
+    - rid: 6055006571812618441
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618412
+        m_Connections: []
+    - rid: 6055006571812618442
+      type: {class: BehaviorGraphNodeModel/FieldModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        FieldName: Step
+        Type:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        LocalValue:
+          rid: 6055006571812618453
+        LinkedVariable:
+          rid: -2
+    - rid: 6055006571812618443
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: InputPort
+        m_PortDataFlowType: 0
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618413
+        m_Connections:
+        - rid: 6055006571812618427
+    - rid: 6055006571812618444
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006571812618413
+        m_Connections: []
+    - rid: 6055006571812618445
+      type: {class: BehaviorGraphNodeModel/FieldModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        FieldName: Step
+        Type:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        LocalValue:
+          rid: 6055006571812618454
+        LinkedVariable:
+          rid: -2
+    - rid: 6055006571812618446
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 0
+    - rid: 6055006571812618447
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 1
+    - rid: 6055006571812618448
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 2
+    - rid: 6055006571812618449
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 3
+    - rid: 6055006571812618450
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 4
+    - rid: 6055006571812618451
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 5
+    - rid: 6055006571812618452
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 6
+    - rid: 6055006571812618453
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 7
+    - rid: 6055006571812618454
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 8
+    - rid: 6055006582232842265
+      type: {class: ActionNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        Position: {x: 140, y: 710}
+        ID:
+          m_Value0: 16126581207978280081
+          m_Value1: 18184047617250409135
+        Parents: []
+        PortModels:
+        - rid: 6055006582232842266
+        - rid: 6055006582232842267
+        NodeType:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorAction, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        NodeTypeID:
+          m_Value0: 12342819412778134213
+          m_Value1: 11552452653165173120
+        m_FieldValues:
+        - rid: 6055006582232842268
+    - rid: 6055006582232842266
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: InputPort
+        m_PortDataFlowType: 0
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006582232842265
+        m_Connections:
+        - rid: 6055006571812618427
+    - rid: 6055006582232842267
+      type: {class: PortModel, ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        m_Name: OutputPort
+        m_PortDataFlowType: 1
+        m_IsFloating: 0
+        m_NodeModel:
+          rid: 6055006582232842265
+        m_Connections: []
+    - rid: 6055006582232842268
+      type: {class: BehaviorGraphNodeModel/FieldModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
+      data:
+        FieldName: Step
+        Type:
+          m_SerializableType: Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp,
+            Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+        LocalValue:
+          rid: 6055006582232842269
+        LinkedVariable:
+          rid: -2
+    - rid: 6055006582232842269
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 9
+--- !u!114 &3282243070921331539
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2dd922ae02c94c87a66e46a10a7319b9, type: 3}
+  m_Name: PlayerBehavior Blackboard
+  m_EditorClassIdentifier: Unity.Behavior.Authoring::Unity.Behavior.BehaviorBlackboardAuthoringAsset
+  AssetID:
+    m_Value0: 15304878682048740723
+    m_Value1: 855571673367508537
+  m_Variables:
+  - rid: 6055006571812618400
+  m_VersionTimestamp: 639254540140248711
+  m_CommandBuffer:
+    m_Commands: []
+  m_RuntimeBlackboardAsset: {fileID: 6043196531843506191}
+  references:
+    version: 2
+    RefIds:
+    - rid: 6055006571812618400
+      type: {class: 'TypedVariableModel`1[[UnityEngine.GameObject, UnityEngine.CoreModule]]', ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
+      data:
+        ID:
+          m_Value0: 1
+          m_Value1: 0
+        Name: Self
+        IsExposed: 1
+        m_IsShared: 0
+        m_Value: {fileID: 0}
+--- !u!114 &6043196531843506191
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c02bb70996b49eba31d0c206e28da24, type: 3}
+  m_Name: PlayerBehavior Blackboard
+  m_EditorClassIdentifier: Unity.Behavior::Unity.Behavior.RuntimeBlackboardAsset
+  VersionTimestamp: 639254540140248711
+  AssetID:
+    m_Value0: 0
+    m_Value1: 0
+  m_Blackboard:
+    m_Variables:
+    - rid: 6055006571812618401
+  m_SharedBlackboardVariableGuids: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 6055006571812618401
+      type: {class: 'BlackboardVariable`1[[UnityEngine.GameObject, UnityEngine.CoreModule]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 1
+          m_Value1: 0
+        Name: Self
+        m_Value: {fileID: 0}

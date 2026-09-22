@@ -12,10 +12,10 @@ using Geumeum.Dev;
 namespace Geumeum.Network
 {
     /// <summary>
-    /// 브라우저 개발 패널에서 테스트 조건을 넣고 런을 시작한다.
+    /// 브라우저 개발 패널에서 테스트 조건을 넣고 런을 시작한다
     ///
-    /// 지금까지 1인 실행은 씬의 LobbyController 값(_devMinPlayers·_devAutoReady)을 고치거나
-    /// -minplayers 인자로 다시 띄워야 했다. 씬은 머지가 안 되고 인자는 에디터에서 못 쓴다.
+    /// 지금까지 1인 실행은 씬의 LobbyController 값(_devMinPlayers, _devAutoReady)을 고치거나
+    /// -minplayers 인자로 다시 띄워야 했다. 씬은 머지가 안 되고 인자는 에디터에서 못 쓴다
     /// 그래서 값을 런타임 오버라이드로 두고 별도 창에서 고른다
     /// </summary>
     public class RunTestPanel : MonoBehaviour
@@ -85,7 +85,7 @@ namespace Geumeum.Network
         }
 
         /// <summary>
-        /// 런이 시작된 뒤 한 번만 씬을 넘긴다.
+        /// 런이 시작된 뒤 한 번만 씬을 넘긴다
         /// 시작과 같은 프레임에 넘기면 RunSceneDirector가 아직 Idle이 아니어서 조용히 무시된다
         /// </summary>
         private void TryJumpAfterStart()
@@ -115,10 +115,9 @@ namespace Geumeum.Network
                 return;
             }
 
-            _isJumpDone = true;
-
-            if (director.ServerBeginTransition(_jumpScene))
+            if (BeginTestTransition(run, director))
             {
+                _isJumpDone = true;
                 _message = $"런 시작 뒤 {_jumpScene}로 넘겼다";
                 return;
             }
@@ -145,9 +144,6 @@ namespace Geumeum.Network
             builder.Choice("mode", "등록 대상 여부가 달라진다", DescribeRunMode(),
                 "정식", "보스 트라이", "개발");
 
-            builder.Header("내 캐릭터 희망");
-            builder.Choice("character", "확정은 서버가 한다", string.Empty, "차사", "신궁", "무녀");
-
             builder.Header("실행");
             builder.Toggle("jump", $"런이 시작되면 바로 {_jumpScene}로", _isJumpAfterStart);
             builder.Toggle("mirrorhud", "게임 화면에 Mirror 기본 HUD 표시", IsMirrorHudVisible());
@@ -156,11 +152,9 @@ namespace Geumeum.Network
             builder.Button("starthost", "호스트 시작");
             builder.Button("stophost",  "호스트 중지");
             builder.Button("startrun",  "런 시작 시도");
-            builder.Button("ready",     "준비");
-            builder.Button("unready",   "준비 해제");
             builder.Button("jumpnow",   $"{_jumpScene}로 전환");
             builder.Button("revive",    "전체 부활");
-            builder.Button("abandon",   "런 포기");
+            builder.Label("캐릭터 선택·준비·런 포기는 인게임 UI에서 조작한다.");
 
             if (!string.IsNullOrEmpty(_message))
             {
@@ -261,7 +255,7 @@ namespace Geumeum.Network
         *                Actions
         ****************************************/
 
-        /// <summary> 선택 순번은 Build가 적은 항목 순서와 같다. 0번이 씬 값, 그 뒤가 1인·2인·3인이다 </summary>
+        /// <summary> 선택 순번은 Build가 적은 항목 순서와 같다. 0번이 씬 값, 그 뒤가 1인, 2인, 3인이다 </summary>
         private void SetRequiredPlayers(in DevCommand command)
         {
             if (!command.TryGetInt(out int index))
@@ -458,13 +452,25 @@ namespace Geumeum.Network
                 return;
             }
 
-            if (!director.ServerBeginTransition(_jumpScene))
+            if (!BeginTestTransition(RunManager.ServerInstance, director))
             {
                 _message = $"{_jumpScene} 전환을 시작하지 못했다: {director.CurrentScene}/{director.State}";
                 return;
             }
 
             _message = $"{_jumpScene}로 전환한다";
+        }
+
+        private bool BeginTestTransition(RunManager run, RunSceneDirector director)
+        {
+            if (run == null || run.Phase == RunPhase.Lobby || run.Phase == RunPhase.Result ||
+                run.IsPaused || director.State != RunTransitionState.Idle)
+            { return false; }
+            // 씬만 옮기면 런이 Farming에 남아 보스 스포너가 시작하지 않는다
+            // 정상 보스 phase 진입이 씬 이동과 시계 준비를 함께 수행한다
+            if (_jumpScene == RunSceneId.Boss && run.Phase != RunPhase.Boss)
+            { return run.ServerBeginBossPhase(); }
+            return director.CurrentScene != _jumpScene && director.ServerBeginTransition(_jumpScene);
         }
 
         private void ReviveAll()
@@ -497,7 +503,7 @@ namespace Geumeum.Network
         ****************************************/
 
         /// <summary>
-        /// Mirror가 얹는 기본 HUD. 호스트 시작·중지를 이 패널이 대신하므로 기본으로 끈다.
+        /// Mirror가 얹는 기본 HUD. 호스트 시작, 중지를 이 패널이 대신하므로 기본으로 끈다
         /// 씬 파일을 고치지 않고 런타임에만 끈다 - 씬은 머지가 안 되고, 끄고 싶을 사람만 다르다
         /// </summary>
         private static bool IsMirrorHudVisible()

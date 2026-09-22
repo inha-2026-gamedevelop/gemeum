@@ -13,7 +13,7 @@ using Geumeum.Network;
 namespace Geumeum.Systems
 {
     /// <summary>
-    /// 보스 트라이 임시 조작 패널. 정식 편성 UI가 나오기 전까지 전실 흐름을 혼자 돌려 보기 위한 개발 도구다.
+    /// 보스 트라이 임시 조작 패널. 정식 편성 UI가 나오기 전까지 전실 흐름을 혼자 돌려 보기 위한 개발 도구다
     /// 예산 계산은 서버와 같은 BossTrialRules를 쓰므로, 여기서 통과한 편성은 서버에서도 통과한다
     /// </summary>
     public class BossTrialTestPanel : MonoBehaviour
@@ -76,17 +76,7 @@ namespace Geumeum.Systems
             builder.Toggle("trial", "다음 런을 보스 트라이로 (호스트만)", IsTrialRequested());
             builder.Button("unlock", "해금 기록 저장");
 
-            builder.Header("편성");
-            builder.Choice("tier", "받을 장비의 필드 레벨", DescribeTier(),
-                NO_EQUIPMENT_OPTION, "0", "1", "2", "3");
-            builder.Choice("potion", "물약 개수", _potionCount.ToString(), "0", "1", "2", "3");
-            builder.Label(DescribeBudget());
-
-            builder.Button("submit", "편성 제출");
-            builder.Button("submitempty", "빈 편성으로 제출");
-
-            builder.Header("판");
-            builder.Button("retry", "다시 하기 (정산 화면에서, 호스트만)");
+            builder.Label("편성 제출·재시도는 인게임 편성 / 정산 UI에서 조작한다.");
 
             if (!string.IsNullOrEmpty(_message))
             {

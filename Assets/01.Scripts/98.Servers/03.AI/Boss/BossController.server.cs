@@ -17,6 +17,63 @@ namespace Geumeum.AI
 {
     public partial class BossController
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+        [Server]
+        public bool ServerDevBeginPattern(int patternId)
+        {
+            if (_serverStopped || _status.IsDead || _currentPhaseState == null ||
+                RunTimeLocator.Current.IsPaused || RunSceneDirector.IsServerTransitioning ||
+                _groggyPhase != GroggyPhase.Active || HasEnteredFinalSequence() ||
+                !_bossData.TryGetPhase(_currentPhaseIndex, out var phase) ||
+                phase.PatternIds == null || Array.IndexOf(phase.PatternIds, patternId) < 0)
+            { return false; }
+            _currentPhaseState.CancelActiveAttack();
+            _transitionLockRemaining = 0f;
+            RefreshTarget();
+            return _currentPhaseState.TryBeginForcedAttack(patternId, 0);
+        }
+
+        [Server]
+        public bool ServerDevEnterGroggy()
+        {
+            if (_serverStopped || _status.IsDead || _currentPhaseState == null ||
+                RunTimeLocator.Current.IsPaused || RunSceneDirector.IsServerTransitioning || HasEnteredFinalSequence())
+            { return false; }
+            EnterGroggy();
+            return true;
+        }
+
+        /// <summary>개발 테스트용 페이즈 재시작. 이전 공격/부위/최종 원혼 상태를 함께 초기화한다</summary>
+        [Server]
+        public bool ServerDevRestartPhase(int phaseIndex)
+        {
+            if (_serverStopped || _status == null || _status.IsDead || _bossData == null ||
+                RunTimeLocator.Current.IsPaused || RunSceneDirector.IsServerTransitioning ||
+                !_bossData.TryGetPhase(phaseIndex, out BossPatternSO.PhaseEntry phase))
+            {
+                return false;
+            }
+            BossPhaseStateBase next = CreatePhaseState(phaseIndex);
+            if (next == null) { return false; }
+            Transform target = _currentPhaseState?.Target;
+            _currentPhaseState?.Exit();
+            ServerReleaseSwallowed();
+            MarkRegistry.ClearEntity(netId);
+            _telegraphCues.Clear();
+            _telegraphCue = default;
+            _status.Initialize();
+            _parts?.ServerInitialize(_bossData);
+            _souls?.ServerInitialize(_bossData);
+            _status.ServerDevSetHealthRatio(phaseIndex == 1 ? 1f : phase.EnterHealthRatio);
+            ExitGroggyForFinal();
+            _currentPhaseIndex = phaseIndex;
+            _currentPhaseState = next;
+            next.Target = target;
+            _transitionLockRemaining = _bossData.TransitionLockDuration;
+            CommitPhaseSnapshot(BossEncounterStage.Fighting);
+            return true;
+        }
+#endif
         /****************************************
         *              Server Callbacks
         ****************************************/
@@ -172,7 +229,7 @@ namespace Geumeum.AI
             }
         }
 
-        // 그로기와 면역의 시간만 진행한다. 게이지 감소는 카운터 수락 경로가 맡는다.
+        // 그로기와 면역의 시간만 진행한다. 게이지 감소는 카운터 수락 경로가 맡는다
         [Server]
         private void TickGroggyState(float deltaTime)
         {
@@ -306,8 +363,8 @@ namespace Geumeum.AI
             CommitPhaseSnapshot(BossEncounterStage.Defeated);
             StopServerExecution(terminate: true);
 
-            // AI는 사실만 발행하고 런 종료는 Network가 판단한다. 여기서 결과 씬을 열지 않는다.
-            // BossStatus가 _isDead로 재진입을 막으므로 이 발행은 런당 한 번이다.
+            // AI는 사실만 발행하고 런 종료는 Network가 판단한다. 여기서 결과 씬을 열지 않는다
+            // BossStatus가 _isDead로 재진입을 막으므로 이 발행은 런당 한 번이다
             // HasInstance->Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다, Instance를 한 번만 받는다
             GameEventBus bus = GameEventBus.Instance;
             if (bus == null)
@@ -319,7 +376,7 @@ namespace Geumeum.AI
             bus.Publish(EnemyDiedEvent.ForBoss(netId, transform.position, killerNetId));
         }
 
-        // HP 조건을 만족하는 다음 페이즈로 넘어가기 전에 이전 실행을 종료한다.
+        // HP 조건을 만족하는 다음 페이즈로 넘어가기 전에 이전 실행을 종료한다
         [Server]
         private void CommitPendingPhaseTransitions()
         {
@@ -568,8 +625,8 @@ namespace Geumeum.AI
 
         /// <summary>
         /// 패턴 하나가 끝났다고 알린다. 무녀 표식 공명은 여기서만 판정한다 -
-        /// 카운터 패턴이 끝나는 시각 기준으로 공명 창 안에 걸린 표식이 있으면 게이지를 깎는다.
-        /// 공격 하나당 한 번만 인정한다, 무녀가 둘이어도 두 번 깎이지 않는다.
+        /// 카운터 패턴이 끝나는 시각 기준으로 공명 창 안에 걸린 표식이 있으면 게이지를 깎는다
+        /// 공격 하나당 한 번만 인정한다, 무녀가 둘이어도 두 번 깎이지 않는다
         ///
         /// 취소된 공격은 여기까지 오지 않는다. 패턴이 끝나야 카운터라는 계약이라
         /// 패링이나 대상 소실로 끊긴 공격에는 공명이 성립하지 않는다
@@ -680,8 +737,8 @@ namespace Geumeum.AI
         }
 
         /// <summary>
-        /// 카운터 1회가 그로기 게이지를 깎는다. 그로기, 면역 중에는 먹지 않는다.
-        /// 차사 패링, 신궁 정밀 중단, 무녀의 마지막 impact 공명이 같은 실제 감소 경로를 쓴다.
+        /// 카운터 1회가 그로기 게이지를 깎는다. 그로기, 면역 중에는 먹지 않는다
+        /// 차사 패링, 신궁 정밀 중단, 무녀의 마지막 impact 공명이 같은 실제 감소 경로를 쓴다
         /// </summary>
         [Server]
         internal float ServerReduceGroggyGauge(CharacterKind character)
@@ -886,7 +943,7 @@ namespace Geumeum.AI
             _telegraphCue = cue;
         }
 
-        // 그로기 동안 이전 공격이 멈췄다가 되살아나지 않게 진입 시 정리한다.
+        // 그로기 동안 이전 공격이 멈췄다가 되살아나지 않게 진입 시 정리한다
         [Server]
         private void EnterGroggy()
         {
@@ -969,7 +1026,7 @@ namespace Geumeum.AI
             _phaseSnapshot = next;
 
             // Host는 SyncVar setter가 hook을 부른다. 전용 서버에는 같은 callback이 없으므로
-            // 서버 표현 소비자에게 확정 snapshot을 직접 한 번 알린다.
+            // 서버 표현 소비자에게 확정 snapshot을 직접 한 번 알린다
             if (!NetworkServer.activeHost)
             {
                 NotifyPhaseChanged(next);

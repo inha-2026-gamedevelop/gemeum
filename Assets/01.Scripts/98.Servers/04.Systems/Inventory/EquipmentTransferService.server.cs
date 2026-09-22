@@ -17,6 +17,27 @@ namespace Geumeum.Systems
 {
     public partial class EquipmentTransferService
     {
+        [Server]
+        private void ServerAcceptBotOffer(uint offerId)
+        {
+            if (!_offers.TryGetValue(offerId, out OfferRecord offer) ||
+                offer.RecipientParticipant.Kind != ParticipantKind.Bot || offer.RecipientIdentity == null ||
+                offer.RecipientIdentity.connectionToClient != null) { return; }
+            var slots = new InventorySlotSnapshot[InventorySnapshot.SLOT_COUNT];
+            if (!offer.SenderInventory.ServerCopySlots(slots)) { return; }
+            if (!offer.RecipientIdentity.TryGetComponent(out Geumeum.Combat.PlayerWeapon weapon) ||
+                slots[offer.SenderSlot].Equipment.WeaponKind != weapon.Weapon) { return; }
+            var header = new TransactionRequestHeader
+            { RunIdValue = offer.RunIdValue, SceneRevisionValue = offer.SceneRevisionValue,
+                NetworkObjectGenerationValue = offer.RecipientIdentity.netId,
+                RequestId = offerId, Operation = TransactionOperation.AcceptTransfer };
+            var stream = new StreamKey(header, offer.RecipientParticipant);
+            var arguments = new RequestArguments(0u, offerId, -1, 0u, 0u, offer.RecipientInventory.Revision);
+            var result = ServerAcceptOffer(header, offerId, offer.RecipientInventory.Revision,
+                offer.RecipientIdentity, offer.RecipientParticipant, offer.RecipientInventory, stream, arguments, out bool remembered);
+            if (!remembered) { Remember(stream, header.RequestId, arguments, result); }
+            SendResult(offer.SenderIdentity.connectionToClient, result);
+        }
         public override void OnStartServer()
         {
             ClearServerState();
@@ -75,8 +96,8 @@ namespace Geumeum.Systems
 
             ServerEndOfferForParticipantIfInvalid(senderParticipant);
             ServerEndOfferForParticipantIfInvalid(recipientParticipant);
-            if (_activeOfferByParticipant.ContainsKey(senderParticipant.Value) ||
-                _activeOfferByParticipant.ContainsKey(recipientParticipant.Value))
+            if (_activeOfferByParticipant.ContainsKey(senderParticipant) ||
+                _activeOfferByParticipant.ContainsKey(recipientParticipant))
             {
                 return MakeFailure(header, TransactionRejection.OfferConflict);
             }
@@ -89,7 +110,7 @@ namespace Geumeum.Systems
                 return MakeFailure(header, TransactionRequestRules.FromInventory(takeResult));
             }
 
-            // 수신자 인벤토리는 owner-only다. 송신자 입력을 받지 않고 서버 현재 판을 캡처한다.
+            // 수신자 인벤토리는 owner-only다. 송신자 입력을 받지 않고 서버 현재 판을 캡처한다
             uint recipientRevision = recipientInventory.Revision;
             InventoryResult storeResult = recipientInventory.ServerPrepareStoreEquipment(equipment,
                 recipientRevision, out _);
@@ -140,8 +161,8 @@ namespace Geumeum.Systems
                 RunIdValue           = header.RunIdValue,
                 SceneRevisionValue   = header.SceneRevisionValue,
             });
-            _activeOfferByParticipant.Add(senderParticipant.Value, offerId);
-            _activeOfferByParticipant.Add(recipientParticipant.Value, offerId);
+            _activeOfferByParticipant.Add(senderParticipant, offerId);
+            _activeOfferByParticipant.Add(recipientParticipant, offerId);
 
             return new EquipmentTransferResult
             {
@@ -371,18 +392,18 @@ namespace Geumeum.Systems
             offer.Snapshot = snapshot;
 
             _offers.Remove(snapshot.OfferId);
-            _activeOfferByParticipant.Remove(offer.SenderParticipant.Value);
-            _activeOfferByParticipant.Remove(offer.RecipientParticipant.Value);
+            _activeOfferByParticipant.Remove(offer.SenderParticipant);
+            _activeOfferByParticipant.Remove(offer.RecipientParticipant);
             return snapshot;
         }
 
         [Server]
         private void ServerEndOfferForParticipantIfInvalid(ParticipantId participant)
         {
-            if ((!_activeOfferByParticipant.TryGetValue(participant.Value, out uint offerId)) ||
+            if ((!_activeOfferByParticipant.TryGetValue(participant, out uint offerId)) ||
                 (!_offers.TryGetValue(offerId, out OfferRecord offer)))
             {
-                _activeOfferByParticipant.Remove(participant.Value);
+                _activeOfferByParticipant.Remove(participant);
                 return;
             }
 

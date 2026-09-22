@@ -1,7 +1,7 @@
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 소리가 어느 믹서 그룹으로 갈지 정하는 분류.
+    /// 소리가 어느 믹서 그룹으로 갈지 정하는 분류
     /// Player로 시작하는 둘은 재생 시점의 isLocalPlayer에 따라 Local과 Remote로 다시 갈린다 (SOUND_DESIGN 4.2)
     /// </summary>
     public enum SoundChannel

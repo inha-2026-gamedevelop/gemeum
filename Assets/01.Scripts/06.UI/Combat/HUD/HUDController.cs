@@ -8,7 +8,7 @@ using Geumeum.Combat;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// 좌하단 HP, MP(신력), SP(스태미나) 바를 로컬 플레이어의 PlayerStatus에 바인딩한다.
+    /// 좌하단 HP, MP(신력), SP(스태미나) 바를 로컬 플레이어의 PlayerStatus에 바인딩한다
     /// PlayerStatus.Local은 네트워크 스폰 타이밍에 늦게 생기므로, 생길 때까지 기다렸다가
     /// 딱 한 번 구독하고 그 뒤로는 이벤트로만 갱신한다. 다른 플레이어의 값은 절대 읽지 않는다
     /// </summary>

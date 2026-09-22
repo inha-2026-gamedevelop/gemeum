@@ -8,15 +8,15 @@ using UnityEngine;
 namespace Geumeum.Dev
 {
     /// <summary>
-    /// 개발 도구를 열어 주는 잠금 장치.
+    /// 개발 도구를 열어 주는 잠금 장치
     ///
     /// 에디터와 개발 빌드에서는 처음부터 열려 있다 - 매 플레이테스트마다 키를 치게 하면
-    /// 도구를 안 쓰게 된다. 릴리스 빌드에서는 잠겨 있고, 정해진 키 차례를 맞춰야 열린다.
+    /// 도구를 안 쓰게 된다. 릴리스 빌드에서는 잠겨 있고, 정해진 키 차례를 맞춰야 열린다
     ///
     /// 여는 것을 "치트 모드"라고 부르지만 새 치트를 만들지는 않는다 -
-    /// 이미 있는 개발 도구(브라우저 패널, 화면 로그, 기즈모)를 릴리스에서도 쓰게 할 뿐이다.
+    /// 이미 있는 개발 도구(브라우저 패널, 화면 로그, 기즈모)를 릴리스에서도 쓰게 할 뿐이다
     ///
-    /// GEUMEUM_DEVTOOLS를 빼고 빌드하면 이 클래스와 도구 전체가 컴파일되지 않는다.
+    /// GEUMEUM_DEVTOOLS를 빼고 빌드하면 이 클래스와 도구 전체가 컴파일되지 않는다
     /// 진짜 출시 빌드는 그렇게 낸다
     /// </summary>
     public static class DevAccess
@@ -27,7 +27,7 @@ namespace Geumeum.Dev
         *              Constants
         ****************************************/
 
-        // 게임 조작과 겹치지 않는 이동키 무리다. 순서대로 눌러야 하고, 하나라도 틀리면 처음으로 돌아간다.
+        // 게임 조작과 겹치지 않는 이동키 무리다. 순서대로 눌러야 하고, 하나라도 틀리면 처음으로 돌아간다
         // SteamLobbyHUD가 Home / PageDown / End를 이미 쓰지만, 잠겨 있는 동안에는 그 도구 자체가
         // 떠 있지 않으므로 해제 도중에는 겹치지 않는다
         private static readonly KeyCode[] G_UnlockSequence =
@@ -38,7 +38,7 @@ namespace Geumeum.Dev
             KeyCode.End,
         };
 
-        // 앞 키를 누른 지 이 시간이 지나면 이어지는 입력으로 보지 않는다.
+        // 앞 키를 누른 지 이 시간이 지나면 이어지는 입력으로 보지 않는다
         // 게임 도중 우연히 눌린 키가 몇 분 뒤 입력과 이어져 열리는 것을 막는다
         private const float STEP_TIMEOUT = 3f;
 
@@ -68,7 +68,7 @@ namespace Geumeum.Dev
         ****************************************/
 
         /// <summary>
-        /// 잠금이 풀렸을 때 할 일을 건다. 이미 풀려 있으면 그 자리에서 실행한다.
+        /// 잠금이 풀렸을 때 할 일을 건다. 이미 풀려 있으면 그 자리에서 실행한다
         /// 도구가 스스로 뜨는 자리(RuntimeInitializeOnLoadMethod)를 이걸로 감싸면
         /// 잠긴 동안에는 오브젝트도 스레드도 만들어지지 않는다
         /// </summary>
@@ -89,7 +89,7 @@ namespace Geumeum.Dev
         }
 
         /// <summary>
-        /// 씬이나 프리팹에 배치된 개발 도구를 잠긴 동안 꺼 둔다. 열리면 다시 켠다.
+        /// 씬이나 프리팹에 배치된 개발 도구를 잠긴 동안 꺼 둔다. 열리면 다시 켠다
         /// 꺼 두면 Start도 미뤄지므로, 패널 등록 같은 초기화도 열린 뒤에야 일어난다
         /// </summary>
         public static void GateComponent(MonoBehaviour component)
@@ -205,7 +205,7 @@ namespace Geumeum.Dev
 
                 if (!Input.GetKeyDown(G_UnlockSequence[_step]))
                 {
-                    // 차례의 첫 키를 다시 눌렀으면 거기서 새로 시작한다.
+                    // 차례의 첫 키를 다시 눌렀으면 거기서 새로 시작한다
                     // 그렇게 하지 않으면 Home을 두 번 친 순간 영영 안 열린다
                     _step         = (Input.GetKeyDown(G_UnlockSequence[0])) ? 1 : 0;
                     _stepDeadline = Time.unscaledTime + STEP_TIMEOUT;

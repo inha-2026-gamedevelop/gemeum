@@ -99,7 +99,7 @@ namespace Geumeum.Network
         *              Public API
         ****************************************/
 
-        /// <summary> 접속 전 선호를 보관하고 자기 Steam 멤버 데이터로 표시한다. 역할 확정은 아니다. </summary>
+        /// <summary> 접속 전 선호를 보관하고 자기 Steam 멤버 데이터로 표시한다. 역할 확정은 아니다 </summary>
         public bool RequestWeaponPreference(WeaponKind weapon)
         {
             if ((!IsInLobby) || (!Enum.IsDefined(typeof(WeaponKind), weapon))
@@ -170,6 +170,11 @@ namespace Geumeum.Network
 
         private void OnEnable()
         {
+            if (AccountGameServer.IsAccountProcess)
+            {
+                return;
+            }
+
             if (!SteamManager.Initialized)
             {
                 Debug.LogWarning("[SteamLobbyService] Steam이 초기화되지 않아 로비 기능이 동작하지 않는다", this);
@@ -393,7 +398,7 @@ namespace Geumeum.Network
 
             SetData(SteamLobbyKeys.GAME,   SteamLobbyKeys.GAME_VALUE);
             SetData(SteamLobbyKeys.SCHEMA, SteamLobbyKeys.SCHEMA_VALUE);
-            SetData(SteamLobbyKeys.BUILD,  Application.version);
+            SetData(SteamLobbyKeys.BUILD,  BuildIdentity.ReleaseId);
             SetData(SteamLobbyKeys.STATE,  SteamLobbyKeys.State.GATHERING);
             SetData(SteamLobbyKeys.EPOCH,  "0");
         }
@@ -480,8 +485,39 @@ namespace Geumeum.Network
             RefreshOwner();
             RefreshMembers();
 
+            // 초대, 로비 ID 참가가 모두 여기로 온다. 호스트를 고르기 전에 걸러야 다른 빌드 로비에서 선출이 시작되지 않는다
+            if ((!IsOwner) && (!TryAcceptJoinedLobby(out string rejectReason)))
+            {
+                Debug.LogWarning($"[SteamLobbyService] 로비 참가 취소: {rejectReason}", this);
+                SteamMatchmaking.LeaveLobby(new CSteamID(LobbyId));
+                ClearLobby(rejectReason);
+                return;
+            }
+
             Debug.Log($"[SteamLobbyService] 로비 입장: lobbyId={LobbyId}, 소유자={OwnerId}, 인원={_members.Count}");
             LobbyEntered?.Invoke(LobbyId);
+        }
+
+        // 최종 승인은 인증기가 다시 한다. 여기서는 접속 전에 사람에게 이유를 보여 주는 사전 검사다
+        private bool TryAcceptJoinedLobby(out string reason)
+        {
+            reason = null;
+
+            string game = GetData(SteamLobbyKeys.GAME);
+            if (string.IsNullOrEmpty(game))
+            {
+                // 방장이 로비를 만든 직후 데이터를 쓰기 전에 들어온 경우. 인증기에 맡긴다
+                Debug.LogWarning("[SteamLobbyService] 로비 데이터가 아직 없어 빌드 사전 검사를 건너뛴다", this);
+                return true;
+            }
+
+            if (!IsGeumeumLobby())
+            {
+                reason = $"그믐 로비가 아니거나 데이터 형식이 다르다: game={game}, schema={GetData(SteamLobbyKeys.SCHEMA)}";
+                return false;
+            }
+
+            return BuildIdentity.IsCompatible(GetData(SteamLobbyKeys.BUILD), "로비", out reason);
         }
 
         private void ClearLobby(string reason)

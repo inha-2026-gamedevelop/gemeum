@@ -6,7 +6,7 @@ namespace Geumeum.Common.Environment
 {
     // 시간대에 따라 전역 날씨 존의 프로필을 바꾼다. 날씨 판정은 WeatherMakerWeatherZoneScript가
     // 서버에서만 클라이언트로 전파하므로(UpdateProfile 내부에서 NetworkConnection.IsServer 확인),
-    // 이 스크립트는 서버 여부를 별도로 검사하지 않아도 클라이언트에서는 자동으로 무시된다.
+    // 이 스크립트는 서버 여부를 별도로 검사하지 않아도 클라이언트에서는 자동으로 무시된다
     [RequireComponent(typeof(WeatherMakerWeatherZoneScript))]
     public class WeatherRainScheduleScript : MonoBehaviour
     {

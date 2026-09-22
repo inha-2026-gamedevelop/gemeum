@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Geumeum.Common
 {
-    /// <summary>Resolves a serialized fixed PartId without depending on child array order.</summary>
+    /// <summary>Resolves a serialized fixed PartId without depending on child array order</summary>
     public static class AimAssistTargetResolver
     {
         public static bool TryResolve(Transform identityRoot, byte partId,
@@ -28,8 +28,8 @@ namespace Geumeum.Common
                 ITargetPartIdSource part = candidate as ITargetPartIdSource;
                 if ((part == null) && (candidate is Component candidateComponent))
                 {
-                    // A legacy AimAssistPoint can share a GameObject with a stable boss hitbox.
-                    // In that case the hitbox identity wins over the child-array/body fallback.
+                    // A legacy AimAssistPoint can share a GameObject with a stable boss hitbox
+                    // In that case the hitbox identity wins over the child-array/body fallback
                     part = candidateComponent.GetComponent<ITargetPartIdSource>();
                 }
 

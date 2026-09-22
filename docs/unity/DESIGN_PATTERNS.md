@@ -53,7 +53,7 @@ HP 같은 자기 캐릭터 값을 버스에 실으면 **누구의 값인지 페�
 | **싱글턴** | `PersistentSingleton<T>` / `SceneSingleton<T>` | 씬을 넘기는 것과 씬에 사는 것을 **타입으로 갈랐다.** 어느 쪽인지 상속만 보면 안다 |
 | **팩토리 메서드** | `EnemyController.CreateBrain(EnemyKind)` | 잡귀 종류가 서버에서 정해지고 브레인은 그 뒤에 만들어진다. 호출부가 구체 타입을 몰라야 잡귀가 늘어도 안 고친다 |
 | **빌더** | `RunTimelineBuilder.Build(BarrierPhaseSO)` | 런 타임라인을 SO 하나에서 조립한다. 겹침 검증을 조립 시점에 한 번만 한다 |
-| **오브젝트 풀** | `LocalObjectPoolService` + `IPoolable` | 로컬 연출 전용. **호출부 0개 - 아래 3장 참고** |
+| **오브젝트 풀** | `LocalObjectPoolService` + `IPoolable` | 로컬 연출 전용. `PresentationPoolPrewarmer`, `PlayerCombatPresentation`, `PooledVisualLifetime`이 사용 |
 
 ### 2.2 구조
 
@@ -130,18 +130,17 @@ yaw    05.Art     -> 00.Common -> 02.Combat
 
 ---
 
-## 4. 아직 안 넣었지만 자리가 보이는 것
+## 4. 이후 확장 자리
 
 | 패턴 | 어디에 | 언제 |
 |---|---|---|
-| **상태** | **보스 페이즈** | 보스 착수 시. 1페이즈 -> **15초 전환(컷신 8 + 숨 고르기 7)** -> 2페이즈 -> 그로기 -> 꼬리 파괴 -> 삼켜짐. **`enum` 스위치에 넣으면 그 메서드가 300줄이 된다** |
+| **상태** | **보스 페이즈** | `BossPhaseStateBase`, `Phase1State`, `Phase2State`로 구현됐다. 새 페이즈를 추가할 때 같은 경계를 유지한다 |
 | **데코레이터 또는 책임 연쇄** | **피해, 스탯 수정자** | **특성과 장비 수치가 정해진 뒤.** 지금 깔면 요구가 안 맞을 때 체인을 통째로 뒤집게 된다 |
 
 ---
 
-## 5. 정정 기록
+## 5. 현재 확인 사항
 
-**2026-09-06.** 이 문서를 만들면서 두 번 틀렸다. 남겨 둔다.
-
-- **`RunTimelineBuilder`(빌더)를 처음 목록에서 빠뜨렸다.** 이름에 대놓고 붙어 있는데도 그랬다. 이 문서를 만든 이유가 바로 이것이다.
-- **`BarrierTargetAdapter`를 어댑터로 셌는데 그 파일은 0줄짜리 빈 파일이었다.** 이름만 있고 구현이 없다. 결계 파트(@kjw1237) 소유이므로 **채울지 지울지는 그쪽이 정한다.** 빈 파일이 목록에 오르면 없는 구조를 있다고 믿게 된다.
+- `RunTimelineBuilder`는 `BarrierPhaseSO`에서 런 타임라인을 만드는 빌더다.
+- `BarrierTargetAdapter`는 결계 대상 등록과 수명 주기를 구현한다. 이름만 있는 빈 타입이 아니다.
+- 표의 패턴 이름보다 실제 책임 경계와 호출 방향을 우선한다.

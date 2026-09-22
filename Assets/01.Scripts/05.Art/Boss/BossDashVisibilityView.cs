@@ -52,7 +52,7 @@ namespace Geumeum.Art
         {
             _telegraphSource = GetComponentInParent<IBossTelegraphSource>();
 
-            // root 전체를 잡으면 꼬리(PartVisual)·원혼(SoulVisual) 같은 형제 비주얼까지 같이
+            // root 전체를 잡으면 꼬리(PartVisual), 원혼(SoulVisual) 같은 형제 비주얼까지 같이
             // 켜고 꺼버린다 - 이 오브젝트(Model) 아래 본체 스킨 메쉬만 대상으로 한다
             _renderers = GetComponentsInChildren<Renderer>(includeInactive: true);
         }

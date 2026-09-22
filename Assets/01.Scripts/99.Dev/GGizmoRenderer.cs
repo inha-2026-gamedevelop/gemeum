@@ -8,10 +8,10 @@ using Geumeum.Common;
 namespace Geumeum.Dev
 {
     /// <summary>
-    /// GGizmo가 쌓아 둔 선과 글자를 게임 화면에 그리고, 켜고 끄는 조작은 브라우저 패널로 보낸다.
+    /// GGizmo가 쌓아 둔 선과 글자를 게임 화면에 그리고, 켜고 끄는 조작은 브라우저 패널로 보낸다
     ///
-    /// 선과 월드 글자는 월드에 붙는 표시라 게임 화면에 있어야 한다.
-    /// 대신 토글·갈래·그래프처럼 읽고 누르는 것은 별도 창(브라우저)으로 뺀다.
+    /// 선과 월드 글자는 월드에 붙는 표시라 게임 화면에 있어야 한다
+    /// 대신 토글, 갈래, 그래프처럼 읽고 누르는 것은 별도 창(브라우저)으로 뺀다
     /// OnDrawGizmos는 에디터 Scene 뷰 전용이라 개발 빌드에서 보이지 않으므로,
     /// URP의 카메라 렌더링이 끝난 시점에 GL로 직접 선을 얹는다
     /// </summary>
@@ -22,14 +22,14 @@ namespace Geumeum.Dev
         ****************************************/
 
         /// <summary>
-        /// 첫 기즈모에서 스스로 생긴다. 씬에 배치하지 않기 위한 것이다.
+        /// 첫 기즈모에서 스스로 생긴다. 씬에 배치하지 않기 위한 것이다
         /// GGizmo의 그리기 함수는 릴리스에서 호출부만 사라지고 본문은 컴파일되므로,
         /// 이 진입점은 빌드 종류와 상관없이 존재해야 한다
         /// </summary>
         public static void EnsureExists()
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
-            // 플레이 중이 아니면 만들지 않는다. DontDestroyOnLoad가 에디트 모드에서 예외를 낸다.
+            // 플레이 중이 아니면 만들지 않는다. DontDestroyOnLoad가 에디트 모드에서 예외를 낸다
             // 잠겨 있을 때도 만들지 않는다 - 여기는 기즈모를 찍을 때마다 불리는 자리다
             if ((!Application.isPlaying) || (HasInstance) || (!DevAccess.IsUnlocked))
             {
@@ -129,7 +129,7 @@ namespace Geumeum.Dev
         ****************************************/
 
         /// <summary>
-        /// URP에서는 Camera.onPostRender가 오지 않는다.
+        /// URP에서는 Camera.onPostRender가 오지 않는다
         /// endCameraRendering에서 카메라의 행렬을 직접 걸고 GL로 선을 얹는다
         /// </summary>
         private void OnEndCameraRendering(ScriptableRenderContext context, Camera camera)
@@ -139,7 +139,7 @@ namespace Geumeum.Dev
                 return;
             }
 
-            // 프리뷰·반사 카메라까지 그리면 캐릭터 미리보기 화면에 판정선이 묻는다
+            // 프리뷰, 반사 카메라까지 그리면 캐릭터 미리보기 화면에 판정선이 묻는다
             if ((camera == null) || (camera.cameraType != CameraType.Game))
             {
                 return;

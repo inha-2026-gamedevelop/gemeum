@@ -1,4 +1,4 @@
-# 티저 제작 설계 — After Effects 없이 코드로 만드는 70초
+# 티저 제작 설계 — After Effects 없이 코드로 만드는 72~73초
 
 **2026-09-13 신설.**
 
@@ -10,7 +10,7 @@
 
 ### 현재 사용할 수 있는 준비 도구 (2026-09-13)
 
-- **Unity 메뉴:** `Geumeum > Art > Teaser Preparation`. 25개 샷, 프레임별 편집/소리 지시, 준비 목록, 같은 씬 카메라의 시작·종료 포즈 저장. 씬·카메라·HUD·게임 시간은 변경하지 않는다.
+- **Unity 메뉴:** `그믐 > Art > Teaser Preparation`. 25개 샷, 프레임별 편집/소리 지시, 준비 목록, 같은 씬 카메라의 시작·종료 포즈 저장. 씬·카메라·HUD·게임 시간은 변경하지 않는다.
 - **단일 데이터:** `Assets/09.Data/Teaser/teaser-shots.json`. 4380프레임 = 73초. 카메라/원본/배우 배치는 미설정 상태로 표시한다.
 - **Remotion 미리보기:** `tools/teaser`에서 `npm.cmd ci`, `npm.cmd run studio`. `TeaserPlan`은 샷 이름·자막·타이틀·소리 지시, `TeaserReview`는 등록한 원본 클립·음원을 재생한다. 원본은 현재 없으며 누락 안내를 표시한다. 최종 티저가 아니다.
 - **검증:** `npm.cmd run validate`, `npm.cmd test`. `node scripts/validate.mjs --ready`는 원본·준비가 남으면 실패한다. 초안 유효와 제작 완료를 구분한다.

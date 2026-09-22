@@ -8,7 +8,7 @@ using UnityEngine;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// @Managers가 소유하는 이벤트 허브.
+    /// @Managers가 소유하는 이벤트 허브
     /// 잡귀 사망처럼 파트 경계를 넘는 통지는 상대 파트의 클래스를 직접 부르지 않고 전부 여기를 지난다
     /// </summary>
     public class GameEventBus : SceneSingleton<GameEventBus>, IGameEventBus

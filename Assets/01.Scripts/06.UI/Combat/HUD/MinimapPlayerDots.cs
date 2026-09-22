@@ -15,7 +15,7 @@ using Geumeum.Common;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// 미니맵에 파티원 위치를 점으로, 결계를 원으로 그린다. 맵 배경과 회전은 아직 다루지 않는다.
+    /// 미니맵에 파티원 위치를 점으로, 결계를 원으로 그린다. 맵 배경과 회전은 아직 다루지 않는다
     /// 로컬 플레이어를 중앙에 두고 북쪽을 위로 고정하며, 표시 반경 밖은 가장자리에 붙인다
     /// </summary>
     public class MinimapPlayerDots : MonoBehaviour
@@ -54,7 +54,7 @@ namespace Geumeum.UI
         [Tooltip("미니맵 가장자리가 몇 m를 뜻하는지")]
         [SerializeField] private float _rangeMeters = 200f;
 
-        // 캐릭터 모델의 대표색을 따르되 어두운 맵에서 서로 구분되도록 채도와 명도를 올렸다.
+        // 캐릭터 모델의 대표색을 따르되 어두운 맵에서 서로 구분되도록 채도와 명도를 올렸다
         // 무녀는 의상이 거의 검정이라 금색 장신구 쪽을 쓴다. 흰색은 락온 표식이 쓰므로 비워 둔다
         [Header("캐릭터별 색")]
         [SerializeField] private Color _chasaColor   = new Color(0.88f, 0.20f, 0.18f, 1f);
@@ -84,7 +84,7 @@ namespace Geumeum.UI
         private float _dotScale = 1f;
 
         /// <summary>
-        /// 미니맵 가장자리가 몇 m를 뜻하는지. 펼친 지도가 같은 컴포넌트를 쓰면서 범위만 바꾼다.
+        /// 미니맵 가장자리가 몇 m를 뜻하는지. 펼친 지도가 같은 컴포넌트를 쓰면서 범위만 바꾼다
         /// 배율이 달라지면 결계 판을 한 번은 다시 칠해야 하므로 여기서 같이 처리한다
         /// </summary>
         public float RangeMeters
@@ -105,7 +105,7 @@ namespace Geumeum.UI
         }
 
         /// <summary>
-        /// 점 크기 배율. 지도를 통째로 키우면 점도 같이 커지므로 바깥에서 되돌린다.
+        /// 점 크기 배율. 지도를 통째로 키우면 점도 같이 커지므로 바깥에서 되돌린다
         /// 프리팹이 들고 있는 크기를 기준으로 곱한다
         /// </summary>
         public float DotScale
@@ -288,9 +288,9 @@ namespace Geumeum.UI
         }
 
         /// <summary>
-        /// 결계 밖을 덮는다. 안쪽이 아니라 바깥이 위험한 구역이라 칠하는 쪽이 반대다.
+        /// 결계 밖을 덮는다. 안쪽이 아니라 바깥이 위험한 구역이라 칠하는 쪽이 반대다
         ///
-        /// UI에는 역마스크가 없어서 판 하나를 칠하고 결계 자리만 비운다.
+        /// UI에는 역마스크가 없어서 판 하나를 칠하고 결계 자리만 비운다
         /// 원이 움직인 만큼만 다시 칠하므로 축소 중에도 매 프레임 칠하지 않는다
         /// </summary>
         private void DrawDanger(Vector3 worldCenter, float radius, Vector3 localPosition)
@@ -390,7 +390,7 @@ namespace Geumeum.UI
         }
 
         /// <summary>
-        /// 다음 축소가 어디로 갈지 미리 보여 준다.
+        /// 다음 축소가 어디로 갈지 미리 보여 준다
         /// 목표 원은 서버가 경고 시점에 확정하므로 그 전에는 그릴 것이 없고,
         /// 축소가 끝나면 현재 원과 겹치므로 지운다
         /// </summary>

@@ -10,8 +10,8 @@ namespace Geumeum.Common
         *                Fields
         ****************************************/
 
-        private static readonly Dictionary<ulong, IGrowthParticipant> _participants =
-            new Dictionary<ulong, IGrowthParticipant>();
+        private static readonly Dictionary<ParticipantId, IGrowthParticipant> _participants =
+            new Dictionary<ParticipantId, IGrowthParticipant>();
 
         /****************************************
         *              Properties
@@ -30,7 +30,7 @@ namespace Geumeum.Common
                 return false;
             }
 
-            _participants[participant.Participant.Value] = participant;
+            _participants[participant.Participant] = participant;
             return true;
         }
 
@@ -41,17 +41,17 @@ namespace Geumeum.Common
                 return;
             }
 
-            if (_participants.TryGetValue(participant.Participant.Value, out IGrowthParticipant registered) &&
+            if (_participants.TryGetValue(participant.Participant, out IGrowthParticipant registered) &&
                 object.ReferenceEquals(registered, participant))
             {
-                _participants.Remove(participant.Participant.Value);
+                _participants.Remove(participant.Participant);
             }
         }
 
         public static bool TryGet(ParticipantId participant, out IGrowthParticipant growthParticipant)
         {
             growthParticipant = null;
-            return (participant.IsValid) && _participants.TryGetValue(participant.Value, out growthParticipant);
+            return (participant.IsValid) && _participants.TryGetValue(participant, out growthParticipant);
         }
 
         /// <summary> 현재 접속 중인 참가자를 수정 없이 순회할 수 있게 복사한다 </summary>
@@ -63,7 +63,7 @@ namespace Geumeum.Common
             }
 
             destination.Clear();
-            foreach (KeyValuePair<ulong, IGrowthParticipant> pair in _participants)
+            foreach (KeyValuePair<ParticipantId, IGrowthParticipant> pair in _participants)
             {
                 if (pair.Value != null)
                 {

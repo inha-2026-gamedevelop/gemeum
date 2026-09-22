@@ -64,6 +64,7 @@
 # TerrainData 본체만 LFS. 14MB 텍스트라 편집할 때마다 히스토리에 통째로 쌓인다.
 # *.asset 전체를 LFS로 보내면 안 된다 — GameDB 등 일반 ScriptableObject까지 딸려간다.
 Assets/09.Data/Terrain/*.asset filter=lfs diff=lfs merge=lfs -text
+Assets/06.Model/Player/*/*_GripSkin.asset filter=lfs diff=lfs merge=lfs -text
 
 # ─── Git LFS: 폰트 · 압축 ─────────────────────────────
 *.ttf filter=lfs diff=lfs merge=lfs -text

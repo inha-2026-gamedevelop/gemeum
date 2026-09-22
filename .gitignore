@@ -102,3 +102,73 @@ crashlytics-build.properties
 # BMad 워크플로우 산출물 (작업 중 생성물 — 팀에 남길 결정은 docs/에 쓴다)
 # 스킬 팩과 모듈 설정(_bmad/, .claude/skills/)은 팀원 공유용이라 커밋 대상이다
 _bmad-output/
+
+# 런처·패치 도구 (.NET) 산출물
+launcher/**/bin/
+launcher/**/obj/
+
+# 런처 프로젝트 파일은 Unity가 만드는 생성물이 아니라 소스다 (위 *.csproj 규칙의 예외)
+!launcher/**/*.csproj
+
+# Unity가 루트에 생성하는 솔루션, 런처의 수동 관리 솔루션은 유지
+/*.slnx
+
+# Python 개발 환경과 실행 캐시
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.coverage
+.coverage.*
+htmlcov/
+
+# 실제 환경값과 로컬 실행 데이터, 비밀값 없는 예제는 공유
+.env.*
+*.env
+!.env.example
+!*.env.example
+.local/
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+
+# 인증서 개인키와 서명 비밀키, 공개키는 배포 소스
+*.key
+*.pem
+*.pfx
+*.p12
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+!*.public.pem
+!*.pub.pem
+
+# 도구 생성물과 개인 AI 실행 기록
+node_modules/
+TestResults/
+coverage/
+*.log
+*.dmp
+.mcp.*.json
+.claude/settings.local.json
+.claude/*.png
+.claude/*.jpg
+.claude/design-review-*.md
+
+# 개인 AI 실행 산출물 — .claude 루트 한 단계에만 적용한다.
+# 팀 공유 자산인 .claude/skills/ · .claude/agents/ 는 이 패턴에 걸리지 않는다
+# (`.claude/*` 는 한 경로 조각만 매칭). 작업용 브리프 · 결과 JSON · 베이스라인
+# 사본 · 임시 DLL 이 `git add .` 한 번에 공개 저장소로 들어가는 것을 막는다
+.claude/*.dll
+.claude/reconnect-*
+.claude/roll-*
+.claude/tooltip-*
+/Assets/Screenshots.meta

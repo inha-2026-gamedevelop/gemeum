@@ -24,7 +24,7 @@ namespace Geumeum.Systems
         *                Constants
         ****************************************/
 
-        // AuthorityTickScheduler 등록 순서. ability(300) 뒤, status 회복(400) 전에 결계 판정이 확정되게 한다.
+        // AuthorityTickScheduler 등록 순서. ability(300) 뒤, status 회복(400) 전에 결계 판정이 확정되게 한다
         // Constants.Network는 01.Network(다른 파트 소유)라 팀장 승인 전까지는 이 파일 안에 로컬로 둔다
         private const int TICK_PRIORITY_BARRIER = 350;
 
@@ -175,7 +175,7 @@ namespace Geumeum.Systems
         *           Debug (Editor Only)
         ****************************************/
 
-        // RunManager의 타임라인을 안 건드리고 phase를 바로 다음 단계로 넘긴다.
+        // RunManager의 타임라인을 안 건드리고 phase를 바로 다음 단계로 넘긴다
         // BarrierPhaseSO의 StartSeconds/EndSeconds를 테스트용으로 고치면 RunPhaseTimeline.Validate가
         // 실패해 서버가 부트 검증에서 튕긴다, 그 함정을 피하려고 만든 테스트 전용 경로다
         // BarrierTestHarness가 자동 전환 코루틴에서 직접 호출한다. public이지만 UNITY_EDITOR 밖에서는 존재 자체가 없다
@@ -188,10 +188,10 @@ namespace Geumeum.Systems
             ServerActivatePhase(next, true);
         }
 
-        // 랜드마크 배선·NavMesh 없이 원을 바로 세운다. Dev_Barrier처럼 맵이 갖춰지지 않은 씬에서
-        // 결계 '모양'만 눈으로 볼 때 쓴다 — 정상 경로(ServerInitializeCircle)는 BarrierMapBinding과
-        // 베이크된 NavMesh를 요구하므로, 그것들이 없으면 활성화가 pending으로 남아 반경이 0에 머문다.
-        // 판정 자체는 평소와 같은 SyncVar를 타므로 결계 밖 데미지·치유 제한은 그대로 동작한다.
+        // 랜드마크 배선, NavMesh 없이 원을 바로 세운다. Dev_Barrier처럼 맵이 갖춰지지 않은 씬에서
+        // 결계 '모양'만 눈으로 볼 때 쓴다 - 정상 경로(ServerInitializeCircle)는 BarrierMapBinding과
+        // 베이크된 NavMesh를 요구하므로, 그것들이 없으면 활성화가 pending으로 남아 반경이 0에 머문다
+        // 판정 자체는 평소와 같은 SyncVar를 타므로 결계 밖 데미지, 치유 제한은 그대로 동작한다
         // 검증을 건너뛰는 경로이므로 이걸로 확인한 것은 결계 배치의 정합성 근거가 되지 않는다
         [ContextMenu("Debug: Force Circle Without Map (Test)")]
         public void DebugForceCircleWithoutMap()
@@ -245,9 +245,9 @@ namespace Geumeum.Systems
         }
 
         // 맵 배선 없이 다음 단계로 '서서히' 줄인다. Force Circle Without Map은 원을 즉시 갈아 끼우고
-        // Force Next Phase는 반경을 아예 건드리지 않아, 둘 다 축소 애니메이션을 볼 수 없다.
-        // 정상 경로(ServerPrepareTarget)는 BarrierMapBinding과 NavMesh를 요구하므로 Dev 씬에서는 진입하지 못한다.
-        // 여기서는 랜드마크 검증과 NavMesh 검증만 건너뛰고, 중심을 고르는 방식과 보간 구간은 정상 경로와 같게 둔다.
+        // Force Next Phase는 반경을 아예 건드리지 않아, 둘 다 축소 애니메이션을 볼 수 없다
+        // 정상 경로(ServerPrepareTarget)는 BarrierMapBinding과 NavMesh를 요구하므로 Dev 씬에서는 진입하지 못한다
+        // 여기서는 랜드마크 검증과 NavMesh 검증만 건너뛰고, 중심을 고르는 방식과 보간 구간은 정상 경로와 같게 둔다
         // 검증을 건너뛰므로 이걸로 확인한 것은 결계 배치의 정합성 근거가 되지 않는다
         [ContextMenu("Debug: Force Next Phase Animated (Test)")]
         public void DebugForceNextPhaseAnimated()
@@ -355,7 +355,7 @@ namespace Geumeum.Systems
         ****************************************/
 
         // 결계 벽의 실제 표현은 BarrierVisual(05.Art)이 담당한다. 여기서는 Scene 뷰 확인용
-        // 와이어 원만 그린다 — 예전에는 Game 뷰에도 반투명 기둥을 띄웠으나, 표현 계층이
+        // 와이어 원만 그린다 - 예전에는 Game 뷰에도 반투명 기둥을 띄웠으나, 표현 계층이
         // 생긴 뒤로 같은 자리에 두 개가 겹쳐 그려져서 제거했다
 
         // 런 시계는 플레이 중 RunManager가 공급하므로 에디트 모드에서는 그리지 않는다

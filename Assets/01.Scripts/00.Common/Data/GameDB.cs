@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Geumeum.Data
 {
     /// <summary>
-    /// 밸런스 데이터 정적 접근점.
+    /// 밸런스 데이터 정적 접근점
     /// 개별 컴포넌트가 SO를 SerializeField로 물지 않고 전부 여기로 읽어야 원본이 하나로 유지된다
     /// </summary>
     public static class GameDB

@@ -8,6 +8,7 @@ namespace Geumeum.Common
     public struct RunParticipantResultSnapshot
     {
         public ulong ParticipantIdValue;
+        public ParticipantKind ParticipantKind;
 
         public bool          HasCharacter;
         public CharacterKind Character;
@@ -26,6 +27,6 @@ namespace Geumeum.Common
 
         public float RemainingHealth;
 
-        public ParticipantId Participant => new ParticipantId(ParticipantIdValue);
+        public ParticipantId Participant => new ParticipantId(ParticipantKind, ParticipantIdValue);
     }
 }

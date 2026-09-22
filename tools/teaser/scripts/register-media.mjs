@@ -6,7 +6,7 @@ import {randomUUID} from 'node:crypto';
 import {validatePlan} from '../src/plan.mjs';
 import {localMedia, probeMedia, videoMetadata, verifyVideo, verifyAudio} from './media.mjs';
 
-// Only updates editorial metadata. Original files are never copied, moved or recorded.
+// Only updates editorial metadata. Original files are never copied, moved or recorded
 export function registerMedia(values, root = fileURLToPath(new URL('../../../', import.meta.url))) {
   if (!!values.shot === !!values.audio || !values.file) throw new Error('Use --shot ID --take ID --file media/file.mp4 or --audio ID --file media/file.wav [--source-in FRAMES].');
   const path = resolve(root, 'Assets/09.Data/Teaser/teaser-shots.json');

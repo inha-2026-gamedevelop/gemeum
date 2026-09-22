@@ -26,7 +26,7 @@ namespace Geumeum.Common
         public static float LockOnDistance { get; set; } = 0f;
 
         /// <summary>
-        /// 화면이 보고 있는 평면 방향. x가 월드 X, y가 월드 Z다.
+        /// 화면이 보고 있는 평면 방향. x가 월드 X, y가 월드 Z다
         /// 마우스가 카메라를 돌리므로 이 값이 곧 플레이어가 조준하고 있는 방향이다
         /// </summary>
         public static Vector2 AimDirection => ToWorld(Vector2.up);

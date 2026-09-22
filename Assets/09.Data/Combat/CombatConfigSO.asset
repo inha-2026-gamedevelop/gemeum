@@ -15,6 +15,8 @@ MonoBehaviour:
   _staminaMax: 100
   _staminaRegenPerSecond: 35
   _staminaRegenDelay: 0.45
+  _playerHitReactionDuration: 0.24
+  _playerHitReactionResistanceDuration: 0.35
   _spiritMax: 80
   _minimumResourceCost: 1
   _maximumAttackSpeedMultiplier: 1.5
@@ -50,12 +52,24 @@ MonoBehaviour:
   _precisionShotHoldDuration: 0.6
   _precisionShotMoveSpeedMultiplier: 0.4
   _precisionShotStaminaCost: 15
+  _wedgeDuration: 8
+  _wedgeRadius: 0.3
+  _wedgeHits: 2
+  _wedgeBurstMultiplier: 2
+  _echoDuration: 8
+  _echoChargeInterval: 0.25
+  _echoRecallRange: 8
+  _echoSpiritCost: 10
+  _echoStartupDuration: 0.18
+  _echoRecoveryDuration: 0.3
+  _echoCooldown: 1.5
+  _echoDamageMultipliers: {x: 0.6, y: 1, z: 1.5}
   _burstShotInterval: 0.12
   _bellStartupDuration: 0.2
   _bellRecoveryDuration: 0.35
   _bellStaminaCost: 6
   _bellRange: 3.5
-  _bellAngle: 360
+  _bellAngle: 120
   _bellBasePower: 6
   _spiritGainPerHit: 5
   _spiritGainMaxPerSwing: 15
@@ -67,7 +81,6 @@ MonoBehaviour:
   _healRadius: 6
   _healAmount: 40
   _healCooldownDuration: 4
-  _supportBuffDuration: 6
   _lockOnAcquireRange: 25
   _lockOnHoldRange: 30
   _lockOnAcquireAngle: 35
@@ -86,3 +99,55 @@ MonoBehaviour:
   _interactRange: 3
   _interactOutOfCombatSeconds: 5
   _equipmentTransferOfferDuration: 30
+  _swordSkill:
+    Cost: 16
+    Cooldown: 5
+    Startup: 0.34
+    Recovery: 0.28
+    Range: 3
+    Angle: 140
+    DamageMultiplier: 1.4
+  _counterDuration: 2
+  _counterEndGrace: 1.2
+  _counterStartup: 0.18
+  _counterRange: 2.2
+  _counterAngle: 90
+  _counterDamage: {x: 1.2, y: 2.6, z: 4.5}
+  _swordStepDistance: 0.6
+  _combatTokenDuration: 2
+  _rollSkillWindow: 1
+  _attackBufferWindow: 0.12
+  _bowSkill:
+    Cost: 15
+    Cooldown: 8
+    Startup: 0.2
+    Recovery: 0.22
+    Range: 1.6
+    Angle: 70
+    DamageMultiplier: 0.6
+  _bellSkill:
+    Cost: 15
+    Cooldown: 12
+    Startup: 0.25
+    Recovery: 0.25
+    Range: 5
+    Angle: 360
+    DamageMultiplier: 0.3
+  _bowSkillRollDelay: 0.1
+  _bowSkillSlideDuration: 0.3
+  _bowSkillSlideDistance: 2
+  _bellFieldMaxTargets: 6
+  _skillGroundProbeHeight: 2
+  _skillGroundProbeDepth: 5
+  _bellFieldRadius: 3
+  _bellFieldDuration: 6
+  _bellFieldDamageMultiplier: 1.1
+  _bellFieldTailDuration: 1.5
+  _bellFieldTailMaximum: 2.5
+  _bellFieldSampleInterval: 0.1
+  _bellFieldHeightTolerance: 1.5
+  _bellFieldSightOffset: 0.2
+  _bellFieldWideningDurationPenalty: 1
+  _bellFieldHealDiscountWindow: 3
+  _swordSkillStagger: 0.35
+  _swordSkillStaggerResistance: 0.7

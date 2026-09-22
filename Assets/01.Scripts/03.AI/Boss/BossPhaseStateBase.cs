@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// 보스 페이즈별 판단 베이스. 서버에서만 Tick되며, 대상 스캔, 텔레그래프 RPC는 BossController가 담당한다.
+    /// 보스 페이즈별 판단 베이스. 서버에서만 Tick되며, 대상 스캔, 텔레그래프 RPC는 BossController가 담당한다
     /// </summary>
     public abstract class BossPhaseStateBase
     {

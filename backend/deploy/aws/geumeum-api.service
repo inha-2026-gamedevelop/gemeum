@@ -1,0 +1,21 @@
+[Unit]
+Description=Geumeum account and party API
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=geumeum
+Group=geumeum
+WorkingDirectory=/opt/geumeum/backend
+EnvironmentFile=/etc/geumeum/service.env
+ExecStart=/opt/geumeum/backend/.venv/bin/geumeum-api
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,4 @@
-// System
+﻿// System
 using System.Collections.Generic;
 
 // Unity
@@ -22,6 +22,7 @@ namespace Geumeum.Combat
         ****************************************/
 
         private Rigidbody                _rigidbody;
+        private CapsuleCollider          _movementCapsule;
         private PlayerPrediction         _prediction;
         private PlayerPresentation       _presentation;
         private PlayerStatus             _status;
@@ -33,6 +34,8 @@ namespace Geumeum.Combat
         private ReviveController         _revive;
         private HealController           _heal;
         private NetworkTransformReliable _networkTransform;
+        private PlayerBrain _brain;
+        private GameEventBus _movementEvents;
 
         private double _lastInputSendTime = 0.0;
         private uint   _localSequence     = 0;
@@ -55,6 +58,7 @@ namespace Geumeum.Combat
 
         /// <summary> 서버가 마지막으로 확인한 이동 방향 </summary>
         public Vector2 LastFacingDirection => _lastFacingDirection;
+        public PlayerBrain ServerBrain => _brain;
 
         /****************************************
         *              Unity Event
@@ -63,6 +67,7 @@ namespace Geumeum.Combat
         private void Awake()
         {
             _rigidbody        = GetComponent<Rigidbody>();
+            _movementCapsule  = GetComponent<CapsuleCollider>();
             _prediction       = GetComponent<PlayerPrediction>();
             _presentation     = GetComponent<PlayerPresentation>();
             _status           = GetComponent<PlayerStatus>();
@@ -90,7 +95,7 @@ namespace Geumeum.Combat
                 || ((_attack != null) && (_attack.IsClientMoveLockPending)));
 
             bool isServerDrivenMotion = (((_roll != null) && (_roll.IsRolling))
-                || ((_status != null) && (_status.IsDead || _status.IsSwallowed))
+                || ((_status != null) && (_status.IsDead || _status.IsSwallowed || _status.IsHitReacting))
                 || (isPaused) || (inputBlocked) || (isAttackLocked));
 
             _prediction.SetSuspended(isServerDrivenMotion);
@@ -175,6 +180,7 @@ namespace Geumeum.Combat
 
         public override void OnStartServer()
         {
+            _brain = new PlayerBrain(this);
             if (AuthorityTickScheduler.ServerInstance == null)
             {
                 Debug.LogError("[PlayerController] AuthorityTickScheduler가 없어 이동을 처리할 수 없다", this);
@@ -187,16 +193,31 @@ namespace Geumeum.Combat
             }
 
             AuthorityTickScheduler.ServerInstance.Register(Constants.Network.TICK_PRIORITY_MOVEMENT, ServerProcessMovementTick);
+            _movementEvents = GameEventBus.Instance;
+            _movementEvents?.Subscribe<RunPausedEvent>(OnMovementPaused);
         }
 
         public override void OnStopServer()
         {
+            _movementEvents?.Unsubscribe<RunPausedEvent>(OnMovementPaused);
+            _movementEvents = null;
+            _brain?.Dispose();
+            _brain = null;
             if (AuthorityTickScheduler.ServerInstance == null)
             {
                 return;
             }
 
             AuthorityTickScheduler.ServerInstance.Unregister(ServerProcessMovementTick);
+        }
+
+        private void OnMovementPaused(RunPausedEvent fact)
+        {
+            // The scheduler stops while paused; flush the final position instead of leaving the owner one snapshot behind
+            if (isServer && connectionToClient != null && _rigidbody != null)
+            {
+                TargetMoveSnapshot(_rigidbody.position, _lastProcessedSequence);
+            }
         }
 
         /****************************************
@@ -217,7 +238,10 @@ namespace Geumeum.Combat
             _rigidbody.position       = position;
             transform.position        = position;
 
-            TargetMoveSnapshot(position, _lastProcessedSequence);
+            if (connectionToClient != null)
+            {
+                TargetMoveSnapshot(position, _lastProcessedSequence);
+            }
         }
 
         /****************************************
@@ -227,14 +251,36 @@ namespace Geumeum.Combat
         [Command(channel = Channels.Unreliable)]
         private void CmdSendMoveInput(PlayerMoveInput input)
         {
+            if ((_status != null) && (_status.Participant.Kind == ParticipantKind.Bot)) { return; }
+            ServerReceiveMoveInput(input);
+        }
+
+        [Server]
+        public void ServerClearMoveInput()
+        {
+            _serverInputBuffer.Clear();
+            _lastMoveDirection = Vector2.zero;
+            _lastSprintHeld = false;
+            if ((_rigidbody != null) && (!_rigidbody.isKinematic))
+            {
+                Vector3 velocity = _rigidbody.linearVelocity;
+                velocity.x = 0f; velocity.z = 0f;
+                _rigidbody.linearVelocity = velocity;
+            }
+        }
+
+        /// <summary> 입력 출처와 무관하게 동일한 순서, 유한성, 버퍼 상한을 적용한다 </summary>
+        [Server]
+        public bool ServerReceiveMoveInput(PlayerMoveInput input)
+        {
             if (input.Sequence <= _lastAcceptedSequence)
             {
-                return;
+                return false;
             }
 
             if ((!IsFinite(input.MoveDirection.x)) || (!IsFinite(input.MoveDirection.y)))
             {
-                return;
+                return false;
             }
 
             input.MoveDirection = Vector2.ClampMagnitude(input.MoveDirection, 1f);
@@ -248,6 +294,7 @@ namespace Geumeum.Combat
             _lastInputReceivedServerTime = NetworkTime.time;
 
             _serverInputBuffer.Enqueue(input);
+            return true;
         }
 
         /****************************************
@@ -256,6 +303,7 @@ namespace Geumeum.Combat
 
         private void ServerProcessMovementTick(float fixedDeltaTime)
         {
+            _brain?.Tick();
             DrainInputBuffer();
 
             RunPhase        phase     = (RunManager.ServerInstance != null) ? RunManager.ServerInstance.Phase : RunPhase.Lobby;
@@ -297,12 +345,29 @@ namespace Geumeum.Combat
 
             // 행동 갱신이 끝난 뒤에 판단한다. 이번 틱에 후딜이 풀렸으면 곧바로 다시 움직일 수 있다
             bool isAttackInProgress = ((_attack != null) && (_attack.IsBaseActionInProgress(now)));
-            canMove = PlayerActionGate.CanMove(canAct, isAttackInProgress);
+            canMove = PlayerActionGate.CanMove(canAct, isAttackInProgress) && (_status == null || !_status.IsHitReacting);
 
             Vector2 direction = Vector2.zero;
             float   speed     = 0f;
 
-            if ((canMove) && (_roll != null) && (_roll.TryGetMotion(out Vector2 rollDirection, out float rollSpeed)))
+            if (canAct && _attack != null && _attack.TryGetWeaponSkillMotion(fixedDeltaTime, out direction, out speed))
+            {
+                if (_movementCapsule != null && GameDB.Arrow != null)
+                {
+                    Bounds bounds = _movementCapsule.bounds;
+                    float radius = Mathf.Min(bounds.extents.x, bounds.extents.z) * .95f;
+                    float half = Mathf.Max(0, bounds.extents.y - radius);
+                    Vector3 forward = new Vector3(direction.x, 0, direction.y);
+                    if (Physics.CapsuleCast(bounds.center + Vector3.up * half, bounds.center - Vector3.up * half,
+                        radius, forward, out RaycastHit hit, speed * fixedDeltaTime + .02f,
+                        GameDB.Arrow.WorldMask, QueryTriggerInteraction.Ignore))
+                    {
+                        speed = Mathf.Min(speed, Mathf.Max(0, hit.distance - .02f) / fixedDeltaTime);
+                        _attack.ServerBlockWeaponSkillSlide();
+                    }
+                }
+            }
+            else if ((canMove) && (_roll != null) && (_roll.TryGetMotion(out Vector2 rollDirection, out float rollSpeed)))
             {
                 direction = rollDirection;
                 speed     = rollSpeed;
@@ -362,6 +427,11 @@ namespace Geumeum.Combat
 
         private void UpdateOwnerSnapshot(Vector2 direction, float speed, float fixedDeltaTime)
         {
+            if (connectionToClient == null)
+            {
+                return;
+            }
+
             bool isMoving = ((direction.sqrMagnitude > 0f) && (speed > 0f));
 
             if (isMoving != _wasMovingLastTick)

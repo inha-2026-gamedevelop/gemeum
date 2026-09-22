@@ -52,7 +52,7 @@ namespace Geumeum.Common
         }
 
         /// <summary>
-        /// 트랙을 재생한다. 이미 다른 곡이 흐르고 있으면 교차 페이드로 넘어간다.
+        /// 트랙을 재생한다. 이미 다른 곡이 흐르고 있으면 교차 페이드로 넘어간다
         /// 클립이 조달 전이면 아무 일도 일어나지 않고 CurrentTrack도 바뀌지 않는다
         /// </summary>
         public void Play(BgmTrack track, bool isLoop = true)

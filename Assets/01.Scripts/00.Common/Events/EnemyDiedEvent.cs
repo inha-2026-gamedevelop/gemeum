@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 잡귀와 보스가 죽었을 때 서버가 발행한다.
+    /// 잡귀와 보스가 죽었을 때 서버가 발행한다
     /// 드랍, 경험치, 점수가 이것을 구독하므로 몬스터 파트가 게임플레이 시스템 파트를 직접 부르지 않는다
     /// </summary>
     public readonly struct EnemyDiedEvent

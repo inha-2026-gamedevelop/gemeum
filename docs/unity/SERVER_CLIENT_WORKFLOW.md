@@ -71,7 +71,7 @@ Assets/01.Scripts/
 
 ## 5. 현재 적용 범위
 
-서버 partial 20개(`.server.cs`)를 `.meta`와 함께 중앙 `98.Servers/`로 이동했다. 함께 옮겼던 판정·AI·규칙 클래스 22개는 2026-09-15 같은 날 `.meta`와 함께 원래 도메인 폴더로 되돌렸다. `98.Servers/`와 `Net/`는 팀장 소유이고, 원본 컴포넌트와 판정·AI 클래스는 파트 담당 소유다.
+서버 partial은 `.meta`와 함께 중앙 `98.Servers/`에 둔다. 판정·AI·규칙 클래스는 원래 도메인 폴더에 있다. `98.Servers/`와 `Net/`는 팀장 소유이며 원본 컴포넌트와 판정·AI 클래스는 파트 담당 소유다. 파일 수는 고정 계약이 아니다.
 
 | 중앙 위치 | 현재 파일 |
 |---|---|
@@ -83,7 +83,8 @@ Assets/01.Scripts/
 | `98.Servers/04.Systems/Equipment/` | `DropDirector.server.cs` |
 | `98.Servers/04.Systems/Growth/` | `GrowthManager.server.cs` · `TalentController.server.cs` |
 | `98.Servers/04.Systems/Interaction/` | `DroppedItem.server.cs` · `ShopInteractionPoint.server.cs` |
-| `98.Servers/04.Systems/Inventory/` | `EquipmentTransferService.server.cs` · `InventoryController.server.cs` |
+| `98.Servers/04.Systems/BossTrial/` | `BossTrialDirector.server.cs` |
+| `98.Servers/04.Systems/Inventory/` | `EquipmentTransferService.server.cs` · `InventoryController.server.cs` · `InventoryController.bot.server.cs` |
 | `98.Servers/04.Systems/Results/` | `RunStatistics.server.cs` |
 
 도메인 폴더로 되돌린 판정·AI 클래스는 아래와 같다. 서버 경로에서만 호출되며 작성은 파트 담당이 한다.
@@ -99,7 +100,7 @@ Assets/01.Scripts/
 | `04.Systems/Growth/` | `GrowthRules.cs` | @kjw1237 |
 | `04.Systems/Interaction/` | `InteractionRules.cs` | @kjw1237 |
 
-`BossPatternExecutionSpec`은 보스 예고 표시도 사용하고 `TalentRules`는 UI도 사용하므로 도메인 공용 코드로 유지했다. `01.Network`·`02.Combat`의 기존 서버 코드와 공유 수명 콜백은 기존 위치에 있으며 팀장 담당이다. **중앙 `98.Servers/`의 범위는 위 `.server.cs` 20개다.** 이들 도메인에서도 새로 분리하는 서버 partial은 `98.Servers/01.Network/`·`98.Servers/02.Combat/`에 둔다. 클라이언트가 부르는 API나 공유 계산까지 일괄 이동하지 않는다.
+`BossPatternExecutionSpec`은 보스 예고 표시도 사용하고 `TalentRules`는 UI도 사용하므로 도메인 공용 코드로 유지했다. `01.Network`·`02.Combat`의 기존 서버 코드와 공유 수명 콜백은 기존 위치에 있으며 팀장 담당이다. **중앙 `98.Servers/`의 범위는 위 표의 서버 partial이다. 파일 수는 현재 파일 목록으로 확인한다.** 이들 도메인에서도 새로 분리하는 서버 partial은 `98.Servers/01.Network/`·`98.Servers/02.Combat/`에 둔다. 클라이언트가 부르는 API나 공유 계산까지 일괄 이동하지 않는다.
 
 상호작용의 입력·후보 탐색은 독립 `InteractionClient`로 추출했다. 소비자는 `IInteractionRequestSource`로 요청하고, 원본 컴포넌트는 직렬화 설정·GUID와 소유자 검사·Command 전송을 유지한다. 몬스터 표현은 `IEnemyPresentationSource`를 구독하고 현재 상태를 읽는다.
-추가 분리 시에도 `.cs.meta` GUID와 씬·프리팹 참조를 보존한다. 어셈블리 접근 제한·서버 전용 빌드 분리는 도입하지 않았다. GitHub 보호 설정 적용 여부는 별도 확인이 필요하다. 런타임 검증 결과는 [실행 기록](SERVER_CLIENT_REFACTOR_VALIDATION.md)에 남긴다.
+추가 분리 시에도 `.cs.meta` GUID와 씬·프리팹 참조를 보존한다. 어셈블리 접근 제한·서버 전용 빌드 분리는 도입하지 않았다. GitHub 보호 설정 적용 여부는 별도 확인이 필요하다. 런타임 검증 결과는 [검증 절차](SERVER_CLIENT_REFACTOR_VALIDATION.md)에 남긴다.

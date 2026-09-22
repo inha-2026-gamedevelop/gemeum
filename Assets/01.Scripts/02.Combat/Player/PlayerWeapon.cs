@@ -23,7 +23,7 @@ namespace Geumeum.Combat
         [SyncVar(hook = nameof(OnWeaponChanged))]    private WeaponKind _weapon    = default;
         [SyncVar(hook = nameof(OnHasWeaponChanged))] private bool       _hasWeapon = false;
 
-        // 서버 판정 원본. SyncVar는 모든 관련 원본이 확정된 뒤 공개한다.
+        // 서버 판정 원본. SyncVar는 모든 관련 원본이 확정된 뒤 공개한다
         private WeaponKind _serverWeapon;
         private bool       _serverHasWeapon;
         private bool       _serverStateInitialized;
@@ -75,7 +75,7 @@ namespace Geumeum.Combat
                 GDebug.Log($"무기 {oldWeapon} -> {newWeapon}");
             }
 
-            // 서버 소비자는 모든 원본을 확정한 ServerPublish에서 한 번 알린다.
+            // 서버 소비자는 모든 원본을 확정한 ServerPublish에서 한 번 알린다
             if (!isServer)
             {
                 NotifyWeaponObservers(newWeapon);

@@ -11,7 +11,7 @@ using Geumeum.Common;
 namespace Geumeum.Data
 {
     /// <summary>
-    /// 보스 페이즈별 패턴, 쿨다운, 예고 정보와 그로기 게이지, 부위 파괴 게이트.
+    /// 보스 페이즈별 패턴, 쿨다운, 예고 정보와 그로기 게이지, 부위 파괴 게이트
     /// 페이즈 클래스는 선택과 전환만 하고 수치는 여기서 읽는다
     /// </summary>
     [CreateAssetMenu(fileName = "BossPatternSO", menuName = "Geumeum/BossPatternSO")]
@@ -78,6 +78,7 @@ namespace Geumeum.Data
 
             [Tooltip("-1이면 모든 반복, 그 밖에는 해당 RepeatIndex만 패링 가능")]
             public int ParryableRepeatIndex;
+            public int[] DeflectableRepeatIndices;
 
             [Tooltip("-1이면 독립 패턴, 값이 있으면 해당 패턴의 파생")]
             public int DerivedFromId;
@@ -551,7 +552,7 @@ namespace Geumeum.Data
         }
 
         /// <summary>
-        /// Validates production-only boss invariants that cannot be inferred by the generic boot checks.
+        /// Validates production-only boss invariants that cannot be inferred by the generic boot checks
         /// </summary>
         public bool ValidateAdvancedDefinition(out string failure)
         {
@@ -629,6 +630,19 @@ namespace Geumeum.Data
                         $"pattern {pattern.PatternId} ParryableRepeatIndex is outside its impact range");
                 }
 
+                if (pattern.DeflectableRepeatIndices != null)
+                {
+                    var deflects = new System.Collections.Generic.HashSet<int>();
+                    foreach (int hit in pattern.DeflectableRepeatIndices)
+                    {
+                        if (hit < 0 || hit >= pattern.ImpactOffsets.Length || !deflects.Add(hit) ||
+                            (pattern.IsParryable && (pattern.ParryableRepeatIndex < 0 || hit == pattern.ParryableRepeatIndex)))
+                        {
+                            return FailValidation(out failure, $"pattern {pattern.PatternId} has invalid or overlapping deflect indices");
+                        }
+                    }
+                }
+
                 if ((!pattern.IsConditional) && (!PositiveFinite(pattern.SelectionWeight)))
                 {
                     return FailValidation(out failure,
@@ -695,6 +709,9 @@ namespace Geumeum.Data
 
             if ((teachingCombo.RepeatCount != 3) || (!teachingCombo.IsParryable) ||
                 (teachingCombo.ParryableRepeatIndex != 2) ||
+                teachingCombo.DeflectableRepeatIndices == null || teachingCombo.DeflectableRepeatIndices.Length != 2 ||
+                System.Array.IndexOf(teachingCombo.DeflectableRepeatIndices, 0) < 0 ||
+                System.Array.IndexOf(teachingCombo.DeflectableRepeatIndices, 1) < 0 ||
                 (teachingCombo.RepeatTimingJitterMin < 0f) ||
                 (teachingCombo.RepeatTimingJitterMax <= teachingCombo.RepeatTimingJitterMin))
             {

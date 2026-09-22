@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Geumeum.Patch</RootNamespace>
+  </PropertyGroup>
+</Project>

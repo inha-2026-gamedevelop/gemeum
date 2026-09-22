@@ -9,8 +9,8 @@ namespace Geumeum.AI
 {
     /// <summary>
     /// 보스 패턴 실행 템플릿의 서버 판정. 템플릿마다 클래스를 두지 않고 이 안에
-    /// 재사용 NonAlloc 질의 메서드만 둔다.
-    /// 지금은 MeleeArc 하나만 있다, 나머지 세 템플릿은 후속 슬라이스에서 채운다.
+    /// 재사용 NonAlloc 질의 메서드만 둔다
+    /// 지금은 MeleeArc 하나만 있다, 나머지 세 템플릿은 후속 슬라이스에서 채운다
     /// 보스는 항상 한 마리뿐이라 정적 버퍼를 안전하게 재사용할 수 있다
     /// </summary>
     internal static class BossPatternRunner
@@ -21,8 +21,13 @@ namespace Geumeum.AI
         private static readonly IDamageable[] s_dedupeSeen = new IDamageable[BUFFER_SIZE];
 
         /// <summary>
-        /// 원점 앞 부채꼴 범위의 살아있는 대상 전원에게 피해를 적용한다.
+        /// 원점 앞 부채꼴 범위의 살아있는 대상 전원에게 피해를 적용한다
         /// 같은 호출 안에서 같은 대상이 여러 콜라이더로 겹쳐도 한 번만 맞는다
+        /// <para><paramref name="hitStrength"/>는 패턴별 피격 강도다 - 지속 피해(광선, 탄막)는
+        /// Light, 단발 충격은 기본값 Heavy를 쓴다</para>
+        /// <para><paramref name="deflectedDefender"/>가 0이 아니면 그 netId를 가진 대상만
+        /// 이번 판정에서 제외한다 - 쳐내기에 성공한 플레이어 한 명만 면제하고 나머지는 그대로
+        /// 맞는다. 호출자가 "이번 공격 인스턴스·연타 인덱스에서 쳐낸 사람"일 때만 넘긴다</para>
         /// </summary>
         public static void ExecuteMeleeArc(
             Vector3 origin,
@@ -32,8 +37,9 @@ namespace Geumeum.AI
             float   damage,
             uint    attackerNetId,
             int     targetLayerMask,
-            BossController damageRouter = null,
-            HitStrength hitStrength = HitStrength.Heavy)
+            BossController damageRouter      = null,
+            HitStrength    hitStrength       = HitStrength.Heavy,
+            uint           deflectedDefender = 0u)
         {
             int hitCount  = Physics.OverlapSphereNonAlloc(origin, range, s_hitBuffer, targetLayerMask);
             int seenCount = 0;
@@ -43,6 +49,13 @@ namespace Geumeum.AI
             for (int i = 0; i < hitCount; ++i)
             {
                 if ((!DamageTargetResolver.TryResolve(s_hitBuffer[i], out IDamageable damageable)) || (damageable.IsDead))
+                {
+                    continue;
+                }
+
+                if (deflectedDefender != 0 && damageable is Component component &&
+                    component.GetComponentInParent<Mirror.NetworkIdentity>() is Mirror.NetworkIdentity identity &&
+                    identity.netId == deflectedDefender)
                 {
                     continue;
                 }

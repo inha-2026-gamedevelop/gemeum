@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Geumeum.Data
 {
     /// <summary>
-    /// 루트 DB. 모든 *SO 참조를 모은다.
+    /// 루트 DB. 모든 *SO 참조를 모은다
     /// Resources/GameDB.asset 하나만 존재하며 GameDBBootstrap이 로드한다
     /// </summary>
     [CreateAssetMenu(fileName = "GameDB", menuName = "Geumeum/GameDatabaseSO")]

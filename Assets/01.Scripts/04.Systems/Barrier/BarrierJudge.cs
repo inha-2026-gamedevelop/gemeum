@@ -10,7 +10,7 @@ using Geumeum.Common;
 namespace Geumeum.Systems
 {
     /// <summary>
-    /// 결계 중심, 반경 보간과 XZ 외부 판정. 순수 C#이라 씬, 네트워크 없이 단위 테스트로 검증한다.
+    /// 결계 중심, 반경 보간과 XZ 외부 판정. 순수 C#이라 씬, 네트워크 없이 단위 테스트로 검증한다
     /// 서버와 클라이언트가 같은 BarrierTransitionState를 넣으면 같은 결과가 나와야 한다
     /// </summary>
     public static class BarrierJudge
@@ -48,7 +48,7 @@ namespace Geumeum.Systems
         }
 
         /// <summary>
-        /// 전환 구간 진행률(0~1)을 SmoothStep으로 완만하게 가공한다.
+        /// 전환 구간 진행률(0~1)을 SmoothStep으로 완만하게 가공한다
         /// 중심, 반경이 반드시 같은 k를 쓰도록 이 메서드 하나로 모은다
         /// </summary>
         private static float GetInterpolant(in BarrierTransitionState state, double gameplayTime)

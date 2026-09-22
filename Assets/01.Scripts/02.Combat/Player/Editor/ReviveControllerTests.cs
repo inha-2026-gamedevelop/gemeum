@@ -19,7 +19,7 @@ using Geumeum.Network;
 
 namespace Geumeum.Combat.Tests
 {
-    /// <summary>부활 관전 시계와 구조 확정의 서버 경계를 검증한다.</summary>
+    /// <summary>부활 관전 시계와 구조 확정의 서버 경계를 검증한다</summary>
     public sealed class ReviveControllerTests
     {
         /****************************************

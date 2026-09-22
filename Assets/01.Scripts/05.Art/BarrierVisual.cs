@@ -9,9 +9,9 @@ using Geumeum.Common;
 namespace Geumeum.Art
 {
     /// <summary>
-    /// 결계 벽의 런타임 표현. 원통 셸 하나와 둘레를 도는 파티클 패치들을 배치한다.
-    /// 판정은 전혀 하지 않고 IBarrierState의 Center · Radius만 읽는다 (04-architecture.md 4.5).
-    /// IsActive는 SyncVar 파생값이 아니라 서버 전용 필드에서 나오므로 여기서 쓰지 않는다 —
+    /// 결계 벽의 런타임 표현. 원통 셸 하나와 둘레를 도는 파티클 패치들을 배치한다
+    /// 판정은 하지 않고 IBarrierState의 Center, Radius만 읽는다
+    /// IsActive는 SyncVar 파생값이 아니라 서버 전용 필드에서 나오므로 여기서 쓰지 않는다 -
     /// 쓰면 호스트 화면에만 결계가 보이고 원격 클라이언트 둘은 아무것도 못 본다
     /// </summary>
     public class BarrierVisual : MonoBehaviour
@@ -38,16 +38,16 @@ namespace Geumeum.Art
         [SerializeField] private int      _wallSegments = 48;                 // 원통 둘레 분할 수
         [SerializeField] private float    _groundSink   = 30f;                // 능선에서 벽이 뜨지 않게 바닥을 이만큼 파묻는다
 
-        // 뒷면을 자르는 셰이더(구매 에셋 Bubble Standard Shield 등)를 쓸 때만 켠다.
-        // 그런 셰이더는 원통 안쪽에서 보면 전부 뒷면이라 화면에 아무것도 안 나온다 —
+        // 뒷면을 자르는 셰이더(구매 에셋 Bubble Standard Shield 등)를 쓸 때만 켠다
+        // 그런 셰이더는 원통 안쪽에서 보면 전부 뒷면이라 화면에 아무것도 안 나온다 -
         // 안쪽을 향하는 면을 한 벌 더 깔아야 보인다. 자체 셰이더는 Cull Off라 켜면 두 번 그려져 밝아진다
         [SerializeField] private bool     _doubleSidedShell = false;
 
-        // 구매 그래프는 노출 프로퍼티가 Alpha 하나뿐이라 코드로 개별 시스템을 끌 수 없다.
-        // 대신 원하는 요소만 담고 있는 그래프를 골라 층을 나눈다 — 실측 구성은 아래와 같다.
-        //   Bubble 1  : Minimal 1000 하나뿐        → 바닥에 깔리는 발광 판
-        //   Bubble 12 : System  900 하나뿐         → 검정 · 보라 연기 본체
-        //   Bubble 6  : 위 둘 + Strip 6000 + Trailing Sparks + Heads → 확대하면 난잡해진다
+        // 구매 그래프는 노출 프로퍼티가 Alpha 하나뿐이라 코드로 개별 시스템을 끌 수 없다
+        // 대신 원하는 요소만 담고 있는 그래프를 골라 층을 나눈다 - 실측 구성은 아래와 같다
+        //   Bubble 1  : Minimal 1000 하나뿐        -> 바닥에 깔리는 발광 판
+        //   Bubble 12 : System  900 하나뿐         -> 검정, 보라 연기 본체
+        //   Bubble 6  : 위 둘 + Strip 6000 + Trailing Sparks + Heads -> 확대하면 난잡해진다
         [Header("파티클 — 공통")]
         [SerializeField] private int   _patchCount     = 56;                  // 한 행에 배치할 개수
         [SerializeField] private bool  _autoFitWidth   = true;                // 가로 크기를 둘레 / 개수로 역산한다
@@ -63,24 +63,24 @@ namespace Geumeum.Art
         [SerializeField] private VisualEffectAsset _bodyEffectAsset = null;   // Bubble 12.vfx
         [SerializeField] private int               _bodyRows        = 2;
         [SerializeField] private float             _bodyHeight      = 30f;
-        // 행 간격. _bodyHeight보다 작게 두면 행이 겹쳐 띠가 얇아 보인다.
+        // 행 간격. _bodyHeight보다 작게 두면 행이 겹쳐 띠가 얇아 보인다
         // 같게 두면 두 행이 위아래로 딱 붙어 벽이 두 겹으로 두껍게 보인다 (2026-09-09 사용자 지적)
         [SerializeField] private float             _rowSpacing      = 14f;
 
         // 결계는 런 내내(수십 분) 화면 가장자리를 채우고 있는 표현이다. 원본 밝기 그대로 두면
-        // 눈이 먼저 지친다. 구매 그래프가 노출한 Alpha 하나로 전체 발광을 눌러 둔다.
-        // 절대값이 아니라 배율이다 — Bubble 6의 그래프 기본값은 0.116이고, 절대값으로 넣으면
+        // 눈이 먼저 지친다. 구매 그래프가 노출한 Alpha 하나로 전체 발광을 눌러 둔다
+        // 절대값이 아니라 배율이다 - Bubble 6의 그래프 기본값은 0.116이고, 절대값으로 넣으면
         // 제작자가 잡아 둔 밝기를 모르고 덮어써 오히려 밝아진다
         [Header("눈 피로 완화")]
         [SerializeField, Range(0f, 1f)] private float _effectAlphaScale = 0.6f;
 
-        // 파티클 시뮬레이션 재생 속도. 끊임없이 흐르는 움직임이 밝기만큼이나 눈을 피곤하게 한다.
+        // 파티클 시뮬레이션 재생 속도. 끊임없이 흐르는 움직임이 밝기만큼이나 눈을 피곤하게 한다
         // 1이 원속도이고, 낮출수록 같은 그림이 오래 머물러 화면이 잔잔해진다
         [SerializeField, Range(0.01f, 1f)] private float _effectPlayRate = 0.06f;
 
         [Header("지형")]
-        // 지형 높이는 물리 레이캐스트가 아니라 Terrain.SampleHeight로 재는 것이 기본이다.
-        // Dev_Barrier의 나무 · 바위 · WeatherMaker가 전부 Default 레이어라, 레이캐스트로 재면
+        // 지형 높이는 물리 레이캐스트가 아니라 Terrain.SampleHeight로 재는 것이 기본이다
+        // Dev_Barrier의 나무, 바위, WeatherMaker가 전부 Default 레이어라, 레이캐스트로 재면
         // 그것들을 바닥으로 오인해 패치가 하늘에 뜬다 (2026-09-09 관찰: 패치 y 117~154, 실제 지형 40~80)
         [SerializeField] private bool      _useTerrainHeight       = true;
         [SerializeField] private LayerMask _groundMask             = ~0;      // 지형이 없을 때만 쓰는 폴백. Ground 레이어로 좁혀 둘 것
@@ -133,7 +133,7 @@ namespace Geumeum.Art
             IBarrierState state  = BarrierStateLocator.Current;
             float         radius = state.Radius;
 
-            // 반경 자체가 SyncVar(BarrierTransitionState) 파생값이라 호스트와 클라이언트가 같은 값을 본다.
+            // 반경 자체가 SyncVar(BarrierTransitionState) 파생값이라 호스트와 클라이언트가 같은 값을 본다
             // 결계가 없는 phase에서는 반경이 0으로 수렴하므로 이것만으로 가시성 판정이 된다
             if (radius <= 0f)
             {
@@ -193,9 +193,9 @@ namespace Geumeum.Art
             }
         }
 
-        // 벽 높이를 결계 중심 한 점으로 정하면, 둘레 지형이 중심보다 높은 쪽에서 벽이 지형에 파묻힌다.
-        // 실제로 Dev_Barrier에서 중심 지형 44m · 둘레 지형 102m가 나와 벽 꼭대기(134m)를 패치가 넘어섰다.
-        // 그래서 둘레를 한 바퀴 훑어 최저 · 최고를 구하고, 그 높이차만큼 원통을 늘린다
+        // 벽 높이를 결계 중심 한 점으로 정하면, 둘레 지형이 중심보다 높은 쪽에서 벽이 지형에 파묻힌다
+        // 실제로 Dev_Barrier에서 중심 지형 44m, 둘레 지형 102m가 나와 벽 꼭대기(134m)를 패치가 넘어섰다
+        // 그래서 둘레를 한 바퀴 훑어 최저, 최고를 구하고, 그 높이차만큼 원통을 늘린다
         private void UpdateWall(Vector3 center, float radius)
         {
             if (_wallTransform == null)
@@ -283,7 +283,7 @@ namespace Geumeum.Art
             }
         }
 
-        // 패치가 거의 안 움직였으면 캐시된 높이를 그대로 쓴다.
+        // 패치가 거의 안 움직였으면 캐시된 높이를 그대로 쓴다
         // BarrierController.ResolveGroundY는 결계 중심 한 점만 재므로 능선에서 벽이 뜬다,
         // 여기서는 패치마다 제 발밑을 따로 잰다
         private float ResolvePatchGroundY(int index, Vector3 worldPosition)
@@ -311,7 +311,7 @@ namespace Geumeum.Art
         private float SampleGroundY(Vector3 worldPosition)
         {
             // 지형이 있으면 물리를 거치지 않고 높이맵을 직접 읽는다. 콜라이더를 타지 않으므로
-            // 나무 · 바위 · 날씨 오브젝트를 바닥으로 오인할 여지가 없고, 레이캐스트보다 싸다
+            // 나무, 바위, 날씨 오브젝트를 바닥으로 오인할 여지가 없고, 레이캐스트보다 싸다
             if (_useTerrainHeight)
             {
                 Terrain terrain = Terrain.activeTerrain;
@@ -422,10 +422,10 @@ namespace Geumeum.Art
         }
 
         /// <summary>
-        /// 위아래 뚜껑 없는 관 메쉬. 반지름 0.5, 높이 0~1이라 스케일에 (지름, 높이, 지름)을 그대로 넣는다.
+        /// 위아래 뚜껑 없는 관 메쉬. 반지름 0.5, 높이 0~1이라 스케일에 (지름, 높이, 지름)을 그대로 넣는다
         /// 자체 셰이더는 Cull Off라 한 벌이면 충분하다. doubleSided를 켜면 안쪽을 향하는 면을
-        /// 한 벌 더 만든다 — 뒷면을 자르는 구매 셰이더를 쓸 때 필요하다.
-        /// 노멀은 축 바깥으로 직접 지정한다 — RecalculateNormals는 이음매에서 평균을 내 방향이 흐려진다.
+        /// 한 벌 더 만든다 - 뒷면을 자르는 구매 셰이더를 쓸 때 필요하다
+        /// 노멀은 축 바깥으로 직접 지정한다 - RecalculateNormals는 이음매에서 평균을 내 방향이 흐려진다
         /// BarrierGizmoUtility 쪽은 #if UNITY_EDITOR 안에 있는 확인용 코드라 런타임 표현이 가져다 쓸 수 없다
         /// </summary>
         private static Mesh BuildOpenCylinderMesh(int segments, bool doubleSided)

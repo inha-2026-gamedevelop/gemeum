@@ -15,7 +15,7 @@ using Geumeum.Dev;
 namespace Geumeum.Combat
 {
     /// <summary>
-    /// 왼쪽 가운데 파티창과 머리 위 이름표.
+    /// 왼쪽 가운데 파티창과 머리 위 이름표
     /// UI 파트의 정식 HUD가 나오기 전까지 3인 테스트에서 서로의 상태를 읽기 위한 개발용 표시다
     /// </summary>
     public class PartyDebugOverlay : PersistentSingleton<PartyDebugOverlay>
@@ -27,7 +27,7 @@ namespace Geumeum.Combat
         ****************************************/
 
         /// <summary>
-        /// 씬에 배치하지 않아도 실행 시작에 스스로 뜬다.
+        /// 씬에 배치하지 않아도 실행 시작에 스스로 뜬다
         /// EnsureCreated가 기존 인스턴스와 씬 배치본을 먼저 확인하므로 중복이 생기지 않는다 -
         /// 중복이면 PersistentSingleton이 GameObject를 통째로 파괴한다
         /// </summary>
@@ -46,7 +46,7 @@ namespace Geumeum.Combat
         private const string PANEL_ID    = "party";
         private const string PANEL_TITLE = "파티";
 
-        // 남아 있는 개발용 키 목록. 조작은 브라우저 패널로 옮겼고, 손이 빠른 것만 키로 남겼다.
+        // 남아 있는 개발용 키 목록. 조작은 브라우저 패널로 옮겼고, 손이 빠른 것만 키로 남겼다
         // 키를 새로 만들면 이 배열에도 한 줄 더한다 - 안 적으면 아무도 그 키가 있는 줄 모른다
         private static readonly string[] G_KeyHelp =
         {
@@ -136,8 +136,8 @@ namespace Geumeum.Combat
         {
             EnsureStyles();
 
-            // 체력·스태미나·신력은 게임 화면에 있어야 한다. 3인 테스트에서 서로의 상태를 보며
-            // 치유와 부활을 판단하는데, 브라우저 창을 보고 있을 수는 없다.
+            // 체력, 스태미나, 신력은 게임 화면에 있어야 한다. 3인 테스트에서 서로의 상태를 보며
+            // 치유와 부활을 판단하는데, 브라우저 창을 보고 있을 수는 없다
             // 호스트든 클라이언트든 자기 스폰 목록을 읽으므로 세 화면 모두에 뜬다
             if (_isBarsVisible)
             {
@@ -187,7 +187,7 @@ namespace Geumeum.Combat
 
             GUI.Label(new Rect(left, top, BAR_WIDTH, LINE_HEIGHT), label, _nameStyle);
 
-            // 스태미나 · 신력 상한은 사람마다 같은 값이라 PlayerStatus가 아니라 GameDB가 정본이다
+            // 스태미나, 신력 상한은 사람마다 같은 값이라 PlayerStatus가 아니라 GameDB가 정본이다
             float staminaMax = GameDB.IsInitialized ? GameDB.Combat.StaminaMax : 0f;
             float spiritMax  = GameDB.IsInitialized ? GameDB.Combat.SpiritMax  : 0f;
 
@@ -308,7 +308,7 @@ namespace Geumeum.Combat
 
             builder.Label(label);
 
-            // 스태미나 · 신력 상한은 사람마다 같은 값이라 PlayerStatus가 아니라 GameDB가 정본이다
+            // 스태미나, 신력 상한은 사람마다 같은 값이라 PlayerStatus가 아니라 GameDB가 정본이다
             float staminaMax = GameDB.IsInitialized ? GameDB.Combat.StaminaMax : 0f;
             float spiritMax  = GameDB.IsInitialized ? GameDB.Combat.SpiritMax  : 0f;
 

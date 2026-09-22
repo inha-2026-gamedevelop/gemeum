@@ -140,7 +140,7 @@ namespace Geumeum.Art
         {
             _camera = GetComponent<Camera>();
 
-            // yaw는 씬에 놓인 각도를 시작값으로 삼는다. pitch는 GameDB가 깨어난 뒤 설정값으로 덮는다 —
+            // yaw는 씬에 놓인 각도를 시작값으로 삼는다. pitch는 GameDB가 깨어난 뒤 설정값으로 덮는다 -
             // 씬 각도를 그대로 쓰면 씬을 만지는 사람에 따라 게임 시작 각도가 따라 바뀐다
             Vector3 euler = transform.eulerAngles;
             _yaw   = euler.y;
@@ -156,7 +156,9 @@ namespace Geumeum.Art
         // 로비처럼 아직 플레이어가 없는 상태에서도 ESC로 커서를 꺼낼 수 있어야 한다
         private void Update()
         {
-            if (Input.GetKeyDown(Constants.Player.KEY_TOGGLE_CURSOR))
+            // 설치 조준의 첫 Esc는 조준 취소에 쓰인다. 다음 Esc부터 기존 커서 토글이다
+            if (Input.GetKeyDown(Constants.Player.KEY_TOGGLE_CURSOR) &&
+                (!LocalPlacementAim.SuppressesCombatInput))
             {
                 CameraFrame.InputEnabled = !CameraFrame.InputEnabled;
             }
@@ -227,6 +229,13 @@ namespace Geumeum.Art
 
         private void UpdateLook(CameraConfigSO config)
         {
+            // 설치 조준 중에는 자유 커서로 지면을 고르므로 시점을 아예 고정한다
+            // 락온 추적도 함께 멈춘다 - 대상이 움직인다고 화면이 돌면 커서가 딸려 간다
+            if (LocalPlacementAim.LocksCameraRotation)
+            {
+                return;
+            }
+
             // 락온 중에는 전투(LockOnController)가 정한 대상이 화면을 정한다
             if (CameraFrame.LockOnActive)
             {
@@ -235,6 +244,12 @@ namespace Geumeum.Art
             }
 
             if (!CanRotate())
+            {
+                return;
+            }
+
+            // 조준을 끝낸 첫 프레임의 델타는 커서를 옮긴 거리다. 그대로 넣으면 시점이 튄다
+            if (LocalPlacementAim.ConsumeSettleFrame())
             {
                 return;
             }
@@ -316,7 +331,7 @@ namespace Geumeum.Art
         }
 
         /// <summary>
-        /// 카메라 로직에 엮인 값들을 눈으로 확인할 수 있게 남긴다.
+        /// 카메라 로직에 엮인 값들을 눈으로 확인할 수 있게 남긴다
         /// 여러 후보 값(목표 피벗과 따라간 피벗, 원하는 거리와 벽에 막힌 거리)을
         /// 한 프레임에 같이 봐야 어디서 튀는지 알 수 있다 - 브레이크포인트로는 못 본다
         /// </summary>

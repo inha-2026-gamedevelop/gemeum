@@ -58,7 +58,7 @@ namespace Geumeum.Systems
         ****************************************/
 
         /// <summary>
-        /// 드랍이 아니라 지급으로 장비 하나를 만든다. 보스 트라이 시작 편성이 쓴다.
+        /// 드랍이 아니라 지급으로 장비 하나를 만든다. 보스 트라이 시작 편성이 쓴다
         /// 인스턴스 ID가 겹치지 않도록 드랍과 같은 생성기를 쓴다
         /// </summary>
         [Server]
@@ -120,7 +120,7 @@ namespace Geumeum.Systems
 
         /// <summary>
         /// A fixed boss PartId earns exactly one guaranteed reward.  The normal
-        /// death claim cannot be reused because all three parts share one netId.
+        /// death claim cannot be reused because all three parts share one netId
         /// </summary>
         [Server]
         private void HandleBossPartBroken(BossPartBrokenEvent evt)
@@ -140,7 +140,7 @@ namespace Geumeum.Systems
             if ((!ServerEnsureRuntime()) || (!ServerCanSpawnDrop()))
             {
                 // Wiring failure is retryable if the same event is deliberately
-                // replayed after repair; no reward was committed yet.
+                // replayed after repair; no reward was committed yet
                 _claimedBossParts.Remove(evt.Target);
                 return;
             }

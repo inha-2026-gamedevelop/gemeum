@@ -4,7 +4,7 @@ using System;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 파트 간 이벤트 발행, 구독 계약. 페이로드 타입 하나가 이벤트 하나다.
+    /// 파트 간 이벤트 발행, 구독 계약. 페이로드 타입 하나가 이벤트 하나다
     /// 구독자는 OnEnable에서 구독하고 OnDisable에서 반드시 해제한다
     /// </summary>
     public interface IGameEventBus

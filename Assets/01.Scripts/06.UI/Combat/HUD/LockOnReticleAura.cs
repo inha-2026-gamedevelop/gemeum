@@ -5,9 +5,9 @@ using UnityEngine.UI;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// 락온 표식 바깥의 번짐을 숨쉬듯 일렁이게 한다.
+    /// 락온 표식 바깥의 번짐을 숨쉬듯 일렁이게 한다
     ///
-    /// HUD 캔버스가 ScreenSpaceOverlay라 ParticleSystem은 UI 위에 그려지지 않는다.
+    /// HUD 캔버스가 ScreenSpaceOverlay라 ParticleSystem은 UI 위에 그려지지 않는다
     /// 그래서 UI 이미지 하나를 여기서 직접 움직인다
     /// </summary>
     public sealed class LockOnReticleAura : MonoBehaviour

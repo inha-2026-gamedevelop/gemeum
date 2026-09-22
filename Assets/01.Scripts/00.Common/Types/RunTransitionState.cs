@@ -1,7 +1,7 @@
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 씬 전환 한 번이 지나가는 단계.
+    /// 씬 전환 한 번이 지나가는 단계
     /// 직렬화되므로 명시값을 유지하고 기존 값을 재배열하지 않는다
     /// </summary>
     public enum RunTransitionState

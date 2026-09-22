@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Geumeum.Launcher</RootNamespace>
+    <AssemblyName>GeumeumLauncher</AssemblyName>
+    <Version>1.2.12</Version>
+    <ApplicationIcon>Assets/launcher.ico</ApplicationIcon>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+  <!-- 게시 스크립트가 배포 서버 주소를 채운 설정 파일로 바꿔 넣을 수 있다 -->
+  <PropertyGroup>
+    <LauncherConfigPath Condition="'$(LauncherConfigPath)' == ''">launcher-config.json</LauncherConfigPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(LauncherConfigPath)" LogicalName="launcher-config.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets/*.png" />
+    <ProjectReference Include="../Patch.Client/Patch.Client.csproj" />
+    <ProjectReference Include="../Account.Client/Account.Client.csproj" />
+  </ItemGroup>
+</Project>

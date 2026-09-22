@@ -366,56 +366,56 @@ MonoBehaviour:
   - Character: 0
     Weapon: 0
     ModelSource: {fileID: 5440681128991838293, guid: 7cbdbf45ed1096442b9ea4937807b987, type: 3}
-    LocalPosition: {x: -0.039752178, y: 0.11176482, z: -0.0070180628}
-    LocalEuler: {x: 2.7797797, y: 139.56474, z: 7.0958967}
+    LocalPosition: {x: -0.03404739, y: 0.14010586, z: -0.06425047}
+    LocalEuler: {x: 359.8105, y: 135.14838, z: 19.91638}
     LocalScale: {x: 0.8, y: 0.8, z: 0.8}
   - Character: 0
     Weapon: 1
     ModelSource: {fileID: 4323518947930549456, guid: df04cd600bc61fd4495e0ff65b7a6e23, type: 3}
-    LocalPosition: {x: -0.022407407, y: 0.061542965, z: -0.007956968}
-    LocalEuler: {x: -82.38162, y: 89.85782, z: -119.695496}
+    LocalPosition: {x: 0.019338954, y: 0.112854145, z: -0.011267053}
+    LocalEuler: {x: 340.08374, y: 225.21704, z: 179.79845}
     LocalScale: {x: 1, y: 1, z: 1}
   - Character: 0
     Weapon: 2
     ModelSource: {fileID: 5874793521582390674, guid: 7ec68a1ad808c6548aa108e066deab1f, type: 3}
-    LocalPosition: {x: -0.069994055, y: 0.057627156, z: -0.15062833}
-    LocalEuler: {x: -117.98062, y: -15.590607, z: -144.32243}
+    LocalPosition: {x: -0.06741384, y: 0.15713818, z: -0.0973651}
+    LocalEuler: {x: 359.8105, y: 135.14838, z: 109.91638}
     LocalScale: {x: 1, y: 1, z: 1}
   - Character: 1
     Weapon: 0
     ModelSource: {fileID: 5440681128991838293, guid: 7cbdbf45ed1096442b9ea4937807b987, type: 3}
-    LocalPosition: {x: 0.0061080838, y: 0.06121634, z: 0.025885463}
-    LocalEuler: {x: 28.448345, y: 87.03825, z: 31.141506}
+    LocalPosition: {x: -0.01777062, y: 0.14231211, z: -0.009770755}
+    LocalEuler: {x: 3.3626633, y: 108.79099, z: 48.692844}
     LocalScale: {x: 0.83, y: 0.83, z: 0.83}
   - Character: 1
     Weapon: 1
     ModelSource: {fileID: 4323518947930549456, guid: df04cd600bc61fd4495e0ff65b7a6e23, type: 3}
-    LocalPosition: {x: 0.0061080838, y: 0.060484108, z: -0.015796939}
-    LocalEuler: {x: -48.810974, y: 29.786997, z: -136.3327}
+    LocalPosition: {x: -0.0035846457, y: 0.080071375, z: 0.043274984}
+    LocalEuler: {x: 311.41928, y: 194.9722, z: 5.0866528}
     LocalScale: {x: 1, y: 1, z: 1}
   - Character: 1
     Weapon: 2
     ModelSource: {fileID: 5874793521582390674, guid: 7ec68a1ad808c6548aa108e066deab1f, type: 3}
-    LocalPosition: {x: 0.15437913, y: 0.06415522, z: -0.060685452}
-    LocalEuler: {x: 157.39166, y: -153.17493, z: -98.66113}
+    LocalPosition: {x: -0.025803633, y: 0.17755686, z: -0.039808683}
+    LocalEuler: {x: 356.63733, y: 288.79102, z: 221.30716}
     LocalScale: {x: 1, y: 1, z: 1}
   - Character: 2
     Weapon: 0
     ModelSource: {fileID: 5440681128991838293, guid: 7cbdbf45ed1096442b9ea4937807b987, type: 3}
-    LocalPosition: {x: 0.025197247, y: 0.09547622, z: 0.0045045316}
-    LocalEuler: {x: 47.17892, y: 49.735283, z: 1.0584383}
+    LocalPosition: {x: 0.023974871, y: 0.10617025, z: -0.041965276}
+    LocalEuler: {x: 25.209099, y: 92.334915, z: 23.346754}
     LocalScale: {x: 0.76, y: 0.76, z: 0.76}
   - Character: 2
     Weapon: 1
     ModelSource: {fileID: 4323518947930549456, guid: df04cd600bc61fd4495e0ff65b7a6e23, type: 3}
-    LocalPosition: {x: 0.05078993, y: 0.06677484, z: 0.000398746}
-    LocalEuler: {x: 147.46721, y: -0.36740112, z: 99.069336}
+    LocalPosition: {x: 0.014000181, y: 0.078920335, z: 0.028276784}
+    LocalEuler: {x: 338.98874, y: 171.91777, z: 27.146015}
     LocalScale: {x: 1, y: 1, z: 1}
   - Character: 2
     Weapon: 2
     ModelSource: {fileID: 5874793521582390674, guid: 7ec68a1ad808c6548aa108e066deab1f, type: 3}
-    LocalPosition: {x: 0.025197247, y: 0.05408065, z: 0.013388011}
-    LocalEuler: {x: 47.178932, y: 49.73529, z: -178.94156}
+    LocalPosition: {x: 0.03106216, y: 0.12553203, z: -0.09187411}
+    LocalEuler: {x: 334.7909, y: 272.3349, z: 246.65324}
     LocalScale: {x: 1, y: 1, z: 1}
 --- !u!114 &9146201717757255985
 MonoBehaviour:
@@ -447,6 +447,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  _echoRecallKey: 113
   _attackKey: 323
   _targetMask:
     serializedVersion: 2
@@ -615,6 +616,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d2fb6026af44748a94c264aac89fbc7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.DamageFlashView
+  _visualRoot: {fileID: 0}
 --- !u!1001 &1331680180131862316
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -31,7 +31,11 @@ private const float ParryWindow = 0.32f;
 | `SpawnConfigSO` | 구간별 밀집도, 구성 비율, 리스폰 주기 | 몬스터 · 보스 |
 | `BossPatternSO` | 페이즈별 패턴, 쿨다운, 예고·판정 정보 | 몬스터 · 보스 |
 | `EquipmentSO` | 등급별 롤 범위, 무기별 특수옵션 풀 | 게임플레이 시스템 |
-| `DropTableSO` | 필드 레벨별 등급 가중치 | 게임플레이 시스템 |
+| `DropTableSO` | 장비 드롭 확률과 필드 레벨별 등급 가중치 | 게임플레이 시스템 |
+| `BossTrialLoadoutSO` | 보스 트라이 편성 비용 | 게임플레이 시스템 |
+| `SoundCatalogSO` | SFX/BGM 클립·채널·믹서 | 테크니컬 아트 |
+| `PresentationConfigSO` | 로컬 VFX·표현 시간과 색 | 테크니컬 아트 |
+| `BotConfigSO` · `BotSkillProfileSO` | Resources의 봇 행동·전투 설정 | 네트워크·전투 |
 | `ShopSO` | 객주 상품과 가격 | 게임플레이 시스템 |
 | `LevelCurveSO` | 레벨별 필요 경험치, 1레벨 기본 HP와 레벨별 최대 HP | 게임플레이 시스템 |
 | `TalentTreeSO` | 특성 노드 구성과 수치 | 게임플레이 시스템 |
@@ -48,7 +52,7 @@ private const float ParryWindow = 0.32f;
 | 구분 | 역할 | 형태 |
 |---|---|---|
 | `EquipmentSO` | 원본 설계도. 등급, 이름, 롤 범위, 특수옵션 풀 | ScriptableObject |
-| `EquipmentInstance` | 개별 드랍 결과. 실제 굴려진 수치 | 런타임 클래스 |
+| `WeaponCombatSnapshot` | 개별 드랍 결과. 실제 굴려진 수치 | 직렬화 값 타입 |
 
 이렇게 해야 같은 무기라도 드랍마다 스탯이 달라지는 구조가 깔끔하다.
 스탯 재조정권과 등급 상승권도 이 구조를 그대로 재사용하므로 추가 구현 비용이 거의 없다.

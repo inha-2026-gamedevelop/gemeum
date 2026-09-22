@@ -4,18 +4,21 @@ using System;
 // Unity
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Geumeum.UI
 {
     /// <summary> 반복 생성한 기능 버튼의 번호와 문구를 패널에 전달한다 </summary>
-    public sealed class FunctionalUiIndexedButton : MonoBehaviour
+    public sealed class FunctionalUiIndexedButton : MonoBehaviour,
+        IPointerEnterHandler, IPointerExitHandler, ISelectHandler, IDeselectHandler
     {
         [SerializeField] private Button   _button;
         [SerializeField] private TMP_Text _label;
         [SerializeField] private int      _index;
 
         public int Index => _index;
+        public void SetIndex(int index) { _index = index; }
         public TMP_Text Label => _label;
 
         public bool Interactable
@@ -31,6 +34,25 @@ namespace Geumeum.UI
         }
 
         public event Action<int> Clicked;
+
+        /// <summary>
+        /// 포인터나 키보드 선택이 이 버튼에 머무는지. 두 번째 인자가 들어옴/나감이다
+        ///
+        /// Button.interactable이 false여도 포인터 이벤트는 그대로 전달되므로
+        /// 아직 못 고르는 잠김 항목도 설명을 띄울 수 있다. 반대로 키보드 선택은
+        /// 비활성 Selectable에 가지 않으므로 select 경로는 고를 수 있는 항목만 온다
+        /// </summary>
+        public event Action<int, bool> HoverChanged;
+
+        public void OnPointerEnter(PointerEventData eventData) { RaiseHover(true); }
+        public void OnPointerExit(PointerEventData eventData) { RaiseHover(false); }
+        public void OnSelect(BaseEventData eventData) { RaiseHover(true); }
+        public void OnDeselect(BaseEventData eventData) { RaiseHover(false); }
+
+        private void RaiseHover(bool entered)
+        {
+            HoverChanged?.Invoke(_index, entered);
+        }
 
         public void SetLabel(string value)
         {

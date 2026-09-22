@@ -9,10 +9,10 @@ using Geumeum.Common;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// 파티 플레이트 한 줄. 이름 · 직업 아이콘 · 체력 · 스태미나 · 신력을 그린다.
+    /// 파티 플레이트 한 줄. 이름, 직업 아이콘, 체력, 스태미나, 신력을 그린다
     ///
-    /// 이 컴포넌트는 값만 받는다 — PlayerStatus도 네트워크도 모른다(HUD_DESIGN 4장 2번).
-    /// 누구의 값인지는 <see cref="PartyHudController"/>가 정해서 넣어 준다
+    /// 이 컴포넌트는 값만 받는다 - PlayerStatus도 네트워크도 모른다(HUD_DESIGN 4장 2번)
+    /// 누구의 값인지는 PartyHudController가 정해서 넣어 준다
     /// </summary>
     public class PartyMemberPlate : MonoBehaviour
     {

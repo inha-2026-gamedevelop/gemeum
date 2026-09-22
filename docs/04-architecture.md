@@ -209,7 +209,7 @@ Boss_Arena.unity
 **페이즈 전환은 루트 토글만으로 끝나지 않는다.** 안개 프로파일 · 하늘 프로파일 · 바닥 머티리얼 ·
 WeatherMaker 달 원반이 공용 루트에 있어 함께 갈아 끼워야 한다. `Shared/Staging`의
 `BossArenaPhaseView.ShowPhase()`가 그 다섯을 한 번에 처리한다(4.5장).
-개발 확인용으로 `BossPhaseDebugSwitcher`가 부른다(F6 · F7 · F8). 런 진행에서 부르는 곳은 아직 없다.
+개발 확인용으로 `BossPhaseDebugSwitcher`가 부른다(F6 · F7 · F8). 런에서는 BossPhaseSourceLocator와 PhaseChanged 구독으로 연출 상태를 반영한다.
 
 **안개 · 하늘 교체는 씬에 WeatherMaker 구동체가 있을 때만 동작한다.** `ShowPhase()`의 대입은
 전부 null 가드 안에 있어, 구동체가 없으면 프로파일 두 벌이 인스펙터에 꽂혀 있어도 **에러 없이
@@ -230,7 +230,7 @@ WeatherMaker 달 원반이 공용 루트에 있어 함께 갈아 끼워야 한�
 
 ```
 Main.unity
-├ @Network              GeumeumNetworkManager, KCP Transport
+├ @Network              GeumeumNetworkManager, AccountRelayTransport / 개발 KCP / Steam FizzySteamworks
 ├ @Managers             GameDBBootstrap, GameEventBus, LobbyController, RunManager, ReviveController, DropDirector,
 │                       CurrencyManager, GrowthManager, ScoreManager (GameDBBootstrap/EventBus는 로컬 초기화 오브젝트,
 │                       나머지는 NetworkBehaviour — 씬 배치 네트워크 오브젝트)
@@ -248,8 +248,7 @@ Main.unity
 
 `@` 접두사는 "씬 구조 고정 루트"라는 표시다. 루트 오브젝트를 추가 · 삭제하는 변경은 통합 담당자 승인이 필요하다.
 
-`57cb59d` 기준으로 `GameEventBus` · `LobbyController` · `RunManager` 조립은
-`Dev_Combat.unity`에서 확인됐고, 위 `Main.unity` 최종 골격의 통합·L3 검증은 아직 남아 있다.
+공통 관리자 조립은 구현돼 있다. 최종 콘텐츠와 외부 3인 검증은 별도 완료 조건이다.unity`에서 확인됐고, 위 `Main.unity` 최종 골격의 통합·L3 검증은 아직 남아 있다.
 
 **`@Stage` 배치의 필수 제약** ([시스템 기획 2.1](01-system-design.md) · [기술 구현 4.4](03-technical-design.md)):
 
@@ -263,7 +262,7 @@ Main.unity
 
 ## 4. 스크립트 폴더 · 클래스 배치
 
-**서버 partial의 중앙 위치는 `Assets/01.Scripts/98.Servers/`다.** AI·Systems의 `.server.cs` 20개만 두며, 판정·AI 클래스와 요청·조회 창구·표현은 아래 도메인 폴더에 있다. [전체 목록과 담당 규칙](unity/SERVER_CLIENT_WORKFLOW.md#5-현재-적용-범위).
+**서버 partial의 중앙 위치는 `Assets/01.Scripts/98.Servers/`다.** AI·Systems의 `.server.cs` 파일을 두며, 판정·AI 클래스와 요청·조회 창구·표현은 아래 도메인 폴더에 있다. [전체 목록과 담당 규칙](unity/SERVER_CLIENT_WORKFLOW.md#5-현재-적용-범위).
 
 `Assets/01.Scripts/` 아래 전체 구조. 폴더와 네임스페이스는 기능 기준으로 유지한다. **구현 소유는 파트 담당과 `CODEOWNERS`를 따른다.** `03.AI`는 몬스터·보스 담당, `04.Systems`는 게임플레이 시스템 담당이 판정·AI 코드까지 소유하고, `Net/`·`98.Servers/`의 네트워크 코드는 팀장이 맡는다 → [협업 경계](unity/SERVER_CLIENT_WORKFLOW.md).
 클래스 옆 표기: `NM` = Mirror NetworkManager, `NB` = NetworkBehaviour, `MB` = MonoBehaviour, `C#` = 순수 C# 클래스, `SO` = ScriptableObject, `enum` = 열거형, `static` = 정적 클래스.
@@ -333,7 +332,7 @@ Main.unity
 │  ├ IRunTimeSource.cs     C#  [구현완료] 두 시계와 정지 사유를 읽는 창구. RunManager가 구현한다
 │  ├ IRunStateCarrier.cs   C#  [구현완료] 참가자 값을 담고 되붓는 계약. 이탈·재접속·씬 전환이 같은 것을 쓴다
 │  ├ IRunSceneBinding.cs   C#  [구현완료] 씬이 바뀔 때 참조와 구독을 다시 거는 계약
-│  ├ ICombatLoadoutProvider.cs C# [구현완료] 장비·특성 → 유효 전투 수치 계약. Systems의 실제 provider 구현은 계획이다
+│  ├ ICombatLoadoutProvider.cs C# [구현완료] 장비·특성 → 유효 전투 수치 계약. InventoryController가 구현하고 CombatStatCalculator가 장비·성장·39특성을 합성한다
 │  ├ IRunResultProvider.cs C#  [구현완료] 점수 계산. Systems가 순수 함수로 구현한다
 │  └ (그 밖에 IDamageable · IBarrierState · IRecoveryTarget · ICombatFeedback 등)
 ├ Types/                   namespace Geumeum.Common — 파트 공용 열거형·값 타입
@@ -460,8 +459,8 @@ Main.unity
 ├ RunPhaseTimeline.cs      C#  phase 경계 계산 · 순서/연속성/런 길이 불변식 검사
 ├ RunTimelineBuilder.cs    static BarrierPhaseSO를 순수 타임라인으로 변환
 ├ ReviveController.cs      NB  [구현완료] 실물은 02.Combat/Player/에 있다. 관전 30초와 협동 부활(3m·3초),
-│                              부활 위치 보정. 노잣돈 차감은 재화 시스템 대기(TODO).
-│                              전멸 감지는 여기가 아니라 서버 플레이어 목록을 가진 PlayerStatus가 한다
+│                              부활 위치 보정. PartyWalletLocator.TryApplyReviveLoss로 사망 세대별 차감.
+│                              생명 상태와 구조는 PlayerStatus/ReviveController, 참가자 집계와 런 종료는 RunManager가 담당한다
 ├ NetworkPeerLabel.cs      static [구현완료] 서버 로그에 사람을 적는 방법 한 곳.
 │                              IDisplayNamed로 스팀 이름을 찾고 connectionId를 뒤에 남긴다 -
 │                              번호만 적으면 3인 테스트에서 누구였는지 매 판 다시 맞춰야 한다
@@ -484,7 +483,7 @@ Main.unity
                                틱 경계로 삼는다 (Fixed Timestep = `SERVER_TICK_INTERVAL`)
 ```
 
-`57cb59d` 기준으로 `ReviveController`를 제외한 위 네트워크 클래스는 구현되어 있다.
+현재 ReviveController를 포함한 네트워크·복구 경로가 구현되어 있다.
 `RunManager.CoServerTick`은 `NetworkTime.time`으로 경과 시간과 phase만 갱신하는 런 시계다.
 플레이어·AI·투사체를 함께 실행하는 공용 시뮬레이션 스케줄러로 간주하지 않는다 — 그 역할은
 `AuthorityTickScheduler`로 분리한다(2026-08-30 결정). `RunManager`는 phase·타이머 책임만
@@ -521,7 +520,7 @@ Main.unity
 │  ├ PlayerStatus.cs       NB  [구현완료] HP · 스태미나 · 신력 · 생명 상태 SyncVar, IDamageable · IRecoveryTarget
 │  ├ PlayerWeapon.cs       NB  [구현완료] 현재 무기 SyncVar(초기 1회 배분). 훅이 무기 모델과
 │  │                           애니메이터를 함께 갱신한다. IRunStateCarrier(순서 11) —
-│  │                           씬 전환 뒤 무기를 되붓는다. [예정] 장비/특성 provider의 실제 구현과 소비 연결
+│  │                           씬 전환 뒤 무기를 되붓는다. [구현됨] ICombatLoadoutProvider·CombatStatCalculator로 장비/특성 반영
 │  │                           (CombatStatsSnapshot · WeaponCombatSnapshot · ICombatLoadoutProvider 계약은 이미 있음)
 │  ├ PlayerWeaponVisual.cs MB  [구현완료] 활성 캐릭터 모델의 오른손 뼈에 무기 모델을 붙이는 표현 전용.
 │  │                           캐릭터 x 무기별 부착 보정은 Player.prefab에 있다. IWeaponBladeSource 구현:
@@ -539,8 +538,8 @@ Main.unity
 │  │                           화살 발사를 AttackReach로 갈라 서버가 판정하고, 수락 시점에
 │  │                           RpcAttackStarted로 공격 시작을 모든 화면에 전파한다.
 │  │                           [구현완료] 방울 범위 공격·신력 획득·표식 부여와 HealController의 범위 치유
-│  │                           [예정] 장비/특성으로 산출하는 연사 · 관통 · 치유 강화 · 버프 변형
-│  ├ InteractionController.cs NB [예정] 상호작용 Command와 서버 검증
+│  │                           [구현됨] 장비·특성에 따른 전투 스탯 계산과 행동 적용
+│  ├ 상호작용 요청은 04.Systems/Interaction/InteractionController와 Net partial 참조
 │  └ LockOnController.cs  NB  [구현완료] 락온 대상 선택(로컬)과 CmdSetLockOn 서버 검증.
 │                             대상은 (netId + 부위 번호) SyncVar 둘로 확정하고,
 │                             PlayerPresentation에 대상 Transform을 넘겨 FacingDirection을
@@ -556,7 +555,7 @@ Main.unity
 │  │                           (새 창이 이전 미소비 창을 무효화)
 │  ├ ParryJudge.cs         C#  [구현완료] 시간 창 참·거짓만 계산하는 순수 판정
 │  ├ ParryRequest.cs / ParryWindow.cs / ParryResultCode.cs [구현완료] 요청 · 창 · 결과 코드 값 타입
-│  └ ParryGauge.cs         NB  [구현완료] 게이지 SyncVar와 누적 · 소비 · 리셋 서버 API.
+│  └ ParryGauge.cs         NB  [구현완료] 반격 표식·대상·만료와 R 예약·소비. 구 게이지 API는 활성 규칙 아님.
 │                              치명 배율 roll은 PlayerAttack이 읽어 적용한다.
 │                              빗나가면 소비하지 않는다(2026-09-03 확정)
 ├ Arrow/
@@ -615,7 +614,7 @@ Main.unity
 
 무기 교체는 `ReviveInvulnerable` 중에도 허용한다 — 공격·구르기 중이 아니면 막을 이유가 없고,
 그 외 상태에서는 애초에 교체 요청 자체가 게이트에서 거부되므로 진행 중 능력을 취소하는
-로직은 따로 두지 않는다. `EquipmentInstance`(4.4)의 직렬화 필드 확정은 4.4절 참조.
+로직은 따로 두지 않는다. `WeaponCombatSnapshot`의 직렬화 계약은 4.4절 참조.
 
 ### 4.3 03.AI — 잡귀 · 보스 · 스폰 (소유: 몬스터·보스 파트 @oname36-creator, 네트워크 코드: @AidenKim923)
 
@@ -650,18 +649,17 @@ Main.unity
    │                              [구현완료] 전환 잠금(TransitionLockDuration) · 그로기 본체 피해 배율 ·
    │                              정지(비활성화, 재개 가능)와 종료(사망 · 런 이탈 · 스폰 해제) 분리.
    │                              [구현완료] 무녀 표식 공명 카운터(패턴 종료 시 1회).
-   │                              [예정] 신궁 시전 취소 카운터 · 예고 view · 다중 cue ·
-   │                              syncInterval 확정
+   │                              [구현됨] 신궁 정밀 카운터. 예고 표현·동시 cue 품질과
+   │                              동기화 주기는 현재 구현과 L3에서 확인
    ├ BossStatus.cs            NB [구현완료] 보스 HP SyncVar + 현재 본체 피해 배율. IDamageable.
    │                              HP 감소 훅이 IDamagePresentationSource.HealthDecreased를 발생시킨다
    ├ BossPhaseStateBase.cs    C#  [구현완료] 페이즈 추상 클래스 (enum+switch 금지 — 기술 구현 4.2).
    │                              CancelActiveAttack()로 진행 중 판정 · 패링 창 · 예고를 정리하고,
    │                              Exit()는 멱등이라 종료된 페이즈는 다시 공격하지 않는다
    ├ Phase1State.cs           C#  [구현완료] 1페이즈 MVP: 오프닝 고정 시퀀스(1→2→4) 이후 거리 3단
-   │                              필터 + 균등 무작위 추첨. 템플릿 넷(MeleeArc·TargetedDash·
-   │                              MarkedCircle·ConeBurst) 전부 단일 판정으로 구현됨
-   ├ Phase2State.cs           C#  [구현완료] 2페이즈 MVP: 패턴 6~9(패턴 10 백귀야행은 꼬리 부위
-   │                              파괴 시스템 선행 필요 — [예정], BOSS_PATTERN_CONTRACT.md 4.1)
+   │                              필터 + SO 가중치 추첨. 템플릿 넷(MeleeArc·TargetedDash·
+   │                              MarkedCircle·ConeBurst) SO 실행 시퀀스로 연타·엇박을 처리
+   ├ Phase2State.cs           C#  [구현완료] 2페이즈: 패턴 6~10, 꼬리 파괴·25% 게이트·최종 원혼·삼켜짐 구현
    ├ BossPatternRunner.cs     C#  [구현완료] MeleeArc 부채꼴 판정(NonAlloc), netId 중복 제거
    ├ BossAttackExecution.cs   C#  [구현완료] 보스 공격 1회의 IParryable 구현체. 공격마다 새 인스턴스로
    │                              늦은 패링 통지를 차단(창귀와 동일 패턴)
@@ -696,7 +694,7 @@ BossController·BossPartController·BossSoulController·BossStatus·BossSpawner�
                               남아 있다(1.37/10.26 등). SO 검증기가 막아 도달 불가한 죽은 코드다
 ```
 
-25% 하드 게이트·백귀야행(패턴 10)은 여전히 [예정]이다 — BOSS_PATTERN_CONTRACT.md 8.2·4.1절 참조.
+25% 하드 게이트·백귀야행(패턴 10)은 구현되어 있다 — BOSS_PATTERN_CONTRACT.md 8.2·4.1절 참조.
 
 `02.Combat/Player/PrecisionShotController.cs`·`PrecisionShotRules.cs`(신궁 정밀 사격)와
 `SupportBuffController.cs`·`ReviveResolutionRules.cs`도 추가됐다. 같은 이유로 미검증이다.
@@ -706,13 +704,7 @@ BossController·BossPartController·BossSoulController·BossStatus·BossSpawner�
 ```
 04.Systems/                namespace Geumeum.Systems
 ├ Equipment/
-│  ├ EquipmentInstance.cs  C#  [예정] 개별 드랍 결과 (굴려진 공격력 · 특수옵션). 직렬화 가능 구조로
-│  │                           만든다. Unity/SO 참조는 보유하지 않는다. 필드(2026-08-30 결정):
-│  │                           WeaponKind · ItemGrade · InstanceId(uint, 서버 발급) ·
-│  │                           AttackPower(float, 등급 롤 범위 내 확정값) ·
-│  │                           Options({EquipmentOptionKind, float} 목록)
-│  ├ EquipmentInstanceSerializer.cs C# [예정] Mirror Reader/Writer 확장. 장비 ID · 종류 · 등급 · 롤 ·
-│  │                           옵션 ID/값만 명시적으로 직렬화
+│  ├ 장비 결과는 00.Common/Types/WeaponCombatSnapshot과 InventorySlotSnapshot 사용
 │  ├ EquipmentGenerator.cs C#  ★2단계 랜덤: 필드 레벨 → 등급 룰렛 → 롤. 서버에서만 호출.
 │  │                           재조정권 = 재생성, 등급 상승권 = 상위 EquipmentSO로 교체 후 재생성
 │  ├ DropDirector.cs       NB  잡귀 사망 이벤트 구독 → Generator 호출 → DroppedItem 스폰.
@@ -789,7 +781,7 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 ```
 05.Art/                    namespace Geumeum.Art
 ├ DayCycleController.cs    MB  RunManager의 경과 시간 → DayCycleSO로 조명 · 스카이박스 · 안개
-├ BarrierVisual.cs         MB  [예정] BarrierController의 반경 SyncVar → 원통 셰이더 · 경계 파티클
+├ BarrierVisual.cs         MB  [구현됨] BarrierController의 반경 SyncVar → 원통 셰이더 · 경계 파티클
 ├ CombatFeedbackImpl.cs    MB  ICombatFeedback 구현체: 히트 이펙트, 셰이크, 패링 슬로우모션.
 │                              OnEnable/OnDisable에서 CombatFeedbackLocator에 등록·해제 → 8.3
 ├ ScreenEffects.cs         MB  [예정] 저체력 · 결계 밖 · 쇠약 화면 효과
@@ -858,7 +850,7 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
                            수명 후반부터 노이즈로 갉아먹힌다
 ```
 
-**카메라는 `CameraFrame`(`00.Common`)에 yaw만 밀고, 전투는 그 값을 읽는다.** 카메라 오브젝트를 참조하지 않으므로 `02.Combat` → `05.Art` 의존이 생기지 않는다 — 로케이터를 하나 더 만들 이유도 없다.
+**카메라와 전투는 `CameraFrame`(`00.Common`)의 방향 및 락온 값을 교환한다.** 카메라 오브젝트를 참조하지 않으므로 `02.Combat` → `05.Art` 의존이 생기지 않는다 — 로케이터를 하나 더 만들 이유도 없다.
 
 ### 4.6 06.UI — 게임플레이 시스템(@kjw1237)이 전담
 
@@ -866,7 +858,7 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 
 ```
 06.UI/                     namespace Geumeum.UI
-├ Combat/    HUD(HP · 스태미나 · 신력 · 패링 게이지), 정밀 조준 상태, 무녀 표식 슬롯, 관전 화면
+├ Combat/    HUD(HP · 스태미나 · 신력 · 반격 표식), 정밀 조준 상태, 무녀 표식 슬롯, 관전 화면
 │  └ HUD/
 │     ├ HUDController.cs         [구현완료] HP · 신력 · 스태미나 바를 PlayerStatus.Local에 바인딩
 │     ├ MinimapPlayerDots.cs     [구현완료] 파티원 위치를 점으로, 결계를 판과 원으로 그린다. 캐릭터별 색.
@@ -1101,10 +1093,7 @@ RunManager : NetworkBehaviour
 > 런타임 값은 `BarrierPhaseSO`에서 읽으며 구간이 겹치거나 끊기면 안 된다 — `phase[i].End == phase[i+1].Start`.
 > *(2026-09-06 정정: 09-04 시간표(10/19/25)가 `Shrink1`·`Shrink2`에만 남아 있어, `Shrink2` 종료 25:00과 `Shrink3` 시작 29:30 사이에 **4분 30초 구멍**이 생겨 있었다. 위 불변식을 표 스스로 위반한 상태였다. 두 시계 분리(필드 30분 + 보스 독립 14분) 확정에 맞춰 10 / 20 / 29:30으로 통일한다.)*
 
-`57cb59d`에서 실제로 구현된 전환은 타임라인 경계·시간 초과·런 중 이탈이다.
-2026-09-07 제공 코드에는 전멸·종료 사유·결계/스폰 구독자 처리가 있다.
-**보스 사망→Victory 연결은 2026-09-08 구현했다(U03, 미검증).** 실제 정산 provider·결과 집계는
-남아 있다. ScoreRuleSO.CalculateFinalScore 계산식은 이미 있다.
+`RunStatistics`, `IRunResultFactsProvider`, `IRunResultProvider`와 RunManager 정산 경로가 구현되어 있다. RunResultRecorder/RunLeaderboardStore가 결과와 호스트 로컬 저장을 담당한다. 실제 현재 빌드의 통합 검증은 별도로 수행한다.
 
 #### 슬롯의 키는 connectionId가 아니라 PlatformId다 [구현완료]
 
@@ -1134,7 +1123,7 @@ phase와 직교하고, `RunPhase`에 값을 더하면 전진 전용 가드와 �
 - 재개: 돌아온 사람이 두고 간 자리와 역할을 물려받고, 멈춰 있던 시간만큼 시계를 밀어 경과 시간을 보존한다
 - 포기: 대기를 끊으면 그때 `PlayerLeft`로 확정하고 아래 복귀 경로를 탄다
 
-기다리는 시간에 제한은 없다 [구현완료]. 남은 인원이 대기를 끊는 UI는 아직 없어 Dev 단축키로만 가능하다 [예정].
+기다리는 시간에 제한은 없다 [구현완료]. 남은 인원은 RunStatusPanel의 대기 포기 요청을 사용할 수 있다.
 
 #### Result → Lobby 복귀 [구현완료]
 
@@ -1308,7 +1297,7 @@ Combat ✕ AI ✕ Systems 상호 직접 참조 금지 — Common의 인터페이
 |---|---|---|
 | `IDamageable` | PlayerStatus, EnemyStatus, BossStatus | 공격 판정 · 결계 피해 · 투사체 |
 | `IRecoveryTarget` | PlayerStatus | 무녀 치유 · 회복 물약 |
-| `IBarrierState` | BarrierController *(구현됨 — RollTargetCenter와 BarrierTransitionState로 중심·반경을 계산. 보스 입구·객주를 포함하는 제약은 별도 미구현)* | 무녀 치유 · 결계 밖 잡귀 이동 · BarrierVisual · UI |
+| `IBarrierState` | BarrierController *(구현됨 — RollTargetCenter와 BarrierTransitionState로 중심·반경을 계산. RequiredLandmarks·BarrierMapBinding의 랜드마크 제약 적용)* | 무녀 치유 · 결계 밖 잡귀 이동 · BarrierVisual · UI |
 | `IParryable` | 창귀 돌진, 보스 패링 가능 패턴 | ParryController |
 | `IInteractable` | ShopKeeper, DroppedItem | 플레이어 상호작용 입력 |
 | `ICombatFeedback` | CombatFeedbackImpl | 전투 타이밍 → 로컬 연출 |
@@ -1364,28 +1353,9 @@ _combatFeedback.PlayCritical(multiplier);
 
 ---
 
-## 10. 구현 순서와 구조의 대응
+## 10. 현재 구현과 후속 작업
 
-마일스톤([기술 구현 6장](03-technical-design.md))을 이 문서의 구조로 번역하면:
-
-| 시기 | 만드는 것 (이 문서 기준) |
-|---|---|
-| 프로토 1주 | 폴더 골격 · `00.Common` 전체 · GeumeumNetworkManager · **LobbyController(3인 준비 · 무기 배분)** · Player.prefab 뼈대 · 3인 접속 |
-| 프로토 2주 | PlayerController/Status 동기화 · EnemyController + 허깨비 Brain |
-| 프로토 3주 | ParryController + ParryJudge · DropDirector 최소형 · BarrierController 1단계 · RunManager |
-| 집중 1주 | 잡귀 3종 Brain · Barrier 전 단계 · SpawnManager |
-| 집중 2주 | EquipmentGenerator 완성 · InventoryController(12칸) · DroppedItem |
-| 집중 3주 | TalentController · ShopKeeper · CurrencyManager |
-| 집중 4주 | BossController + Phase 클래스들 |
-| 집중 5주 | 05.Art 전체 (CombatFeedbackImpl · DayCycle · BarrierVisual) · 사운드 |
-
-현재 기준선은 프로토 1주의 공용 데이터·부트·로비·런 시계 골격과
-Player.prefab의 이동·패링 초기 컴포넌트까지다. 3인 M2와 `PlayerStatus`/`PlayerWeapon`
-연결이 끝나기 전에는 프로토 1주 네트워크 범위를 완료로 표시하지 않는다.
-
-`00.Common`(인터페이스 · GameDB · RunPhase enum)이 **1주차 최우선**인 이유: 이것이 없으면 3명이 각자 임시 타입을 만들고, 통합 주에 전부 다시 붙여야 한다.
-
----
+계정·릴레이, 전투·무기 R, 장비·경제·39특성, 보스·결과·규칙형 동료 봇이 구현되어 있다. 실제 상태와 미검증 범위는 [구현 현황](IMPLEMENTATION_STATUS.md), 후속 작업은 [로드맵](05-implementation-roadmap.md)을 따른다. 초기 프로토타입의 폴더 생성 순서를 현재 미구현 목록으로 사용하지 않는다.
 
 ## 11. 이 구조가 지키는 기획 요구 (추적표)
 
@@ -1397,7 +1367,7 @@ Player.prefab의 이동·패링 초기 컴포넌트까지다. 3인 M2와 `Player
 | 서버는 원본 값 하나만 | 기술 3.2 | RunManager의 ElapsedSeconds 허브 (5장) |
 | UI 전담자 지정 (2026-08-30~) | 시스템 5 | 06.UI를 @kjw1237 전담, 씬 작업 우선 원칙 (4.6) |
 | 페이즈마다 패링 패턴 | 게임 9.2 | BossPhaseBase + IParryable 계약 (4.3) |
-| 아이템 양도 · 재조정권 재사용 | 기술 4.3 | EquipmentSO(설계도) / EquipmentInstance(결과) 분리 (4.4) |
+| 아이템 양도 · 재조정권 재사용 | 기술 4.3 | EquipmentSO(설계도) / WeaponCombatSnapshot(결과) 분리 (4.4) |
 | 호스트 PC 부하 | 기술 4.4 | 05.Art 로컬 전용 강제, VFX 프리팹에 NetworkIdentity 금지 (4.5 · 7장) |
 | 스코프 잠금 | 시스템 6 | 보스 1 · 고정 맵 · 제작 없음 — 해당 확장용 폴더 · 클래스를 미리 만들지 않는다 |
 | 3인 고정 · 역할 무작위 배분 | 시스템 2.3 | LobbyController가 런 시작을 게이트하고 무기를 중복 없이 배분 (4.1 · 10장) |
@@ -1453,5 +1423,11 @@ Mirror의 `StartHost`/`StartServer` 호출을 가로챌 수 없어, 서버가 �
 
 ### 13.7 중앙 서버 partial 폴더 (2026-09-15)
 
-`Assets/01.Scripts/98.Servers/`는 팀장이 맡는 네트워크 코드 중 서버 partial(`.server.cs`)의 위치다. 기존 요청·조회 컴포넌트, 판정·AI 클래스, Mirror `Net/`는 도메인 폴더에 유지하고, 서버 partial 20개만 중앙에 모았다(판정·AI 22개는 같은 날 도메인 폴더로 되돌렸다). 하위 경로는 기존 도메인 폴더를 그대로 비춘다(`98.Servers/{03.AI|04.Systems}/{기능}/`). 새 `.server.cs`는 이 규칙대로 기능별로 작성하고, 새 판정·AI 코드는 도메인 폴더에 파트 담당이 작성한다.
+`Assets/01.Scripts/98.Servers/`는 팀장이 맡는 네트워크 코드 중 서버 partial(`.server.cs`)의 위치다. 기존 요청·조회 컴포넌트, 판정·AI 클래스, Mirror `Net/`는 도메인 폴더에 유지하고, 서버 partial을 중앙에 모았다(판정·AI 22개는 같은 날 도메인 폴더로 되돌렸다). 하위 경로는 기존 도메인 폴더를 그대로 비춘다(`98.Servers/{03.AI|04.Systems}/{기능}/`). 새 `.server.cs`는 이 규칙대로 기능별로 작성하고, 새 판정·AI 코드는 도메인 폴더에 파트 담당이 작성한다.
 기존 partial과 호환되도록 `Geumeum.AI`·`Geumeum.Systems` 네임스페이스와 어셈블리는 유지한다. 클라이언트 소비자는 [클라이언트 API](unity/CLIENT_API_REFERENCE.md)를 사용한다. 공용 계산과 `01.Network`·`02.Combat`의 기존 혼합 컴포넌트는 이번 물리 이동에서 제외했다. `01.Network`·`02.Combat` 담당은 팀장이다. 전체 서버 코드를 클라이언트 빌드에서 제외하는 구조는 아니다.
+
+## 현행 추가 진입점
+
+- 자체 계정: `01.Network/Identity/AccountGameServer`, `LauncherGameSession`, `AccountRelayTransport`. API는 신원·방, 게임 호스트는 시뮬레이션 권위다.
+- 플레이어: `PlayerBrain`, `PlayerBotSpawner`, `PlayerAttack`의 counter/skills/placement/abilities partial과 `03.AI/PlayerBot`.
+- UI·표현: `WeaponAbilityHUD`, `FixedAspectViewport`, `InteractionPromptView`, `BotInventoryView`.

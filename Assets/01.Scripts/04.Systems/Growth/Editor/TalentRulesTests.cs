@@ -31,6 +31,7 @@ namespace Geumeum.Systems.Tests
                     WeaponKind = WeaponKind.Sword,
                     ColumnIndex = 0,
                     DisplayName = "패링의 길",
+                    NodeCount = 3,
                 },
             });
             Set(_tree, "_nodes", new[]
@@ -96,6 +97,7 @@ namespace Geumeum.Systems.Tests
                     {
                         WeaponKind = (WeaponKind)weapon,
                         ColumnIndex = column,
+                        NodeCount = 5,
                     };
 
                     for (int row = 0; row < 5; ++row)
@@ -123,6 +125,106 @@ namespace Geumeum.Systems.Tests
             Set(_tree, "_nodes", nodes);
             Assert.IsFalse(_tree.ValidateDefinition(out failure));
             StringAssert.Contains("ID", failure);
+        }
+
+        [Test]
+        public void ConnectedTreeFollowsExplicitPrerequisitesNotRowOrder()
+        {
+            // 뿌리 하나에서 갈래가 갈라지는 방울식 연결. 화면 행 순서와 판정은 별개다
+            SetBellTree(
+                new[] { 1, 2 },
+                BellNode(101, 0, 0, TalentEffectKind.BellFirstHitSpiritGain, 1f, null),
+                BellNode(102, 1, 0, TalentEffectKind.SkillSpiritCost, 2f, new[] { 101 }),
+                BellNode(103, 1, 1, TalentEffectKind.FieldRadiusBonus, 0.3f, new[] { 102 }));
+
+            TalentAllocationSnapshot empty = new TalentAllocationSnapshot(
+                1u, true, WeaponKind.Bell, 0, new int[0]);
+            Assert.AreEqual(TalentAllocationResult.Success,
+                TalentRules.CanAllocate(_tree, empty, 3, 101, out _),
+                "뿌리는 선행이 없다");
+            Assert.AreEqual(TalentAllocationResult.MissingPrerequisite,
+                TalentRules.CanAllocate(_tree, empty, 3, 102, out _));
+
+            TalentAllocationSnapshot root = new TalentAllocationSnapshot(
+                2u, true, WeaponKind.Bell, 1, new[] { 101 });
+            Assert.AreEqual(TalentAllocationResult.Success,
+                TalentRules.CanAllocate(_tree, root, 3, 102, out _));
+            Assert.AreEqual(TalentAllocationResult.MissingPrerequisite,
+                TalentRules.CanAllocate(_tree, root, 3, 103, out _),
+                "행 번호가 아니라 이어진 앞 노드를 본다");
+
+            Assert.IsTrue(_tree.ValidateDefinition(out string failure), failure);
+        }
+
+        [Test]
+        public void MissingAndCyclicPrerequisitesFailDefinition()
+        {
+            SetBellTree(
+                new[] { 2 },
+                BellNode(101, 0, 0, TalentEffectKind.BellFirstHitSpiritGain, 1f, new[] { 999 }),
+                BellNode(102, 0, 1, TalentEffectKind.SkillSpiritCost, 2f, new[] { 101 }));
+            Assert.IsFalse(_tree.ValidateDefinition(out string failure));
+            StringAssert.Contains("선행", failure);
+
+            SetBellTree(
+                new[] { 2 },
+                BellNode(101, 0, 0, TalentEffectKind.BellFirstHitSpiritGain, 1f, new[] { 102 }),
+                BellNode(102, 0, 1, TalentEffectKind.SkillSpiritCost, 2f, new[] { 101 }));
+            Assert.IsFalse(_tree.ValidateDefinition(out failure));
+            StringAssert.Contains("순환", failure);
+        }
+
+        /// <summary>
+        /// 방울 노드만 바꿔 가며 검사한다. 정의 검증은 세 무기가 모두 있어야 통과하므로
+        /// 검/활은 최소 한 노드짜리 열로 채운다
+        /// </summary>
+        private void SetBellTree(int[] bellColumnCounts,
+            params TalentTreeSO.NodeEntry[] bellNodes)
+        {
+            var columns = new System.Collections.Generic.List<TalentTreeSO.ColumnEntry>
+            {
+                new TalentTreeSO.ColumnEntry
+                { WeaponKind = WeaponKind.Sword, ColumnIndex = 0, NodeCount = 1 },
+                new TalentTreeSO.ColumnEntry
+                { WeaponKind = WeaponKind.Bow, ColumnIndex = 0, NodeCount = 1 },
+            };
+            for (int i = 0; i < bellColumnCounts.Length; ++i)
+            {
+                columns.Add(new TalentTreeSO.ColumnEntry
+                { WeaponKind = WeaponKind.Bell, ColumnIndex = i, NodeCount = bellColumnCounts[i] });
+            }
+
+            var nodes = new System.Collections.Generic.List<TalentTreeSO.NodeEntry>
+            {
+                Node(1, 0, TalentEffectKind.ParryWindowSeconds, 0.02f),
+                new TalentTreeSO.NodeEntry
+                {
+                    NodeId = 201, WeaponKind = WeaponKind.Bow, ColumnIndex = 0, RowIndex = 0,
+                    DisplayName = "201", EffectKind = TalentEffectKind.ArrowSpeedPercent,
+                    PointCost = 1, Value = 5f,
+                },
+            };
+            nodes.AddRange(bellNodes);
+
+            Set(_tree, "_columns", columns.ToArray());
+            Set(_tree, "_nodes", nodes.ToArray());
+        }
+
+        private static TalentTreeSO.NodeEntry BellNode(int id, int column, int row,
+            TalentEffectKind effect, float value, int[] prerequisites)
+        {
+            return new TalentTreeSO.NodeEntry
+            {
+                NodeId        = id,
+                WeaponKind    = WeaponKind.Bell,
+                ColumnIndex   = column,
+                RowIndex      = row,
+                DisplayName   = id.ToString(),
+                EffectKind    = effect,
+                PointCost     = 1,
+                Value         = value,
+                Prerequisites = prerequisites,
+            };
         }
 
         private static TalentTreeSO.NodeEntry Node(int id, int row,

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 씬 로컬 싱글턴 베이스, 씬이 바뀌면 함께 파괴되고 인스턴스가 비워진다.
+    /// 씬 로컬 싱글턴 베이스, 씬이 바뀌면 함께 파괴되고 인스턴스가 비워진다
     /// 상속 클래스는 Awake를 직접 만들지 말고 OnSingletonAwake를 오버라이드한다
     /// </summary>
     public abstract class SceneSingleton<T> : MonoBehaviour where T : SceneSingleton<T>
@@ -21,14 +21,14 @@ namespace Geumeum.Common
         ****************************************/
 
         /// <summary>
-        /// 인스턴스 존재 여부, 조회만으로 탐색 비용이 들지 않는다.
+        /// 인스턴스 존재 여부, 조회만으로 탐색 비용이 들지 않는다
         /// Instance와 같은 종료 조건을 본다, 여기서 _isQuitting을 빼면
         /// HasInstance는 true인데 Instance는 null인 구간이 생겨 호출부가 터진다
         /// </summary>
         public static bool HasInstance => ((!_isQuitting) && (_instance != null));
 
         /// <summary>
-        /// 현재 씬의 인스턴스, 없으면 null.
+        /// 현재 씬의 인스턴스, 없으면 null
         /// 자동 생성하지 않으므로 생성이 필요하면 EnsureCreated를 호출한다
         /// </summary>
         public static T Instance

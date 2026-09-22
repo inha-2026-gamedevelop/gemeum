@@ -5,6 +5,18 @@ using Geumeum.Common;
 /// <summary> 표식 슬롯 규칙. 2슬롯, 8초 만료, 소유자별 독립 </summary>
 public class MarkRegistryTests
 {
+    [Test]
+    public void HumanAndBotWithSameNumberHaveIndependentSlotsAndHistory()
+    {
+        var human = new ParticipantId(99UL);
+        var bot = new ParticipantId(ParticipantKind.Bot, 99UL);
+        Assert.IsTrue(Apply(human, 1u, 0d));
+        Assert.IsTrue(Apply(bot, 1u, 0d));
+        MarkRegistry.ClearOwner(human);
+        Assert.IsTrue(MarkRegistry.IsMarkedBy(bot, Target(1u), 1d));
+        Assert.IsFalse(MarkRegistry.IsMarkedBy(human, Target(1u), 1d));
+    }
+
     private const double DURATION   = 8d;
     private const int    SLOT_COUNT = 2;
 

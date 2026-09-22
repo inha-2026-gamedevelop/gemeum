@@ -30,14 +30,12 @@ namespace Geumeum.Systems
         private uint _loadoutRevision;
         private uint _lastGrowthRevision;
         private uint _lastTalentRevision;
-        private uint _lastBuffRevision;
 
         /// <summary> 서버 원본. 규칙 계산과 carrier 캡처가 이 값을 본다 </summary>
         private readonly InventorySnapshot _inventory = new InventorySnapshot();
 
         private IEquipmentWeaponTarget _weaponTarget;
         private ITalentAllocationProvider _talentProvider;
-        private ICombatBuffProvider       _buffProvider;
         private IDamageable            _damageable;
         private IGrowthParticipant     _growthParticipant;
         private bool                   _growthChangedSubscribed;
@@ -102,8 +100,8 @@ namespace Geumeum.Systems
         }
 
         /// <summary>
-        /// 현재 장착 snapshot과 레벨 곡선으로 공격 시 사용할 전투 수치를 만든다.
-        /// 이 메서드는 서버가 공격을 수락하는 순간 호출하고, 반환한 값을 행동에 복사해 둔다.
+        /// 현재 장착 snapshot과 레벨 곡선으로 공격 시 사용할 전투 수치를 만든다
+        /// 이 메서드는 서버가 공격을 수락하는 순간 호출하고, 반환한 값을 행동에 복사해 둔다
         /// </summary>
         public bool TryBuildLoadout(ParticipantId participant, out CombatStatsSnapshot snapshot)
         {
@@ -131,7 +129,7 @@ namespace Geumeum.Systems
                 return false;
             }
 
-            if ((_talentProvider == null) || (_buffProvider == null) ||
+            if ((_talentProvider == null) ||
                 (GameDB.Combat == null) ||
                 (GameDB.Arrow == null) || (GameDB.Talent == null))
             {
@@ -151,18 +149,9 @@ namespace Geumeum.Systems
                 return false;
             }
 
-            if ((_lastBuffRevision == 0u) && (_buffProvider.Revision != 0u))
-            {
-                _lastBuffRevision = _buffProvider.Revision;
-            }
-
-            if ((!_buffProvider.TryGetDamageMultiplier(participant,
-                    out float activeDamageMultiplier)) ||
-                (_buffProvider.Revision != _lastBuffRevision))
-            {
-                return false;
-            }
-
+            // 공명진 계수는 여기서 접지 않는다. 그 버프는 행동의 비용이 확정되는
+            // 순간에 한 번만 곱해야 해서, 수명이 다른 이 snapshot에 섞으면
+            // 이미 날아간 화살까지 출입할 때마다 다시 계산하게 된다
             return CombatStatCalculator.TryBuild(
                 GameDB.Combat,
                 GameDB.Arrow,
@@ -170,7 +159,6 @@ namespace Geumeum.Systems
                 _serverEquippedWeapon,
                 growth,
                 allocation,
-                activeDamageMultiplier,
                 _loadoutRevision,
                 out snapshot);
         }
@@ -191,24 +179,13 @@ namespace Geumeum.Systems
 
             _weaponTarget = GetComponent<IEquipmentWeaponTarget>();
             _talentProvider = GetComponent<ITalentAllocationProvider>();
-            _buffProvider = GetComponent<ICombatBuffProvider>();
             _damageable   = GetComponent<IDamageable>();
             _growthParticipant = GetComponent<IGrowthParticipant>();
-
-            if (_buffProvider != null)
-            {
-                _buffProvider.RevisionChanged += OnBuffRevisionChanged;
-            }
         }
 
         private void OnDestroy()
         {
             UnbindGrowthParticipant();
-
-            if (_buffProvider != null)
-            {
-                _buffProvider.RevisionChanged -= OnBuffRevisionChanged;
-            }
         }
 
         /****************************************
@@ -244,9 +221,9 @@ namespace Geumeum.Systems
         ****************************************/
 
         /// <summary>
-        /// 역할 배분 전이라 아직 무기가 없는 상태인가.
+        /// 역할 배분 전이라 아직 무기가 없는 상태인가
         ///
-        /// Capture가 무기 없는 참가자에 default를 담으므로 같은 값을 여기서 알아본다.
+        /// Capture가 무기 없는 참가자에 default를 담으므로 같은 값을 여기서 알아본다
         /// 일부만 비어 있는 값은 손상이므로 정확히 default일 때만 인정한다
         /// </summary>
         private static bool IsUnarmedSnapshot(in WeaponCombatSnapshot weapon)
@@ -422,29 +399,6 @@ namespace Geumeum.Systems
             ObserveGrowthRevision(growth.Revision);
         }
 
-        private void OnBuffRevisionChanged(uint revision)
-        {
-            if ((!isServer) || (revision == 0u) ||
-                (_lastBuffRevision == revision))
-            {
-                return;
-            }
-
-            if ((_lastBuffRevision != 0u) && (_loadoutRevision == uint.MaxValue))
-            {
-                Debug.LogError("[InventoryController] 버프 변경을 반영할 loadout revision이 고갈됐다",
-                    this);
-                return;
-            }
-
-            if (_lastBuffRevision != 0u)
-            {
-                ++_loadoutRevision;
-            }
-
-            _lastBuffRevision = revision;
-        }
-
         private bool ObserveGrowthRevision(uint growthRevision)
         {
             if (growthRevision == 0u)
@@ -457,7 +411,7 @@ namespace Geumeum.Systems
                 return true;
             }
 
-            // A new run starts its growth revision at one; do not count that as an equipment change.
+            // A new run starts its growth revision at one; do not count that as an equipment change
             if ((_lastGrowthRevision != 0u) && (growthRevision < _lastGrowthRevision))
             {
                 _lastGrowthRevision = growthRevision;

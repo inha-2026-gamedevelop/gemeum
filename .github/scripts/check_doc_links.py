@@ -22,10 +22,10 @@ if hasattr(sys.stdout, 'reconfigure'):
 LINK = re.compile(r'\[[^\]]*\]\(([^)]+)\)')
 SKIP = ('http://', 'https://', 'mailto:', '#')
 
-# 검사할 문서의 범위. 워크플로의 paths 트리거와 같게 맞춘다.
-# 루트의 md(CLAUDE.md, CONTRIBUTING.md, README.md)와 docs/ 아래가 우리 문서다.
+# 검사할 문서의 범위. 워크플로의 paths 트리거와 같게 맞춘다
+# 루트의 md(CLAUDE.md, CONTRIBUTING.md, README.md)와 docs/ 아래가 우리 문서다
 #
-# .claude/skills 아래는 커밋되어 있지만 서드파티 도구 번들이다.
+# .claude/skills 아래는 커밋되어 있지만 서드파티 도구 번들이다
 # 템플릿 자리표시자({{path}})와 정규식 예시를 링크로 적어 둔 곳이 많아
 # 검사에 넣으면 우리가 고칠 수 없는 실패로 모든 PR이 막힌다
 SCOPE_FOLDERS = ('docs/',)

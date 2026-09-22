@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 전투와 아트를 잇는 정적 로케이터.
+    /// 전투와 아트를 잇는 정적 로케이터
     /// 전투가 아트의 구현 클래스를 직접 참조하지 않게 하고, 구현이 없을 때는 아무것도 하지 않는 기본값을 돌려준다
     /// </summary>
     public static class CombatFeedbackLocator

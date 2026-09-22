@@ -29,7 +29,7 @@
 | Editor Console Pro (3.983) | FlyingWorm | 11889 | `99.ThirdParty/Tools/ConsolePro` | 에디터 전용 | EULA 기준 가능 | 미확인 | 미확인 |
 | Easy Effect/UI Viewer (1.1.4) | Yu-Rin-Chi GameStudio | 348954 | `99.ThirdParty/Tools/EasyProjectViewer` | 에디터 전용 | EULA 기준 가능. 동봉 고지: WuHuan (2018) | 미확인 | 미확인 |
 | Hierarchy Designer (3.2.2) | Pedro Verpha | 273928 | `99.ThirdParty/Tools/Hierarchy Designer` | 에디터 전용 | EULA 기준 가능 | 미확인 | 미확인 |
-| PhysioBrush (1.6.7) | Rip Vertices Studio | 375898 | `99.ThirdParty/Tools/PhysioBrush` | 갓 · 너울 물리 프리팹 2개 · 설정 1개 (2026-09-13 작업 중, 미커밋) | EULA 기준 가능 | 미확인 | 미확인 |
+| PhysioBrush (1.6.7) | Rip Vertices Studio | 375898 | `99.ThirdParty/Tools/PhysioBrush` | 갓 · 너울 물리 프리팹 2개 · 설정 1개 (2026-09-13 갓·너울 프리팹 2개와 PhysioSettings의 런타임 자산 3개 저장소 추적) | EULA 기준 가능 | 미확인 | 미확인 |
 | Wingman (1.1.0) | Kyle Rhoads | 303181 | `99.ThirdParty/Tools/Wingman` | 에디터 전용 | EULA 기준 가능 | 미확인 | 미확인 |
 | Mesh Baker (3.39.0, 유료판) | Ian Deane | 5017 (`.meta`에 출처가 없어 판본은 사용자 확인) | `99.ThirdParty/Tools/MeshBaker` | 참조 0 | EULA 기준 가능 | 미확인 | 미확인 |
 
@@ -43,7 +43,7 @@
 | Steamworks SDK 재배포 파일 (`steam_api`) | Valve | Steamworks.NET 동봉 | **Valve Steamworks 약관 (MIT 아님)** | `Packages/.../Plugins` | 저장소 루트 `steam_appid.txt`가 `480`(Valve 테스트 앱)이다 |
 | MCP for Unity | CoplayDev | [GitHub](https://github.com/CoplayDev/unity-mcp) (lock `30d2207509`) | MIT | `Packages` (에디터 전용) | GitHub API |
 | UnityChanSpringBone | Unity Technologies ApS | [GitHub](https://github.com/unity3d-jp/UnityChanSpringBone) | MIT | `98.FreeAssets/UnityChanSpringBone` (커밋) | `LICENSE`, GitHub API. `Boss_Proxy.prefab`에서 사용 |
-| Remotion (티저 조립, 도입 예정) | Remotion | [remotion.dev](https://www.remotion.dev/docs/license/pricing) | 무료 라이선스: 개인 · **3인 이하** 조직. 초과 시 Company License. 협업 조직 인원 합산 조항 있음 | 미설치 | 공식 라이선스 문서 (2026-09-13 조회). 팀이 3인 경계선이다 |
+| Remotion (4.0.524, 티저 조립) | Remotion | [공식 라이선스 안내](https://www.remotion.dev/docs/license/pricing) | 적용 조건은 배포 전 공식 문서 재확인 | `tools/teaser` | package.json·lockfile에 설치 정의 있음. 조직·협업 인원에 따른 권리를 별도 확인 |
 | Unity 공식 패키지 (URP · Timeline · TextMesh Pro · Newtonsoft Json 등) | Unity Technologies | Unity Registry | 패키지별 (Unity Companion License 등) | `Packages`, `Assets/TextMesh Pro` | 각 패키지 `LICENSE.md` |
 | 명원체 / 한글재민체4.0 (UI 폰트) | 국민대학교 | [국민대학교 전용서체](https://www.kookmin.ac.kr/comm/menu/user/0a4f7cf187cc3164678352bc3f4575b3/content/index.do) | OFL — 상업 이용 · 게임 임베딩 · 수정 허용, 폰트 파일 유료 판매 금지 | `13.UI/00.UI_Resource/Fonts` | 배포 페이지 |
 
@@ -65,8 +65,8 @@
 | 자산 | 도구 | 위치 | 권리 조건 | 상태 |
 |---|---|---|---|---|
 | 플레이어 3종(차사 · 신궁 · 무녀) · 잡귀 3종(창귀 · 액귀 · 허깨비) 모델과 텍스처 | Meshy AI (일부 Blender 재작업) | `06.Model/Player`, `06.Model/Monster`, `03.Image` | **유료 플랜이라 생성자 소유** (무료 플랜 생성물이었다면 CC BY 4.0) | 플랜은 사용자 확인. **생성일 미기록** |
-| 보스 1페이즈 · 객주 갓과 너울 | Meshy AI 초안 → **미채택**, Blender에서 새 메시로 재작성 | `06.Model/Monster/GatNeoul` (작업 중) | 최종 메시는 팀 제작물. 초안 생성은 위 Meshy 조건 | 착용 확인용 파일에만 구매 보스 모델을 넣었고 최종 FBX · GLB에는 없다. 구매 에셋을 Meshy에 올리지 않았다 (`.claude/docs/2026-09-13/boss-gat-neoul.md`) |
-| HUD 이미지 17장 | ChatGPT (OpenAI) | `13.UI/00.UI_Resource/HUD` | [OpenAI 이용약관](https://openai.com/policies/terms-of-use)에 따름. 원문 캡처 미보관 | 도구는 사용자 확인. 반입 2026-09-07 (`666d63e`), 프롬프트는 `docs/unity/HUD_DESIGN.md` |
+| 보스 1페이즈 · 객주 갓과 너울 | Meshy AI 초안 → **미채택**, Blender에서 새 메시로 재작성 | `06.Model/Monster/GatNeoul` | 최종 메시는 팀 제작물. 초안 생성은 위 Meshy 조건 | 착용 확인용 파일에만 구매 보스 모델을 넣었고 최종 FBX · GLB에는 없다. 구매 에셋을 Meshy에 올리지 않았다 (제작 경계와 런타임 경로는 [갓·너울](../unity/GAT_NEOUL_PHYSIO.md) 참조) |
+| HUD 이미지 | ChatGPT (OpenAI) | `13.UI/00.UI_Resource/HUD` | [OpenAI 이용약관](https://openai.com/policies/terms-of-use)에 따름. 원문 캡처 미보관 | 도구는 사용자 확인. 반입 2026-09-07 (`666d63e`), 프롬프트는 `docs/unity/HUD_DESIGN.md` |
 | 인게임 메뉴 이미지 15장 | ChatGPT (OpenAI) | `13.UI/00.UI_Resource/InGame` | [OpenAI 이용약관](https://openai.com/policies/terms-of-use)에 따름. 원문 캡처 미보관 | 도구는 사용자 확인. 반입 2026-09-18. 한 장짜리 시트로 받아 요소별로 잘라 나눴고 시트 원본은 남기지 않았다. 프롬프트 미기록 |
 | BGM | Suno (예정) | 없음 | 아래 "AI 생성 음원" 절 | 아직 사용 안 함 (`SoundCatalogSO` BGM 비어 있음) |
 

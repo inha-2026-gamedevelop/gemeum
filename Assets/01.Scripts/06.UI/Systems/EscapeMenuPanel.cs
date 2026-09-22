@@ -217,6 +217,16 @@ namespace Geumeum.UI
                 return;
             }
 
+            // 펼친 지도도 ESC로 거두는 층이다. 지도 쪽은 메뉴가 있으면 ESC를 처리하지
+            // 않고 넘기므로(MinimapExpandToggle.DefersCloseKeyToEscapeMenu),
+            // Update 순서와 무관하게 한 번 눌러 지도만 닫히고 메뉴는 열리지 않는다
+            MinimapExpandToggle minimap = MinimapExpandToggle.Instance;
+            if ((minimap != null) && minimap.IsExpanded)
+            {
+                minimap.Collapse();
+                return;
+            }
+
             if (_isOpen)
             {
                 Close();

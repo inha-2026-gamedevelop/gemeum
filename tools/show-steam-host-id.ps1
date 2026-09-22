@@ -1,6 +1,6 @@
-﻿# 호스트 로그에서 SteamID64를 뽑아 콘솔에 띄우고 클립보드에 넣는다.
+﻿# 호스트 로그에서 SteamID64를 뽑아 콘솔에 띄우고 클립보드에 넣는다
 # 게임이 로그를 쓸 때까지 기다리는 것도 여기서 한다. 배치의 timeout은 대기 시간이 고정이라
-# 부팅이 느린 PC에서 아직 비어 있는 로그를 읽고 아무것도 못 찾는 일이 있었다.
+# 부팅이 느린 PC에서 아직 비어 있는 로그를 읽고 아무것도 못 찾는 일이 있었다
 param(
     [Parameter(Mandatory = $true)][string]$LogPath,
     [int]$TimeoutSeconds = 45

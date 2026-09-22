@@ -47,6 +47,8 @@ namespace Geumeum.Data
         public float GuidanceDegreesPerSecond => _guidanceDegreesPerSecond;
         public float GuidanceDuration         => _guidanceDuration;
 
+        [SerializeField] private int _maxPierceCount = 8;
+        public int MaxPierceCount => Mathf.Max(1, _maxPierceCount);
         public int BasePierceCount => _basePierceCount;
     }
 }

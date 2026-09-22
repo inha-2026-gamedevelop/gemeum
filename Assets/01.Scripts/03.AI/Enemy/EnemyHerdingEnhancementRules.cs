@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Geumeum.AI
 {
-    /// <summary>몰이 강화 때 기준 스탯에서 새 값을 만들고 현재 HP 비율을 보존하는 순수 규칙.</summary>
+    /// <summary>몰이 강화 때 기준 스탯에서 새 값을 만들고 현재 HP 비율을 보존하는 순수 규칙</summary>
     public static class EnemyHerdingEnhancementRules
     {
         public static bool TryCalculate(float currentHealth, float currentMaxHealth,

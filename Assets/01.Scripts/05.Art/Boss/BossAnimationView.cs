@@ -8,7 +8,7 @@ using Geumeum.Data;
 
 namespace Geumeum.Art
 {
-    /// <summary> 보스 판정이 확정한 SyncVar·이벤트를 Animator 파라미터로 옮긴다. 판정에는 관여하지 않는다 </summary>
+    /// <summary> 보스 판정이 확정한 SyncVar, 이벤트를 Animator 파라미터로 옮긴다. 판정에는 관여하지 않는다 </summary>
     [RequireComponent(typeof(Animator))]
     public sealed class BossAnimationView : MonoBehaviour
     {

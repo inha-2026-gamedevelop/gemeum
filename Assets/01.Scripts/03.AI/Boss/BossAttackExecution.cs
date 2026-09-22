@@ -12,7 +12,7 @@ namespace Geumeum.AI
     /// 공격마다 새로 만든다: 이전 공격의 늦은 OnParried가 이미 시작된 다음 공격을
     /// 잘못 취소시키는 것을 막는다
     /// </summary>
-    internal sealed class BossAttackExecution : IParryable
+    internal sealed class BossAttackExecution : IParryable, IParrySequenceSource
     {
         /****************************************
         *                Fields
@@ -27,6 +27,9 @@ namespace Geumeum.AI
         public float ParryWindowDuration { get; }
         public uint  AttackInstanceId    { get; }
         public byte  RepeatIndex         { get; }
+        public bool IsDeflect { get; set; }
+        public Func<bool> SequenceActive { get; set; }
+        public bool IsSequenceActive => SequenceActive != null && SequenceActive();
 
         /****************************************
         *              Constructor

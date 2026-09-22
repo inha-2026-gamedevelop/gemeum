@@ -22,14 +22,14 @@ namespace Geumeum.Systems
         private readonly struct StreamKey : IEquatable<StreamKey>
         {
             public readonly uint  RunIdValue;
-            public readonly ulong ParticipantValue;
+            public readonly ParticipantId ParticipantValue;
             public readonly uint  NetworkObjectGenerationValue;
             public readonly TransactionOperation Operation;
 
             public StreamKey(in TransactionRequestHeader header, ParticipantId participant)
             {
                 RunIdValue                  = header.RunIdValue;
-                ParticipantValue            = participant.Value;
+                ParticipantValue            = participant;
                 NetworkObjectGenerationValue = header.NetworkObjectGenerationValue;
                 Operation                   = header.Operation;
             }
@@ -111,8 +111,8 @@ namespace Geumeum.Systems
 
         private readonly Dictionary<uint, OfferRecord> _offers =
             new Dictionary<uint, OfferRecord>();
-        private readonly Dictionary<ulong, uint> _activeOfferByParticipant =
-            new Dictionary<ulong, uint>();
+        private readonly Dictionary<ParticipantId, uint> _activeOfferByParticipant =
+            new Dictionary<ParticipantId, uint>();
         private readonly Dictionary<StreamKey, RequestRecord> _lastByStream =
             new Dictionary<StreamKey, RequestRecord>();
         private readonly List<uint> _endBuffer = new List<uint>();

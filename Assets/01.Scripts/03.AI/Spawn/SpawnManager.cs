@@ -18,7 +18,7 @@ using Geumeum.Systems;
 namespace Geumeum.AI
 {
     /// <summary>
-    /// RunPhase별 동시 존재 수 · 리스폰 타이머 · 구성 비율을 관리한다.
+    /// RunPhase별 동시 존재 수, 리스폰 타이머, 구성 비율을 관리한다
     /// 결계 목표 원으로 거점과 기존 잡귀 몰이를 갱신한다. SpawnConfigSO/BarrierPhaseSO 데이터로 구동된다
     /// </summary>
     public partial class SpawnManager : NetworkBehaviour

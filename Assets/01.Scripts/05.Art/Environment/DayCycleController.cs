@@ -20,7 +20,7 @@ namespace Geumeum.Art
         Boss  = 2,
     }
 
-    /// <summary>권위 런 게임 시간을 WeatherMaker의 하루 시간으로 옮기는 유일한 writer.</summary>
+    /// <summary>권위 런 게임 시간을 WeatherMaker의 하루 시간으로 옮기는 유일한 writer</summary>
     public class DayCycleController : MonoBehaviour, IRunSceneBinding
     {
         [SerializeField] private DayCycleSceneMode _mode = DayCycleSceneMode.Auto;
@@ -61,7 +61,7 @@ namespace Geumeum.Art
 
         private void Start()
         {
-            // 모든 scene object의 Awake가 끝난 뒤 한 번 더 찾는다. 이후에는 매 frame 탐색하지 않는다.
+            // 모든 scene object의 Awake가 끝난 뒤 한 번 더 찾는다. 이후에는 매 frame 탐색하지 않는다
             ResolveDayNightCycle();
             ClaimClock();
             ApplyTime();
@@ -148,7 +148,7 @@ namespace Geumeum.Art
                 return;
             }
 
-            // Active-only fallback cannot capture a discarded inactive duplicate root.
+            // Active-only fallback cannot capture a discarded inactive duplicate root
             _dayNightCycle = FindAnyObjectByType<WeatherMakerDayNightCycleManagerScript>();
             _fog = FindAnyObjectByType<WeatherMakerFullScreenFogScript>();
             _sky = FindAnyObjectByType<WeatherMakerSkySphereScript>();
@@ -227,7 +227,7 @@ namespace Geumeum.Art
                 _hasCapturedSpeed = true;
             }
 
-            // WeatherMaker의 자체 누적을 끄고 이 컴포넌트만 TimeOfDay를 쓴다.
+            // WeatherMaker의 자체 누적을 끄고 이 컴포넌트만 TimeOfDay를 쓴다
             _dayNightCycle.Speed = 0f;
             _dayNightCycle.NightSpeed = 0f;
         }

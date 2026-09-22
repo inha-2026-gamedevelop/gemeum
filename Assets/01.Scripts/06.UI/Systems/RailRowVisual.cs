@@ -41,6 +41,8 @@ namespace Geumeum.UI
         /// <summary> 이 줄이 열려 있는 페이지인지 알려 준다 </summary>
         public void SetActiveRow(bool isActive)
         {
+            // 문구도 같은 탭 버튼의 클릭 영역이다
+            if (_label != null) { _label.raycastTarget = true; }
             if (_boxImage != null)
             {
                 _boxImage.sprite = isActive ? _activeBox : _normalBox;

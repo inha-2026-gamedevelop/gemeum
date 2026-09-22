@@ -18,7 +18,7 @@ using Geumeum.Network;
 namespace Geumeum.EditorTools
 {
     /// <summary>
-    /// 툴바의 그믐, 씬, 검사 메뉴.
+    /// 툴바의 그믐, 씬, 검사 메뉴
     /// 서버 부트 게이트가 잡아내는 데이터 결함을 Play 모드에 들어가기 전에 먼저 확인한다
     /// </summary>
     public static class GeumeumCheckMenu
@@ -203,7 +203,7 @@ namespace Geumeum.EditorTools
         }
 
         /// <summary>
-        /// 로컬 풀 표식이 붙은 프리팹에 네트워크 컴포넌트가 섞여 있는지 검사한다.
+        /// 로컬 풀 표식이 붙은 프리팹에 네트워크 컴포넌트가 섞여 있는지 검사한다
         /// 런타임 풀도 거부하지만 그때는 이미 Play 모드라 어느 프리팹이 문제인지 찾기 어렵다
         /// </summary>
         [MenuItem(MENU_CHECK + "풀 대상 프리팹 검사", false, ORDER_CHECK_POOL)]

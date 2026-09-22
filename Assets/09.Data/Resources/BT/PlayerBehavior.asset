@@ -1,0 +1,348 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-6258939554483975872
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c02bb70996b49eba31d0c206e28da24, type: 3}
+  m_Name: PlayerBehavior Blackboard
+  m_EditorClassIdentifier: Unity.Behavior::Unity.Behavior.RuntimeBlackboardAsset
+  VersionTimestamp: 639254540140248711
+  AssetID:
+    m_Value0: 0
+    m_Value1: 0
+  m_Blackboard:
+    m_Variables:
+    - rid: 6055006571812618401
+  m_SharedBlackboardVariableGuids: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 6055006571812618401
+      type: {class: 'BlackboardVariable`1[[UnityEngine.GameObject, UnityEngine.CoreModule]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 1
+          m_Value1: 0
+        Name: Self
+        m_Value: {fileID: 0}
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db920e62f70f420bb33c771449926fa4, type: 3}
+  m_Name: PlayerBehavior
+  m_EditorClassIdentifier: Unity.Behavior::Unity.Behavior.BehaviorGraph
+  Graphs:
+  - rid: 6055006571812618393
+  m_DebugInfo: {fileID: 0}
+  m_WasCompileWithPlaceholderNode: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 6055006571812618393
+      type: {class: BehaviorGraphModule, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        AuthoringAssetID:
+          m_Value0: 15304878682048740723
+          m_Value1: 855571673367508537
+        m_DebugInfo: {fileID: 0}
+        BlackboardReference:
+          rid: 6055006571812618394
+        BlackboardGroupReferences: []
+        Root:
+          rid: 6055006633537045381
+        m_VersionTimestamp: 639256948351393324
+    - rid: 6055006571812618394
+      type: {class: BlackboardReference, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        m_Blackboard:
+          rid: 6055006571812618396
+        m_Source: {fileID: -6258939554483975872}
+    - rid: 6055006571812618396
+      type: {class: Blackboard, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        m_Variables:
+        - rid: 6055006633537045383
+    - rid: 6055006633537045381
+      type: {class: Start, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        ID:
+          m_Value0: 17349034531516703001
+          m_Value1: 8120089750275090891
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: -2
+        m_Child:
+          rid: 6055006633537045382
+        Repeat: 0
+        AllowMultipleRepeatsPerTick: 1
+    - rid: 6055006633537045382
+      type: {class: SelectorComposite, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        ID:
+          m_Value0: 17804221649374497064
+          m_Value1: 17192458548185180943
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045381
+        m_Children:
+        - rid: 6055006633537045384
+        - rid: 6055006633537045385
+        - rid: 6055006633537045386
+        m_RegisteredObservers: []
+    - rid: 6055006633537045383
+      type: {class: 'BlackboardVariable`1[[UnityEngine.GameObject, UnityEngine.CoreModule]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 1
+          m_Value1: 0
+        Name: Self
+        m_Value: {fileID: 0}
+    - rid: 6055006633537045384
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 7229760197602124552
+          m_Value1: 10773071538498431737
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045382
+        Step:
+          rid: 6055006633537045387
+    - rid: 6055006633537045385
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 6807054915952183063
+          m_Value1: 18049801430328687233
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045382
+        Step:
+          rid: 6055006633537045388
+    - rid: 6055006633537045386
+      type: {class: SequenceComposite, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        ID:
+          m_Value0: 2552986649474161934
+          m_Value1: 14475253763125434571
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045382
+        m_Children:
+        - rid: 6055006633537045389
+        - rid: 6055006633537045390
+        m_RegisteredObservers: []
+    - rid: 6055006633537045387
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 0
+    - rid: 6055006633537045388
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 1
+    - rid: 6055006633537045389
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 2552986649474161934
+          m_Value1: 14475253763125434571
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045386
+        Step:
+          rid: 6055006633537045391
+    - rid: 6055006633537045390
+      type: {class: SelectorComposite, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        ID:
+          m_Value0: 4335563829881908650
+          m_Value1: 1535350685870830727
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045386
+        m_Children:
+        - rid: 6055006633537045392
+        - rid: 6055006633537045393
+        - rid: 6055006633537045394
+        - rid: 6055006633537045395
+        - rid: 6055006633537045396
+        - rid: 6055006633537045397
+        - rid: 6055006633537045398
+        m_RegisteredObservers: []
+    - rid: 6055006633537045391
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 2
+    - rid: 6055006633537045392
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 513383524676385812
+          m_Value1: 12140809214412295059
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045390
+        Step:
+          rid: 6055006633537045399
+    - rid: 6055006633537045393
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 14441655580937551653
+          m_Value1: 14295793329339936881
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045390
+        Step:
+          rid: 6055006633537045400
+    - rid: 6055006633537045394
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 16126581207978280081
+          m_Value1: 18184047617250409135
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045390
+        Step:
+          rid: 6055006633537045401
+    - rid: 6055006633537045395
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 18393923586153817577
+          m_Value1: 2019666653361586889
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045390
+        Step:
+          rid: 6055006633537045402
+    - rid: 6055006633537045396
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 6100911594074967328
+          m_Value1: 1596459159328509664
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045390
+        Step:
+          rid: 6055006633537045403
+    - rid: 6055006633537045397
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 5481580374623820282
+          m_Value1: 14628126116003212186
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045390
+        Step:
+          rid: 6055006633537045404
+    - rid: 6055006633537045398
+      type: {class: PlayerBehaviorAction, ns: Geumeum.Combat, asm: Assembly-CSharp}
+      data:
+        ID:
+          m_Value0: 2104381125290093199
+          m_Value1: 6463817068555232946
+        Graph:
+          rid: 6055006571812618393
+        m_Parent:
+          rid: 6055006633537045390
+        Step:
+          rid: 6055006633537045405
+    - rid: 6055006633537045399
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 3
+    - rid: 6055006633537045400
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 4
+    - rid: 6055006633537045401
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 9
+    - rid: 6055006633537045402
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 5
+    - rid: 6055006633537045403
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 6
+    - rid: 6055006633537045404
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 7
+    - rid: 6055006633537045405
+      type: {class: 'BlackboardVariable`1[[Geumeum.Combat.PlayerBehaviorStep, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 0
+          m_Value1: 0
+        Name: 
+        m_Value: 8

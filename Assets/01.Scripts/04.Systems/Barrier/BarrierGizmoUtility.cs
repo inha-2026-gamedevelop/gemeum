@@ -6,7 +6,7 @@ namespace Geumeum.Systems
 {
     /// <summary>
     /// 결계 디버그 시각화가 공유하는 순수 헬퍼. BarrierController와 BarrierJudgeGizmoPreview 양쪽이
-    /// 와이어 서클과 뚜껑 없는 관 메쉬를 각자 다시 구현하지 않고 여기 하나로 모은다.
+    /// 와이어 서클과 뚜껑 없는 관 메쉬를 각자 다시 구현하지 않고 여기 하나로 모은다
     /// 정식 아트 셰이더가 아니라 확인용이라 에디터 빌드에만 존재한다
     /// </summary>
     public static class BarrierGizmoUtility
@@ -36,7 +36,7 @@ namespace Geumeum.Systems
         /// <summary>
         /// 위아래 뚜껑 없이 옆면만 있는 관 메쉬. 반지름 0.5, 높이 -1~1로 만들어
         /// CreatePrimitive(Cylinder)와 같은 단위 크기를 쓴다. 호출부가 transform.localScale로
-        /// (반경*2, 원하는높이/2, 반경*2)를 넣으면 원하는 크기가 된다.
+        /// (반경*2, 원하는높이/2, 반경*2)를 넣으면 원하는 크기가 된다
         /// Sprites/Default처럼 Cull Off인 셰이더를 쓰면 안팎 어디서 봐도 보인다
         /// </summary>
         public static Mesh BuildOpenCylinderMesh(int segments)

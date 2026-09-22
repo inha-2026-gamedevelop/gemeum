@@ -12,8 +12,8 @@ using Geumeum.Dev;
 namespace Geumeum.Art
 {
     /// <summary>
-    /// 게임을 껐다 켜지 않고 카메라 값을 만지는 개발용 패널.
-    /// 값이 바뀌면 CameraRig가 다음 프레임에 그대로 읽으므로 화면에서 즉시 확인된다.
+    /// 게임을 껐다 켜지 않고 카메라 값을 만지는 개발용 패널
+    /// 값이 바뀌면 CameraRig가 다음 프레임에 그대로 읽으므로 화면에서 즉시 확인된다
     ///
     /// 조작은 브라우저 개발 패널에 있다 - 카메라를 보면서 만져야 하는데
     /// 게임 화면 위에 슬라이더를 깔면 정작 봐야 할 화면을 덮는다
@@ -27,7 +27,7 @@ namespace Geumeum.Art
         ****************************************/
 
         /// <summary>
-        /// 씬에 배치하지 않아도 실행 시작에 스스로 뜬다.
+        /// 씬에 배치하지 않아도 실행 시작에 스스로 뜬다
         /// EnsureCreated가 기존 인스턴스와 씬 배치본을 먼저 확인하므로 중복이 생기지 않는다
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]

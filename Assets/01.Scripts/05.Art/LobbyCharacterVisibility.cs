@@ -16,14 +16,14 @@ using Geumeum.Network;
 namespace Geumeum.Art
 {
     /// <summary>
-    /// 로비 단계에서 플레이어 캐릭터를 화면에서 감춘다.
+    /// 로비 단계에서 플레이어 캐릭터를 화면에서 감춘다
     ///
     /// 스폰과 권위 흐름은 건드리지 않는다 - 서버는 평소대로 플레이어를 만들고,
     /// 각 클라이언트가 자기 화면에서 renderer만 끈다. 보이는 것만 바뀌므로
-    /// 사람마다 게임 결과가 달라질 여지가 없다.
+    /// 사람마다 게임 결과가 달라질 여지가 없다
     ///
     /// 껐던 renderer만 골라 되켠다. 원래 꺼져 있던 것까지 켜면 로비를 한 번 지날 때마다
-    /// 숨겨 둔 부위가 드러난다.
+    /// 숨겨 둔 부위가 드러난다
     /// </summary>
     public class LobbyCharacterVisibility : MonoBehaviour
     {
@@ -31,7 +31,7 @@ namespace Geumeum.Art
         *              Constants
         ****************************************/
 
-        // 로비에 사람이 드나드는 주기라 매 프레임 훑을 이유가 없다.
+        // 로비에 사람이 드나드는 주기라 매 프레임 훑을 이유가 없다
         // 런 단계는 클라이언트에 구독할 이벤트가 없어 여기서만 확인한다
         private const float SCAN_INTERVAL_SECONDS = 0.25f;
 

@@ -184,7 +184,7 @@ namespace Geumeum.Systems
                 return false;
             }
 
-            ReviveLossKey key = new ReviveLossKey(run.RunId.Value, participant.Value,
+            ReviveLossKey key = new ReviveLossKey(run.RunId.Value, participant,
                 deathGeneration);
 
             if (!CurrencyRules.TryCalculateLoss(_serverBalance, ratio, out loss))
@@ -196,7 +196,7 @@ namespace Geumeum.Systems
             if (_reviveLosses.Contains(key))
             {
                 // Idempotent retries let a reconnect finish the same death generation
-                // without charging the participant twice.
+                // without charging the participant twice
                 loss = 0;
                 return true;
             }
@@ -373,7 +373,7 @@ namespace Geumeum.Systems
             }
             catch (Exception e)
             {
-                // 사용자 observer 외의 예외가 생겨도 revision 공개는 반드시 진행한다.
+                // 사용자 observer 외의 예외가 생겨도 revision 공개는 반드시 진행한다
                 Debug.LogError($"[CurrencyManager] 잔액 공개 실패: {e}", this);
             }
             finally

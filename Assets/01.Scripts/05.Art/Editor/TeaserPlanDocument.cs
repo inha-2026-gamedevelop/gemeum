@@ -13,7 +13,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Geumeum.Art.Editor
 {
-    /// <summary>Editor-only shot planning document. Does not control gameplay or recording.</summary>
+    /// <summary>Editor-only shot planning document. Does not control gameplay or recording</summary>
     public sealed class TeaserPlanDocument
     {
         /****************************************
@@ -160,7 +160,7 @@ namespace Geumeum.Art.Editor
             };
             string output = changed.ToString(Formatting.Indented) + "\n";
             Parse(output);
-            // Refuse to overwrite another editor's changes since this window loaded the file.
+            // Refuse to overwrite another editor's changes since this window loaded the file
             if (File.ReadAllText(_path, Encoding.UTF8) != _sourceText)
             {
                 throw new IOException("파일이 다른 곳에서 바뀌었습니다. 새로 읽은 뒤 저장하세요.");

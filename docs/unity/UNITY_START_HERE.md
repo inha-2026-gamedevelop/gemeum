@@ -59,14 +59,16 @@ git config --global merge.unityyamlmerge.driver \
 
 ## 5. 자기 씬 열기
 
-**`Main.unity`를 열지 않는다.** 자기 파트의 개발 씬을 연다.
+자기 파트의 개발 씬을 연다. 소유자가 아닌 씬은 열 수 있지만 저장하지 않는다.
 
 | 파트 | 씬 |
 |---|---|
 | 네트워크 · 전투 (@AidenKim923) | `Assets/00.Scenes/Dev_Combat.unity` |
 | 몬스터 · 보스 (@oname36-creator) | `Assets/00.Scenes/Dev_AI.unity` |
-| 게임플레이 시스템 (@kjw1237) | `Assets/00.Scenes/Dev_System.unity` **(미생성)** |
-| 테크니컬 아트 (@AidenKim923 겸임) | `Assets/00.Scenes/Dev_Art.unity` **(미생성)** |
+| 게임플레이 시스템 (@kjw1237) | `Assets/00.Scenes/Dev_System/` 아래 `Dev_Barrier`, `Dev_HUD`, `Dev_Lobby`, `Dev_Title` |
+| 캐릭터 · 테크니컬 아트 (@AidenKim923 겸임) | `Assets/00.Scenes/Dev_Character.unity`, `Dev_WeatherMakerIsolation.unity` |
+
+`Dev_Art.unity`는 아직 없다. 실제 런타임 흐름은 `Assets/00.Scenes/Release/`의 일곱 씬을 사용하며, 해당 폴더와 `Main.unity`는 통합 담당자 소유다.
 
 ---
 

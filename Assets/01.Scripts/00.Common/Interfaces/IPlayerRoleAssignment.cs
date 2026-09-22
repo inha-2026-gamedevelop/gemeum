@@ -1,7 +1,7 @@
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 런 시작 시 배분된 무기와 캐릭터를 플레이어에게 확정하는 계약.
+    /// 런 시작 시 배분된 무기와 캐릭터를 플레이어에게 확정하는 계약
     /// 로비는 이 계약만 알고 Combat의 개별 컴포넌트를 직접 참조하지 않는다
     /// </summary>
     public interface IPlayerRoleAssignment

@@ -13,14 +13,14 @@ using Geumeum.Art;
 namespace Geumeum.UI.Editor
 {
     /// <summary>
-    /// Steam 로비 화면을 SessionNetwork 프리팹 안에 짓는다.
+    /// Steam 로비 화면을 SessionNetwork 프리팹 안에 짓는다
     ///
     /// 씬을 직접 고치지 않고 프리팹에 넣는다 - 씬 파일은 머지가 안 되므로
-    /// 두 사람이 같은 씬을 건드리면 한쪽 작업이 통째로 사라진다.
-    /// 프리팹은 Boot가 이미 참조하고 있어 씬 목록도 그대로다.
+    /// 두 사람이 같은 씬을 건드리면 한쪽 작업이 통째로 사라진다
+    /// 프리팹은 Boot가 이미 참조하고 있어 씬 목록도 그대로다
     ///
-    /// 손으로 배치하지 않고 코드로 짓는 이유는 다시 만들 수 있어야 해서다.
-    /// 배치를 고치려면 이 파일을 고치고 지우기 - 만들기를 다시 실행한다.
+    /// 손으로 배치하지 않고 코드로 짓는 이유는 다시 만들 수 있어야 해서다
+    /// 배치를 고치려면 이 파일을 고치고 지우기 - 만들기를 다시 실행한다
     /// </summary>
     public static class SteamLobbyUiBuilder
     {
@@ -318,7 +318,7 @@ namespace Geumeum.UI.Editor
             input.textComponent = value;
             input.placeholder   = hint;
 
-            // 숫자 전용으로 잠그면 붙여넣기가 글자 단위 검증에 걸려 통째로 무시된다.
+            // 숫자 전용으로 잠그면 붙여넣기가 글자 단위 검증에 걸려 통째로 무시된다
             // 자리 수만 제한하고, 숫자만 남기는 일은 붙여넣기 쪽에서 한다
             input.contentType    = TMP_InputField.ContentType.Standard;
             input.lineType       = TMP_InputField.LineType.SingleLine;
@@ -380,7 +380,7 @@ namespace Geumeum.UI.Editor
         }
 
         /// <summary>
-        /// 결과는 콘솔로만 알린다.
+        /// 결과는 콘솔로만 알린다
         ///
         /// 모달 창을 띄우면 에디터가 클릭을 기다리며 멈춰, 이 메뉴를 자동으로 부르는
         /// 도구가 전부 응답 없이 끊긴다. 성공과 실패는 로그 종류로 구분한다

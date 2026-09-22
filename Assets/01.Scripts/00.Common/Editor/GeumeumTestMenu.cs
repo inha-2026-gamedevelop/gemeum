@@ -6,8 +6,8 @@ using UnityEngine;
 namespace Geumeum.EditorTools
 {
     /// <summary>
-    /// 툴바의 그믐 - 테스트 메뉴.
-    /// Test Runner 창을 열고 목록에서 찾아 돌리던 것을 메뉴 한 번으로 줄인다.
+    /// 툴바의 그믐 - 테스트 메뉴
+    /// Test Runner 창을 열고 목록에서 찾아 돌리던 것을 메뉴 한 번으로 줄인다
     /// 결과는 콘솔에 요약으로 남는다 - 창을 열어 두지 않아도 통과 여부를 알 수 있어야 한다
     /// </summary>
     public static class GeumeumTestMenu
@@ -27,7 +27,7 @@ namespace Geumeum.EditorTools
         private const int ORDER_RUN_EDIT_MODE = 0;
         private const int ORDER_OPEN_RUNNER   = 20;
 
-        // CreateInstance로 만든 ScriptableObject는 참조를 놓으면 수거된다.
+        // CreateInstance로 만든 ScriptableObject는 참조를 놓으면 수거된다
         // 그때 등록한 콜백까지 같이 사라져서 결과가 콘솔에 안 남는다 - 정적으로 붙들어 둔다
         private static TestRunnerApi G_Api;
 
@@ -114,8 +114,8 @@ namespace Geumeum.EditorTools
                 SessionState.SetString(SESSION_KEY_SUMMARY, summary);
                 SessionState.SetBool(SESSION_KEY_FAILED, failed);
 
-                // 지금 찍으면 실행 직후의 콘솔 비우기에 같이 지워진다.
-                // 한 틱 뒤에 찍고, 도메인 리로드가 끼면 InitializeOnLoadMethod가 대신 찍는다.
+                // 지금 찍으면 실행 직후의 콘솔 비우기에 같이 지워진다
+                // 한 틱 뒤에 찍고, 도메인 리로드가 끼면 InitializeOnLoadMethod가 대신 찍는다
                 // 어느 쪽이든 키를 지우므로 두 번 찍히지 않는다
                 EditorApplication.delayCall += ReportPendingSummary;
             }

@@ -1,26 +1,8 @@
-# 몬스터 공격 → 패링 창 연결 설계
+# 몬스터 공격과 패링 창 — 현재 구현과 후속 제안
 
-> 상태: 설계 확정본, 구현 전  
-> 출처: 2026-09-01 외부 소스 감사와 함께 받은 설계 산출물. 저장소 문서로 편입했다  
-> 관련: [프로젝트 구조 설계서](../04-architecture.md) · [네트워크 권위](NETWORK_AUTHORITY.md) · [검증 플레이북](../ai/03_VERIFICATION_PLAYBOOK.md)
+2026-09-22 코드 대조. 대상당 단일 active 창·ImpactTime 보존·소비 tombstone·서버 수신 마감, ChanggwiAttackExecution의 실행별 source가 구현되어 있다. EnemyBrainBase.Tick은 현재 deltaTime을 받고, ChanggwiBrain은 대상의 IParryWindowTarget에 직접 창을 등록한다.
 
-> **2026-09-02 갱신 — 이 문서가 전제로 삼은 P0 게이트는 이미 구현됐다.**
-> 대상당 단일 active 창, `ImpactTime`까지의 레코드 보존, 소비 tombstone, 서버 수신 마감(`RejectedResolutionClosed`),
-> 정확한 복합 키 검사, 유한 시각 검사가 `ParryController`에 반영되어 커밋됐다. `IParryWindowTarget.OpenParryWindow`도 동작한다.
-> 따라서 아래 6절의 단계별 구현에서 **P0 게이트 단계는 건너뛰고 `ChanggwiBrain` 연결부터 시작**하면 된다.
-> 현재 계약의 실제 형태는 [패링 시스템 기술 설계](PARRY_SYSTEM_DESIGN.md)와 `ParryController.cs`를 함께 본다.
-
-> **2026-09-05 갱신 — 6절 3단계 중 실행 단위 source 부분만 구현됨(부분 검증).**
-> `ChanggwiAttackExecution.cs`를 신설해 `IParryable`을 구현시키고, `ChanggwiBrain`은 더 이상 자기 자신을
-> source로 넘기지 않는다. `Brain.HandleExecutionParried`가 `ReferenceEquals(execution, _activeExecution)`로
-> 지나간 공격의 늦은 통지를 무시하는 것까지 리플렉션으로 직접 검증했다(3.3절 의도대로 동작).
-> **아직 안 한 것**: `EnemyController.RefreshTarget`의 canonical target 정규화(2단계), `EnemyBrainBase.Tick`에
-> 서버 시각 전달·typed event(`AttackBegan`/`AttackResolved`) 재구성(3단계 나머지), `AttackTelegraphCue` /
-> `IAttackTelegraphView` / `ClientRpc` 텔레그래프(5단계) — 즉 원격 클라이언트는 아직 전용 텔레그래프 연출을
-> 못 본다. 3인 접속(L3) 검증도 안 됐다. 이 문서를 "구현 완료"로 표시하려면 6절의 나머지 단계가 더 필요하다.
-
-> 기준 코드: 2026-09-01 제공 소스  
-> 결론: 대상당 단일 active·`ImpactTime`·소비 tombstone·서버 수신 마감을 P0 게이트로 먼저 맞춘다. 그 위에서 `ChanggwiBrain`이 서버 절대 시각의 `ChanggwiAttackExecution`을 만들고 기존 `IParryWindowTarget`에 미래 창을 등록한다. `EnemyController`는 typed event를 받아 agent·피해·`ClientRpc`를 실행하고, 클라이언트는 애니메이션 없이 바닥 돌진선·발광·소리만 표현한다.
+아래 typed event/RPC 텔레그래프와 canonical target 정규화는 후속 구조 제안이다. 현재 공개 API나 완료된 실행 경로로 취급하지 않는다. 실제 외부 PC 3인 L3도 별도 검증이다. 패링 보상은 [현재 패링 계약](PARRY_SYSTEM_DESIGN.md)의 스태미나 환급·반격 표식을 따른다.
 
 ## 1. 목표와 범위
 
@@ -33,7 +15,7 @@
 5. 패링하지 않았으면 서버가 `impactTime`에 대상 거리와 생존 상태를 다시 검사해 피해를 적용한다.
 6. 세 클라이언트 모두 같은 돌진 방향과 타격 시각을 읽을 수 있는 텔레그래프를 본다.
 
-이번에 만드는 것은 `ChanggwiBrain.cs`의 현재 `TODO(오나)` 접점, 공격 취소·종료 시 창 닫기, 절대 서버 시각 타임라인, 애니메이션이 없어도 읽히는 최소 텔레그래프다. 다만 현재 구현과 P0 패링 계약 사이에서 이 연결의 결과를 직접 바꾸는 항목은 후속으로 미루지 않는다. 아래 네 조건을 **P0 선행 게이트**로 먼저 통과해야 서버 수직 슬라이스를 시작할 수 있다.
+후속 연결 범위는 `ChanggwiBrain.cs`의 공격 실행 접점, 공격 취소·종료 시 창 닫기, 절대 서버 시각 타임라인, 애니메이션이 없어도 읽히는 최소 텔레그래프다. 다만 현재 구현과 P0 패링 계약 사이에서 이 연결의 결과를 직접 바꾸는 항목은 후속으로 미루지 않는다. 아래 P0 계약은 구현되어 있으며 후속 구조 변경 때 회귀 검증한다.
 
 1. 서버와 클라이언트 모두 대상 플레이어당 활성 창이 하나이며 마지막으로 수락된 등록이 이긴다.
 2. 활성 레코드가 `ImpactTime`을 보관하고, 소비 tombstone은 활성 슬롯과 분리되어 해당 impact까지 살아 있다.
@@ -400,9 +382,9 @@ else: Telegraph
 
 순서 경합을 없애기 위해 parry와 impact 모두 같은 active execution 참조·key·`_isCancelled`·`_isResolved`를 검사한다. `CloseParryWindow`와 view `Stop`은 같은 키로 여러 번 호출해도 안전해야 한다. Command를 `TICK_PRIORITY_AI`보다 먼저 실행된다고 가정하지 않으며, 서버 수신 시각의 strict impact 경계와 먼저 커밋된 실행 상태만 결과를 결정한다.
 
-## 6. 단계별 구현 순서
+## 6. 후속 구현과 회귀 순서
 
-1. **P0 패링 선행 게이트 — 8~12시간.** `ParryController`를 대상당 단일 `ActiveParryWindow`로 바꾸고 `ImpactTime`, 소비 tombstone, exact-key 교체/close, windowEnd 표시 종료와 impact 폐기 분리, `serverReceivedAt < impactTime`, 유한수·phase·생명·Sword 등록 검사를 구현한다. active 교체·늦은 입력·impact 경계 테스트가 통과하기 전에는 아래 창귀 연결을 시작하지 않는다.
+1. **P0 패링 계약 — 구현됨, 회귀 대상.** active·ImpactTime·tombstone·exact-key·수신 마감·유한 시각·상태 검사를 유지하고 아래 변경 때 재검증한다.
 2. **canonical target 정규화 — 3~4시간.** `EnemyController.RefreshTarget`을 재사용 NonAlloc buffer, 부모 `NetworkIdentity` 루트, 루트 `IDamageable`, `netId` 중복 제거로 바꾸고 child collider·despawn 테스트를 추가한다.
 3. **서버 실행·절대 타임라인 — 7~9시간.** `EnemyBrainBase.Tick`에 서버 시각을 전달하고, `ChanggwiAttackExecution`, Telegraph 진입 snapshot, direct deadline 비교, open/close, parry/impact 멱등 상태를 넣는다. Brain typed event와 Controller의 agent → snapshot 피해 → RPC 순서를 연결하고 창귀를 generic `ShouldAttackNow` 피해 경로에서 제외한다. 여기까지 하면 M0에서 패링 → 피해 없음 → `Stagger`, 미패링 → impact 최대 한 번이 동작한다.
 4. **창귀 데이터·부트 검사 — 2~3시간.** `EnemySO` 창귀 값과 최소 타임라인 식, 모든 유한수·범위 조건을 부트에서 검사하고 잘못된 entry는 명시적으로 실패시킨다.

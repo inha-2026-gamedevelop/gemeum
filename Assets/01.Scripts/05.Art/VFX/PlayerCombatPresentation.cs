@@ -10,9 +10,10 @@ using Geumeum.Data;
 
 namespace Geumeum.Art
 {
-    /// <summary>Client-only VFX and sound sink for authoritative player action cues.</summary>
+    /// <summary>Client-only VFX and sound sink for authoritative player action cues</summary>
+    [DefaultExecutionOrder(100)]
     [DisallowMultipleComponent]
-    public sealed class PlayerCombatPresentation : MonoBehaviour, IPlayerActionCueSink
+    public sealed partial class PlayerCombatPresentation : MonoBehaviour, IPlayerActionCueSink
     {
         private NetworkIdentity _identity;
         private IWeaponBladeSource _blade;
@@ -20,6 +21,7 @@ namespace Geumeum.Art
         private uint _activeVisualLease;
         private PlayerActionCueKind _activeKind;
         private uint _activeExecutionId;
+        private WeaponKind _activeWeapon;
 
         // 검기는 플레이어에 붙이지 않고 월드에 남아 스스로 사라진다. 다음 행동 때는 반납하지 않고 기록만 멈춘다
         private PooledVisualLifetime _trailVisual;
@@ -27,22 +29,33 @@ namespace Geumeum.Art
 
         private void Awake()
         {
+            BindAbilities();
             _identity = GetComponent<NetworkIdentity>();
             _blade = GetComponent<IWeaponBladeSource>();
         }
 
         private void OnDisable()
         {
+            if (_abilityVisualRoot != null) { _abilityVisualRoot.SetActive(false); }
+            foreach (var pulse in _pulseViews) { if (pulse != null) { HidePulse(pulse); } }
             StopActiveVisual();
             _activeKind = PlayerActionCueKind.None;
             _activeExecutionId = 0u;
+            _visualClock = default;
+            _visualCue = default;
+            _deflection.Active = false;
+            _lastDeflectionExecution = 0;
         }
 
         public void PlayActionCue(in PlayerActionCue cue, float normalizedProgress)
         {
             StopActiveVisual();
             _activeKind = cue.Kind;
+            _activeWeapon = cue.Weapon;
             _activeExecutionId = cue.ExecutionId;
+            _visualCue = cue;
+            _ = VisualTime;
+            _visualClock.ObserveCue(cue.StartGameplayTime);
 
             PresentationConfigSO config = ResolveConfig();
             if (config == null)
@@ -92,6 +105,14 @@ namespace Geumeum.Art
             }
 
             StopActiveVisual();
+            if (kind == PlayerActionCueKind.EchoRecall)
+            {
+                foreach (var pulse in _pulseViews)
+                {
+                    if (pulse != null && pulse.Kind == WeaponAbilityEvent.EchoRecall) { HidePulse(pulse); }
+                }
+            }
+
             _activeKind = PlayerActionCueKind.None;
             _activeExecutionId = 0u;
         }
@@ -104,13 +125,14 @@ namespace Geumeum.Art
                 !PlayerCombatPresentationRules.CanPlayEvent(kind, executionId,
                     _activeKind, _activeExecutionId, impactGameplayTime,
                     RunTimeLocator.Current.GameplayElapsedSeconds,
-                    config.LateOneShotToleranceSeconds))
+                    config.LateOneShotToleranceSeconds,
+                    kind == PlayerActionCueKind.Parry && successful))
             {
                 return;
             }
 
             SoundKey key = SoundKey.None;
-            if (kind == PlayerActionCueKind.Attack)
+            if (kind == PlayerActionCueKind.Attack && _activeWeapon == WeaponKind.Sword)
             {
                 key = !successful
                     ? SoundKey.MeleeWhiff
@@ -123,6 +145,7 @@ namespace Geumeum.Art
             else if (kind == PlayerActionCueKind.Parry)
             {
                 key = successful ? SoundKey.ParrySuccess : SoundKey.ParryFail;
+                if (successful) { QueueDeflection(executionId, impactGameplayTime); }
             }
 
             if (key != SoundKey.None)
@@ -177,7 +200,7 @@ namespace Geumeum.Art
 
                     if (cue.Weapon == WeaponKind.Bell)
                     {
-                        return config.BellPulsePrefab;
+                        return null;
                     }
 
                     return null;
@@ -213,10 +236,10 @@ namespace Geumeum.Art
             switch (cue.Weapon)
             {
                 case WeaponKind.Bow:
-                    return SoundKey.BowFire;
+                    return SoundKey.None;
 
                 case WeaponKind.Bell:
-                    return SoundKey.BellSwing;
+                    return SoundKey.None;
 
                 case WeaponKind.Sword:
                     if (cue.ComboStage >= 3)
@@ -292,8 +315,12 @@ namespace Geumeum.Art
         public static bool CanPlayEvent(PlayerActionCueKind kind,
             uint executionId, PlayerActionCueKind activeKind,
             uint activeExecutionId, double eventGameplayTime,
-            double gameplayTime, float toleranceSeconds)
+            double gameplayTime, float toleranceSeconds, bool allowSnapshotLead = false)
         {
+            // 서버 성공 통지가 다음 시각 스냅샷보다 먼저 도착할 수 있다. 실행 ID 검증은 유지한다.
+            if (allowSnapshotLead && eventGameplayTime > gameplayTime &&
+                eventGameplayTime - gameplayTime <= Constants.Network.RUN_TIME_SYNC_INTERVAL)
+            { gameplayTime = eventGameplayTime; }
             return PlayerActionCueRules.CanCancel(kind, executionId,
                        activeKind, activeExecutionId) &&
                 !PlayerActionCueRules.IsLateOneShot(eventGameplayTime,

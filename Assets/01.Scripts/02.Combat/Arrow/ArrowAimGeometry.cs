@@ -50,13 +50,13 @@ namespace Geumeum.Combat
         /// <summary> 조준선 위에서 발사점을 투영한 거리. 이보다 가까운 충돌은 조준점이 될 수 없다 </summary>
         public static float ResolveMinimumHitDistance(in PrecisionAimRay cameraRay, Vector3 muzzle)
         {
-            // 오버숄더 카메라는 캐릭터 뒤에 있어 카메라와 발사점 사이에 벽이나 몸이 끼기 쉽다.
+            // 오버숄더 카메라는 캐릭터 뒤에 있어 카메라와 발사점 사이에 벽이나 몸이 끼기 쉽다
             // 그 충돌을 조준점으로 쓰면 발사점보다 뒤쪽 점을 향해 화살이 뒤로 날아간다
             return Mathf.Max(0f, Vector3.Dot(muzzle - cameraRay.Origin, cameraRay.Direction));
         }
 
         /// <summary>
-        /// 조준선 충돌 거리 중 발사점 투영 거리보다 멀고 사거리 안인 가장 가까운 거리를 고른다.
+        /// 조준선 충돌 거리 중 발사점 투영 거리보다 멀고 사거리 안인 가장 가까운 거리를 고른다
         /// 고를 것이 없으면 실패하고, 호출부는 사거리 끝점을 조준점으로 쓴다
         /// </summary>
         public static bool TrySelectAimDistance(float[] hitDistances, int count, float minimumDistance,

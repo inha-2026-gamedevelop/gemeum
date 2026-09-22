@@ -13,9 +13,7 @@
 | 첫 코드를 쓰려고 한다 | **2단계** 2개 + 내 파트 문서 | 30분 |
 | 그 외 전부 | **읽지 않는다.** 필요해질 때 3단계 표에서 찾아 연다 | — |
 
-**그중 12개는 사람이 읽는 문서가 아니다.** `docs/ai/` 아래는 AI 도구가 참조하는 운영 문서이고,
-거기서 사람이 볼 것은 [멀티플레이 테스트](ai/04_MULTIPLAYER_TEST_PROTOCOL.md) 하나뿐이다.
-이것만 알아도 읽을 양이 크게 줄어든다.
+현재 구현 여부는 [구현 현황](IMPLEMENTATION_STATUS.md), 문서 분류와 갱신 규칙은 [문서 관리 기준](DOCUMENTATION_POLICY.md)을 따른다. `docs/ai/`는 도구 운영 규칙이며 팀 검증·인계에도 함께 적용한다.
 
 ---
 
@@ -40,7 +38,7 @@
 | [코딩 컨벤션](coding-convention.md) | 네이밍 · 중괄호 · 주석 · 수치를 어디에 둘지 |
 | [프로젝트 구조 설계서](04-architecture.md) | 내 클래스를 어느 폴더 · 네임스페이스에 놓을지 |
 | [주간 계획](06-weekly-plan.md) | 이번 주에 무엇을 닫아야 하는지 — 파트별 남은 일 · 주차 게이트 · 절단선 |
-| [구현 로드맵](05-implementation-roadmap.md) | 아직 안 만든 것(U01~U40)을 어떻게 만들지 — 현재 코드 · 권위 경계 · 권장 접근 · 위험 |
+| [구현 로드맵](05-implementation-roadmap.md) | 남은 것(U01~U45)을 어떻게 만들지 — 완료 표 · 현재 코드 · 권위 경계 · 권장 접근 · 위험 |
 
 컨벤션은 길지만 **맨 아래 "요약 카드"만 봐도 대부분 통과한다.** 세부는 걸릴 때 찾아본다.
 
@@ -61,18 +59,25 @@
 
 | 이럴 때 | 이 문서 |
 |---|---|
+| Steam 없이 자체 계정·Discord 관리·멀티플레이로 전환한다 | [Steam 독립 서비스 전환 계획](unity/STEAM_INDEPENDENT_SERVICE_PLAN.md) — PostgreSQL·인증·리슨 호스트·AWS 릴레이·업데이트 알림 |
+| 로컬 Python 계정 API를 실행·검증한다 | [백엔드 실행 안내](../backend/README.md) — PostgreSQL 시작·테스트 계정 생성·API 문서·중지 |
 | 서버가 판정할지 클라가 할지 모르겠다 | [네트워크 권위](unity/NETWORK_AUTHORITY.md) |
 | `Net/` · `98.Servers/` 파일을 건드리거나 누가 작성할지 헷갈린다 | [서버·클라이언트 협업](unity/SERVER_CLIENT_WORKFLOW.md) |
 | UI · 표현에서 서버에 요청하거나 상태를 읽는다 | [클라이언트 API 안내](unity/CLIENT_API_REFERENCE.md) |
+| Git에 올릴 파일을 구분한다 | [저장소 포함·제외 기준](REPOSITORY_HYGIENE.md) |
 | 씬 · 프리팹 · `.meta`를 건드린다 | [씬 · 에셋 안전](unity/SCENE_AND_ASSET_SAFETY.md) |
 | 수치를 만들거나 바꾼다 | [밸런스 데이터 작업](unity/BALANCE_DATA_WORKFLOW.md) |
 | 3인 접속 테스트를 해야 한다 | [멀티플레이 테스트](ai/04_MULTIPLAYER_TEST_PROTOCOL.md) |
 | 프레임이 떨어지거나 코루틴이 꼬였다 | [엔지니어링 패턴](unity/UNITY_ENGINEERING_PATTERNS.md) |
 | LOD · 오클루전 컬링이 켜져 있는지 확인한다 | [LOD · 컬링 현황](unity/LOD_AND_CULLING.md) |
 | 밸런스 수치가 궁금하다 | [게임 디자인](02-game-design.md) |
+| 전투의 무게감·역동성과 협동 보스전 방향을 검토한다 | [전투 감각·보스 방향 검토](unity/COMBAT_FEEL_AND_BOSS_DIRECTION.md) — 참고 게임 분석·도입 대안·비교 실험안 |
+| 활·방울의 고유 능력과 타격감을 재설계한다 | [신궁·무녀 상세 재설계](unity/BOW_AND_BELL_REDESIGN.md) — 쐐기 파열·잔향 회수·모션/음향 지시·기존 계약 이관 후보 |
 | 왜 이렇게 설계했는지 궁금하다 | [기술 설계](03-technical-design.md) |
 | 2026-08-29 서버·플레이어 문서가 무엇 때문에 바뀌었는지 본다 | [프로젝트 구조 설계서 13장](04-architecture.md) |
 | 일정 · 스코프가 궁금하다 | [주간 계획](06-weekly-plan.md) · [시스템 기획서](01-system-design.md) |
+| 특성 UI를 개편한다 | [담당자 인계](unity/TALENT_UI_HANDOVER.md) |
+| 게임·런처를 게시한다 | [패치 운영](unity/PATCH_SYSTEM_DESIGN.md) · [AWS 운영](../backend/deploy/aws/README.md) |
 | **내가 맡은 기능을 이제 구현한다** | 아래 "기능별 상세 설계" 표 |
 | "이거 어느 문서에 있더라" | [프로젝트 지식 맵](ai/07_PROJECT_KNOWLEDGE_MAP.md) |
 | AI에게 작업을 시킨다 | [작업 브리프](ai/02_TASK_BRIEF_TEMPLATE.md) |
@@ -82,24 +87,23 @@
 
 ## 기능별 상세 설계
 
-아직 만들지 않은 기능의 **구현 계약**이다. 담당 기능을 시작할 때 해당 문서 하나만 끝까지 읽으면 된다.
-각 문서는 목표 · 권위 경계 · 구조 · 데이터 · 흐름 · 구현 순서 · 검증 · 대안 · 비용의 9절 형식으로 같다.
+현재 구현 계약과 후속 기획을 구분한 상세 문서다. 담당 기능의 문서와 실제 코드·SO를 함께 읽는다.
 
 | 문서 | 무엇을 확정하나 | 담당 파트 |
 |---|---|---|
-| [패링 시스템](unity/PARRY_SYSTEM_DESIGN.md) | 판정 시각 모델, `ParryController` 계약, 게이지 **(상당 부분 구현됨)** | 네트워크 · 전투 |
+| [패링 시스템](unity/PARRY_SYSTEM_DESIGN.md) | 판정 시각 모델, `ParryController` 계약, 최대 3개 반격 표식과 R 소비 | 네트워크 · 전투 |
 | [몬스터 공격 → 패링 창 연결](unity/MONSTER_PARRY_LINK_DESIGN.md) | 창귀 돌진이 패링 창을 여는 수직 슬라이스와 최소 텔레그래프 | 몬스터 · 보스 |
 | [PlayerAttack 공통 계약](unity/PLAYER_ATTACK_DESIGN.md) | 검 · 활 · 방울 공통 공격 계약, 서버 권위 화살 | 네트워크 · 전투 |
-| [보스 설계](unity/BOSS_DESIGN.md) | 보스 1마리 2페이즈, 실행 템플릿 4개와 데이터 항목 8개 | 몬스터 · 보스 |
-| [보스 패턴 계약](unity/BOSS_PATTERN_CONTRACT.md) | 패턴 10개 · 선택기 · 엇박 · **그로기 게이지** · 보스 독립 14분 시계 · **꼬리 3덩이와 25% 게이트** · **최종 구간 원혼 셋** · 담당자용 빈 표 | 몬스터·보스 |
+| [보스 설계](unity/BOSS_DESIGN.md) | 보스 1마리 2페이즈, 실행 템플릿 4개와 데이터 항목 10개 | 몬스터 · 보스 |
+| [보스 패턴 계약](unity/BOSS_PATTERN_CONTRACT.md) | 패턴 10개 · 선택기 · 엇박 · **그로기 게이지** · 보스 독립 14분 시계 · **꼬리 3덩이와 25% 게이트** · **최종 구간 원혼 셋** · 현재 SO 대응 | 몬스터·보스 |
 | [보스 연출 설계](unity/BOSS_STAGING_DESIGN.md) | 페이즈 전환 15초의 컷신·먹 커튼·색값 타임라인 | 테크니컬 아트 · 몬스터·보스 |
 | [티저 제작 설계](unity/TEASER_PRODUCTION.md) | After Effects 없이 코드로 만드는 티저 파이프라인 — Recorder 녹화 · Remotion 조립 · 샷 데이터 · 벨가르딘 실측 | 테크니컬 아트 · 통합 |
 | [보스 트라이 모드](unity/BOSS_TRIAL_MODE.md) | 30분을 건너뛰고 보스만 반복하는 진입 경로, 편성 예산, 리더보드 미등록 | 네트워크 · 게임플레이 시스템 |
 | [카메라와 락온](unity/CAMERA_AND_LOCKON.md) | **카메라 리그 · 락온 · 이동/조준/구르기 · 스트레이프 애니메이션 · 셰이크 · 컷신 · 화살 유도.** 값까지 정한 구현 사양 | 네트워크 · 전투 · 테크니컬 아트 |
-| [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) | 결계 축소 · 피해, 4칸 인벤토리, 드랍 · 노잣돈 · 객주 | 게임플레이 시스템 |
-| [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md) | Humanoid 리타게팅, Override Controller, 서버 cue와 에셋 소싱 | 테크니컬 아트 |
+| [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) | 결계 축소 · 피해, 12칸 통합 인벤토리, 드랍 · 노잣돈 · 객주 | 게임플레이 시스템 |
+| [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md) | PlayerActionCue, 무기별 모션, 서버 시각과 표현 계층 | 테크니컬 아트 |
 
-이 문서들은 **설계일 뿐 구현 현황이 아니다.** 무엇이 실제로 들어갔는지는 [프로젝트 구조 설계서](04-architecture.md)의 `[구현완료]` 표기를 본다.
+문서의 구현·제안·미검증 표기를 구분한다. 실제 구현 현황은 [현재 구현](IMPLEMENTATION_STATUS.md)과 코드·SO를 기준으로 확인한다.
 
 ---
 
@@ -108,8 +112,7 @@
 | 문서 | 왜 |
 |---|---|
 | [CLAUDE.md](../CLAUDE.md) · [AGENTS.md](../AGENTS.md) | AI 도구가 자동으로 읽는다. 사람이 먼저 볼 필요 없다 |
-| `docs/ai/` 의 나머지 11개 | AI 협업 운영 문서. 필요해지면 [AI 작업 문서 안내](ai/README.md)가 골라준다 |
-| SETUP.md | 저장소를 처음 만들 때 팀장이 한 번 쓰는 문서 |
+| `docs/ai/`의 운영 문서 | AI 협업 운영 문서. 필요해지면 [AI 작업 문서 안내](ai/README.md)가 골라준다 |
 
 ---
 
@@ -137,10 +140,7 @@
 | 기획 문서 vs ScriptableObject 값 | **ScriptableObject.** 문서는 설계 의도를, 데이터는 현재 값을 담는다 |
 | 문서 vs 문서 | 더 좁은 범위의 문서. 예를 들어 네트워크는 [네트워크 권위](unity/NETWORK_AUTHORITY.md)가 기준이다 |
 
-**기획 문서와 실제 수치가 갈라지는 것은 정상이다.** 예를 들어 문서의 잡귀 리스폰 주기와
-`SpawnConfigSO` 에셋의 값이 밸런싱 도중 서로 다를 수 있다.
-이럴 때 문서를 고치지 말고 데이터를 믿는다. 매번 동기화하려 애쓰지 않는다.
-다만 한 판 길이처럼 여러 시스템이 함께 물린 값이 갈라지면 그때는 팀에서 확정하고 양쪽을 맞춘다.
+문서의 수치를 현재값으로 안내한다면 SO와 함께 갱신한다. 변경 전 수치는 결정 이력으로 분리하고 구현 원본처럼 두지 않는다. 후속 제안은 현재값과 명시적으로 구분한다.
 
 ---
 

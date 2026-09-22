@@ -16,11 +16,11 @@ using Geumeum.Data;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// 보스 바(체력 · 그로기 저항)와 광폭화 경고를 스폰된 보스에 연결한다.
-    /// 보스가 없거나 죽은 동안에는 바를 통째로 숨기므로 필드 씬에서는 저절로 보이지 않는다.
+    /// 보스 바(체력, 그로기 저항)와 광폭화 경고를 스폰된 보스에 연결한다
+    /// 보스가 없거나 죽은 동안에는 바를 통째로 숨기므로 필드 씬에서는 저절로 보이지 않는다
     ///
-    /// 최대 체력과 그로기 최대치는 서버에서만 확정되는 값이라 클라이언트에서는 0이다.
-    /// 서버도 밸런스 값을 그대로 쓰므로(BossStatus.server.cs · BossController.server.cs)
+    /// 최대 체력과 그로기 최대치는 서버에서만 확정되는 값이라 클라이언트에서는 0이다
+    /// 서버도 밸런스 값을 그대로 쓰므로(BossStatus.server.cs, BossController.server.cs)
     /// 여기서도 같은 값을 읽어 비율을 만든다 - 서버는 원본 하나만 보내고 표현은 클라가 계산한다
     /// </summary>
     public sealed class BossHudController : MonoBehaviour
@@ -138,7 +138,7 @@ namespace Geumeum.UI
         *                Methods
         ****************************************/
 
-        // 체력·그로기가 SyncVar라 클라이언트도 보스의 값을 읽는다. 훅이 없어 값은 여기서 직접 본다
+        // 체력, 그로기가 SyncVar라 클라이언트도 보스의 값을 읽는다. 훅이 없어 값은 여기서 직접 본다
         private static BossStatus FindBoss(out BossController controller)
         {
             controller = null;

@@ -10,7 +10,7 @@ using Geumeum.Data;
 
 namespace Geumeum.Art
 {
-    /// <summary>Prewarms configured local presentation pools before the first combat cue.</summary>
+    /// <summary>Prewarms configured local presentation pools before the first combat cue</summary>
     [DisallowMultipleComponent]
     public sealed class PresentationPoolPrewarmer : MonoBehaviour
     {

@@ -16,13 +16,17 @@ namespace Geumeum.AI
     /// ImpactOffsets 3개로 진짜 3연타 - 1·2타는 패링 불가, 마지막 3타만 패링 가능,
     /// BOSS_PATTERN_CONTRACT.md 3장), 패턴 3(순간 접근 3연계, TargetedDash, 예고 앞 절반
     /// 추적 DASH_TRACK_RATIO 적용됨, 11.2절), 패턴 4(여우불 낙인, MarkedCircle), 패턴 5(여우
-    /// 구슬 충격파, ConeBurst). 거리 대역별로 근접/중거리/원거리 거리 대역에 맞는 후보와,
+    /// 구슬 충격파, ConeBurst), 패턴 11·12(여우불 광선·탄막, 2페이즈 13·14의 완화판).
+    /// 거리 대역별로 근접/중거리/원거리 거리 대역에 맞는 후보와,
     /// 거리 무관인 MarkedCircle을 선택기에 넘긴다. 선택기는 개별 쿨다운과 직전 패턴을 걸러낸
     /// 뒤 남은 후보를 균등 추첨한다. 대상을 고르는 패턴(TargetedDash·MarkedCircle)은 직전
     /// 지목자를 제외한다(SelectTargetExcludingLast, BOSS_PATTERN_CONTRACT.md 5장 어그로 규칙).
     /// 전투 시작 직후엔 오프닝 고정 시퀀스(1 -> 2 -> 4)가 먼저 돈다, 쿨다운을 무시하고 순서대로
     /// 발동한다 - 패턴 2(반월 베기)는 패턴 1과 같은 MeleeArc 판정(각도 동일, 사거리는 5로 확장)이고
-    /// 윈드업만 짧고 패링이 안 된다, 독립 쿨다운이 없어 후보 추첨 대상이 아니다
+    /// 윈드업만 짧고 패링이 안 된다. 1번의 파생이지만 독립 쿨다운(SO 기준 15초)을 갖고
+    /// 일반 후보 추첨에도 들어간다.
+    /// 순간 접근(3) 직후에는 쿨다운, 거리 추첨을 건너뛰고 패턴 1을 강제로 이어 붙인다
+    /// (순간 접근엔 전용 2·3타 애니메이션이 없어서다, TickIdle 참고)
     /// </summary>
     public sealed class Phase1State : BossPhaseStateBase
     {
@@ -92,20 +96,19 @@ namespace Geumeum.AI
         private const float MARKED_CIRCLE_VFX_HEIGHT_OFFSET = 0.1f;
 
         // 예고(TelegraphDuration) 앞 절반은 대상을 따라가고 뒤 절반은 방향을 확정한다
-        // (BOSS_PATTERN_CONTRACT.md 11.2절 확정값). 완전 잠금이면 정지 표적을 지나쳐버리고,
+        // 완전 잠금이면 정지 표적을 지나쳐버리고,
         // 완전 추적이면 회피 창이 없어진다 - 그 절충
         private const float DASH_TRACK_RATIO = 0.5f;
 
-        // 대상을 고르는 패턴(TargetedDash·MarkedCircle) 공용 - 직전 지목자를 뺀 후보를 다시
+        // 대상을 고르는 패턴(TargetedDash, MarkedCircle) 공용 - 직전 지목자를 뺀 후보를 다시
         // 뽑을 때 쓰는 스캔 반경. BossController.RefreshTarget과 같은 반경이다
-        // (BOSS_PATTERN_CONTRACT.md 5장 어그로 규칙)
         private const float TARGET_EXCLUSION_SCAN_RADIUS = 30f;
 
         /****************************************
         *                Fields
         ****************************************/
 
-        // 오프닝 고정 시퀀스(9.3절): 추첨 없이 이 순서대로, 쿨다운 무시하고 발동한다
+        // 오프닝은 추첨 없이 이 순서대로, 쿨다운을 무시하고 발동한다
         private static readonly int[] OPENING_SEQUENCE = { MELEE_ARC_PATTERN_ID, DERIVED_MELEE_PATTERN_ID, MARKED_CIRCLE_PATTERN_ID };
 
         private readonly BossController  _controller;
@@ -127,7 +130,7 @@ namespace Geumeum.AI
         private readonly float[] _patternCooldowns = new float[SELECTABLE_PATTERN_COUNT];
         private readonly System.Random _random = new System.Random();
 
-        // 대상을 고르는 패턴(TargetedDash·MarkedCircle) 공용 - 직전 지목자를 뺀 후보를 다시
+        // 대상을 고르는 패턴(TargetedDash, MarkedCircle) 공용 - 직전 지목자를 뺀 후보를 다시
         // 뽑을 때 쓰는 재사용 버퍼, 할당 없음
         private readonly Collider[] _exclusionScanBuffer =
             new Collider[Constants.Network.MAX_PLAYERS + 1];
@@ -152,6 +155,8 @@ namespace Geumeum.AI
         private Vector3                    _dashStartPosition; // TargetedDash 전용, 추적 중 잔여 거리 계산 기준
         private Vector3                    _markedCenter; // MarkedCircle 전용, 예고 시작 시점에 고정
         private uint                       _activeAttackInstanceId;
+        private uint _deflectedAttack, _deflectedDefender;
+        private byte _deflectedRepeat;
         private byte                       _activeRepeatIndex;
         private double                     _activeAttackStartServerTime;
         private uint                       _activeTargetNetId;
@@ -276,10 +281,10 @@ namespace Geumeum.AI
                 return;
             }
 
-            // 순간 접근(3) 직후엔 쿨다운·거리 추첨을 전부 건너뛰고 여우불 봉 3연격(1)을 강제로
-            // 붙인다 - 팀장 요청(2026-09-15). 순간접근 자체엔 전용 2타·3타 애니메이션이 없어
-            // 반복 판정을 못 주고, 대신 이미 반복 애니메이션이 갖춰진 패턴1로 이어 붙인다.
-            // BOSS_PATTERN_CONTRACT.md 9.3절의 "오프닝 세 개만 고정" 원칙에서 벗어나는 예외다
+            // 순간 접근(3) 직후엔 쿨다운, 거리 추첨을 전부 건너뛰고 여우불 봉 3연격(1)을 강제로
+            // 붙인다 - 팀장 요청(2026-09-15). 순간접근 자체엔 전용 2타, 3타 애니메이션이 없어
+            // 반복 판정을 못 주고, 대신 이미 반복 애니메이션이 갖춰진 패턴1로 이어 붙인다
+            // 오프닝 이후에도 이 후속 공격만 고정 순서로 실행한다
             if (_previousPatternId == TARGETED_DASH_PATTERN_ID)
             {
                 if (GameDB.Boss.TryGetPattern(MELEE_ARC_PATTERN_ID, out BossPatternSO.PatternEntry followUpPattern))
@@ -431,8 +436,8 @@ namespace Geumeum.AI
 
         // 직전 지목자를 뺀 생존 플레이어 중 가장 가까운 대상을 고른다. 후보가 없으면(생존자가
         // 직전 지목자 하나뿐) null을 돌려주고 호출부가 Target(전역 어그로 대상)으로 대체한다 -
-        // "후보가 0이 되면 직전 지목자 제외를 먼저 푼다"는 어그로 규칙의 필터 우선순위.
-        // TargetedDash(패턴 3)·MarkedCircle(패턴 4) 둘 다 이 헬퍼를 쓴다(BOSS_PATTERN_CONTRACT.md 5장)
+        // "후보가 0이 되면 직전 지목자 제외를 먼저 푼다"는 어그로 규칙의 필터 우선순위
+        // TargetedDash(패턴 3), MarkedCircle(패턴 4) 둘 다 이 헬퍼를 쓴다
         private Transform SelectTargetExcludingLast(Transform lastTarget)
         {
             int count = Physics.OverlapSphereNonAlloc(Self.position, TARGET_EXCLUSION_SCAN_RADIUS,
@@ -481,9 +486,9 @@ namespace Geumeum.AI
 
             _barrageCycleIndex = -1;
 
-            // TargetedDash(패턴 3)·MarkedCircle(패턴 4)은 전역 어그로 대상(Target)이 아니라
+            // TargetedDash(패턴 3), MarkedCircle(패턴 4)은 전역 어그로 대상(Target)이 아니라
             // 직전 지목자를 뺀 후보 중에서 다시 뽑는다 - 안 그러면 같은 사람만 계속 지목당해
-            // 3인 역할 분리가 안 된다(BOSS_PATTERN_CONTRACT.md 5장)
+            // 3인 역할 분리가 안 된다
             if (_activeKind == PatternKind.TargetedDash)
             {
                 _activeTarget   = SelectTargetExcludingLast(_lastDashTarget) ?? Target;
@@ -709,7 +714,7 @@ namespace Geumeum.AI
                 attackerNetId,
                 _playerLayerMask,
                 _controller,
-                HitStrength.Light);
+                hitStrength: HitStrength.Light);
         }
 
         // GGizmo.Line은 GL 즉시 그리기라 두께 지정이 없다 - 십자로 살짝 오프셋한 선 다섯 개를
@@ -811,7 +816,7 @@ namespace Geumeum.AI
                         attackerNetId,
                         _playerLayerMask,
                         _controller,
-                        HitStrength.Light);
+                        hitStrength: HitStrength.Light);
                     ++_barrageNextSampleIndex[i];
                 }
             }
@@ -865,7 +870,9 @@ namespace Geumeum.AI
                     damage,
                     attackerNetId,
                     _playerLayerMask,
-                    _controller);
+                    _controller,
+                    deflectedDefender: (_deflectedAttack == _activeAttackInstanceId &&
+                        _deflectedRepeat == _activeRepeatIndex) ? _deflectedDefender : 0u);
                 return;
             }
 
@@ -884,7 +891,9 @@ namespace Geumeum.AI
                     damage,
                     attackerNetId,
                     _playerLayerMask,
-                    _controller);
+                    _controller,
+                    deflectedDefender: (_deflectedAttack == _activeAttackInstanceId &&
+                        _deflectedRepeat == _activeRepeatIndex) ? _deflectedDefender : 0u);
                 return;
             }
 
@@ -901,12 +910,14 @@ namespace Geumeum.AI
                     damage,
                     attackerNetId,
                     _playerLayerMask,
-                    _controller);
+                    _controller,
+                    deflectedDefender: (_deflectedAttack == _activeAttackInstanceId &&
+                        _deflectedRepeat == _activeRepeatIndex) ? _deflectedDefender : 0u);
                 return;
             }
 
             // MeleeArc. 방향은 예고 시작 시점에 잠근 값을 쓴다(방향 완전 잠금)
-            // 러프 VFX 연결(이슈 검증용) — 반월 베기(파생 패턴)도 여기로 들어와 같은 VFX를 쓴다
+            // 러프 VFX 연결(이슈 검증용) - 반월 베기(파생 패턴)도 여기로 들어와 같은 VFX를 쓴다
             _controller.ServerPlayPatternImpact(BossPatternSO.PatternTemplate.MeleeArc, Self.position, _lockedForward);
 
             BossPatternRunner.ExecuteMeleeArc(
@@ -917,7 +928,9 @@ namespace Geumeum.AI
                 damage,
                 attackerNetId,
                 _playerLayerMask,
-                _controller);
+                _controller,
+                deflectedDefender: (_deflectedAttack == _activeAttackInstanceId &&
+                    _deflectedRepeat == _activeRepeatIndex) ? _deflectedDefender : 0u);
         }
 
         private void TickRecovery(float deltaTime)
@@ -932,7 +945,7 @@ namespace Geumeum.AI
             }
         }
 
-        // 현재 실행만 패링 결과를 받는다. 이전 공격의 늦은 통지는 버린다.
+        // 현재 실행만 패링 결과를 받는다. 이전 공격의 늦은 통지는 버린다
         private void HandleAttackParried(BossAttackExecution execution, uint parriedByNetId)
         {
             if ((IsExited) || (execution == null) || (!ReferenceEquals(execution, _activeExecution))
@@ -941,6 +954,13 @@ namespace Geumeum.AI
                 return;
             }
 
+            if (execution.IsDeflect)
+            {
+                _deflectedAttack = execution.AttackInstanceId;
+                _deflectedRepeat = execution.RepeatIndex;
+                _deflectedDefender = parriedByNetId;
+                return;
+            }
             uint attackInstanceId = _activeAttackInstanceId;
             CancelActiveAttack();
             _controller.ServerRecordParryCounter(parriedByNetId, attackInstanceId);
@@ -949,6 +969,7 @@ namespace Geumeum.AI
         private void TryOpenParryWindow(BossPatternSO.PatternEntry pattern, byte repeatIndex)
         {
             if ((!_activeSpec.IsRepeatParryable(pattern, repeatIndex)) &&
+                (!_activeSpec.IsRepeatDeflectable(pattern, repeatIndex)) &&
                 (!_controller.ServerIsTransferredParryRepeat(pattern.PatternId, repeatIndex)))
             {
                 return;
@@ -974,6 +995,10 @@ namespace Geumeum.AI
             BossAttackExecution execution = new BossAttackExecution(
                 MELEE_PARRY_WINDOW_DURATION, _activeAttackInstanceId, repeatIndex,
                 HandleAttackParried);
+            uint sequenceId = _activeAttackInstanceId;
+            execution.SequenceActive = () => IsAttackWindup(sequenceId);
+            execution.IsDeflect = _activeSpec.IsRepeatDeflectable(pattern, repeatIndex) &&
+                !_controller.ServerIsTransferredParryRepeat(pattern.PatternId, repeatIndex);
 
             if (parryTarget.OpenParryWindow(execution, key, now, impactTime))
             {

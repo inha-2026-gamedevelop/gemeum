@@ -50,9 +50,9 @@ MonoBehaviour:
   _weaponOptions:
   - WeaponKind: 0
     Options:
-    - Kind: 200
-      ValueMin: 4
-      ValueMax: 10
+    - Kind: 203
+      ValueMin: 0.1
+      ValueMax: 0.3
     - Kind: 201
       ValueMin: 0.02
       ValueMax: 0.05

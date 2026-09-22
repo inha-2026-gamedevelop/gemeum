@@ -5,7 +5,7 @@ namespace Geumeum.Common.Environment
 {
     // WeatherMaker 자신은 중복 구동체를 감지해도 에러 로그만 남기고 정리하지 않는다
     // (WeatherMakerScript.EnsureInstance는 먼저 등록된 쪽을 유지한다). 씬마다 프리팹을 두는
-    // 구조라 전환할 때마다 구동체가 쌓이므로 여기서 하나만 남긴다.
+    // 구조라 전환할 때마다 구동체가 쌓이므로 여기서 하나만 남긴다
     /// <summary> WeatherMaker 구동체를 세션에 하나만 남긴다. 씬이 바뀌어도 파괴되지 않는다 </summary>
     [DefaultExecutionOrder(EXECUTION_ORDER)]
     public class WeatherMakerSingleInstanceGuard : MonoBehaviour

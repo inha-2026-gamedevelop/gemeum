@@ -278,7 +278,7 @@ namespace Geumeum.Systems
             switch (weaponKind)
             {
                 case WeaponKind.Sword:
-                    return ((kind == EquipmentOptionKind.ParryGaugeGain) ||
+                    return ((kind == EquipmentOptionKind.CounterDuration) ||
                             (kind == EquipmentOptionKind.ParryWindow) ||
                             (kind == EquipmentOptionKind.CriticalMultiplierMin));
                 case WeaponKind.Bow:

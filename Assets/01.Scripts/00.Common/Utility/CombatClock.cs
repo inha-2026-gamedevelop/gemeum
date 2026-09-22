@@ -4,12 +4,12 @@ using System.Collections.Generic;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 각 대상이 마지막으로 전투한 게임 시각을 기록한다.
+    /// 각 대상이 마지막으로 전투한 게임 시각을 기록한다
     /// 게임 디자인 6.5의 "피해를 주거나 받은 지 5초"를 판정하는 단일 원본이며,
-    /// 상호작용이 열렸는지 묻는 쪽은 이 값만 본다.
+    /// 상호작용이 열렸는지 묻는 쪽은 이 값만 본다
     ///
-    /// 기록은 피해가 실제로 적용되는 세 지점(플레이어 · 잡귀 · 보스의 TakeDamage)에서만 한다.
-    /// 공격 판정 지점마다 걸면 근접 · 화살 · 방울 중 하나를 빠뜨리게 된다
+    /// 기록은 피해가 실제로 적용되는 세 지점(플레이어, 잡귀, 보스의 TakeDamage)에서만 한다
+    /// 공격 판정 지점마다 걸면 근접, 화살, 방울 중 하나를 빠뜨리게 된다
     /// </summary>
     public static class CombatClock
     {
@@ -31,7 +31,7 @@ namespace Geumeum.Common
         ****************************************/
 
         /// <summary>
-        /// 피해 한 건을 기록한다. 맞은 쪽과 때린 쪽 모두 전투한 것으로 친다.
+        /// 피해 한 건을 기록한다. 맞은 쪽과 때린 쪽 모두 전투한 것으로 친다
         /// 결계나 환경 피해처럼 가해자가 없으면 맞은 쪽만 기록한다
         /// </summary>
         public static void ServerNotifyDamage(uint victimNetId, uint attackerNetId, double gameplayTime)

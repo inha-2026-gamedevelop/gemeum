@@ -11,12 +11,12 @@ namespace Geumeum.Common
             public const float AUTOSAVE_INTERVAL_SECONDS = 60f;   // 비정상 종료로 측정을 통째로 잃지 않도록
             public const float OVERLAY_REFRESH_SECONDS   = 0.25f; // 매 프레임 문자열을 만들면 그 자체가 부하다
 
-            // 프레임 시간을 표본으로 쌓지 않고 히스토그램에 누적한다.
+            // 프레임 시간을 표본으로 쌓지 않고 히스토그램에 누적한다
             // 저장 비용이 측정 시간에 비례해 커지면 측정기가 측정 대상을 흔든다
             public const float HISTOGRAM_BUCKET_MS = 0.05f;
             public const float HISTOGRAM_MAX_MS    = 200f;
 
-            // 0이면 상한 없음. 같은 PC에서 여러 인스턴스를 비교 측정할 때만 값을 준다 —
+            // 0이면 상한 없음. 같은 PC에서 여러 인스턴스를 비교 측정할 때만 값을 준다 -
             // 상한 없는 렌더링이 서로 자원을 뺏으면 네트워크 비용과 렌더링 경쟁을 분리할 수 없다
             public const int TARGET_FRAME_RATE = 0;
 

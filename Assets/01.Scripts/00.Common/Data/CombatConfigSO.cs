@@ -6,7 +6,7 @@ namespace Geumeum.Data
 {
     /// <summary> 레벨과 무관한 플레이어 전투 수치. 최대 HP는 LevelCurveSO가 단독으로 소유한다 </summary>
     [CreateAssetMenu(fileName = "CombatConfigSO", menuName = "Geumeum/CombatConfigSO")]
-    public class CombatConfigSO : ScriptableObject
+    public partial class CombatConfigSO : ScriptableObject
     {
         /****************************************
         *                Fields
@@ -16,6 +16,10 @@ namespace Geumeum.Data
         [SerializeField] private float _staminaMax            = 100f;
         [SerializeField] private float _staminaRegenPerSecond = 35f;
         [SerializeField] private float _staminaRegenDelay     = 0.45f; // 행동 후 회복 시작까지(초)
+
+        [Header("일반 피격")]
+        [Min(0f)] [SerializeField] private float _playerHitReactionDuration = 0.24f;
+        [Min(0f)] [SerializeField] private float _playerHitReactionResistanceDuration = 0.35f;
 
         [Header("신력")]
         [SerializeField] private float _spiritMax = 80f; // 자연 회복 없음, 물약으로만 회복
@@ -76,6 +80,35 @@ namespace Geumeum.Data
         [SerializeField] private float _precisionShotMoveSpeedMultiplier = 0.4f;
         [SerializeField] private float _precisionShotStaminaCost = 15f;
 
+        [Header("신궁 쐐기")]
+        [Min(0.01f)] [SerializeField] private float _wedgeDuration = 8f;
+        [Min(0.01f)] [SerializeField] private float _wedgeRadius = 0.30f;
+        [Min(1)] [SerializeField] private int _wedgeHits = 2;
+        [Min(0f)] [SerializeField] private float _wedgeBurstMultiplier = 2f;
+
+        [Header("무녀 되울림")]
+        [Min(0.01f)] [SerializeField] private float _echoDuration = 8f;
+        [Min(0f)] [SerializeField] private float _echoChargeInterval = 0.25f;
+        [Min(0.01f)] [SerializeField] private float _echoRecallRange = 8f;
+        [Min(0f)] [SerializeField] private float _echoSpiritCost = 10f;
+        [Min(0.01f)] [SerializeField] private float _echoStartupDuration = 0.18f;
+        [Min(0f)] [SerializeField] private float _echoRecoveryDuration = 0.30f;
+        [Min(0f)] [SerializeField] private float _echoCooldown = 1.5f;
+        [SerializeField] private Vector3 _echoDamageMultipliers = new Vector3(0.6f, 1f, 1.5f);
+
+        public float WedgeDuration => _wedgeDuration;
+        public float WedgeRadius => _wedgeRadius;
+        public int WedgeHits => _wedgeHits;
+        public float WedgeBurstMultiplier => _wedgeBurstMultiplier;
+        public float EchoDuration => _echoDuration;
+        public float EchoChargeInterval => _echoChargeInterval;
+        public float EchoRecallRange => _echoRecallRange;
+        public float EchoSpiritCost => _echoSpiritCost;
+        public float EchoStartupDuration => _echoStartupDuration;
+        public float EchoRecoveryDuration => _echoRecoveryDuration;
+        public float EchoCooldown => _echoCooldown;
+        public float EchoDamageMultiplier(int count) => _echoDamageMultipliers[Mathf.Clamp(count - 1, 0, 2)];
+
         [Header("신궁 연사")]
         [SerializeField] private float _burstShotInterval = 0.12f;
 
@@ -84,7 +117,7 @@ namespace Geumeum.Data
         [SerializeField] private float _bellRecoveryDuration  = 0.35f; // 후딜(초)
         [SerializeField] private float _bellStaminaCost       = 6f;    // 스태미나 비용
         [SerializeField] private float _bellRange             = 3.5f;  // 판정 반경(m), 자기 주위 전부
-        [SerializeField] private float _bellAngle             = 360f;  // 판정 각도(도), 등 뒤도 맞는다
+        [SerializeField] private float _bellAngle             = 120f;  // 판정 각도(도), 등 뒤도 맞는다
         [SerializeField] private float _bellBasePower         = 6f;    // 장비 보정 전 기본 공격력, 근접의 0.6배
         [SerializeField] private float _spiritGainPerHit      = 5f;    // 한 명 맞힐 때 얻는 신력
         [SerializeField] private float _spiritGainMaxPerSwing = 15f;   // 한 번 휘둘러 얻을 수 있는 상한
@@ -100,9 +133,6 @@ namespace Geumeum.Data
         [SerializeField] private float _healRadius            = 6f;    // 회복 반경(m)
         [SerializeField] private float _healAmount            = 40f;   // 대상 한 명이 받는 회복량
         [SerializeField] private float _healCooldownDuration  = 4f;    // 쿨다운(초)
-
-        [Header("무녀 지원 버프")]
-        [SerializeField] private float _supportBuffDuration = 6f;
 
         [Header("락온")]
         [SerializeField] private float _lockOnAcquireRange = 25f; // 걸 수 있는 거리(m), 서버도 이 값으로 검증한다
@@ -127,7 +157,7 @@ namespace Geumeum.Data
         [SerializeField] private float _reviveBarrierInsetRatio = 0.9f; // 결계 밖에서 죽으면 반경의 이 비율 지점으로 당긴다
 
         [Header("상호작용 (게임 디자인 6.5)")]
-        // 줍기 · 양도 · 객주가 같은 거리를 쓴다. 기획서 6.2가 양도를 3m로 정한 것에 맞췄다
+        // 줍기, 양도, 객주가 같은 상호작용 거리를 사용한다
         [SerializeField] private float _interactRange = 3f; // 상호작용 최대 거리(m)
         // 피해를 주거나 받은 뒤 이만큼 지나야 상호작용이 열린다. 협동 부활은 이 조건에서 제외한다
         [SerializeField] private float _interactOutOfCombatSeconds = 5f;
@@ -142,6 +172,8 @@ namespace Geumeum.Data
         public float StaminaRegenDelay     => _staminaRegenDelay;
 
         public float SpiritMax => _spiritMax;
+        public float PlayerHitReactionDuration => _playerHitReactionDuration;
+        public float PlayerHitReactionResistanceDuration => _playerHitReactionResistanceDuration;
 
         /// <summary> 임시 밸런스 1. 에셋의 0은 이전 데이터 호환을 위해 하한 없음으로 해석한다 </summary>
         public float MinimumResourceCost => _minimumResourceCost;
@@ -208,8 +240,6 @@ namespace Geumeum.Data
         public float HealRadius           => _healRadius;
         public float HealAmount           => _healAmount;
         public float HealCooldownDuration => _healCooldownDuration;
-
-        public float SupportBuffDuration => _supportBuffDuration;
 
         public float LockOnAcquireRange          => _lockOnAcquireRange;
         public float LockOnHoldRange             => _lockOnHoldRange;

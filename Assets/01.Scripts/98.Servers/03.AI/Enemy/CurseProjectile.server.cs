@@ -57,7 +57,7 @@ namespace Geumeum.AI
 
         public override void OnStartServer()
         {
-            // 저주 투사체는 런이 도는 중에만 생기므로 스케줄러가 이미 떠 있다.
+            // 저주 투사체는 런이 도는 중에만 생기므로 스케줄러가 이미 떠 있다
             // 없다면 이동시킬 주체가 없어 영영 떠 있게 되므로 그 자리에서 없앤다
             if (AuthorityTickScheduler.ServerInstance == null)
             {

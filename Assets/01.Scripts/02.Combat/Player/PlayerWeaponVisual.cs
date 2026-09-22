@@ -6,6 +6,7 @@ using UnityEngine;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Art;
 
 namespace Geumeum.Combat
 {
@@ -54,6 +55,7 @@ namespace Geumeum.Combat
         private bool       _hasSpawnedModel = false;
 
         private GameObject _attachedCharacterModel;
+        private PlayerWeaponGrip _grip;
 
         // 붙인 모델에서 한 번 찾아 둔 칼날 양 끝. 매 프레임은 변환만 한다
         private Transform _bladeTransform;
@@ -71,6 +73,11 @@ namespace Geumeum.Combat
             _character = GetComponent<PlayerCharacter>();
         }
 
+        private void OnEnable()
+        {
+            Refresh();
+        }
+
         /****************************************
         *              Public API
         ****************************************/
@@ -80,6 +87,7 @@ namespace Geumeum.Combat
         {
             if ((_weapon == null) || (!_weapon.HasWeapon) || (_character == null) || (_character.ActiveModel == null))
             {
+                DetachCurrentModel();
                 return;
             }
 
@@ -88,6 +96,10 @@ namespace Geumeum.Combat
                 (_spawnedModel != null) &&
                 (_attachedCharacterModel == _character.ActiveModel))
             {
+                if (_grip != null)
+                {
+                    _grip.ConfigureWeapon(_spawnedWeapon);
+                }
                 return;
             }
 
@@ -116,6 +128,11 @@ namespace Geumeum.Combat
             _spawnedWeapon           = _weapon.Weapon;
             _hasSpawnedModel         = true;
             _attachedCharacterModel = _character.ActiveModel;
+            _grip = _attachedCharacterModel.GetComponent<PlayerWeaponGrip>();
+            if (_grip != null)
+            {
+                _grip.ConfigureWeapon(_spawnedWeapon);
+            }
 
             _hasBlade = TryResolveBlade(_spawnedModel, socket.position,
                 out _bladeTransform, out _bladeHiltLocal, out _bladeTipLocal);
@@ -142,7 +159,7 @@ namespace Geumeum.Combat
         }
 
         /// <summary>
-        /// 메시 경계의 가장 긴 축을 칼날로 본다. 양 끝 중 손에 가까운 쪽이 손잡이, 먼 쪽이 칼끝이다.
+        /// 메시 경계의 가장 긴 축을 칼날로 본다. 양 끝 중 손에 가까운 쪽이 손잡이, 먼 쪽이 칼끝이다
         /// 모델마다 축 방향이 달라도 부착 보정값을 따로 적지 않게 하려는 것이다
         /// </summary>
         public static bool TryResolveBladeEnds(Bounds meshBounds, Vector3 gripLocal,
@@ -258,6 +275,11 @@ namespace Geumeum.Combat
 
         private void DetachCurrentModel()
         {
+            if (_grip != null)
+            {
+                _grip.ClearGrip();
+                _grip = null;
+            }
             if (_spawnedModel != null)
             {
                 Destroy(_spawnedModel);

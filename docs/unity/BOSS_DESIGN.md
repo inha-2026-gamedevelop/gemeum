@@ -1,17 +1,18 @@
 # 보스 1마리 설계
 
-> 상태: 설계 확정본, **구현 착수함** (2026-09-05, 15장 구현 순서 1~2단계)  
+> 상태: **채택된 설계와 현행 구현 계약.** 서버 권위 보스, 2페이즈, 패턴 15개, 공동 그로기, 꼬리 부위, 최종 원혼·삼켜짐, 트라이 모드의 코드·데이터가 존재한다. 실제 서로 다른 PC 3대·지연 환경·최종 아트 체감은 별도 검증 대상이다.
 > 출처: 2026-09-01 외부 소스 감사와 함께 받은 설계 산출물. 저장소 문서로 편입했다  
 > 관련: [프로젝트 구조 설계서](../04-architecture.md) · [네트워크 권위](NETWORK_AUTHORITY.md) · [검증 플레이북](../ai/03_VERIFICATION_PLAYBOOK.md)
 
-> **2026-09-05 갱신 — 15장 구현 순서 1~2단계 완료(부분 검증).**
+> **현재 구현 기준.**
+> 2026-09-22 `BossPatternSO.asset` 기준 본체 HP는 **110,000**, 2페이즈 진입 비율은 **0.5**, 전환 잠금은 **2초**, 보스 제한은 **840초**다. 본문의 55,000·22,000/33,000·전환 15초는 이전 설계 기록이며 현재 밸런스값으로 사용하지 않는다. 신규 11~15 패턴과 변경된 간격을 포함한 클리어 시간은 다시 측정해야 한다.
 > `Boss_Proxy.prefab`(`Assets/02.Prefabs/Enemy/`) — 11장 히트박스 표대로 본체 캡슐(반경 0.45m·높이 1.85m)과
 > 꼬리 콜라이더(반경 1.20m, 본체 뒤 2.5m, 1페이즈 기본 비활성)를 만들고 `NetworkIdentity`·
 > `NetworkTransformReliable`(서버 권위)을 붙였다. `BossSpawner.cs`(`Assets/01.Scripts/03.AI/Boss/`)가
 > `RunPhaseChangedEvent(Current == Boss)`를 구독해 `Boss` 태그 마커 위치에 1회만 스폰한다.
-> `Dev_AI.unity`에 마커·컴포넌트·spawnPrefabs 등록까지 마침. Play(Host) 1인 세션에서 이벤트 발행 →
-> 정확한 위치 스폰, 중복 스폰 방지까지 확인. **L3(3인) 미검증**, `BossStatus`/`BossController`/패턴은
-> 아직 없음 — 3단계부터 이어서 진행한다.
+> `Dev_AI.unity`에 마커·컴포넌트·spawnPrefabs가 등록되어 있다. `BossStatus`·`BossController`와 서버 실행 코드,
+> `BossPatternSO.asset`의 2페이즈·15패턴 데이터까지 구현되어 정적 검사와 에디터 테스트 대상이다.
+> **실제 서로 다른 PC 3대의 L3와 높은 지연 조건은 검증되지 않았다.**
 >
 > 실물 모델(`Kitsune Yuna`, 162,246 tris — 12.1절 수치와 정확히 일치 확인함)은 로컬에 있으나
 > 애니메이션 클립이 없어 한동안 붙이지 않았다. 설계 문서 지침대로 프록시로 L3까지 통과한 뒤 교체할 예정이었다.
@@ -28,9 +29,7 @@
 > 머티리얼 45개가 제자리에서 URP Lit으로 바뀐다. `99.ThirdParty`는 커밋되지 않으므로 **각 PC에서 한 번씩 임포트해야 한다.**
 > 공격 예고 셰이더 `Geumeum/BossTelegraph`는 `Shader.Find`로 찾기 때문에 빌드에서 빠져 있었고, Graphics 설정의 Always Included에 추가했다.
 
-> 상태: 구현 제안. 코드·씬·프리팹은 수정하지 않았다.
->
-> 핵심 결정: **보스 1마리, 2페이즈, MVP 8개 데이터 항목(실행 템플릿 4종)**으로 고정한다. 기존 초안의 약 18개 개별 패턴은 3인·11주 일정에서 애니메이션/VFX/네트워크 검증 비용이 과도하므로 출시 후보기능으로 내린다.
+> 핵심 결정: **보스 1마리, 2페이즈, 패턴 15개(실행 템플릿 4종)**를 채택했다. 처음 채택한 10개에 2026-09-22 병합으로 11~15가 더해졌다. 기존 초안의 약 18개 개별 패턴은 폐기했으며 현행 원본은 `BossPatternSO.asset`이다.
 
 ---
 
@@ -39,7 +38,7 @@
 > 아래 본문은 2026-09-01 기준이고 **정체·페이즈 구성·수치가 바뀌었다.** 충돌하는 부분은 이 상자와 10~14장이 우선한다.
 > 결정의 근거와 기각 사유는 [직업 정체성과 보스 설계](../class-identity-and-boss-2026-09-03.md)에 있다.
 >
-> | 항목 | 이전 | **현재** |
+> | 항목 | 이전 | **2026-09-03 개정 당시** |
 > |---|---|---|
 > | 정체 | 외세 침입군 병사 원혼 | **구미호** — 원혼들을 삼키고 저승길을 차지했다 |
 > | 2페이즈 | (미정) | **같은 모델의 꼬리 펼침 + 아레나 교체.** 별도 야수형 모델을 만들지 않는다 |
@@ -182,7 +181,7 @@ MVP 패턴은 아래 8개다. **보스 정체는 2026-09-03에 구미호로 개�
 | `MaxGapWithoutParryable` | `float` | 25초 |
 | `TransitionLockDuration` | `float` | 2초 |
 
-phase 검사는 index 1→2의 연속성, `EnterHealthRatio`의 1.0→0.5 단조 감소, 유효 PatternId만 참조하는지, 각 phase에 `ParryableRepeatIndex >= 0`인 항목이 최소 1개인지 확인한다. `BossPatternSO` 루트의 `_maxHealth`는 **55,000으로 확정한다**(2026-09-04). 3,000은 3인 DPS 측정 전의 플레이스홀더였고 폐기한다. 같은 에셋에 `HitColliderBufferSize` 같은 기술 한계는 넣지 않고 코드의 안전 상한으로 둔다. 반대로 플레이 체감에 영향을 주는 시간·거리·피해는 모두 SO에 둔다.
+phase 검사는 index 1→2의 연속성, `EnterHealthRatio`의 1.0→0.5 단조 감소, 유효 PatternId만 참조하는지, 각 phase에 `ParryableRepeatIndex >= 0`인 항목이 최소 1개인지 확인한다. `BossPatternSO` 루트의 `_maxHealth`는 **현재 110,000이다**(2026-09-22). 2026-09-04에 정했던 55,000은 이전 값이다. 3,000은 3인 DPS 측정 전의 플레이스홀더였고 폐기한다. 같은 에셋에 `HitColliderBufferSize` 같은 기술 한계는 넣지 않고 코드의 안전 상한으로 둔다. 반대로 플레이 체감에 영향을 주는 시간·거리·피해는 모두 SO에 둔다.
 
 ### 4.4 `BossTelegraphCue`
 
@@ -205,7 +204,7 @@ Unity는 ScriptableObject를 GameObject 인스턴스와 분리된 공유 데이�
 
 1. `RunManager`가 서버에서 `Boss`에 진입한다.
 2. `BossSpawner.OnStartServer`는 먼저 이벤트를 구독한 뒤 현재 `RunManager.ServerInstance.Phase`도 읽는다. 이미 `Boss`라면 같은 bootstrap 경로로 처리하고, spawn 완료 flag로 이벤트와 bootstrap의 중복 생성을 막는다.
-3. `BossSpawner`가 직렬화된 보스 프리팹 1개를 생성하고 `NetworkServer.Spawn`한다. 구현 전 NetworkIdentity, 서버 권위 NetworkTransform, spawnable-prefab 등록을 검사한다.
+3. `BossSpawner`가 직렬화된 보스 프리팹 1개를 생성하고 `NetworkServer.Spawn`한다. 프리팹의 NetworkIdentity, 서버 권위 NetworkTransform, spawnable-prefab 등록은 구현 전제가 아니라 유지해야 할 검사 항목이다.
 4. `BossStatus.OnStartServer`가 `GameDB.Boss.MaxHealth`를 읽어 HP를 초기화한다.
 5. `BossController`는 1페이즈를 만들고 `AuthorityTickScheduler`의 `TICK_PRIORITY_AI`에 서버 Tick을 등록한다. `OnStopServer`에서 반드시 해제한다.
 6. HP 비율이 다음 `EnterHealthRatio` 이하가 되면 현재 공격과 모든 대상의 패링 창을 닫고 전환 잠금 후 다음 페이즈를 한 번만 커밋한다. 같은 틱의 다중 피해는 이미 커밋된 phase index를 다시 넘지 못한다.
@@ -292,7 +291,7 @@ Unity는 ScriptableObject를 GameObject 인스턴스와 분리된 공유 데이�
 | 패링 성공이 보스 행동 수명을 못 끊음 | 유령 피해, 핵심 메커닉 신뢰 붕괴 | 공격 instance ID, 명시적 Cancel, 페이즈/사망 시 일괄 정리 테스트 |
 | 텔레그래프 RPC 유실/지연 | 피할 수 없는 공격처럼 보임 | 신뢰 채널 사용, `impactServerTime` 기준 보정, 최소 예고시간 M3 검증 |
 | 기존 `EnemyDiedEvent`의 보스 kind가 없음 | `default(EnemyKind)` 오해, 구독자 잘못된 드랍 분기 | `EnemyKind?`, `IsBoss`, `ForEnemy/ForBoss` factory 불변식으로 기존 계약을 일관되게 확장하고 모든 구독자 이관 검사 |
-| 씬·프리팹 비첨부 | NavMesh·Collider·레이어 가정 오류 | 구현 전 `Boss.prefab`/아레나에서 레이어와 네트워크 컴포넌트 체크리스트 수행 |
+| 씬·프리팹 연결 회귀 | NavMesh·Collider·레이어 가정 오류 | `Boss_Proxy.prefab`과 아레나에서 레이어·네트워크 컴포넌트 체크리스트를 반복 수행 |
 
 ---
 
@@ -498,7 +497,7 @@ HP 0  →  사망이 아니라 "삼켜짐"
 Boss_Arena.unity
 ├ Antechamber    전실. 게이트 통과 직후 도착 지점 (2026-09-04 신설)
 ├ Arena_Phase1   산속 사당 · 등불 · 담장      (시작 시 활성)
-├ Arena_Phase2   저승 물길 · 여우불 · 얼굴들   (시작 시 비활성)
+├ Arena_Phase2   붉은 달의 저승 · 수면 · 여우불   (시작 시 비활성)
 └ Shared         바닥 콜라이더 · NavMesh · 스폰 마커 · 게이트
 ```
 
@@ -594,6 +593,8 @@ Boss_Arena.unity
 
 **빈 갓걸이를 두는 이유는 폭로가 아니라 부재다.** 갓을 걸어두면 세 명 중 한 명이 알아채고 말해서 나머지 둘의 것까지 날아간다. **비어 있는 걸이는 첫 판에 아무 의미도 없고, 갓이 떨어지는 것을 본 뒤 두 번째 판에 의미가 생긴다.**
 
+2026-09-22 환경 개정: Meshy 사당·석등·돌무더기, 기와 담장, 산 능선과 석판을 적용한다. 2페이즈는 붉은 달의 저승으로 바꾸고 외곽 수면·비석을 배치한다. 신규 장식에는 Collider를 추가하지 않고 기존 충돌·NavMesh를 보존한다. 에셋 제작 기록은 [보스 아레나 생성 에셋](../licenses/BOSS_ARENA_MESHY.md)을 따른다.
+
 #### 에셋 조달 규칙
 
 **보스 아레나 에셋은 전부 `Assets/98.FreeAssets/`에 넣는다.** `99.ThirdParty/`는 gitignore 대상이라 **거기 넣으면 팀원 둘이 빈 아레나를 연다.**
@@ -615,10 +616,10 @@ Boss_Arena.unity
 
 | 요소 | 1페이즈 | 2페이즈 |
 |---|---|---|
-| Volume 프로파일 | 따뜻한 등불빛 | 창백한 청록 |
-| 스카이박스 | 밤하늘 | 뒤집힌 하늘 · 별 없음 |
+| Volume 프로파일 | 따뜻한 등불빛 | 검붉은 저승 · saturation −12 / temperature −3 |
+| 스카이박스 | 밤하늘 | 붉은 달 · 검붉은 하늘 · 별 없음 |
 | 안개 | 옅음 | 짙고 낮게 |
-| 라이트 색 | 주황 (등불) | 푸름 (여우불) |
+| 라이트 색 | 주황 (등불) | 붉은 달빛 + 약한 청록 여우불 |
 | 파티클 | 없음 | 떠오르는 얼굴들 · 재 |
 
 페이즈는 서버 SyncVar로 확정하고 연출은 `RpcPhaseChanged` 하나로 전파한다. **판정과 무관한 순수 표현**이고 15초 무적 구간이 오차를 흡수한다.

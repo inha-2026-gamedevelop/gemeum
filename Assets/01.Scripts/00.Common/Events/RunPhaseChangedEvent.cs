@@ -1,7 +1,7 @@
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 런 단계가 바뀔 때 서버가 발행한다.
+    /// 런 단계가 바뀔 때 서버가 발행한다
     /// 결계 축소와 잡귀 강화가 각자 시간을 다시 계산하지 않고 이 통지 하나만 보게 한다
     /// </summary>
     public readonly struct RunPhaseChangedEvent

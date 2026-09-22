@@ -10,7 +10,7 @@ using Geumeum.Common;
 namespace Geumeum.Data
 {
     /// <summary>
-    /// 필드 레벨별 등급 가중치. 여기서 등급을 정한 뒤 EquipmentSO의 롤 범위로 스탯을 굴린다.
+    /// 필드 레벨별 등급 가중치. 여기서 등급을 정한 뒤 EquipmentSO의 롤 범위로 스탯을 굴린다
     /// 필드 레벨 3은 일반 잡귀 드랍이 아니라 보스 처치 후 팀 보상 1회에만 쓴다
     /// </summary>
     [CreateAssetMenu(fileName = "DropTableSO", menuName = "Geumeum/DropTableSO")]

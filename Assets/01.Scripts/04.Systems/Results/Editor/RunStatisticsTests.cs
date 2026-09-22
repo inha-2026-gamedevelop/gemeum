@@ -87,6 +87,29 @@ namespace Geumeum.Systems.Tests
             Assert.AreEqual(1, result.Participants.Length);
             Assert.AreEqual(10UL, result.Participants[0].ParticipantIdValue);
             Assert.AreEqual(CharacterKind.Chasa, result.Participants[0].Character);
+            Assert.AreEqual(RunPartyKind.HumansOnly, result.PartyKind);
+        }
+
+        [Test]
+        public void SameNumberHumanAndBotKeepSeparateDeathsHealingAndResults()
+        {
+            RunId run = new RunId(1u);
+            var human = new ParticipantId(10UL);
+            var bot = new ParticipantId(ParticipantKind.Bot, 10UL);
+            RegisterSource(human, CharacterKind.Chasa, 80f);
+            RegisterSource(bot, CharacterKind.Munyeo, 60f);
+            Assert.IsTrue(_statistics.BeginRun(run));
+            Assert.IsTrue(_statistics.RecordLife(RunPlayerLifeFact.Death(run, human, 1u)));
+            Assert.IsTrue(_statistics.RecordLife(RunPlayerLifeFact.Death(run, bot, 1u)));
+            Assert.IsTrue(_statistics.RecordHealing(new RunAppliedHealingFact(run, bot, human, 11f)));
+            RunResultSnapshot result = Header(run);
+            Assert.IsTrue(_statistics.TryFreeze(ref result));
+            Assert.AreEqual(2, result.Participants.Length);
+            Assert.AreEqual(human, result.Participants[0].Participant);
+            Assert.AreEqual(bot, result.Participants[1].Participant);
+            Assert.AreEqual(11f, result.Participants[1].HealingDone);
+            Assert.AreEqual(2, result.DeathCount);
+            Assert.AreEqual(RunPartyKind.BotAssisted, result.PartyKind);
         }
 
         [Test]
@@ -309,6 +332,46 @@ namespace Geumeum.Systems.Tests
                 Assert.IsTrue(RunLeaderboardStore.TryLoadResults(path,
                     out RunResultSnapshot[] records, out string loadFailure), loadFailure);
                 Assert.AreEqual(2, records.Length);
+            }
+            finally
+            {
+                if (Directory.Exists(directory))
+                {
+                    Directory.Delete(directory, true);
+                }
+            }
+        }
+
+        [Test]
+        public void LegacyRecordsRemainUnknownAndBotRecordsCanBeQueriedSeparately()
+        {
+            string directory = Path.Combine(".claude", "docs", "2026-09-19", "tests",
+                Guid.NewGuid().ToString("N"));
+            string path = Path.Combine(directory, RunLeaderboardStore.FILE_NAME);
+            try
+            {
+                Directory.CreateDirectory(directory);
+                File.WriteAllText(path, "{\"SchemaVersion\":1,\"Records\":[{\"Participants\":[{\"ParticipantIdValue\":10}]}]}");
+                Assert.IsTrue(RunLeaderboardStore.TryLoadResults(path, out var legacy, out _));
+                Assert.AreEqual(RunPartyKind.UnknownLegacy, legacy[0].PartyKind);
+                Assert.AreEqual(new ParticipantId(10UL), legacy[0].Participants[0].Participant);
+                var record = EligibleRecord(99u, 1u);
+                record.PartyKind = RunPartyKind.BotAssisted;
+                record.Participants = new[] { new RunParticipantResultSnapshot
+                {
+                    ParticipantKind = ParticipantKind.Bot, ParticipantIdValue = 10UL,
+                } };
+                Assert.IsTrue(RunLeaderboardStore.TryStore(path, record, out string failure), failure);
+                Assert.IsTrue(RunLeaderboardStore.TryLoadResults(path, RunPartyKind.BotAssisted,
+                    out var bots, out _));
+                Assert.AreEqual(1, bots.Length);
+                Assert.AreEqual(new ParticipantId(ParticipantKind.Bot, 10UL), bots[0].Participants[0].Participant);
+                Assert.IsTrue(RunLeaderboardStore.TryLoadResults(path, RunPartyKind.HumansOnly,
+                    out var humans, out _));
+                Assert.IsEmpty(humans);
+                Assert.IsTrue(RunLeaderboardStore.TryLoadResults(path, RunPartyKind.UnknownLegacy,
+                    out var old, out _));
+                Assert.AreEqual(1, old.Length);
             }
             finally
             {

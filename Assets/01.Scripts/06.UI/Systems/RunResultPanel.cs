@@ -166,6 +166,8 @@ namespace Geumeum.UI
             }
 
             _summaryText.text =
+                ((view.PartyKind == RunPartyKind.BotAssisted) ? "봇 포함 파티\n" :
+                    (view.PartyKind == RunPartyKind.HumansOnly) ? "사람 파티\n" : "이전 기록 (편성 정보 없음)\n") +
                 $"진행 시간 {FormatTime(view.FieldElapsedSeconds + view.BossElapsedSeconds)}" +
                 $"\n잡귀 처치 {view.EnemyKills:N0}, 사망 {view.DeathCount:N0}" +
                 $"\n남은 노잣돈 {view.RemainingCurrency:N0}, 남은 체력 합 {view.RemainingHealthSum:0.#}";
@@ -257,7 +259,7 @@ namespace Geumeum.UI
             string name = participant.HasCharacter
                 ? FunctionalUiText.GetCharacterName(participant.Character)
                 : "참가자";
-            return $"{name}" +
+            return $"{name}{(participant.ParticipantKind == ParticipantKind.Bot ? " (봇)" : string.Empty)}" +
                 $"\n피해 {participant.DamageDealt:0.#}, 타인 치유 {participant.HealingDone:0.#}" +
                 $"\n구조 {participant.RescueCount}, 삼켜짐 구조 {participant.SwallowedRescueCount}, " +
                 $"사망 {participant.DeathCount}" +

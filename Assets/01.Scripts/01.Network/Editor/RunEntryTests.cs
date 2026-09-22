@@ -102,7 +102,7 @@ namespace Geumeum.Network.EditorTests
             networkManager.authenticator = _authenticator;
             SetStaticProperty(typeof(NetworkManager), nameof(NetworkManager.singleton), networkManager);
 
-            // 다른 EditMode 테스트가 OnApplicationQuit를 거친 뒤 남긴 플래그까지 지우고 실제 버스를 둔다.
+            // 다른 EditMode 테스트가 OnApplicationQuit를 거친 뒤 남긴 플래그까지 지우고 실제 버스를 둔다
             GameEventBus.ResetStatic();
             GameEventBus sceneBus = Object.FindAnyObjectByType<GameEventBus>(FindObjectsInactive.Exclude);
             if (sceneBus == null)
@@ -217,7 +217,7 @@ namespace Geumeum.Network.EditorTests
             float beforePause = _run.BossEntranceCountdownRemainingSeconds;
             Assert.IsTrue(_run.PauseRun("시험 이탈"));
 
-            // 20초를 멈춰 있었고, 보정 전 시계라면 deadline을 넘는 상황을 만든다.
+            // 20초를 멈춰 있었고, 보정 전 시계라면 deadline을 넘는 상황을 만든다
             Set(_run, "_pauseStartServerTime", NetworkTime.time - 20.0);
             Set(_run, "_runStartServerTime", NetworkTime.time - 1800.0);
 
@@ -233,7 +233,7 @@ namespace Geumeum.Network.EditorTests
             Assert.AreEqual(beforePause, afterResume, 0.1f);
             Assert.AreEqual(1800f, _run.BossEntranceDeadlineFieldSeconds, 0.001f);
 
-            // 재개 뒤 다음 실제 field tick에서는 다시 시간이 흐른다.
+            // 재개 뒤 다음 실제 field tick에서는 다시 시간이 흐른다
             Set(_run, "_runStartServerTime", (double) Get(_run, "_runStartServerTime") - 1.0);
             Invoke(_run, "ServerTickFieldClock", 1800f);
 

@@ -53,6 +53,8 @@ namespace Geumeum.Common
         /// <summary> 모달 입력 소유권을 하나 얻는다, 반환 토큰은 반드시 Dispose한다 </summary>
         public static LocalGameplayInputToken Acquire()
         {
+            // 설치 조준 이전 상태로 복구한 뒤 모달의 복구값을 저장한다
+            LocalPlacementAim.End();
             uint tokenId = TakeTokenId();
             if (G_ActiveTokens.Count == 0)
             {

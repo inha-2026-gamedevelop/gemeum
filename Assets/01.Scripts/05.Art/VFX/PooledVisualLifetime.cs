@@ -6,7 +6,7 @@ using Geumeum.Common;
 
 namespace Geumeum.Art
 {
-    /// <summary>Returns particle and trail presentation objects to the local pool.</summary>
+    /// <summary>Returns particle and trail presentation objects to the local pool</summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(LocalPoolRoot))]
     public sealed class PooledVisualLifetime : MonoBehaviour, IPoolable
@@ -76,7 +76,7 @@ namespace Geumeum.Art
             StopAndClearVisuals();
         }
 
-        /// <summary>Seeks late cues without replaying the elapsed beginning.</summary>
+        /// <summary>Seeks late cues without replaying the elapsed beginning</summary>
         public void BeginAtProgress(float normalizedProgress)
         {
             if (!_isRented)
@@ -128,7 +128,7 @@ namespace Geumeum.Art
             }
         }
 
-        /// <summary>Idempotent cancellation for exact action-cue ownership.</summary>
+        /// <summary>Idempotent cancellation for exact action-cue ownership</summary>
         public bool TryStop(uint expectedLeaseGeneration)
         {
             if ((!_isRented) || (expectedLeaseGeneration == 0u) ||

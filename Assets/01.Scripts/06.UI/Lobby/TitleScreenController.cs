@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// 시작화면의 안내 문구와 메뉴 사이 전환.
+    /// 시작화면의 안내 문구와 메뉴 사이 전환
     /// 아무 키나 누르면 안내를 감추고 메뉴를 띄운다
     /// </summary>
     public class TitleScreenController : MonoBehaviour

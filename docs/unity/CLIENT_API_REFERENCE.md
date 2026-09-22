@@ -35,6 +35,17 @@
 
 실제 사용 예시는 [FunctionalManagementPanel.cs](../../Assets/01.Scripts/06.UI/Systems/FunctionalManagementPanel.cs),
 몬스터 표현 예시는 [EnemyAnimationController.cs](../../Assets/01.Scripts/03.AI/Enemy/EnemyAnimationController.cs)에 있다.
+## 무기 능력과 동료 봇
+
+| 기능 | 요청·조회 | 표시·권위 |
+|---|---|---|
+| 무기 R | PlayerAttack.RequestWeaponSkill, RequestBellFieldPlacement | WeaponSkillCooldownRemaining·IsWeaponSkillActive·ActionRejected; WeaponAbilityHUD |
+| 방울 Q | PlayerAttack.RequestEchoRecall | EchoFirst/EchoSecond, 신력과 거절 상태 |
+| 활 쐐기 | PlayerAttack.Wedge 및 정밀 사격 상태 | 유지 시간·파열 상태 조회, 판정은 서버 |
+| 봇 배낭 | InventoryController.RequestBotInventory / TryGetBotInventory | 같은 파티 봇의 장비·12슬롯. 다른 사람 배낭 조회 권한이 아님 |
+
+계정 모드에서는 준비·무기 선호·봇 편성을 런처/API가 확정하므로 Unity 변경 Command는 거부된다.
+
 세부 인자·타입은 해당 선언을 확인한다. 신규 UI를 위해 서버 내부 `Server*` 메서드를 공개 요청으로 취급하지 않는다.
 
 ## 3. 반환값과 화면 상태

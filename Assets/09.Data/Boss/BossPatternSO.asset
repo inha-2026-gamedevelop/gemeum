@@ -45,6 +45,7 @@ MonoBehaviour:
     RepeatTimingJitterMin: 0.1
     RepeatTimingJitterMax: 0.25
     ParryableRepeatIndex: 2
+    DeflectableRepeatIndices: 0000000001000000
     DerivedFromId: -1
     IsConditional: 0
     SelectionWeight: 1

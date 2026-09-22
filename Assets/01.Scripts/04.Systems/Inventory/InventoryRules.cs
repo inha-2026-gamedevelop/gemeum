@@ -146,7 +146,7 @@ namespace Geumeum.Systems
         }
 
         /// <summary>
-        /// 소모품을 넣는다. 같은 종류의 여유 있는 칸에 먼저 쌓고, 없으면 빈 칸을 쓴다.
+        /// 소모품을 넣는다. 같은 종류의 여유 있는 칸에 먼저 쌓고, 없으면 빈 칸을 쓴다
         /// 한 요청은 한 칸에만 반영하므로 여러 칸에 걸쳐 나눠 담지 않는다
         /// </summary>
         public static InventoryResult TryStoreConsumable(InventorySnapshot current,

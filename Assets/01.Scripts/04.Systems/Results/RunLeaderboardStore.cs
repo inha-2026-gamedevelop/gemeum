@@ -22,7 +22,7 @@ namespace Geumeum.Systems
             public List<RunResultSnapshot> Records = new List<RunResultSnapshot>();
         }
 
-        private const int CURRENT_SCHEMA_VERSION = 1;
+        private const int CURRENT_SCHEMA_VERSION = 2;
         private const int LOCK_RETRY_COUNT = 100;
         private const int LOCK_RETRY_DELAY_MILLISECONDS = 25;
         private const int WRITE_RETRY_COUNT = 4;
@@ -110,6 +110,19 @@ namespace Geumeum.Systems
             return true;
         }
 
+        public static bool TryLoadResults(string path, RunPartyKind partyKind,
+            out RunResultSnapshot[] results, out string failure)
+        {
+            if (!TryLoadResults(path, out RunResultSnapshot[] all, out failure))
+            {
+                results = Array.Empty<RunResultSnapshot>();
+                return false;
+            }
+
+            results = Array.FindAll(all, result => result.PartyKind == partyKind);
+            return true;
+        }
+
         private static bool TryLoad(string path, out RecordFile file, out string failure)
         {
             file = new RecordFile();
@@ -124,13 +137,33 @@ namespace Geumeum.Systems
             {
                 string json = File.ReadAllText(path);
                 RecordFile loaded = JsonUtility.FromJson<RecordFile>(json);
-                if ((loaded == null) || (loaded.SchemaVersion != CURRENT_SCHEMA_VERSION) ||
+                if ((loaded == null) ||
+                    ((loaded.SchemaVersion != 1) && (loaded.SchemaVersion != CURRENT_SCHEMA_VERSION)) ||
                     (loaded.Records == null))
                 {
                     failure = "지원하지 않는 리더보드 기록 형식이다";
                     return false;
                 }
 
+                if (loaded.SchemaVersion == 1)
+                {
+                    for (int i = 0; i < loaded.Records.Count; ++i)
+                    {
+                        RunResultSnapshot legacy = loaded.Records[i];
+                        legacy.PartyKind = RunPartyKind.UnknownLegacy;
+                        if (legacy.Participants != null)
+                        {
+                            for (int j = 0; j < legacy.Participants.Length; ++j)
+                            {
+                                legacy.Participants[j].ParticipantKind = ParticipantKind.Human;
+                            }
+                        }
+
+                        loaded.Records[i] = legacy;
+                    }
+                }
+
+                loaded.SchemaVersion = CURRENT_SCHEMA_VERSION;
                 file = loaded;
                 return true;
             }

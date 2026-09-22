@@ -10,7 +10,7 @@ using Geumeum.Common;
 namespace Geumeum.Systems
 {
     /// <summary>
-    /// 보스 트라이 전실. 편성 제출을 모아 서버가 검증하고, 다 모이기 전에는 보스를 열지 않는다.
+    /// 보스 트라이 전실. 편성 제출을 모아 서버가 검증하고, 다 모이기 전에는 보스를 열지 않는다
     /// 정식 런에서는 아무 일도 하지 않는다 - 전실은 두 경로가 함께 쓰는 공간이다
     /// </summary>
     public partial class BossTrialDirector : NetworkBehaviour, IBossTrialGate

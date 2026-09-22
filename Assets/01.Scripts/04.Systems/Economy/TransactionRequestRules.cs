@@ -40,7 +40,7 @@ namespace Geumeum.Systems
         public static bool IsNewer(uint requestId, uint previousRequestId)
         {
             // 클라이언트도 MaxValue에서 발급을 멈춘다. 서버가 wrap을 허용하면
-            // 오래된 작은 ID를 새 요청으로 되살릴 수 있으므로 단조 증가만 받는다.
+            // 오래된 작은 ID를 새 요청으로 되살릴 수 있으므로 단조 증가만 받는다
             return ((requestId != 0u) && (requestId > previousRequestId));
         }
 

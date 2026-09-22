@@ -7,9 +7,9 @@ using UnityEngine;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// Server-lifetime index of player life owners that can enter Swallowed.
+    /// Server-lifetime index of player life owners that can enter Swallowed
     /// Boss AI reads this stable list in its hot tick and never scans spawned
-    /// identities or resolves components there.
+    /// identities or resolves components there
     /// </summary>
     public static class BossSwallowTargetRegistry
     {

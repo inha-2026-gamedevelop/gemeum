@@ -5,7 +5,7 @@ namespace Geumeum.Data
 {
     /// <summary>
     /// 보스 트라이의 시작 자원. 30분을 걷지 않고 보스 앞에 서는 대신,
-    /// 필드 30분치 기대 획득량을 편성 포인트로 나눠 쓴다.
+    /// 필드 30분치 기대 획득량을 편성 포인트로 나눠 쓴다
     /// 값은 실측 전 임시값이고 코드가 아니라 이 에셋에서 조정한다
     /// </summary>
     [CreateAssetMenu(fileName = "BossTrialLoadoutSO", menuName = "Geumeum/BossTrialLoadoutSO")]

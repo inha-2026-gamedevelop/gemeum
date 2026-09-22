@@ -11,7 +11,7 @@ using Geumeum.Dev;
 namespace Geumeum.Network
 {
     /// <summary>
-    /// 키로 씬 전환을 건다. 개발 확인용이고 서버에서만 동작한다.
+    /// 키로 씬 전환을 건다. 개발 확인용이고 서버에서만 동작한다
     /// 화면 표시는 없다 - 씬과 전환 상태, 같은 동작의 버튼은 브라우저 개발 패널(RunTestPanel)에 있다
     /// </summary>
     public class RunSceneDebugTrigger : MonoBehaviour
@@ -23,7 +23,7 @@ namespace Geumeum.Network
         ****************************************/
 
         /// <summary>
-        /// 씬에 배치하지 않아도 실행 시작에 스스로 붙는다.
+        /// 씬에 배치하지 않아도 실행 시작에 스스로 붙는다
         /// 씬이나 프리팹에 심으면 시작 씬이 바뀔 때 통째로 사라진다
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -70,6 +70,15 @@ namespace Geumeum.Network
                 return;
             }
 
+            RunManager run = RunManager.ServerInstance;
+            if (run == null || run.IsPaused || RunSceneDirector.IsServerTransitioning ||
+                run.Phase == RunPhase.Lobby || run.Phase == RunPhase.Result)
+            { return; }
+            if (_targetScene == RunSceneId.Boss && run.Phase != RunPhase.Boss)
+            {
+                run.ServerBeginBossPhase();
+                return;
+            }
             RunSceneDirector.ServerInstance.ServerBeginTransition(_targetScene);
         }
 

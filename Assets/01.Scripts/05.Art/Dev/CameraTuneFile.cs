@@ -12,7 +12,7 @@ using Geumeum.Data;
 namespace Geumeum.Art
 {
     /// <summary>
-    /// 카메라 조정값을 파일 하나로 주고받는다.
+    /// 카메라 조정값을 파일 하나로 주고받는다
     /// 빌드에서 만진 값을 에디터가 읽어 SO에 반영해야 하므로 형식을 한곳에 둔다
     /// </summary>
     public static class CameraTuneFile
@@ -127,7 +127,7 @@ namespace Geumeum.Art
 
                 for (int t = 0; t < tunables.Count; ++t)
                 {
-                    // 파일에만 있고 지금 코드에 없는 Id는 조용히 넘긴다.
+                    // 파일에만 있고 지금 코드에 없는 Id는 조용히 넘긴다
                     // 값을 지우거나 이름을 바꾼 뒤 옛 파일을 열어도 나머지는 살아야 한다
                     if (tunables[t].Id != entry.Id)
                     {

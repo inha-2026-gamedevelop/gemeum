@@ -28,7 +28,7 @@ namespace Geumeum.Combat
 
         private const uint NO_GENERATION = 0u;
 
-        // Movement callbacks are priority 0. Resolve every player's revive request after all movement callbacks.
+        // Movement callbacks are priority 0. Resolve every player's revive request after all movement callbacks
         private const int REVIVE_RESOLUTION_PRIORITY = Constants.Network.TICK_PRIORITY_AI - 1;
 
         private const int RESCUE_BUFFER_SIZE = 8;
@@ -219,7 +219,7 @@ namespace Geumeum.Combat
             _hasRunResumedSubscription = false;
         }
 
-        /// <summary>Subscribes to pause resume notifications once the event bus is ready.</summary>
+        /// <summary>Subscribes to pause resume notifications once the event bus is ready</summary>
         [Server]
         private void SubscribeRunResumed()
         {
@@ -296,7 +296,7 @@ namespace Geumeum.Combat
             G_ResolverServerGeneration = 0UL;
         }
 
-        /// <summary>Moves the spectate deadline by the portion of the pause not restored into the snapshot.</summary>
+        /// <summary>Moves the spectate deadline by the portion of the pause not restored into the snapshot</summary>
         private void OnRunResumed(RunResumedEvent resumed)
         {
             if (_spectateEndServerTime <= 0.0)
@@ -569,7 +569,7 @@ namespace Geumeum.Combat
 
         private const float DEV_REVIVE_CURRENCY_LOSS = 0f; // 개발용 부활은 재화를 깎지 않는다
 
-        /// <summary>Resolves rescue before automatic revive for the current server tick.</summary>
+        /// <summary>Resolves rescue before automatic revive for the current server tick</summary>
         [Server]
         private static void ServerResolvePending(float fixedDeltaTime)
         {
@@ -591,7 +591,7 @@ namespace Geumeum.Combat
             ulong tickId = scheduler.TickId;
 
             // Rescue candidates are resolved first for the whole party. This is independent of
-            // which player's movement callback registered the candidate first.
+            // which player's movement callback registered the candidate first
             for (int i = 0; i < G_ServerControllers.Count; ++i)
             {
                 ReviveController rescuer = G_ServerControllers[i];
@@ -621,7 +621,7 @@ namespace Geumeum.Combat
                 }
 
                 // Player movement callbacks run before this resolver. Revalidate immediately
-                // before committing so the completion tick cannot use stale rescue state.
+                // before committing so the completion tick cannot use stale rescue state
                 if (!rescuer.ServerCanResolveRescue(NetworkTime.time, target))
                 {
                     rescuer.ServerCancelRescue();
@@ -712,7 +712,7 @@ namespace Geumeum.Combat
             _pendingAutomaticGeneration = NO_GENERATION;
         }
 
-        /// <summary>Revives every dead player for development fixtures without a currency loss.</summary>
+        /// <summary>Revives every dead player for development fixtures without a currency loss</summary>
         [Server]
         public static int ServerReviveAll()
         {
@@ -812,7 +812,7 @@ namespace Geumeum.Combat
             return true;
         }
 
-        /// <summary>Resolves the participant identity that survives reconnects.</summary>
+        /// <summary>Resolves the participant identity that survives reconnects</summary>
         [Server]
         private ParticipantId ResolveParticipantId()
         {
@@ -914,7 +914,7 @@ namespace Geumeum.Combat
             }
         }
 
-        /// <summary>Moves a revive point toward the active barrier center when needed.</summary>
+        /// <summary>Moves a revive point toward the active barrier center when needed</summary>
         [Server]
         private Vector3 ResolveRevivePosition(CombatConfigSO combat)
         {
@@ -1160,19 +1160,27 @@ namespace Geumeum.Combat
         private void CmdBeginRescue(uint targetNetId, PlayerRescueTargetKind targetKind,
             uint targetGeneration, uint holdGeneration)
         {
+            ServerBeginRescue(targetNetId, targetKind, targetGeneration, holdGeneration);
+        }
+
+        /// <summary> 사람과 서버 제어자가 동일한 대상, 홀드 세대 검증으로 구조를 시작한다 </summary>
+        [Server]
+        public bool ServerBeginRescue(uint targetNetId, PlayerRescueTargetKind targetKind,
+            uint targetGeneration, uint holdGeneration)
+        {
             if (!GameDB.IsInitialized)
             {
-                return;
+                return false;
             }
 
             if (targetNetId == netId)
             {
-                return;
+                return false;
             }
 
             if (holdGeneration <= _serverHoldGeneration)
             {
-                return;
+                return false;
             }
 
             _serverHoldGeneration = holdGeneration;
@@ -1180,7 +1188,7 @@ namespace Geumeum.Combat
             if (!TryGetRescueTarget(targetNetId, out ReviveController target))
             {
                 ServerCancelRescue();
-                return;
+                return false;
             }
 
             _rescueTargetNetId           = targetNetId;
@@ -1193,21 +1201,32 @@ namespace Geumeum.Combat
             if (!ServerCanContinueRescue(NetworkTime.time, target))
             {
                 ServerCancelRescue();
+                return false;
             }
+
+            return true;
         }
 
         /// <summary> 홀드를 놓는다 </summary>
         [Command]
         private void CmdCancelRescue(uint holdGeneration)
         {
-            if (holdGeneration < _serverHoldGeneration)
+            ServerCancelRescueRequest(holdGeneration);
+        }
+
+        /// <summary> 늦게 도착한 취소가 새 홀드를 취소하지 않도록 세대를 확인한다 </summary>
+        [Server]
+        public bool ServerCancelRescueRequest(uint holdGeneration)
+        {
+            if ((holdGeneration == 0u) || (holdGeneration < _serverHoldGeneration))
             {
-                return;
+                return false;
             }
 
             _serverHoldGeneration = holdGeneration;
 
             ServerCancelRescue();
+            return true;
         }
 
         /****************************************

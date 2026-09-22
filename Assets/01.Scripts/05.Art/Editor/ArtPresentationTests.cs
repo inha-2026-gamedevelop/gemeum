@@ -407,6 +407,84 @@ namespace Geumeum.Art.Tests
             field.SetValue(target, value);
         }
 
+        [Test]
+        public void ConfirmedParryAllowsSnapshotLeadButRejectsStaleOrDifferentActions()
+        {
+            Assert.IsTrue(PlayerCombatPresentationRules.CanPlayEvent(
+                PlayerActionCueKind.Parry, 17, PlayerActionCueKind.Parry, 17, 10.49, 10, .15f, true));
+            Assert.IsFalse(PlayerCombatPresentationRules.CanPlayEvent(
+                PlayerActionCueKind.Parry, 17, PlayerActionCueKind.Parry, 17, 10.51, 10, .15f, true));
+            Assert.IsFalse(PlayerCombatPresentationRules.CanPlayEvent(
+                PlayerActionCueKind.Parry, 17, PlayerActionCueKind.Parry, 18, 10.49, 10, .15f, true));
+            Assert.IsFalse(PlayerCombatPresentationRules.CanPlayEvent(
+                PlayerActionCueKind.Parry, 17, PlayerActionCueKind.Parry, 17, 9.8, 10, .15f, true));
+            Assert.IsFalse(PlayerCombatPresentationRules.CanPlayEvent(
+                PlayerActionCueKind.Attack, 17, PlayerActionCueKind.Attack, 17, 10.49, 10, .15f));
+        }
+
+        [Test]
+        public void DeflectionSurvivesClockLeadPausesAndRejectsDuplicateNotification()
+        {
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var type = typeof(PlayerCombatPresentation);
+            var databaseField = typeof(GameDB).GetField("_database", BindingFlags.Static | BindingFlags.NonPublic);
+            object previousDatabase = databaseField.GetValue(null);
+            var database = UnityEditor.AssetDatabase.LoadAssetAtPath<GameDatabaseSO>("Assets/09.Data/Resources/GameDB.asset");
+            var owner = new GameObject("DeflectionLifecycleTest");
+            owner.SetActive(false);
+            var presentation = owner.AddComponent<PlayerCombatPresentation>();
+            var visuals = new GameObject("DeflectionTestVisuals");
+            Mesh mesh = null;
+            try
+            {
+                databaseField.SetValue(null, database);
+                SetPrivateField(presentation, "_abilityVisualRoot", visuals);
+                _runTime.GameplayElapsedSeconds = 10;
+                var clock = new AbilityVisualClock();
+                clock.Sample(10, 0, false, false);
+                clock.Sample(10, .5, false, false);
+                SetPrivateField(presentation, "_visualClock", clock);
+                type.GetMethod("BeginAccents", flags).Invoke(presentation, null);
+                mesh = (Mesh)type.GetField("_accentMesh", flags).GetValue(presentation);
+                var queue = type.GetMethod("QueueDeflection", flags);
+                var draw = type.GetMethod("DrawDeflection", flags);
+                var elapsed = type.GetField("_deflectionElapsed", flags);
+                queue.Invoke(presentation, new object[] { 17u, 10d });
+                draw.Invoke(presentation, new object[] { .1f });
+                Assert.Greater((int)type.GetField("_accentCount", flags).GetValue(presentation), 0);
+                Assert.AreEqual(.1f, elapsed.GetValue(presentation));
+                queue.Invoke(presentation, new object[] { 17u, 10d });
+                Assert.AreEqual(.1f, elapsed.GetValue(presentation));
+                _runTime.IsPaused = true;
+                draw.Invoke(presentation, new object[] { 10f });
+                Assert.AreEqual(.1f, elapsed.GetValue(presentation));
+                _runTime.IsPaused = false;
+                draw.Invoke(presentation, new object[] { 1f });
+                draw.Invoke(presentation, new object[] { 0f });
+                var pulse = type.GetField("_deflection", flags).GetValue(presentation);
+                Assert.IsFalse((bool)pulse.GetType().GetField("Active").GetValue(pulse));
+                SetPrivateField(presentation, "_visualCue", new PlayerActionCue
+                { StartGameplayTime = 10, ImpactGameplayTime = 10.05, EndGameplayTime = 10.06 });
+                queue.Invoke(presentation, new object[] { 18u, 10d });
+                type.GetMethod("BeginAccents", flags).Invoke(presentation, null);
+                draw.Invoke(presentation, new object[] { .02f });
+                Assert.AreEqual(0, type.GetField("_accentCount", flags).GetValue(presentation));
+                draw.Invoke(presentation, new object[] { .04f });
+                Assert.Greater((int)type.GetField("_accentCount", flags).GetValue(presentation), 0);
+                type.GetMethod("OnDisable", flags).Invoke(presentation, null);
+                Assert.IsFalse((bool)pulse.GetType().GetField("Active").GetValue(pulse));
+            }
+            finally
+            {
+                SetPrivateField(presentation, "_accentMesh", null);
+                SetPrivateField(presentation, "_abilityVisualRoot", null);
+                UnityEngine.Object.DestroyImmediate(owner);
+                UnityEngine.Object.DestroyImmediate(visuals);
+                if (mesh != null) { UnityEngine.Object.DestroyImmediate(mesh); }
+                databaseField.SetValue(null, previousDatabase);
+            }
+        }
+
         private sealed class FakeBossPhaseSource : IBossPhaseSource
         {
             public BossPhaseSnapshot PhaseSnapshot { get; private set; }

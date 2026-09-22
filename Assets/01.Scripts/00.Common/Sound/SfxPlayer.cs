@@ -217,7 +217,7 @@ namespace Geumeum.Common
 
             AudioMixerGroup group = catalog.ResolveGroup(entry.Channel, isLocalPlayer);
 
-            float pitch = 1f + Random.Range(-entry.PitchJitter, entry.PitchJitter);
+            float pitch = 1f + entry.PitchOffset + Random.Range(-entry.PitchJitter, entry.PitchJitter);
 
             if (isRemote)
             {

@@ -159,7 +159,7 @@ public sealed class BarrierInitializationLifecycleTests
         Set(binding, "_landmarks", CreateLandmarks(start, shop, gate));
 
         root.SetActive(true);
-        // 일반 MonoBehaviour의 OnEnable은 EditMode fixture 활성 전환에서 자동 호출되지 않는다.
+        // 일반 MonoBehaviour의 OnEnable은 EditMode fixture 활성 전환에서 자동 호출되지 않는다
         BarrierMapBindingLocator.Register(binding);
         Assert.AreSame(binding, BarrierMapBindingLocator.Current);
         return binding;

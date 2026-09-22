@@ -19,7 +19,7 @@ using Geumeum.Data;
 
 namespace Geumeum.Art.Editor
 {
-    /// <summary>Idempotent production asset and open-scene wiring owned by the parent operator.</summary>
+    /// <summary>Idempotent production asset and open-scene wiring owned by the parent operator</summary>
     public static class ArtProductionWiringHelper
     {
         private const string PRESENTATION_PATH =
@@ -104,7 +104,7 @@ namespace Geumeum.Art.Editor
             new SoundSpec(SoundKey.BossPhaseShift, "Assets/99.ThirdParty/Sounds/NaPH - RPG & Fantasy Sounds Bundle/Misc/Magic Chimes 1-7.wav", SoundChannel.World, true, 1f, 0f, 1f),
         };
 
-        [MenuItem("Geumeum/Production/Art/Create presentation assets")]
+        [MenuItem("그믐/Production/Art/Create presentation assets")]
         public static void CreatePresentationAssets()
         {
             EnsureFolder("Assets/02.Prefabs/Art", "VFX");
@@ -131,7 +131,7 @@ namespace Geumeum.Art.Editor
             Debug.Log("[ArtProductionWiringHelper] presentation assets wired");
         }
 
-        [MenuItem("Geumeum/Production/Art/Wire active scene")]
+        [MenuItem("그믐/Production/Art/Wire active scene")]
         public static void WireActiveScene()
         {
             Scene scene = SceneManager.GetActiveScene();

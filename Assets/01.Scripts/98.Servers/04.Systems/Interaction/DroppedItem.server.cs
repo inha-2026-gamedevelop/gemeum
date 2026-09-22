@@ -34,7 +34,7 @@ namespace Geumeum.Systems
         }
 
         /// <summary>
-        /// 실패 사유가 필요한 호출자를 위한 형태.
+        /// 실패 사유가 필요한 호출자를 위한 형태
         /// 검증 -> 예약 -> 인벤토리 반영 -> despawn 순서이며, 예약 뒤 실패하면 예약을 풀고 원본을 남긴다
         /// </summary>
         [Server]
@@ -73,7 +73,7 @@ namespace Geumeum.Systems
         ****************************************/
 
         [Server]
-        private InteractionResult ServerEvaluate(uint playerNetId)
+        internal InteractionResult ServerEvaluate(uint playerNetId)
         {
             if (IsClaimed)
             {
@@ -84,6 +84,9 @@ namespace Geumeum.Systems
             {
                 return InteractionResult.InvalidRequest;
             }
+
+            if (identity.gameObject.scene.handle != gameObject.scene.handle)
+            { return InteractionResult.WrongScene; }
 
             if (!GameDB.IsInitialized)
             {
@@ -117,7 +120,8 @@ namespace Geumeum.Systems
                 return false;
             }
 
-            return ((run.Phase != RunPhase.Lobby) && (run.Phase != RunPhase.Result));
+            return run.RunId.IsValid && !run.IsPaused && !RunSceneDirector.IsServerTransitioning &&
+                ((run.Phase != RunPhase.Lobby) && (run.Phase != RunPhase.Result));
         }
 
         private static bool TryGetComponentOnPlayer<T>(uint playerNetId, out T component) where T : Component

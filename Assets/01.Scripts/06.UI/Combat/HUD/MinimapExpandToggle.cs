@@ -1,3 +1,6 @@
+// System
+using System.Collections.Generic;
+
 // Unity
 using UnityEngine;
 using UnityEngine.UI;
@@ -68,6 +71,12 @@ namespace Geumeum.UI
 
         private bool _isExpanded = false;
 
+        // 씬에 꺼진 사본이 함께 있을 수 있어 살아 있는 것만 모아 둔다. Find로 씬을 훑지 않으려는 것이다
+        private static readonly List<MinimapExpandToggle> G_Live = new List<MinimapExpandToggle>();
+
+        /// <summary> ESC 우선순위를 정할 때 ESC 메뉴가 펼친 지도를 찾는 창구다 </summary>
+        public static MinimapExpandToggle Instance { get; private set; }
+
         public bool IsExpanded => _isExpanded;
 
         /****************************************
@@ -113,13 +122,23 @@ namespace Geumeum.UI
             SetHintVisible(true);
         }
 
+        // 꺼진 사본도 Awake는 돌기 때문에 등록은 OnEnable에서 한다
         private void OnEnable()
         {
+            if (!G_Live.Contains(this))
+            {
+                G_Live.Add(this);
+            }
+
+            Instance = this;
+
             SetHintVisible(!_isExpanded);
         }
 
         private void OnDisable()
         {
+            ReleaseRegistration();
+
             // 펼친 채로 꺼지면 다음에 켤 때 지도가 화면을 덮은 상태로 나타난다
             Collapse();
 
@@ -127,9 +146,26 @@ namespace Geumeum.UI
             SetHintVisible(false);
         }
 
+        private void OnDestroy()
+        {
+            ReleaseRegistration();
+        }
+
+        /// <summary> 쥐고 있던 쪽이 빠지면 아직 살아 있는 사본에게 넘긴다 </summary>
+        private void ReleaseRegistration()
+        {
+            G_Live.Remove(this);
+            if (Instance != this)
+            {
+                return;
+            }
+
+            Instance = (G_Live.Count > 0) ? G_Live[G_Live.Count - 1] : null;
+        }
+
         private void Update()
         {
-            // 관리 창이 열리면 HudVisibilityGate가 HUD 캔버스를 끈다.
+            // 관리 창이 열리면 HudVisibilityGate가 HUD 캔버스를 끈다
             // 보이지도 않는 지도가 키를 먹으면 창을 닫았을 때 펼쳐진 채로 돌아온다
             if ((_canvas != null) && (!_canvas.enabled))
             {
@@ -143,7 +179,7 @@ namespace Geumeum.UI
                 return;
             }
 
-            if (_isExpanded && Input.GetKeyDown(_closeKey))
+            if (_isExpanded && Input.GetKeyDown(_closeKey) && (!DefersCloseKeyToEscapeMenu()))
             {
                 Collapse();
             }
@@ -152,6 +188,19 @@ namespace Geumeum.UI
         /****************************************
         *                Methods
         ****************************************/
+
+        /// <summary>
+        /// ESC일 때만 ESC 메뉴에 우선권을 넘긴다. 메뉴가 같은 프레임에 지도를 접고
+        /// 그 ESC를 소비하므로, 여기서도 접으면 Update 순서에 따라 지도가 닫히면서
+        /// 메뉴까지 열린다.
+        ///
+        /// 메뉴가 없는 화면(개발 씬 등)에서는 그대로 여기서 접는다. 다른 키를 닫기 키로
+        /// 지정한 경우도 메뉴와 겹치지 않으므로 넘기지 않는다
+        /// </summary>
+        private bool DefersCloseKeyToEscapeMenu()
+        {
+            return (_closeKey == KeyCode.Escape) && (EscapeMenuPanel.Instance != null);
+        }
 
         public void Toggle()
         {

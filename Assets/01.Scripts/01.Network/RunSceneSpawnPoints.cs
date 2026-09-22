@@ -57,15 +57,15 @@ namespace Geumeum.Network
             }
 
             int index = 0;
-            foreach (KeyValuePair<int, NetworkConnectionToClient> pair in NetworkServer.connections)
+            foreach (var pair in ParticipantDirectory.Actors)
             {
-                NetworkConnectionToClient connection = pair.Value;
-                if ((connection == null) || (connection.identity == null))
+                NetworkIdentity identity = pair.Value;
+                if (identity == null)
                 {
                     continue;
                 }
 
-                IPlayerRunLifecycle lifecycle = connection.identity.GetComponent<IPlayerRunLifecycle>();
+                IPlayerRunLifecycle lifecycle = identity.GetComponent<IPlayerRunLifecycle>();
                 if (lifecycle == null)
                 {
                     continue;

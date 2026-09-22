@@ -12,10 +12,10 @@ using Geumeum.Dev;
 namespace Geumeum.Combat
 {
     /// <summary>
-    /// 씬에 있는 콜라이더를 게임 화면에 그린다.
-    /// 판정 범위와 타겟 박스가 실제로 어디에 있는지는 값으로 못 본다 - 모양으로 봐야 본다.
+    /// 씬에 있는 콜라이더를 게임 화면에 그린다
+    /// 판정 범위와 타겟 박스가 실제로 어디에 있는지는 값으로 못 본다 - 모양으로 봐야 본다
     ///
-    /// 씬 전체를 훑지 않고 카메라 주변만 Overlap으로 모은다.
+    /// 씬 전체를 훑지 않고 카메라 주변만 Overlap으로 모은다
     /// 개발 도구가 프레임을 먹으면 정작 확인하려던 감각이 달라진다
     /// </summary>
     public class ColliderGizmoView : MonoBehaviour
@@ -66,7 +66,7 @@ namespace Geumeum.Combat
         private bool _showPlayer   = true;
         private bool _showEnemy    = true;
         private bool _showBarrier  = true;
-        private bool _showWorld    = false; // 지형·소품은 수가 많아 기본으로 끈다
+        private bool _showWorld    = false; // 지형, 소품은 수가 많아 기본으로 끈다
         private bool _showArrows   = true;  // 화살은 몇 개 안 되고 확인할 일이 잦다
         private bool _showTriggers = true;
         private bool _showPartIds  = true;
@@ -212,7 +212,7 @@ namespace Geumeum.Combat
                     break;
 
                 default:
-                    // 메시·지형 콜라이더를 선으로 옮기면 수천 개가 된다. 감싸는 상자만 그린다
+                    // 메시, 지형 콜라이더를 선으로 옮기면 수천 개가 된다. 감싸는 상자만 그린다
                     Bounds bounds = collider.bounds;
                     GGizmo.Box(channel, bounds.center, bounds.size, Quaternion.identity, color);
                     break;
@@ -242,7 +242,7 @@ namespace Geumeum.Combat
         }
 
         /// <summary>
-        /// 캡슐은 위아래 원과 그 둘을 잇는 세로선으로 그린다.
+        /// 캡슐은 위아래 원과 그 둘을 잇는 세로선으로 그린다
         /// 둥근 끝까지 그리면 선이 배로 늘고, 어디까지가 판정인지 보는 데는 이 정도로 충분하다
         /// </summary>
         private static void DrawCapsule(GGizmoChannel channel, CapsuleCollider capsule, Color color)

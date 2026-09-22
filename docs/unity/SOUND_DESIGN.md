@@ -10,13 +10,13 @@
 
 ## 1. 현재 상태 — 계층이 다 섰고, 소리만 없다
 
-**2026-09-05 갱신.** 재생 계층(6장 1·2번)과 팀장 파트 호출부 배선이 끝났다. **클립은 여전히 0개다.**
+재생 계층과 주요 플레이어 표현 호출부는 구현돼 있다. 현재 `SoundCatalogSO.asset`에는 SFX 37개 엔트리가 있고, `SoundKey`의 비-`None` 키 41개 중 `StaminaEmpty` · `FootstepWet` · `BossHurt` · `BossGroggyEnd` 네 키는 엔트리가 없다. BGM 4트랙은 모두 Clip이 비어 있다. `99.ThirdParty`의 음원은 저장소 밖에서 배포되므로 해당 에셋이 없는 작업 환경에서는 SFX 참조도 비어 보일 수 있다.
 
-**2026-09-13 갱신.** SFX 29키에 `99.ThirdParty/Sounds/NaPH - RPG & Fantasy Sounds Bundle` 클립을 연결했다. 엔트리가 없는 키는 `StaminaEmpty` · `FootstepWet` · `BossHurt` · `BossGroggyEnd`이고 BGM 4트랙은 여전히 비어 있다. 보스 예고 4종은 각 windup보다 짧은 클립을 서로 다른 음색 계열(쇠사슬 · 불 휘두름 · 낮은 울음 · 나무 딱)로 골랐다. **패링 결과음은 가장 짧은 후보가 0.64초라 2.2의 ≤0.3초 기준에 못 미친다.** 음색 구분과 볼륨은 아직 귀로 확인하지 않았다. `99.ThirdParty`는 git 밖이라 드라이브 동기화가 없으면 이 참조가 비어 보인다.
+플레이어 공격·패링·치유·표식·무기 액티브는 `PlayerCombatPresentation`이 재생하고, 구르기와 피격은 각 플레이어 컴포넌트가 재생한다. 보스 꼬리 파괴·게이트·페이즈 전환도 호출부가 있다. `BossTellA~D`, `BossGroggyEnter`, `EnemyDeath`는 카탈로그 키와 클립은 있지만 현재 코드에 재생 호출부가 없다.
 
 ```
 Assets/07.Sounds/GeumeumMixer.mixer                  믹서 · 그룹 8개 · 노출 파라미터 2개
-Assets/09.Data/Sound/SoundCatalogSO.asset            SFX 29 · BGM 4 — SFX는 전부 클립 연결, BGM은 비어 있음
+Assets/09.Data/Sound/SoundCatalogSO.asset            SFX 37 · BGM 4 — SFX 키 4개 미등록, BGM은 비어 있음
 Assets/01.Scripts/00.Common/Types/                   SoundKey · SoundChannel · BgmTrack
 Assets/01.Scripts/00.Common/Constants/Constants.sound.cs
 Assets/01.Scripts/00.Common/Data/SoundCatalogSO.cs   GameDB.Sound로 물림
@@ -24,8 +24,8 @@ Assets/01.Scripts/00.Common/Sound/SfxPlayer.cs       재생 · 중복 제거 · 
 Assets/01.Scripts/00.Common/Sound/BgmPlayer.cs       크로스페이드 · 무음 후 재생 · 일시정지
 Assets/01.Scripts/00.Common/Sound/SoundVolume.cs     0~1 ↔ dB, 믹서 노출 파라미터
 
-호출부 (배선됨)   ParryController(성공·실패) · PlayerAttack(적중·헛스윙) · PlayerStatus(피격)
-호출부 (미배선)   보스 예고 4종 · 그로기 진입 — @oname36-creator 파트
+호출부 (배선됨)   PlayerCombatPresentation(행동·결과) · PlayerRollController · PlayerStatus · 보스 연출 뷰
+호출부 (미배선)   보스 예고 4종 · 그로기 진입 · 잡귀 사망
 개발용 클립      없음 (Assets/07.Sounds/Dev/ 3개는 2026-09-13 실제 클립 연결 후 삭제)
 실제 클립 파일    NaPH 효과음 (99.ThirdParty, 드라이브 배포)
 docs/licenses/   THIRD_PARTY_ASSETS.md에 NaPH 기록 (미확인)
@@ -35,8 +35,7 @@ docs/licenses/   THIRD_PARTY_ASSETS.md에 NaPH 기록 (미확인)
 
 > **클립을 카탈로그에 꽂는 순간 위 다섯 소리는 코드 수정 없이 난다.**
 
-> 🔒 **에셋을 오늘 1,000개 사와도 오늘은 아무것도 들리지 않는다.**
-> 없는 것은 소리가 아니라 **소리를 낼 방법**이다. 그래서 재생 계층이 조달보다 먼저다.
+> 현재 재생 계층과 SFX 배선은 존재한다. 남은 것은 누락 키·BGM·보이스 조달과 실제 믹스 검증이다.
 
 **연출 둘이 여기에 인질로 잡혀 있다.**
 
@@ -56,7 +55,7 @@ docs/licenses/   THIRD_PARTY_ASSETS.md에 NaPH 기록 (미확인)
 | 순위 | 항목 | 근거 |
 |---:|---|---|
 | **1** | **BGM 3트랙 + 처치 큐** | 1장의 두 연출이 이것에만 의존한다 |
-| **2** | `SfxPlayer` + `SoundCatalogSO` + **`AudioMixer` 그룹** | 클립 0개로도 지금 만든다. 나중에 만들면 12곳을 뒤져야 하고, **믹서 그룹은 나중에 못 나눈다**(4.2) |
+| **2** | `SfxPlayer` + `SoundCatalogSO` + **`AudioMixer` 그룹** | 이미 구현됨. 신규 소리는 기존 그룹·카탈로그 경로에 연결하고 실제 믹스를 검증한다 |
 | **3** | **패링 성공 · 실패 2종** | **타이밍 게임은 눈이 아니라 귀로 배운다.** 그리고 심사자는 화면을 안 봐도 성공을 안다 |
 | 4 | 나머지 10종 | 아래 |
 
@@ -309,7 +308,7 @@ SfxPlayer        ← 정적. PlayOneShot + 풀링 + 같은 키 dedupe
 AudioMixer       ← 아래 4.2
 ```
 
-**클립이 0개여도 지금 만든다.** 나중에 만들면 호출 지점 12곳을 다시 뒤져야 한다.
+현재 재생 계층을 재사용하고 신규 키의 카탈로그 등록과 실제 호출을 함께 확인한다.
 
 **2026-09-05 — 위 셋이 만들어졌다. 확정된 것 넷.**
 
@@ -464,7 +463,7 @@ bool muted = SoundVolume.IsMuted;
 |---|---|
 | **무료 시절 곡은 결제해도 소급 라이선스가 붙지 않는다** | 마음에 든 곡을 **버리고 다시 만들어야 한다** |
 | AI는 같은 프롬프트로 같은 곡을 다시 못 만든다 | **그 곡은 영영 못 되찾는다** |
-| [Steam 전환](../../.claude/docs/2026-09-02/steam-stage0-spike.md)이 이미 진행 중이다 (FizzySteamworks · PR 머지됨) | 상업적 사용 가능성이 실재한다 |
+| [Steam 독립 서비스 계획](STEAM_INDEPENDENT_SERVICE_PLAN.md)에 따라 Steam 경로를 지원한다 | 상업적 사용 가능성이 실재한다 |
 
 **Premier가 필요하다.** Pro와 Premier의 **상업적 권리 범위는 동일**하지만 **스템 분리는 Premier에만 있고**, 3.2의 개활 레이어링이 스템을 전제한다. **1개월 구독으로 3.5트랙과 스템을 뽑고 해지하는 것이 현실적이다.**
 
@@ -500,7 +499,7 @@ Suno 출력은 시작과 끝이 뚜렷해서 그대로 넣으면 이어지지 �
 
 ### 5.5 🚨 `docs/licenses/`를 먼저 채운다
 
-**소리를 받아오기 전에 채운다.** 지금 비어 있다.
+**소리를 받아오기 전에 채운다.** 라이선스 대장은 [`docs/licenses/THIRD_PARTY_ASSETS.md`](../licenses/THIRD_PARTY_ASSETS.md)이며, 음원별 취득일·계정·원문 증빙·실사용 경로를 채운다.
 
 - Suno가 **저작권 귀속을 보장하지 않는다**고 명시한 상황이므로 더더욱 기록이 필요하다
 - 포트폴리오 심사에서 *"이 음악 어디서 났느냐"*는 실제로 나오는 질문이다
@@ -508,56 +507,15 @@ Suno 출력은 시작과 끝이 뚜렷해서 그대로 넣으면 이어지지 �
 
 ---
 
-## 6. 구현 순서
+## 6. 현재 후속 작업
 
-```
-1. AudioMixer 그룹 (Master / BGM / SFX{Local{Critical,Normal}, Remote, World})   ← 4.2      ✅ 2026-09-05
-2. SoundCatalogSO + SfxPlayer         ← 클립 0개로. isLocalPlayer를 받는다                     ✅ 2026-09-05
-3. BGM 재생 계층 (크로스페이드 · 무음 후 재생 · 볼륨)  ← 9.8 무음 3초가 여기서 살아난다          ✅ 2026-09-05 (계층만, 클립 대기)
-4. 패링 성공·실패 2종 + Duck Volume 배선                                                       ◐ 호출부만
-5. P0 나머지 (예고 4종 · 근접 히트/헛스윙 · 피격 · 그로기 진입)   ← 2.2                          ◐ 팀장 파트만
-6. P1
-7. 개활 스템 4층 + 결계 단계 연동      ← 3.2
-```
+1. BGM 4트랙의 조달·루프·믹스와 보스 종료 무음/재개를 연결한다.
+2. 누락된 StaminaEmpty·FootstepWet·BossHurt·BossGroggyEnd 키를 제작·등록한다.
+3. 카탈로그에는 있으나 호출이 없는 보스 예고·그로기 진입·잡귀 사망은 실제 표현 경로를 확인해 연결한다.
+4. 현재 패링·공격·스킬·동료/월드 SFX와 BGM이 함께 재생될 때 중요 예고를 가리지 않는지 검증한다.
+5. 새로운 음원의 출처·허용 범위·취득 증빙과 실제 사용 경로를 라이선스 대장에 기록한다.
 
-**코드로 할 수 있는 것은 여기까지다.** 3·4·5의 남은 부분은 **전부 클립을 기다리고 있고**, 그래서 다음 차단은 조달(5장)이다.
-
-**◐ 로 남은 것 셋**
-
-| | 남은 것 | 왜 지금 못 하나 |
-|---|---|---|
-| 4 | **Duck Volume 이펙트 배선** | 눌릴 BGM과 누를 패링음이 둘 다 없어 **효과를 확인할 방법이 없다.** 값도 귀로 정해야 한다 |
-| 5 | **보스 예고 4종 · 그로기 진입** | `03.AI` 소유(@oname36-creator). 키(`BossTellA~D` · `BossGroggyEnter`)는 카탈로그에 이미 있으니 **호출 한 줄씩만 넣으면 된다** |
-| 4 | **`SFX_Remote` 볼륨** | 아직 0dB다. 클립이 0개라 **귀로 맞출 수 없어서** 임의의 숫자를 넣지 않았다. **잊으면 Local과 Remote가 피치만 다른 같은 볼륨이 된다** |
-
-**호출부 배선 결과 (2026-09-05)**
-
-| 키 | 어디서 | 네트워크 |
-|---|---|---|
-| `ParrySuccess` · `ParryFail` | `ParryController.TargetParryResult` | **추가 없음** — 이미 있던 TargetRpc. 본인에게만 오므로 항상 내 소리다 |
-| `MeleeHit` · `MeleeWhiff` · `MeleeCritical` | `PlayerAttack.RpcMeleeResult` | **ClientRpc 하나 신설** — 맞았는지는 서버만 안다. bool 둘, 휘두르기당 1회 |
-| `PlayerHurt` | `PlayerStatus.OnHealthChanged` | **추가 없음** — SyncVar 훅이 모든 클라에서 돈다. 줄었을 때만 울려 회복과 최초 동기화를 거른다 |
-| `Roll` | `PlayerRollController.OnRollingChanged` | **추가 없음** — 구르기 애니메이션이 이미 쓰던 훅 |
-| **BGM 전환** | `RunManager._phase` 훅 → `RunSoundDirector` | **추가 없음** — 기존 SyncVar에 훅만 붙였다 |
-| **일시정지** | `RunManager._isPaused` 훅 → `RunSoundDirector` | **추가 없음** |
-
-> **구간 → 트랙 매핑은 `RunSoundDirector` 한 곳에만 있다.** `Farming`·`Shrink1~3` → `Field`(축소마다 다시 틀지 않는다 — 이음매에서 곡이 처음으로 돌아간다), `Boss` → `Boss1`, 나머지 → 정지.
-> **보스 2페이즈는 `RunPhase`가 아니라 보스 내부 상태**라 여기가 아니라 보스 쪽에서 건다.
-
-**아직 배선하지 않은 것과 그 이유**
-
-| 키 | 왜 |
-|---|---|
-| `EnemyDeath` | **`03.AI`는 @oname36-creator 파트다.** `EnemyStatus.Died` 이벤트가 이미 있어 **한 줄이면 붙는다.** 키를 먼저 만들어 두는 것이 이번 몫이고, 우리가 그 파일을 건드리면 그쪽 작업과 충돌한다 |
-| `BossTellA~D` · `BossGroggyEnter` | 같은 이유. 카탈로그에 **`Is2D = true`로 이미 준비돼 있다** |
-| `ArrowHit` · `BowFire` · `StaminaEmpty` | **서버 라인이라 새 RPC가 필요하다.** P1이고 지금 네트워크 트래픽을 늘릴 이유가 없다 |
-
-> 거부(`Rejected*`)에는 패링 소리를 내지 않는다. **창이 없었거나 요청이 반려된 것이지 타이밍을 놓친 것이 아니다** — 소리를 내면 플레이어가 자기 타이밍을 탓하게 된다.
-
-**1번부터 하는 이유** — 그룹은 나중에 못 나눈다(4.2).
-**3번이 4번보다 먼저인 이유** — 덕킹은 눌릴 BGM이 있어야 검증된다.
-
----
+과거 구현 순서·테스트 수·작업자 로그를 현행 미구현 목록으로 사용하지 않는다.
 
 ## 7. 검증
 

@@ -120,6 +120,8 @@ namespace Geumeum.Combat
 
             ApplyCameraFrame();
 
+            if (LocalPlacementAim.SuppressesCombatInput) { return; }
+
             if (!CanControl())
             {
                 ReleaseIfLocked();
@@ -264,28 +266,35 @@ namespace Geumeum.Combat
         [Command]
         private void CmdSetLockOn(uint targetNetId, byte partIndex)
         {
+            ServerSetLockOn(targetNetId, partIndex);
+        }
+
+        /// <summary> 서버 제어자도 동일한 대상, 부위, 거리 검증으로 락온한다 </summary>
+        [Server]
+        public bool ServerSetLockOn(uint targetNetId, byte partIndex)
+        {
             if (targetNetId == NO_TARGET)
             {
                 ServerClearTarget();
-                return;
+                return true;
             }
 
             if ((_status != null) && (_status.IsDead || _status.IsSwallowed))
             {
                 GDebug.Log(GLogKind.Server, $"락온 거부: 요청자 {GDebug.Who(netId)} 사망 상태");
-                return;
+                return false;
             }
 
             if (!TryFindServerTarget(targetNetId, out Transform root))
             {
                 GDebug.Log(GLogKind.Server, $"락온 거부: 서버가 대상 {targetNetId}를 못 찾음");
-                return;
+                return false;
             }
 
             if ((DamageTargetResolver.TryResolve(root, out IDamageable damageable)) && (damageable.IsDead))
             {
                 GDebug.Log(GLogKind.Server, $"락온 거부: 대상 {GDebug.Who(targetNetId)} 이미 사망");
-                return;
+                return false;
             }
 
             ITargetPartIdSource partSource = null;
@@ -296,7 +305,7 @@ namespace Geumeum.Combat
                 {
                     GDebug.Log(GLogKind.Server,
                         $"락온 거부: {GDebug.Who(targetNetId)} fixed PartId {partIndex} 미존재");
-                    return;
+                    return false;
                 }
 
                 partSource = resolvedPart;
@@ -309,13 +318,14 @@ namespace Geumeum.Combat
                 GDebug.Log(GLogKind.Server,
                     $"락온 거부: 거리 {Mathf.Sqrt(sqrDistance):F1}m > 허용 {range:F0}m" +
                     ((range <= 0f) ? " (GameDB 미초기화)" : ""));
-                return;
+                return false;
             }
 
             _serverTargetNetId = targetNetId;
             _serverTargetPart  = partIndex;
             _serverTargetPartSource = partSource;
             GDebug.Log(GLogKind.Server, $"락온 확정: {GDebug.Who(netId)} -> {GDebug.Who(targetNetId)} 부위{partIndex}");
+            return true;
         }
 
         /****************************************
@@ -789,7 +799,9 @@ namespace Geumeum.Combat
 
         private bool CanControl()
         {
-            if (!LocalGameplayInputGate.AllowsGameplayInput)
+            // 설치 조준 중의 중클릭은 무시한다. 카메라가 이미 멈춰 있어도 명시적으로 막는다
+            if ((!LocalGameplayInputGate.AllowsGameplayInput) ||
+                LocalPlacementAim.SuppressesCombatInput)
             {
                 return false;
             }

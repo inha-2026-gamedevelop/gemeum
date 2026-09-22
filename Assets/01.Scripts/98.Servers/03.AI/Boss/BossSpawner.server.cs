@@ -20,7 +20,7 @@ namespace Geumeum.AI
         {
             _hasSpawned = false;
 
-            // 먼저 구독한 뒤 현재 phase를 읽는다 — 구독이 늦으면 그 사이의 전환을 놓친다
+            // 먼저 구독한 뒤 현재 phase를 읽는다 - 구독이 늦으면 그 사이의 전환을 놓친다
             GameEventBus.Instance.Subscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
 
             // 스폰 여부를 서버 시작에만 되돌리면 같은 세션의 두 번째 런에서 보스가 나오지 않는다
@@ -34,7 +34,7 @@ namespace Geumeum.AI
 
         public override void OnStopServer()
         {
-            // HasInstance→Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다(_isQuitting을
+            // HasInstance->Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다(_isQuitting을
             // HasInstance는 안 보고 Instance는 본다). Instance 한 번만 받아 그 결과로 null 체크한다
             GameEventBus bus = GameEventBus.Instance;
             if (bus == null)

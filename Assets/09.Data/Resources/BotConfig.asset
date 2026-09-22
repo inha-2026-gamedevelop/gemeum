@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c3784da97614f1ab902bec7840a8864, type: 3}
+  m_Name: BotConfig
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Data.BotConfigSO
+  DecisionInterval: 0.1
+  PathInterval: 0.25
+  ScheduledLifetime: 0.2
+  AttackRetryInterval: 0.1
+  FollowDistance: 3
+  FollowHysteresis: 1
+  NavSampleRadius: 2
+  CornerTolerance: 0.4
+  EyeHeight: 1.2
+  BowDistance: 10
+  MeleeRangeRatio: 0.8
+  StuckSeconds: 2
+  StuckDistance: 0.15
+  ObstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  RetreatDistance: 3
+  BowMinimumDistance: 3
+  SupportRetrySeconds: 2
+  RescueRange: 2.5
+  RescueSafetyRadius: 4
+  HealRadius: 6
+  HealCriticalRatio: 0.4
+  HealGroupRatio: 0.6
+  PrecisionTimeout: 5
+  RegroupDistance: 10
+  BossWakeDistance: 4
+  OutOfCombatSeconds: 5
+  PotionHealthRatio: 0.35
+  PotionSpiritThreshold: 25
+  SwordFormationDistance: 1.5
+  BowFormationDistance: 3
+  BellFormationDistance: 2
+  FormationTolerance: 0.8
+  HealCommitSeconds: 1.1
+  SwordRangedChaseLimit: 8
+  ParryReserveCost: 15
+  SwordTalentOrder: e9030000ea030000eb030000ec030000ed030000f3030000f4030000f5030000f6030000f7030000
+  BowTalentOrder: d1070000d2070000d3070000d4070000d5070000db070000dc070000dd070000de070000df070000
+  BellTalentOrder: 1d0c0000260c0000270c0000280c0000290c0000220c0000230c0000240c0000250c0000
+  BellFieldHazardRadius: 4
+  FollowSprintDistance: 6
+  FollowSprintStopDistance: 4
+  RegroupStopDistance: 5
+  AssistDistance: 6

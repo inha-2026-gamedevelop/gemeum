@@ -1,12 +1,12 @@
 namespace Geumeum.Dev
 {
     /// <summary>
-    /// 개발 패널 브라우저 화면.
+    /// 개발 패널 브라우저 화면
     ///
     /// 파일로 두면 빌드에 포함시키는 규칙(StreamingAssets)이 하나 더 생기고,
-    /// 팀원이 빌드에서 패널이 안 뜨는 이유를 찾기 어려워진다. 그래서 문자열로 박아 둔다.
+    /// 팀원이 빌드에서 패널이 안 뜨는 이유를 찾기 어려워진다. 그래서 문자열로 박아 둔다
     ///
-    /// 안에 겹따옴표를 쓰지 않는다 - C# 축자 문자열에서 겹따옴표를 두 번씩 적어야 해서 읽기 어려워진다.
+    /// 안에 겹따옴표를 쓰지 않는다 - C# 축자 문자열에서 겹따옴표를 두 번씩 적어야 해서 읽기 어려워진다
     /// HTML 속성과 자바스크립트 문자열은 홑따옴표로 쓴다
     /// </summary>
     public static class DevWebPage
@@ -42,6 +42,12 @@ namespace Geumeum.Dev
   #dot.live { background: var(--good); }
   /* 격자로 놓으면 카메라 패널 하나가 길어질 때 옆 칸이 통째로 비어 버린다. 다단으로 흘려 채운다 */
   main { column-width: 330px; column-gap: 12px; padding: 12px; }
+  nav { display: flex; gap: 8px; padding: 10px 12px 0; }
+  [hidden] { display: none !important; }
+  main.monitor { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr); gap: 12px; align-items: start; }
+  @media (max-width: 800px) { main.monitor { grid-template-columns: minmax(0, 1fr); } }
+  main.monitor .log { height: 55vh; }
+  .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; }
   section {
     background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
     break-inside: avoid; display: inline-block; width: 100%; margin: 0 0 12px;
@@ -91,14 +97,35 @@ namespace Geumeum.Dev
   <span class='role' id='role'></span>
   <span class='link'>게임 화면에는 기즈모와 이름표만 남는다</span>
 </header>
+<nav aria-label='개발 패널 페이지'>
+  <button id='tools-tab' class='on' aria-pressed='true'>테스트 도구</button>
+  <button id='monitor-tab' aria-pressed='false'>프레임 · 로그</button>
+</nav>
 <main id='main'><div class='empty'>게임에서 상태를 기다린다…</div></main>
 <script>
 const panels = new Map();
 let live = false;
+let commandQueue = Promise.resolve();
+let page = 'tools';
+function selectPage(next) {
+  page = next;
+  document.getElementById('main').className = page === 'monitor' ? 'monitor' : '';
+  for (const name of ['tools', 'monitor']) {
+    const tab = document.getElementById(name + '-tab');
+    tab.classList.toggle('on', page === name);
+    tab.setAttribute('aria-pressed', String(page === name));
+  }
+  for (const [id, entry] of panels) {
+    entry.section.hidden = ((id === 'frame' || id === 'log') ? 'monitor' : 'tools') !== page;
+  }
+}
+document.getElementById('tools-tab').onclick = () => selectPage('tools');
+document.getElementById('monitor-tab').onclick = () => selectPage('monitor');
 
 async function poll() {
   try {
     const res = await fetch('/api/state', { cache: 'no-store' });
+    if (!res.ok) { throw new Error('상태 조회 실패'); }
     render(await res.json());
     setLive(true);
   } catch (err) {
@@ -112,15 +139,18 @@ function setLive(isLive) {
   document.getElementById('dot').className = isLive ? 'live' : '';
 }
 
-async function send(panel, control, value) {
-  try {
-    await fetch('/api/command', {
-      method: 'POST',
-      body: JSON.stringify({ panel: panel, control: control, value: String(value) })
-    });
-  } catch (err) {
-    setLive(false);
-  }
+function send(panel, control, value) {
+  // 입력 확정 직후 버튼을 눌러도 선택 값이 먼저 서버 큐에 도착하게 한다.
+  commandQueue = commandQueue.then(async () => {
+    try {
+      const res = await fetch('/api/command', {
+        method: 'POST',
+        body: JSON.stringify({ panel: panel, control: control, value: String(value) })
+      });
+      if (!res.ok) { throw new Error('명령 전송 실패'); }
+    } catch (err) { setLive(false); }
+  });
+  return commandQueue;
 }
 
 function render(snapshot) {
@@ -144,7 +174,8 @@ function render(snapshot) {
       main.appendChild(entry.section);
     }
 
-    const sig = (view.controls || []).map((c, i) => c.kind + ':' + (c.id || i)).join('|');
+    entry.section.hidden = ((view.id === 'frame' || view.id === 'log') ? 'monitor' : 'tools') !== page;
+    const sig = (view.controls || []).map((c, i) => c.kind + ':' + (c.id || i) + ':' + JSON.stringify(c.options || [])).join('|');
     if (sig !== entry.sig) {
       entry.sig = sig;
       entry.controls = buildBody(view, entry.body);
@@ -177,10 +208,21 @@ function createPanel(view) {
 function buildBody(view, body) {
   body.textContent = '';
   const built = [];
+  let actions = null;
 
   (view.controls || []).forEach((control, index) => {
     const made = buildControl(view.id, control, index);
-    body.appendChild(made.root);
+    if (control.kind === 'button') {
+      if (!actions) {
+        actions = document.createElement('div');
+        actions.className = 'actions';
+        body.appendChild(actions);
+      }
+      actions.appendChild(made.root);
+    } else {
+      actions = null;
+      body.appendChild(made.root);
+    }
     built.push(made);
   });
 

@@ -10,7 +10,7 @@ using Geumeum.Systems;
 
 namespace Geumeum.EditorTools
 {
-    /// <summary>열려 있는 생산 Field 씬의 목표 결계 참조를 반복 실행 가능하게 연결한다.</summary>
+    /// <summary>열려 있는 생산 Field 씬의 목표 결계 참조를 반복 실행 가능하게 연결한다</summary>
     public static class FieldBarrierWiringHelper
     {
         private const string FIELD_SCENE_PATH = "Assets/00.Scenes/Release/Field.unity";

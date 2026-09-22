@@ -200,7 +200,7 @@ namespace Geumeum.Systems
                 return;
             }
 
-            // 보스 구간에 들어가 씬과 참가자 복구가 끝난 다음에 편성을 실제 자원으로 바꾼다.
+            // 보스 구간에 들어가 씬과 참가자 복구가 끝난 다음에 편성을 실제 자원으로 바꾼다
             // 그 전에 주면 씬 전환이 참가자 상태를 다시 부으면서 준 것이 사라진다
             if (evt.Current == RunPhase.Boss)
             {
@@ -300,12 +300,18 @@ namespace Geumeum.Systems
                     loadout = BossTrialRules.CreateEmpty();
                 }
 
-                ServerApplyLoadout(player, in loadout);
+                ServerApplyLoadout(player.identity, in loadout);
+            }
+            foreach (var pair in Geumeum.Network.ParticipantDirectory.Actors)
+            {
+                if (pair.Key.Kind != ParticipantKind.Bot) { continue; }
+                BossTrialLoadout loadout = BossTrialRules.CreateEmpty();
+                ServerApplyLoadout(pair.Value, in loadout);
             }
         }
 
         /// <summary>
-        /// 레벨은 파티 하나가 공유하므로 제출된 값 중 가장 높은 것을 쓴다.
+        /// 레벨은 파티 하나가 공유하므로 제출된 값 중 가장 높은 것을 쓴다
         /// 사람마다 다른 레벨을 줄 수 없고, 낮은 쪽을 고르면 높게 적은 사람이 왜 안 되는지 알 수 없다
         /// </summary>
         [Server]
@@ -340,15 +346,15 @@ namespace Geumeum.Systems
         }
 
         [Server]
-        private void ServerApplyLoadout(NetworkConnectionToClient player, in BossTrialLoadout loadout)
+        private void ServerApplyLoadout(NetworkIdentity player, in BossTrialLoadout loadout)
         {
-            if ((player.identity == null) ||
-                (!player.identity.TryGetComponent(out InventoryController inventory)))
+            if ((player == null) ||
+                (!player.TryGetComponent(out InventoryController inventory)))
             {
                 return;
             }
 
-            if (!player.identity.TryGetComponent(out PlayerWeapon weapon))
+            if (!player.TryGetComponent(out PlayerWeapon weapon))
             {
                 return;
             }
@@ -360,7 +366,7 @@ namespace Geumeum.Systems
                     out WeaponCombatSnapshot equipment)))
             {
                 ApplyCustomEquipment(ref equipment, in loadout);
-                ServerGrantEquipment(inventory, player.identity.netId, in equipment);
+                ServerGrantEquipment(inventory, player.netId, in equipment);
             }
 
             if (loadout.PotionCount > 0)
@@ -368,7 +374,7 @@ namespace Geumeum.Systems
                 ServerGrantPotions(inventory, loadout.PotionCount);
             }
 
-            ServerApplyTalents(player.identity, loadout.TalentNodeIds);
+            ServerApplyTalents(player, loadout.TalentNodeIds);
         }
 
         /// <summary>
