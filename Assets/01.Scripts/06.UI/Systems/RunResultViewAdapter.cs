@@ -15,6 +15,7 @@ namespace Geumeum.UI
         public uint RunIdValue { get; }
         public uint ResultRevision { get; }
         public RunOutcome Outcome { get; }
+        public RunPartyKind PartyKind { get; }
         public float FieldElapsedSeconds { get; }
         public float BossElapsedSeconds { get; }
         public bool BossKilled { get; }
@@ -36,6 +37,7 @@ namespace Geumeum.UI
             RunIdValue             = result.RunIdValue;
             ResultRevision         = result.ResultRevision;
             Outcome               = result.Outcome;
+            PartyKind             = result.PartyKind;
             FieldElapsedSeconds   = result.FieldElapsedSeconds;
             BossElapsedSeconds    = result.BossElapsedSeconds;
             BossKilled            = result.BossKilled;

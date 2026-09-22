@@ -25,7 +25,20 @@ namespace Geumeum.UI
     {
         private const float SNAPSHOT_POLL_INTERVAL = 0.2f;
         private const float NETWORK_SCAN_INTERVAL = 0.5f;
-        private const int TALENT_BUTTON_COUNT = 10;
+        // 4갈래 x 5행 격자. 검/활은 2열 5행, 방울은 뿌리 1 + 세 갈래 4개를 쓴다
+        private const int TALENT_BUTTON_COUNT = 20;
+        private const int TALENT_ROWS_PER_COLUMN = 5;
+
+        // 특성 노드 설명 상자. 기준 좌표계(308 너비) 값이고 _talentLayoutScale로 함께 늘린다
+        private const float TALENT_TOOLTIP_WIDTH = 260f;
+        private const float TALENT_TOOLTIP_PADDING = 10f;
+        private const float TALENT_TOOLTIP_GAP = 8f;
+        private const float TALENT_TOOLTIP_FONT_SIZE = 13f;
+        private const float TALENT_TOOLTIP_MIN_FONT_SIZE = 8f;
+
+        // 제작 UI 팔레트와 같은 값을 쓴다
+        private static readonly Color G_TooltipBackground = new Color(0.075f, 0.095f, 0.13f, 0.98f);
+        private static readonly Color G_TooltipText = new Color(0.96f, 0.95f, 0.91f, 1f);
 
         private static readonly ShopItemKind[] G_ShopItems =
         {
@@ -100,6 +113,8 @@ namespace Geumeum.UI
 
         private NetworkIdentity _localIdentity;
         private InventoryController _inventory;
+        private BotInventoryView _botInventoryView;
+        [SerializeField] private TMP_Text _pageTitle;
         private TalentController _talents;
         private LocalGameplayInputToken _inputToken;
         private TalentAllocationSnapshot _allocation;
@@ -186,8 +201,295 @@ namespace Geumeum.UI
         private void Awake()
         {
             Instance = this;
+            EnsureTalentViewCapacity();
+            if (_inventoryPage != null && _inventoryDetailText != null)
+            { _botInventoryView = BotInventoryView.Create(_inventoryPage, _inventoryDetailText.font); }
             BindButtons();
             SetVisible(false);
+        }
+
+        private readonly List<Image> _talentEdges = new List<Image>();
+        private float _talentLayoutScale = 1f;
+        private Vector2 _talentLayoutOffset;
+
+        // 특성 노드 상세 설명. 프리팹을 고치지 않도록 런타임에 만든다
+        private GameObject _talentTooltip;
+        private RectTransform _talentTooltipRect;
+        private TMP_Text _talentTooltipText;
+        private int _hoveredTalentIndex = -1;
+
+        // 지금 열려 있는 탭. 계층 활성 상태가 아니라 이 값으로 판단해야 키보드 select 잔류나
+        // 바깥에서 들어온 이벤트로 특성 설명이 다른 탭 위에 뜨지 않는다
+        private PageKind _currentPage = PageKind.Inventory;
+
+        // 기존 프리팹의 버튼/폰트를 재사용해 씬마다 오래된 10칸 UI가 남지 않게 한다
+        private void EnsureTalentViewCapacity()
+        {
+            if (_talentButtons == null || _talentButtons.Length == 0 || _talentButtons[0] == null) { return; }
+            // 프리팹마다 페이지 위치/배율이 다르므로 기존 콘텐츠 좌표계에서 배치한다
+            _talentLayoutScale = _talentPointText == null ? 1f : _talentPointText.rectTransform.rect.width / 308f;
+            float center = _talentPointText == null ? 476f : _talentPointText.rectTransform.anchoredPosition.x;
+            float top = ((RectTransform)_talentButtons[0].transform).anchoredPosition.y;
+            _talentLayoutOffset = new Vector2(center - 476f * _talentLayoutScale, top - 118f * _talentLayoutScale);
+            int previous = _talentButtons.Length;
+            Array.Resize(ref _talentButtons, TALENT_BUTTON_COUNT);
+            for (int i = previous; i < TALENT_BUTTON_COUNT; ++i)
+            {
+                var button = Instantiate(_talentButtons[0], _talentButtons[0].transform.parent);
+                button.name = "TalentNode" + i;
+                button.SetIndex(i);
+                _talentButtons[i] = button;
+            }
+            if (_talentColumnTexts != null && _talentColumnTexts.Length > 0)
+            {
+                previous = _talentColumnTexts.Length;
+                Array.Resize(ref _talentColumnTexts, 4);
+                for (int i = previous; i < 4; ++i)
+                { _talentColumnTexts[i] = Instantiate(_talentColumnTexts[0], _talentColumnTexts[0].transform.parent); }
+            }
+
+            EnsureTalentTooltip();
+        }
+
+        private Vector2 TalentPosition(int column, int row)
+        {
+            if (GameDB.Talent.MaxColumnsPerWeapon > 2)
+            { return TalentLayoutPoint(column == 0 ? new Vector2(476, 136) : new Vector2(370 + (column - 1) * 106, 42 - row * 60)); }
+            return TalentLayoutPoint(new Vector2(397 + column * 158, 118 - row * 62));
+        }
+
+        private Vector2 TalentLayoutPoint(Vector2 point) => point * _talentLayoutScale + _talentLayoutOffset;
+
+        /// <summary>
+        /// 노드 설명 상자를 노드와 같은 부모에 한 번만 만든다
+        ///
+        /// 배경과 글자 모두 raycastTarget을 끈다. 설명이 노드 위에 떠도 클릭을 가리면
+        /// 마우스를 올린 노드를 고를 수 없게 된다
+        /// </summary>
+        private void EnsureTalentTooltip()
+        {
+            if ((_talentTooltip != null) || (_talentButtons == null) ||
+                (_talentButtons.Length == 0) || (_talentButtons[0] == null))
+            {
+                return;
+            }
+
+            RectTransform template = (RectTransform)_talentButtons[0].transform;
+            GameObject root = new GameObject("TalentTooltip", typeof(RectTransform), typeof(Image));
+            root.transform.SetParent(template.parent, false);
+            root.transform.SetAsLastSibling();
+
+            _talentTooltipRect = (RectTransform)root.transform;
+            _talentTooltipRect.anchorMin = template.anchorMin;
+            _talentTooltipRect.anchorMax = template.anchorMax;
+            _talentTooltipRect.pivot = new Vector2(0.5f, 0.5f);
+
+            Image background = root.GetComponent<Image>();
+            background.color = G_TooltipBackground;
+            background.raycastTarget = false;
+
+            GameObject textObject = new GameObject("TalentTooltipText", typeof(RectTransform));
+            textObject.transform.SetParent(root.transform, false);
+
+            float padding = TALENT_TOOLTIP_PADDING * _talentLayoutScale;
+            RectTransform textRect = (RectTransform)textObject.transform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(padding, padding);
+            textRect.offsetMax = new Vector2(-padding, -padding);
+
+            TextMeshProUGUI label = textObject.AddComponent<TextMeshProUGUI>();
+            label.font = ResolveTalentFont();
+            label.fontSize = TALENT_TOOLTIP_FONT_SIZE * _talentLayoutScale;
+            label.color = G_TooltipText;
+            label.alignment = TextAlignmentOptions.TopLeft;
+            label.raycastTarget = false;
+
+            // 줄바꿈을 명시한다. 런타임으로 만든 라벨이 줄바꿈 없음으로 시작하면 긴 설명이
+            // 상자 밖으로 가로로 흘러 나가고, GetPreferredValues도 한 줄 높이만 돌려주어
+            // 상자가 글을 따라 커지지 않는다. 프로젝트 TMP 기본값에 기대지 않는다
+            label.textWrappingMode = TextWrappingModes.Normal;
+
+            // 넘치면 접어서 보여 줄 뿐 잘라내지 않는다. 설명은 끝까지 남아야 한다
+            label.overflowMode = TextOverflowModes.Overflow;
+            _talentTooltipText = label;
+
+            _talentTooltip = root;
+            root.SetActive(false);
+        }
+
+        /// <summary> 특성 페이지가 이미 쓰고 있는 폰트를 그대로 쓴다 </summary>
+        private TMP_FontAsset ResolveTalentFont()
+        {
+            if ((_talentButtons[0].Label != null) && (_talentButtons[0].Label.font != null))
+            {
+                return _talentButtons[0].Label.font;
+            }
+
+            return (_talentPointText == null) ? null : _talentPointText.font;
+        }
+
+        /// <summary>
+        /// 마우스나 키보드 선택이 특성 노드에 머물기 시작하거나 벗어났을 때
+        /// 매 프레임 다시 그리지 않고 이 시점과 특성 갱신 시점에만 내용을 만든다
+        /// </summary>
+        private void HandleTalentHover(int index, bool entered)
+        {
+            if (entered)
+            {
+                _hoveredTalentIndex = index;
+            }
+            else if (_hoveredTalentIndex == index)
+            {
+                _hoveredTalentIndex = -1;
+            }
+            else
+            {
+                // 이미 다른 노드로 옮겨간 뒤 도착한 나감 통지다. 새 노드를 지우면 안 된다
+                return;
+            }
+
+            RefreshTalentTooltip();
+        }
+
+        /// <summary> 지금 가리키는 노드의 설명을 다시 만든다. 가리키는 노드가 없으면 숨긴다 </summary>
+        private void RefreshTalentTooltip()
+        {
+            if (_talentTooltip == null)
+            {
+                return;
+            }
+
+            if ((!_isVisible) || (_currentPage != PageKind.Talent) ||
+                (_hoveredTalentIndex < 0) ||
+                (_hoveredTalentIndex >= _visibleTalentNodeIds.Length) ||
+                (_visibleTalentNodeIds[_hoveredTalentIndex] <= 0) ||
+                (!_allocation.HasWeapon) || (!GameDB.IsInitialized) || (GameDB.Talent == null))
+            {
+                HideTalentTooltip();
+                return;
+            }
+
+            TalentTreeSO tree = GameDB.Talent;
+            if (!tree.TryGetNode(_visibleTalentNodeIds[_hoveredTalentIndex],
+                    out TalentTreeSO.NodeEntry node))
+            {
+                HideTalentTooltip();
+                return;
+            }
+
+            // RefreshTalentView와 같은 총 포인트를 넘겨야 상태 판정이 버튼과 어긋나지 않는다
+            int available = (_talents == null) ? 0 : _talents.AvailablePoints;
+            _talentTooltipText.text = FunctionalUiText.GetTalentNodeName(node) + "\n" +
+                FunctionalUiText.BuildTalentTooltip(tree, _allocation,
+                    available + _allocation.SpentPoints, node);
+
+            // 연결선 GO가 나중에 생기면 설명이 그 아래로 내려간다. 띄울 때마다 맨 위로 올린다
+            _talentTooltipRect.SetAsLastSibling();
+            _talentTooltip.SetActive(true);
+            PlaceTalentTooltip((RectTransform)_talentButtons[_hoveredTalentIndex].transform);
+        }
+
+        private void HideTalentTooltip()
+        {
+            if ((_talentTooltip != null) && _talentTooltip.activeSelf)
+            {
+                _talentTooltip.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// 노드 오른쪽에 두되 창을 넘어가면 왼쪽으로 접고, 그래도 넘치면 창 안으로 당긴다
+        /// </summary>
+        private void PlaceTalentTooltip(RectTransform anchor)
+        {
+            RectTransform parent = _talentTooltipRect.parent as RectTransform;
+            if ((parent == null) || (anchor == null))
+            {
+                return;
+            }
+
+            // anchoredPosition은 앵커 기준이라 부모 Rect와 비교하려면 앵커 위치를 더해야 한다
+            Rect bounds = parent.rect;
+
+            float padding = TALENT_TOOLTIP_PADDING * _talentLayoutScale;
+            float width = Mathf.Min(TALENT_TOOLTIP_WIDTH * _talentLayoutScale,
+                Mathf.Max(1f, bounds.width));
+
+            // 앞선 노드에서 켜 둔 자동 축소가 남아 있으면 이번 높이를 잘못 잰다. 늘 같은
+            // 글자 크기로 재고 나서 넘칠 때만 줄인다
+            float fontSize = TALENT_TOOLTIP_FONT_SIZE * _talentLayoutScale;
+            _talentTooltipText.enableAutoSizing = false;
+            _talentTooltipText.fontSize = fontSize;
+
+            // 접은 높이로 재야 상자가 글 길이를 따라간다
+            _talentTooltipText.textWrappingMode = TextWrappingModes.Normal;
+
+            float height = _talentTooltipText.GetPreferredValues(
+                _talentTooltipText.text, width - (padding * 2f), 0f).y + (padding * 2f);
+
+            // 글이 길어 부모보다 커지면 Clamp의 min이 max를 넘어 경계 밖으로 나간다.
+            // 상자를 창 안으로 줄이고 그만큼 글자를 작게 맞춘다
+            float maxHeight = Mathf.Max(1f, bounds.height);
+            if (height > maxHeight)
+            {
+                height = maxHeight;
+                _talentTooltipText.fontSizeMin = Mathf.Min(TALENT_TOOLTIP_MIN_FONT_SIZE, fontSize);
+                _talentTooltipText.fontSizeMax = fontSize;
+                _talentTooltipText.enableAutoSizing = true;
+            }
+
+            _talentTooltipRect.sizeDelta = new Vector2(width, height);
+            Vector2 anchorOrigin = new Vector2(
+                (anchor.anchorMin.x - parent.pivot.x) * bounds.width,
+                (anchor.anchorMin.y - parent.pivot.y) * bounds.height);
+            Vector2 center = anchorOrigin + anchor.anchoredPosition;
+
+            float offset = (anchor.sizeDelta.x * 0.5f) + (width * 0.5f) +
+                (TALENT_TOOLTIP_GAP * _talentLayoutScale);
+            float x = center.x + offset;
+            if ((x + (width * 0.5f)) > bounds.xMax)
+            {
+                x = center.x - offset;
+            }
+
+            x = Mathf.Clamp(x, bounds.xMin + (width * 0.5f), bounds.xMax - (width * 0.5f));
+            float y = Mathf.Clamp(center.y, bounds.yMin + (height * 0.5f),
+                bounds.yMax - (height * 0.5f));
+
+            _talentTooltipRect.anchoredPosition = new Vector2(x, y) - anchorOrigin;
+        }
+
+        private void RefreshTalentEdges(TalentTreeSO tree)
+        {
+            int used = 0;
+            for (int i = 0; i < _visibleTalentNodeIds.Length; ++i)
+            {
+                if (!tree.TryGetNode(_visibleTalentNodeIds[i], out var node) || !node.HasExplicitPrerequisites) { continue; }
+                foreach (int parent in node.Prerequisites)
+                {
+                    if (!tree.TryGetNode(parent, out var prerequisite)) { continue; }
+                    if (used == _talentEdges.Count)
+                    {
+                        var go = new GameObject("TalentConnection", typeof(RectTransform), typeof(Image));
+                        go.transform.SetParent(_talentButtons[i].transform.parent, false);
+                        go.transform.SetAsFirstSibling();
+                        var image = go.GetComponent<Image>(); image.raycastTarget = false;
+                        _talentEdges.Add(image);
+                    }
+                    var line = _talentEdges[used++]; line.gameObject.SetActive(true);
+                    var start = TalentPosition(prerequisite.ColumnIndex, prerequisite.RowIndex);
+                    var end = TalentPosition(node.ColumnIndex, node.RowIndex);
+                    var rect = line.rectTransform;
+                    var template = (RectTransform)_talentButtons[i].transform;
+                    rect.anchorMin = template.anchorMin; rect.anchorMax = template.anchorMax;
+                    rect.anchoredPosition = (start + end) * .5f;
+                    rect.sizeDelta = new Vector2(Vector2.Distance(start, end), 2);
+                    rect.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(end.y - start.y, end.x - start.x) * Mathf.Rad2Deg);
+                    line.color = _allocation.Contains(parent) ? new Color(.65f, .8f, .85f, .8f) : new Color(.3f, .36f, .4f, .6f);
+                }
+            }
+            for (int i = used; i < _talentEdges.Count; ++i) { _talentEdges[i].gameObject.SetActive(false); }
         }
 
         private void OnEnable()
@@ -597,6 +899,16 @@ namespace Geumeum.UI
 
             BindIndexedButtons(_inventoryButtons, SelectInventorySlot);
             BindIndexedButtons(_talentButtons, RequestAllocateTalent);
+
+            // 상세 설명은 특성 노드에서만 띄운다. 잠긴 노드도 hover는 들어온다
+            for (int i = 0; i < ArrayLength(_talentButtons); ++i)
+            {
+                if (_talentButtons[i] != null)
+                {
+                    _talentButtons[i].HoverChanged += HandleTalentHover;
+                }
+            }
+
             BindIndexedButtons(_shopButtons, RequestPurchase);
             BindIndexedButtons(_recipientButtons, RequestOfferTransfer);
         }
@@ -639,8 +951,11 @@ namespace Geumeum.UI
 
             if (!visible)
             {
+                _botInventoryView?.Close();
                 ReleaseInputToken();
                 _activeShopPoint = null;
+                _hoveredTalentIndex = -1;
+                HideTalentTooltip();
             }
 
             if (changed)
@@ -651,6 +966,9 @@ namespace Geumeum.UI
 
         private void SetPage(PageKind page)
         {
+            _currentPage = page;
+            SetText(_pageTitle, page == PageKind.Inventory ? "배낭" :
+                page == PageKind.Talent ? "특성" : page == PageKind.Shop ? "객주" : "양도");
             SetActive(_inventoryPage, page == PageKind.Inventory);
             SetActive(_talentPage, page == PageKind.Talent);
             SetActive(_shopPage, page == PageKind.Shop);
@@ -659,6 +977,13 @@ namespace Geumeum.UI
             SetRowActive(_inventoryRow, page == PageKind.Inventory);
             SetRowActive(_talentRow, page == PageKind.Talent);
             SetRowActive(_transferRow, page == PageKind.Transfer);
+
+            if (page != PageKind.Talent)
+            {
+                // 탭을 옮기면 포인터 나감이 오지 않는 경로가 있어 직접 지운다
+                _hoveredTalentIndex = -1;
+                HideTalentTooltip();
+            }
         }
 
         private static void SetRowActive(RailRowVisual row, bool isActive)
@@ -727,6 +1052,10 @@ namespace Geumeum.UI
             _talents = null;
             _inventoryRevision = 0u;
             _talentRevision = 0u;
+
+            // 다른 플레이어의 트리로 바뀌므로 앞 플레이어의 설명을 남기지 않는다
+            _hoveredTalentIndex = -1;
+            HideTalentTooltip();
         }
 
         private void RefreshObservedContext()
@@ -805,7 +1134,7 @@ namespace Geumeum.UI
             }
 
             // Initial weapon publication can fill HasWeapon while intentionally
-            // keeping revision 1, so revision alone cannot identify this snapshot.
+            // keeping revision 1, so revision alone cannot identify this snapshot
             _allocation = allocation;
             _talentRevision = allocation.Revision;
         }
@@ -852,7 +1181,11 @@ namespace Geumeum.UI
                 SetText(_inventoryDetailText, detail + target);
             }
 
-            SetInteractable(_equipButton, HasSelectedKind(InventoryItemKind.Equipment));
+            bool selectingEquipment = HasSelectedKind(InventoryItemKind.Equipment);
+            // 제작 UI는 장착/해제가 같은 자리를 쓴다. 비활성 버튼이 클릭을 가로막지 않게 한다
+            if (_equipButton != null) { SetActive(_equipButton.gameObject, selectingEquipment); }
+            if (_unequipButton != null) { SetActive(_unequipButton.gameObject, !selectingEquipment); }
+            SetInteractable(_equipButton, selectingEquipment);
             SetInteractable(_unequipButton, (_inventory != null) &&
                 _inventory.EquippedWeapon.HasEquipment);
             SetInteractable(_usePotionButton, SelectedConsumableMatches(true));
@@ -869,6 +1202,10 @@ namespace Geumeum.UI
                 ? "특성 정보를 확인하고 있습니다."
                 : $"사용 가능 포인트 {available}");
 
+            // 이 갱신은 0.2초마다 돈다. 가리키던 노드가 그대로면 hover를 유지해야 하므로
+            // 지우기 전에 어떤 노드를 보고 있었는지 남긴다
+            int hoveredNodeBefore = ResolveHoveredTalentNodeId();
+
             for (int i = 0; i < _visibleTalentNodeIds.Length; ++i)
             {
                 _visibleTalentNodeIds[i] = 0;
@@ -878,15 +1215,35 @@ namespace Geumeum.UI
                 !GameDB.IsInitialized || (GameDB.Talent == null))
             {
                 SetTalentButtonsUnavailable();
+                ReleaseStaleTalentHover(hoveredNodeBefore);
                 return;
             }
 
+            // 무기마다 갈래 수와 갈래별 노드 수가 다르다. 격자를 통째로 도는 대신
+            // 실제 정의된 열/노드만 그린다 - 없는 칸에 "1단계 특성"이 남으면 안 된다
             TalentTreeSO tree = GameDB.Talent;
-            for (int column = 0; column < tree.ColumnsPerWeapon; ++column)
+            int columnCount = tree.CountColumns(_allocation.Weapon);
+            int missing = 0;
+
+            for (int i = 0; i < ArrayLength(_talentColumnTexts); ++i)
             {
-                if ((column < ArrayLength(_talentColumnTexts)) &&
-                    tree.TryGetColumn(_allocation.Weapon, column,
+                SetText(_talentColumnTexts[i], string.Empty);
+                _talentColumnTexts[i].gameObject.SetActive(i < columnCount);
+                var labelRect = _talentColumnTexts[i].rectTransform;
+                labelRect.anchoredPosition = TalentLayoutPoint(GameDB.Talent.MaxColumnsPerWeapon > 2 ?
+                    (i == 0 ? new Vector2(476, 173) : new Vector2(370 + (i - 1) * 106, 82)) : new Vector2(397 + i * 158, 168));
+                labelRect.sizeDelta = new Vector2(GameDB.Talent.MaxColumnsPerWeapon > 2 ? 102 : 150, 28) * _talentLayoutScale;
+            }
+
+            for (int column = 0; column < columnCount; ++column)
+            {
+                if (!tree.TryGetColumn(_allocation.Weapon, column,
                         out TalentTreeSO.ColumnEntry columnEntry))
+                {
+                    continue;
+                }
+
+                if (column < ArrayLength(_talentColumnTexts))
                 {
                     SetText(_talentColumnTexts[column],
                         string.IsNullOrWhiteSpace(columnEntry.DisplayName)
@@ -894,17 +1251,27 @@ namespace Geumeum.UI
                             : columnEntry.DisplayName);
                 }
 
-                for (int row = 0; row < tree.NodesPerColumn; ++row)
+                for (int row = 0; row < columnEntry.NodeCount; ++row)
                 {
-                    int index = (column * tree.NodesPerColumn) + row;
-                    if ((index >= ArrayLength(_talentButtons)) ||
-                        !tree.TryGetNode(_allocation.Weapon, column, row,
+                    if (!tree.TryGetNode(_allocation.Weapon, column, row,
                             out TalentTreeSO.NodeEntry node))
                     {
                         continue;
                     }
 
+                    int index = (column * TALENT_ROWS_PER_COLUMN) + row;
+                    if ((index >= ArrayLength(_talentButtons)) ||
+                        (index >= _visibleTalentNodeIds.Length))
+                    {
+                        ++missing;
+                        continue;
+                    }
+
                     FunctionalUiIndexedButton button = _talentButtons[index];
+                    SetTalentButtonActive(button, true);
+                    var rect = (RectTransform)button.transform;
+                    rect.anchoredPosition = TalentPosition(column, row);
+                    rect.sizeDelta = new Vector2(GameDB.Talent.MaxColumnsPerWeapon > 2 ? 100 : 150, 50) * _talentLayoutScale;
                     _visibleTalentNodeIds[index] = node.NodeId;
                     bool allocated = _allocation.Contains(node.NodeId);
                     string name = string.IsNullOrWhiteSpace(node.DisplayName)
@@ -915,12 +1282,79 @@ namespace Geumeum.UI
                     TalentAllocationResult allowed = TalentRules.CanAllocate(tree,
                         _allocation, available + _allocation.SpentPoints,
                         node.NodeId, out _);
-                    button.SetInteractable(!allocated &&
+                    SetTalentButtonInteractable(button, (!allocated) &&
                         (allowed == TalentAllocationResult.Success));
                 }
             }
 
+            // 이번에 쓰지 않은 칸만 뒤늦게 숨긴다. 쓰는 노드를 먼저 껐다 켜면 포인터가
+            // 그대로인데도 hover가 끊겨 설명이 0.2초마다 사라진다
+            int slotCount = Mathf.Min(ArrayLength(_talentButtons), _visibleTalentNodeIds.Length);
+            for (int i = 0; i < slotCount; ++i)
+            {
+                if (_visibleTalentNodeIds[i] > 0)
+                {
+                    continue;
+                }
+
+                _talentButtons[i].SetLabel(string.Empty);
+                SetTalentButtonInteractable(_talentButtons[i], false);
+                SetTalentButtonActive(_talentButtons[i], false);
+            }
+
+            if (missing > 0)
+            {
+                // 고르지 못하는 노드가 있는 화면을 조용히 넘기지 않는다
+                Debug.LogError($"[FunctionalManagementPanel] 특성 버튼이 {missing}개 모자라 " +
+                    "일부 노드를 표시하지 못했다. 관리 창 프리팹을 다시 생성해야 한다", this);
+            }
+
+            RefreshTalentEdges(tree);
             SetInteractable(_talentResetButton, _allocation.SpentPoints > 0);
+
+            ReleaseStaleTalentHover(hoveredNodeBefore);
+
+            // 포인트나 배분이 바뀌면 떠 있는 설명의 상태 줄도 같이 갱신해야 한다
+            RefreshTalentTooltip();
+        }
+
+        /// <summary> 지금 가리키는 칸이 들고 있는 노드 ID. 가리키는 칸이 없으면 0 </summary>
+        private int ResolveHoveredTalentNodeId()
+        {
+            return ((_hoveredTalentIndex >= 0) &&
+                (_hoveredTalentIndex < _visibleTalentNodeIds.Length))
+                ? _visibleTalentNodeIds[_hoveredTalentIndex] : 0;
+        }
+
+        /// <summary>
+        /// 무기나 트리가 바뀌어 가리키던 칸의 노드가 달라졌으면 hover를 놓는다
+        /// 같은 노드가 그대로면 유지해야 갱신마다 설명이 깜빡이지 않는다
+        /// </summary>
+        private void ReleaseStaleTalentHover(int previousNodeId)
+        {
+            if ((_hoveredTalentIndex >= 0) && (ResolveHoveredTalentNodeId() != previousNodeId))
+            {
+                _hoveredTalentIndex = -1;
+            }
+        }
+
+        /// <summary> 값이 같으면 건드리지 않는다. 껐다 켜면 그 칸의 포인터 상태가 끊긴다 </summary>
+        private static void SetTalentButtonActive(FunctionalUiIndexedButton button, bool active)
+        {
+            if (button.gameObject.activeSelf != active)
+            {
+                button.gameObject.SetActive(active);
+            }
+        }
+
+        /// <summary> 값이 같으면 건드리지 않는다. 매번 false로 되돌리면 눌린 표시가 튄다 </summary>
+        private static void SetTalentButtonInteractable(FunctionalUiIndexedButton button,
+            bool interactable)
+        {
+            if (button.Interactable != interactable)
+            {
+                button.SetInteractable(interactable);
+            }
         }
 
         private void SetTalentButtonsUnavailable()
@@ -932,6 +1366,7 @@ namespace Geumeum.UI
             }
 
             SetInteractable(_talentResetButton, false);
+            HideTalentTooltip();
         }
 
         private void RefreshShopView()

@@ -11182,6 +11182,7 @@ MonoBehaviour:
   _currency: {fileID: 0}
   _shopTransactions: {fileID: 0}
   _transferService: {fileID: 0}
+  _pageTitle: {fileID: 636895896465451444}
 --- !u!1 &7136355089974957593
 GameObject:
   m_ObjectHideFlags: 0

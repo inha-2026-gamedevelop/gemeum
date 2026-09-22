@@ -16,14 +16,14 @@ using Geumeum.Dev;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// 서버가 모든 플레이어의 체력 · 스태미나 · 신력을 조금씩 깎는다. HUD 바가 실제로 값을 따라 움직이는지
-    /// 보려는 용도다.
+    /// 서버가 모든 플레이어의 체력, 스태미나, 신력을 조금씩 깎는다. HUD 바가 실제로 값을 따라 움직이는지
+    /// 보려는 용도다
     ///
     /// Dev_HUD에는 캐릭터 조작이 없어 자원을 쓸 방법이 없다. 값을 흔들어 주는 쪽을 따로 두지 않으면
-    /// 바가 가득 찬 그림만 보고 "붙었다"고 넘어가게 된다.
+    /// 바가 가득 찬 그림만 보고 "붙었다"고 넘어가게 된다
     ///
-    /// 판정은 서버에서만 한다 — 클라이언트가 값을 직접 만지면 사람마다 다른 화면이 나온다.
-    /// 기존 서버 API(TakeDamage · TrySpendStamina · TrySpendSpirit)만 부르므로 자원 규칙을 우회하지 않는다.
+    /// 판정은 서버에서만 한다 - 클라이언트가 값을 직접 만지면 사람마다 다른 화면이 나온다
+    /// 기존 서버 API(TakeDamage, TrySpendStamina, TrySpendSpirit)만 부르므로 자원 규칙을 우회하지 않는다
     ///
     /// 릴리스 빌드에는 들어가지 않는다
     /// </summary>
@@ -162,7 +162,7 @@ namespace Geumeum.UI
 
             if (!GameDB.IsInitialized)
             {
-                return; // 스태미나 · 신력 상한은 GameDB가 정본이다
+                return; // 스태미나, 신력 상한은 GameDB가 정본이다
             }
 
             DrainStamina(status);

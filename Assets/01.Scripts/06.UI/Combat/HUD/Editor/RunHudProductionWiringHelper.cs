@@ -16,7 +16,7 @@ using Geumeum.Systems;
 
 namespace Geumeum.UI.Editor
 {
-    /// <summary> Dev_HUD에서 완성된 HUD · 관리 창 · 결계 벽을 런타임 흐름(SessionManagers · Field)에 옮겨 붙인다 </summary>
+    /// <summary> Dev_HUD에서 완성된 HUD, 관리 창, 결계 벽을 런타임 흐름(SessionManagers, Field)에 옮겨 붙인다 </summary>
     public static class RunHudProductionWiringHelper
     {
         /****************************************
@@ -51,7 +51,7 @@ namespace Geumeum.UI.Editor
         *                Methods
         ****************************************/
 
-        [MenuItem("Geumeum/Production/UI/Wire run HUD and management UI")]
+        [MenuItem("그믐/Production/UI/Wire run HUD and management UI")]
         private static void WireAll()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)

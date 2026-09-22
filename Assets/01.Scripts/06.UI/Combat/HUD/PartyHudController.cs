@@ -14,10 +14,10 @@ using Geumeum.Common;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// 파티 플레이트에 누구를 그릴지 정하고 값을 물린다.
+    /// 파티 플레이트에 누구를 그릴지 정하고 값을 물린다
     ///
-    /// 스폰 목록은 주기로 훑고, 값은 훑지 않는다 — 체력 · 스태미나 · 신력은 PlayerStatus의 이벤트를
-    /// 구독해 바뀔 때만 받는다(HUD_DESIGN 4장 3번). 목록만 주기로 만드는 방식은 MinimapPlayerDots와 같다.
+    /// 스폰 목록은 주기로 훑고, 값은 훑지 않는다 - 체력, 스태미나, 신력은 PlayerStatus의 이벤트를
+    /// 구독해 바뀔 때만 받는다(HUD_DESIGN 4장 3번). 목록만 주기로 만드는 방식은 MinimapPlayerDots와 같다
     ///
     /// 읽기 전용이다. 여기서 상태를 바꾸지 않고 [Command]도 [Server]도 두지 않는다
     /// </summary>
@@ -57,7 +57,7 @@ namespace Geumeum.UI
             {
                 _bindings[i] = new Binding(_plates[i], _unknownName);
 
-                // 첫 갱신 전까지 빈 줄이 그대로 보이지 않게 먼저 숨긴다.
+                // 첫 갱신 전까지 빈 줄이 그대로 보이지 않게 먼저 숨긴다
                 // 줄은 이 컨트롤러만 켜고 끄므로 여기서 초기 상태를 정해도 경합하지 않는다
                 if (_plates[i] != null)
                 {
@@ -175,8 +175,8 @@ namespace Geumeum.UI
         ****************************************/
 
         /// <summary>
-        /// 줄 하나와 그 줄이 보고 있는 사람을 묶는다.
-        /// 구독과 해제를 1:1로 맞추려고 따로 둔다 — 씬 전환에 남은 구독이 이 프로젝트에서 가장 잦은 UI 결함이다
+        /// 줄 하나와 그 줄이 보고 있는 사람을 묶는다
+        /// 구독과 해제를 1:1로 맞추려고 따로 둔다 - 씬 전환에 남은 구독이 이 프로젝트에서 가장 잦은 UI 결함이다
         /// </summary>
         private sealed class Binding
         {
@@ -243,6 +243,8 @@ namespace Geumeum.UI
 
             private string ResolveName(bool hasCharacter, CharacterKind character)
             {
+                if (_status != null && _status.Participant.Kind == ParticipantKind.Bot)
+                { return $"{(hasCharacter ? FunctionalUiText.GetCharacterName(character) : _unknownName)} (봇)"; }
                 if ((_nameTag != null) && (!string.IsNullOrEmpty(_nameTag.DisplayName)))
                 {
                     return _nameTag.DisplayName;
