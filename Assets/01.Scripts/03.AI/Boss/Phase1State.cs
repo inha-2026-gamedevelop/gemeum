@@ -21,7 +21,7 @@ namespace Geumeum.AI
     /// 뒤 남은 후보를 균등 추첨한다. 대상을 고르는 패턴(TargetedDash·MarkedCircle)은 직전
     /// 지목자를 제외한다(SelectTargetExcludingLast, BOSS_PATTERN_CONTRACT.md 5장 어그로 규칙).
     /// 전투 시작 직후엔 오프닝 고정 시퀀스(1 -> 2 -> 4)가 먼저 돈다, 쿨다운을 무시하고 순서대로
-    /// 발동한다 - 패턴 2(반월 베기)는 패턴 1과 같은 MeleeArc 판정(사거리, 각도 동일)이고
+    /// 발동한다 - 패턴 2(반월 베기)는 패턴 1과 같은 MeleeArc 판정(각도 동일, 사거리는 5로 확장)이고
     /// 윈드업만 짧고 패링이 안 된다, 독립 쿨다운이 없어 후보 추첨 대상이 아니다
     /// </summary>
     public sealed class Phase1State : BossPhaseStateBase
@@ -45,23 +45,51 @@ namespace Geumeum.AI
             TargetedDash,
             MarkedCircle,
             ConeBurst,
+            RotatingBeam,  // ID로만 구분한다 - SO Template은 검증 통과용으로 ConeBurst(4)를 그대로 쓴다
+            RandomBarrage, // ID로만 구분한다 - 위와 동일한 이유
         }
 
         /****************************************
         *              Constants
         ****************************************/
 
-        private const int MELEE_ARC_PATTERN_ID     = 1; // 여우불 봉 3연격
-        private const int DERIVED_MELEE_PATTERN_ID = 2; // 반월 베기, 패턴 1의 파생. 오프닝 전용, 후보 추첨 대상 아님
-        private const int TARGETED_DASH_PATTERN_ID = 3; // 순간 접근 3연계
-        private const int MARKED_CIRCLE_PATTERN_ID = 4; // 여우불 낙인
-        private const int CONE_BURST_PATTERN_ID    = 5; // 여우 구슬 충격파
-        // 위 다섯 다 GameDB.Boss._patterns의 PatternId와 맞춘다
+        private const int MELEE_ARC_PATTERN_ID     = 1;  // 여우불 봉 3연격
+        private const int DERIVED_MELEE_PATTERN_ID = 2;  // 반월 베기
+        private const int TARGETED_DASH_PATTERN_ID = 3;  // 순간 접근 3연계
+        private const int MARKED_CIRCLE_PATTERN_ID = 4;  // 여우불 낙인
+        private const int CONE_BURST_PATTERN_ID    = 5;  // 여우 구슬 충격파
+        private const int ROTATING_BEAM_PATTERN_ID  = 11; // 여우불 광선 - 360도 회전 빔, 2페이즈(13)보다 느리게 돈다
+        private const int RANDOM_BARRAGE_PATTERN_ID = 12; // 여우불 탄막 - 랜덤 방향 연속 난사, 2페이즈(14)보다 발 수 적게
+        // 위 일곱 다 GameDB.Boss._patterns의 PatternId와 맞춘다
 
-        private const int MAX_CANDIDATE_COUNT     = 4; // 현재 독립 후보 수, 패턴 2는 오프닝 전용
-        private const int SELECTABLE_PATTERN_COUNT = 4;
+        private const int MAX_CANDIDATE_COUNT     = 7; // 현재 독립 후보 수
+        private const int SELECTABLE_PATTERN_COUNT = 7;
 
         private const float MELEE_PARRY_WINDOW_DURATION = 0.32f; // 초, 패링 판정 창 길이
+
+        // 여우불 광선(11) 전용 - 360도를 회전 시간(MoveSpeed 필드 재해석)에 걸쳐 돈다.
+        // Damage 필드는 다른 패턴과 달리 초당 피해량(DPS)으로 읽어 매 틱 deltaTime을 곱해 적용한다
+        private const float ROTATING_BEAM_FULL_SWEEP_DEGREES = 360f;
+
+        // GGizmo.Line은 항상 1px라 얇으면 잘 안 보인다 - 십자로 살짝 오프셋한 선을 겹쳐 굵어 보이게 한다
+        private const float ROTATING_BEAM_GIZMO_THICKNESS = 0.15f;
+
+        // 여우불 탄막(12) 전용 - MoveSpeed를 "발사 간격(초)"으로, MoveDistance를 "총 난사
+        // 시간(초)"으로 재해석한다. 한 번에 이 수만큼 동시에 쏘고, 생존 플레이어 방향을
+        // 우선 겨냥한 뒤 모자란 만큼 무작위로 채운다. 넓은 부채꼴을 한 번에 훑으면 "제자리
+        // 지정 공격"처럼 느껴져서, 대신 구체가 사거리 끝까지 날아가는 동안 경로를 여러 지점
+        // 으로 쪼개 순서대로 판정한다 - 실제로 지나가는 자리에 있어야 맞는 궤적 판정이다.
+        // 2페이즈(14)보다 한 번에 나가는 발 수를 적게 잡아 더 순하게 뒀다
+        private const int   BARRAGE_SHOTS_PER_VOLLEY     = 3;
+        private const float BARRAGE_BULLET_TRAVEL_TIME   = 1.2f; // 원점에서 사거리 끝까지 날아가는 시간(초) - 피할 반응 시간
+        private const int   BARRAGE_TRAVEL_SAMPLE_COUNT  = 4;    // 비행 경로를 몇 지점으로 쪼개 판정할지
+        private const float BARRAGE_AIM_JITTER_DEGREES   = 15f;  // 완전한 조준처럼 안 느껴지게 주는 무작위 흔들림
+        private const float BARRAGE_BULLET_GIZMO_RADIUS  = 0.3f; // 날아가는 구체 기즈모 반지름(m)
+        private const float BARRAGE_BULLET_HEIGHT        = 1f;   // Self.position이 발밑이라 그만큼 띄운다(m)
+
+        // 여우불 낙인(4) 전용 - VFX 원점이 지면에 살짝 묻혀서 그만큼 띄운다. 판정 반경(_markedCenter)은
+        // 그대로 두고 표현만 올린다
+        private const float MARKED_CIRCLE_VFX_HEIGHT_OFFSET = 0.1f;
 
         // 예고(TelegraphDuration) 앞 절반은 대상을 따라가고 뒤 절반은 방향을 확정한다
         // (BOSS_PATTERN_CONTRACT.md 11.2절 확정값). 완전 잠금이면 정지 표적을 지나쳐버리고,
@@ -86,9 +114,12 @@ namespace Geumeum.AI
         private static readonly int[] G_SELECTABLE_PATTERN_IDS =
         {
             MELEE_ARC_PATTERN_ID,
+            DERIVED_MELEE_PATTERN_ID,
             TARGETED_DASH_PATTERN_ID,
             MARKED_CIRCLE_PATTERN_ID,
             CONE_BURST_PATTERN_ID,
+            ROTATING_BEAM_PATTERN_ID,
+            RANDOM_BARRAGE_PATTERN_ID,
         };
 
         private readonly BossPatternSelector.Candidate[] _candidatePatterns =
@@ -130,6 +161,15 @@ namespace Geumeum.AI
         private BossAttackExecution        _activeExecution; // 늦게 도착한 이전 공격의 OnParried를 걸러내는 참조
         private IParryWindowTarget         _openParryTarget;
         private ParryWindowKey             _openParryKey;
+
+        // 여우불 광선(RotatingBeam) 전용
+        private Vector3 _beamDirection;
+
+        // 여우불 탄막(RandomBarrage) 전용
+        private readonly Transform[] _barrageAliveTargets    = new Transform[Constants.Network.MAX_PLAYERS];
+        private readonly Vector3[]   _barrageDirections      = new Vector3[BARRAGE_SHOTS_PER_VOLLEY];
+        private readonly int[]       _barrageNextSampleIndex = new int[BARRAGE_SHOTS_PER_VOLLEY];
+        private int                  _barrageCycleIndex      = -1;
 
         /****************************************
         *              Constructor
@@ -286,9 +326,12 @@ namespace Geumeum.AI
         {
             int candidateCount = 0;
             candidateCount = AddCandidate(candidateCount, MELEE_ARC_PATTERN_ID, distance);
+            candidateCount = AddCandidate(candidateCount, DERIVED_MELEE_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, TARGETED_DASH_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, MARKED_CIRCLE_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, CONE_BURST_PATTERN_ID, distance);
+            candidateCount = AddCandidate(candidateCount, ROTATING_BEAM_PATTERN_ID, distance);
+            candidateCount = AddCandidate(candidateCount, RANDOM_BARRAGE_PATTERN_ID, distance);
             return candidateCount;
         }
 
@@ -368,26 +411,22 @@ namespace Geumeum.AI
                 return PatternKind.MarkedCircle;
             }
 
+            if (patternId == ROTATING_BEAM_PATTERN_ID)
+            {
+                return PatternKind.RotatingBeam;
+            }
+
+            if (patternId == RANDOM_BARRAGE_PATTERN_ID)
+            {
+                return PatternKind.RandomBarrage;
+            }
+
             if (patternId == CONE_BURST_PATTERN_ID)
             {
                 return PatternKind.ConeBurst;
             }
 
             return PatternKind.MeleeArc;
-        }
-
-        // 화면 로그용 이름. 기획 문서(boss-pattern-design) 표기를 그대로 쓴다
-        private static string PatternName(int patternId)
-        {
-            switch (patternId)
-            {
-                case MELEE_ARC_PATTERN_ID:     return "여우불 봉 3연격";
-                case DERIVED_MELEE_PATTERN_ID: return "반월 베기";
-                case TARGETED_DASH_PATTERN_ID: return "순간 접근 3연계";
-                case MARKED_CIRCLE_PATTERN_ID: return "여우불 낙인";
-                case CONE_BURST_PATTERN_ID:    return "여우 구슬 충격파";
-                default:                       return $"패턴 {patternId}";
-            }
         }
 
         // 직전 지목자를 뺀 생존 플레이어 중 가장 가까운 대상을 고른다. 후보가 없으면(생존자가
@@ -430,6 +469,17 @@ namespace Geumeum.AI
         {
             _activeSpec = new BossPatternExecutionSpec(pattern);
             _activeKind = ToKind(_activeSpec.Template, kind);
+            if (pattern.PatternId == ROTATING_BEAM_PATTERN_ID)
+            {
+                // SO Template은 검증 통과용 ConeBurst라 ToKind가 못 잡는다, ID로 덮어쓴다
+                _activeKind = PatternKind.RotatingBeam;
+            }
+            else if (pattern.PatternId == RANDOM_BARRAGE_PATTERN_ID)
+            {
+                _activeKind = PatternKind.RandomBarrage;
+            }
+
+            _barrageCycleIndex = -1;
 
             // TargetedDash(패턴 3)·MarkedCircle(패턴 4)은 전역 어그로 대상(Target)이 아니라
             // 직전 지목자를 뺀 후보 중에서 다시 뽑는다 - 안 그러면 같은 사람만 계속 지목당해
@@ -480,17 +530,21 @@ namespace Geumeum.AI
                 // 위치 확정 후 잠금 - 예고 중 대상이 움직여도 낙인 중심은 안 따라간다
                 _markedCenter = _activeTarget.position;
 
-                // 러프 VFX 연결(이슈 검증용) — 낙인은 예고 시작 시점에도 신호를 쏜다
-                _controller.ServerPlayPatternTelegraphVfx(BossPatternSO.PatternTemplate.MarkedCircle, _markedCenter, Vector3.forward);
+                // 러프 VFX 연결(이슈 검증용) - 낙인은 예고 시작 시점에도 신호를 쏜다.
+                // 판정 지점(_markedCenter)은 그대로 두고 VFX만 지면에 안 묻히게 살짝 띄운다
+                _controller.ServerPlayPatternTelegraphVfx(BossPatternSO.PatternTemplate.MarkedCircle,
+                    _markedCenter + (Vector3.up * MARKED_CIRCLE_VFX_HEIGHT_OFFSET), Vector3.forward);
             }
 
             _activeTargetNetId = _activeTarget.TryGetComponent(out NetworkIdentity targetIdentity)
                 ? targetIdentity.netId : 0u;
-            PublishRepeatTelegraphs();
-            TryOpenParryWindow(pattern, _activeRepeatIndex);
 
-            // BossTelegraphView가 아직 없어 예고가 화면에 안 보인다. 확인용 임시 로그 - 뷰 붙으면 지운다
-            GDebug.Server($"[보스] {PatternName(pattern.PatternId)} 예고 시작");
+            // 여우불 광선은 360도로 돌고 여우불 탄막은 매 발 방향이 바뀌어 고정된 부채꼴
+            // 장판을 못 그리지만, 신호 자체는 그대로 보내 모션 트리거(BossAnimationView)가
+            // 돌게 한다 - 장판만 안 보이게 하는 건 BossTelegraphView 쪽 숨김 목록으로 처리한다
+            PublishRepeatTelegraphs();
+
+            TryOpenParryWindow(pattern, _activeRepeatIndex);
         }
 
         private static PatternKind ToKind(BossPatternSO.PatternTemplate template,
@@ -537,6 +591,18 @@ namespace Geumeum.AI
                     ((_activeTargetStatus is IBossSwallowTarget swallowed) && swallowed.IsSwallowed))))
             {
                 CancelActiveAttack();
+                return;
+            }
+
+            if (_activeKind == PatternKind.RotatingBeam)
+            {
+                TickRotatingBeam(deltaTime);
+                return;
+            }
+
+            if (_activeKind == PatternKind.RandomBarrage)
+            {
+                TickRandomBarrage(deltaTime);
                 return;
             }
 
@@ -595,11 +661,193 @@ namespace Geumeum.AI
             _state             = AttackState.Recovery;
         }
 
+        // 여우불 광선 전용 - ImpactOffsets 기반 반복 판정을 안 쓰고, 예고가 끝나면
+        // MoveSpeed를 "회전에 걸리는 시간(초)"으로 재해석해 그 시간 동안 360도를 돈다
+        // (Template이 ConeBurst라 실제 이동 속도로는 안 쓰인다). ActiveDuration은 다른
+        // 패턴과 똑같이 회전이 끝난 뒤 회복 상태로 보여주는 짧은 버퍼로 남겨둔다.
+        // Damage 필드는 초당 피해량(DPS)으로 읽어 deltaTime을 곱한 만큼만 적용한다
+        private void TickRotatingBeam(float deltaTime)
+        {
+            _stateTimer += deltaTime;
+
+            float sweepElapsed = _stateTimer - _activePattern.TelegraphDuration;
+            if (sweepElapsed < 0f)
+            {
+                return; // 아직 예고 중, 회전 시작 전
+            }
+
+            float sweepDuration = _activeSpec.MoveSpeed;
+            if (sweepElapsed >= sweepDuration)
+            {
+                // 회전 시작 전 딱 한 번만 보낸 예고 신호를 여기서 닫는다 - 안 닫으면
+                // 동시 예고 목록에 계속 남아 다음 발동들이 상한에 걸린다
+                _controller.ServerCancelTelegraph(_activeAttackInstanceId);
+                _controller.ServerNotifyPatternEnded(_activePattern.PatternId, _activeAttackInstanceId);
+                _stateTimer        = 0f;
+                _cooldownRemaining = _controller.ServerGetGlobalCadence(1);
+                _state             = AttackState.Recovery;
+                return;
+            }
+
+            float sweepAngle = (sweepElapsed / sweepDuration) * ROTATING_BEAM_FULL_SWEEP_DEGREES;
+            _beamDirection = Quaternion.AngleAxis(sweepAngle, Vector3.up) * _lockedForward;
+
+            Vector3 beamOrigin = Self.position;
+            Vector3 beamEnd    = beamOrigin + (_beamDirection * _activeSpec.Range);
+            // 실제 VFX가 붙기 전까지만 쓰는 확인용 시각화 - 에디터/개발 빌드에서만 그려지고
+            // 릴리스 빌드에서는 호출 자체가 통째로 사라진다(GGizmo.Line의 Conditional 속성)
+            DrawBeamGizmo(beamOrigin, beamEnd, _beamDirection);
+
+            uint  attackerNetId   = (_selfIdentity != null) ? _selfIdentity.netId : 0u;
+            float damagePerSecond = _activePattern.Damage * _activeDamageMultiplier;
+            BossPatternRunner.ExecuteMeleeArc(
+                beamOrigin,
+                _beamDirection,
+                _activeSpec.Range,
+                _activeSpec.AngleDegrees,
+                damagePerSecond * deltaTime,
+                attackerNetId,
+                _playerLayerMask,
+                _controller,
+                HitStrength.Light);
+        }
+
+        // GGizmo.Line은 GL 즉시 그리기라 두께 지정이 없다 - 십자로 살짝 오프셋한 선 다섯 개를
+        // 겹쳐 그려서 굵어 보이게 한다(카메라 각도에 상관없이 보이도록 좌우, 상하 둘 다 오프셋)
+        private static void DrawBeamGizmo(Vector3 origin, Vector3 end, Vector3 direction)
+        {
+            GGizmo.Line(GGizmoChannel.Monster, origin, end, Color.magenta);
+
+            Vector3 right = Vector3.Cross(Vector3.up, direction).normalized * ROTATING_BEAM_GIZMO_THICKNESS;
+            Vector3 up    = Vector3.up * ROTATING_BEAM_GIZMO_THICKNESS;
+            GGizmo.Line(GGizmoChannel.Monster, origin + right, end + right, Color.magenta);
+            GGizmo.Line(GGizmoChannel.Monster, origin - right, end - right, Color.magenta);
+            GGizmo.Line(GGizmoChannel.Monster, origin + up,    end + up,    Color.magenta);
+            GGizmo.Line(GGizmoChannel.Monster, origin - up,    end - up,    Color.magenta);
+        }
+
+        // 여우불 탄막 전용 - ImpactOffsets 기반 반복 판정을 안 쓰고, MoveSpeed를 "발사
+        // 간격(초)"으로, MoveDistance를 "총 난사 시간(초)"으로 재해석한다. 매 간격마다
+        // BARRAGE_SHOTS_PER_VOLLEY발을 동시에 쏘는데, 각 발은 원점에서 사거리 끝까지
+        // BARRAGE_BULLET_TRAVEL_TIME 동안 날아가는 구체로 보여주고, 그 경로를
+        // BARRAGE_TRAVEL_SAMPLE_COUNT개 지점으로 쪼개 지나가는 순서대로 판정한다 -
+        // 사거리 전체를 한 번에 훑지 않고 실제로 지나는 자리에 있어야 맞는다.
+        // ImpactRadius는 탄환 하나의 판정 반경, Damage는 발당(정확히는 지점당) 피해량이다
+        private void TickRandomBarrage(float deltaTime)
+        {
+            _stateTimer += deltaTime;
+
+            float barrageElapsed = _stateTimer - _activePattern.TelegraphDuration;
+            if (barrageElapsed < 0f)
+            {
+                return; // 아직 예고 중, 난사 시작 전
+            }
+
+            float totalDuration   = _activeSpec.MoveDistance;
+            float volleyInterval  = _activeSpec.MoveSpeed;
+            int   cycleIndex      = Mathf.FloorToInt(barrageElapsed / volleyInterval);
+            float cycleStartTime  = cycleIndex * volleyInterval;
+
+            // 이미 시작된 발은 끝까지 날아가게 두고, 다음 발을 새로 시작하려는 시점에만
+            // 총 난사 시간을 넘었는지 확인한다 - 안 그러면 마지막 발이 도중에 끊긴다
+            if ((cycleIndex != _barrageCycleIndex) && (cycleStartTime >= totalDuration))
+            {
+                // 난사 시작 전 딱 한 번만 보낸 예고 신호를 여기서 닫는다 - 안 닫으면
+                // 동시 예고 목록에 계속 남아 다음 발동들이 상한에 걸린다
+                _controller.ServerCancelTelegraph(_activeAttackInstanceId);
+                _controller.ServerNotifyPatternEnded(_activePattern.PatternId, _activeAttackInstanceId);
+                _stateTimer        = 0f;
+                _cooldownRemaining = _controller.ServerGetGlobalCadence(1);
+                _state             = AttackState.Recovery;
+                return;
+            }
+
+            float cycleElapsed = barrageElapsed - cycleStartTime;
+
+            if (cycleIndex != _barrageCycleIndex)
+            {
+                _barrageCycleIndex = cycleIndex;
+                for (int i = 0; i < BARRAGE_SHOTS_PER_VOLLEY; ++i)
+                {
+                    _barrageNextSampleIndex[i] = 0;
+                }
+
+                PickBarrageDirections();
+            }
+
+            Vector3 origin        = Self.position + (Vector3.up * BARRAGE_BULLET_HEIGHT);
+            float   travelRatio   = Mathf.Clamp01(cycleElapsed / BARRAGE_BULLET_TRAVEL_TIME);
+            uint    attackerNetId = (_selfIdentity != null) ? _selfIdentity.netId : 0u;
+            float   damage        = _activePattern.Damage * _activeDamageMultiplier;
+
+            for (int i = 0; i < BARRAGE_SHOTS_PER_VOLLEY; ++i)
+            {
+                Vector3 aimEnd = origin + (_barrageDirections[i] * _activeSpec.Range);
+
+                if (cycleElapsed < BARRAGE_BULLET_TRAVEL_TIME)
+                {
+                    // 실제 VFX가 붙기 전까지만 쓰는 확인용 시각화 - 에디터/개발 빌드에서만 그려진다
+                    Vector3 bulletPos = Vector3.Lerp(origin, aimEnd, travelRatio);
+                    GGizmo.Sphere(GGizmoChannel.Monster, bulletPos, BARRAGE_BULLET_GIZMO_RADIUS, Color.yellow);
+                }
+
+                // 이 발이 아직 안 지나간 다음 샘플 지점의 시각이 됐으면 그 자리를 판정한다
+                while (_barrageNextSampleIndex[i] < BARRAGE_TRAVEL_SAMPLE_COUNT)
+                {
+                    float sampleRatio = (float) (_barrageNextSampleIndex[i] + 1) / BARRAGE_TRAVEL_SAMPLE_COUNT;
+                    float sampleTime  = BARRAGE_BULLET_TRAVEL_TIME * sampleRatio;
+                    if (cycleElapsed < sampleTime)
+                    {
+                        break;
+                    }
+
+                    Vector3 samplePos = Vector3.Lerp(origin, aimEnd, sampleRatio);
+                    BossPatternRunner.ExecuteMeleeArc(
+                        samplePos,
+                        Vector3.forward,
+                        _activeSpec.ImpactRadius,
+                        360f,
+                        damage,
+                        attackerNetId,
+                        _playerLayerMask,
+                        _controller,
+                        HitStrength.Light);
+                    ++_barrageNextSampleIndex[i];
+                }
+            }
+        }
+
+        // 생존 플레이어 방향을 우선 겨냥해 허공에 낭비되는 발을 줄이고, 인원이 모자라면
+        // 무작위 방향으로 채운다. 완전한 조준으로 안 느껴지도록 약간의 흔들림을 더한다
+        private void PickBarrageDirections()
+        {
+            int aliveCount = _controller.ServerCollectAliveTargets(_barrageAliveTargets);
+            Vector3 origin = Self.position;
+
+            for (int i = 0; i < BARRAGE_SHOTS_PER_VOLLEY; ++i)
+            {
+                Vector3 baseDirection;
+                if (i < aliveCount)
+                {
+                    Vector3 toTarget = _barrageAliveTargets[i].position - origin;
+                    toTarget.y = 0f;
+                    baseDirection = (toTarget.sqrMagnitude > 0.0001f)
+                        ? toTarget.normalized
+                        : _lockedForward;
+                }
+                else
+                {
+                    float randomAngle = (float) (_random.NextDouble() * 360.0);
+                    baseDirection = Quaternion.AngleAxis(randomAngle, Vector3.up) * Vector3.forward;
+                }
+
+                float jitter = ((float) _random.NextDouble() - 0.5f) * 2f * BARRAGE_AIM_JITTER_DEGREES;
+                _barrageDirections[i] = Quaternion.AngleAxis(jitter, Vector3.up) * baseDirection;
+            }
+        }
+
         private void ResolveImpact()
         {
-            // BossTelegraphView가 아직 없어 타격이 화면에 안 보인다. 확인용 임시 로그 - 뷰 붙으면 지운다
-            GDebug.Server($"[보스] {PatternName(_activePattern.PatternId)} 타격 판정");
-
             uint attackerNetId = (_selfIdentity != null) ? _selfIdentity.netId : 0u;
             float damage       = _activePattern.Damage * _activeDamageMultiplier;
 
@@ -623,8 +871,9 @@ namespace Geumeum.AI
 
             if (_activeKind == PatternKind.MarkedCircle)
             {
-                // 러프 VFX 연결(이슈 검증용)
-                _controller.ServerPlayPatternImpact(BossPatternSO.PatternTemplate.MarkedCircle, _markedCenter, Vector3.forward);
+                // 러프 VFX 연결(이슈 검증용) - 판정 원점(_markedCenter)은 그대로 두고 VFX만 띄운다
+                _controller.ServerPlayPatternImpact(BossPatternSO.PatternTemplate.MarkedCircle,
+                    _markedCenter + (Vector3.up * MARKED_CIRCLE_VFX_HEIGHT_OFFSET), Vector3.forward);
 
                 // 원점이 보스가 아니라 예고 시작 시점에 고정한 낙인 중심이다, 각도 제한도 없다
                 BossPatternRunner.ExecuteMeleeArc(

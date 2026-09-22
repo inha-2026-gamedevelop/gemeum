@@ -75,8 +75,10 @@ namespace Geumeum.Art
         private const float  MIN_FAN_ANGLE_DEGREES  = 1f;
         private const int    MIN_FAN_SEGMENTS       = 2;
 
-        // 순간 접근 3연계(1페이즈 패턴3)만 장판을 안 그린다
-        private const int    HIDDEN_PATTERN_ID_INSTANT_APPROACH = 3;
+        // 장판을 안 그리는 패턴들 - 신호(모션 트리거)는 그대로 받되 바닥 표시만 숨긴다.
+        // 3(순간 접근 3연계)은 원래부터, 11/13(여우불 광선)은 360도 회전이라 고정 부채꼴로
+        // 못 그리고, 12/14(여우불 탄막)는 매 발 방향이 바뀌어 고정 부채꼴이 방향을 오해시킨다
+        private static readonly int[] G_HIDDEN_PATTERN_IDS = { 3, 11, 12, 13, 14 };
 
         /****************************************
         *                Fields
@@ -182,7 +184,7 @@ namespace Geumeum.Art
             }
 
             if ((cue.AttackInstanceId == 0u) ||
-                (cue.PatternId == HIDDEN_PATTERN_ID_INSTANT_APPROACH) ||
+                (IsHiddenPattern(cue.PatternId)) ||
                 (!GameDB.Boss.TryGetPattern(cue.PatternId, out BossPatternSO.PatternEntry pattern)))
             {
                 return;
@@ -199,6 +201,19 @@ namespace Geumeum.Art
 
             Shape shape = BuildShape(cue, spec);
             _activeShapes[key] = shape;
+        }
+
+        private static bool IsHiddenPattern(int patternId)
+        {
+            for (int i = 0; i < G_HIDDEN_PATTERN_IDS.Length; ++i)
+            {
+                if (G_HIDDEN_PATTERN_IDS[i] == patternId)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private Shape BuildShape(in BossTelegraphCue cue, in BossPatternExecutionSpec spec)
