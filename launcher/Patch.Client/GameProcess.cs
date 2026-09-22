@@ -3,12 +3,16 @@ using System.Diagnostics;
 
 namespace Geumeum.Patch.Client;
 
-/// 게임 실행과 실행 중 확인. 런처 밖에서 직접 켠 게임도 경로로 찾아낸다(설계서 9장).
+/// <summary>
+/// 게임 실행과 실행 중 확인. 런처 밖에서 직접 켠 게임도 경로로 찾아낸다
+/// </summary>
 public static class GameProcess
 {
     public const string DEFAULT_PROCESS_NAME = "gemeum";
 
-    /// 이 설치의 versions 아래에서 실행 중인 버전 폴더 이름들.
+    /// <summary>
+    /// 이 설치의 versions 아래에서 실행 중인 버전 폴더 이름들
+    /// </summary>
     public static HashSet<string> RunningReleaseIds(InstallLayout layout, string processName = DEFAULT_PROCESS_NAME)
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -44,7 +48,9 @@ public static class GameProcess
         return RunningReleaseIds(layout, processName).Count > 0;
     }
 
-    /// 검증된 manifest의 entryPoint만 실행한다. 명령줄은 런처 코드가 정한 값만 쓰고 원격 문서에서 받지 않는다.
+    /// <summary>
+    /// 검증된 manifest의 entryPoint만 실행한다. 명령줄은 런처 코드가 정한 값만 쓰고 원격 문서에서 받지 않는다
+    /// </summary>
     public static Process Launch(InstallLayout layout, string releaseId, ReleaseManifest manifest, IReadOnlyList<string> arguments)
     {
         string versionDir = layout.VersionDir(releaseId);
@@ -70,7 +76,9 @@ public static class GameProcess
     }
 }
 
-/// 날짜별 로그 파일. 오류 안내에 "로그 폴더 열기"로 이어진다.
+/// <summary>
+/// 날짜별 로그 파일. 오류 안내에 "로그 폴더 열기"로 이어진다
+/// </summary>
 public sealed class PatchLog
 {
     private readonly object  _gate = new();

@@ -6,7 +6,7 @@ using Geumeum.Common;
 
 namespace Geumeum.AI
 {
-    /// <summary> 원혼 하나의 고정 ID 피해·정밀 사격·조준 접점 </summary>
+    /// <summary> 원혼 하나의 고정 ID 피해, 정밀 사격, 조준 접점 </summary>
     public sealed class BossSoulHitbox : MonoBehaviour, IDamageable, IAimAssistTarget,
         IPrecisionInterruptTarget, ITargetPartIdSource
     {

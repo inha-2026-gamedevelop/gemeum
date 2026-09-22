@@ -18,9 +18,9 @@ using Geumeum.Network;
 namespace Geumeum.Systems
 {
     /// <summary>
-    /// 양도 테스트용 인벤토리 세팅 도구. 호스트 화면에만 뜨고 값은 서버에서만 바꾼다.
+    /// 양도 테스트용 인벤토리 세팅 도구. 호스트 화면에만 뜨고 값은 서버에서만 바꾼다
     ///
-    /// 장비 드랍은 15퍼센트라 손으로 모으면 시간이 오래 걸린다.
+    /// 장비 드랍은 15퍼센트라 손으로 모으면 시간이 오래 걸린다
     /// 받을 사람과 가득 찬 사람을 즉시 만들어야 양도 규칙을 확인할 수 있다
     /// </summary>
     public sealed class InventoryTestSetup : MonoBehaviour
@@ -75,9 +75,9 @@ namespace Geumeum.Systems
         }
 
         /// <summary>
-        /// 거래 요청 헤더는 SceneRevision이 0이면 무효다.
-        /// 이 값은 RunSceneDirector가 씬을 옮길 때만 올라가는데 개발 씬은 전환이 없어 0에 머문다.
-        /// 그래서 서버에서 한 번만 1로 올려 구매, 물약, 티켓, 양도를 시험할 수 있게 한다.
+        /// 거래 요청 헤더는 SceneRevision이 0이면 무효다
+        /// 이 값은 RunSceneDirector가 씬을 옮길 때만 올라가는데 개발 씬은 전환이 없어 0에 머문다
+        /// 그래서 서버에서 한 번만 1로 올려 구매, 물약, 티켓, 양도를 시험할 수 있게 한다
         ///
         /// 전용 setter가 없어 리플렉션으로 넣는다. 이 도구는 개발 씬 전용이라 여기서만 허용한다
         /// </summary>

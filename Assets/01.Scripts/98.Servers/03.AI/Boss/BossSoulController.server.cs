@@ -207,7 +207,7 @@ namespace Geumeum.AI
 
         private void TryCommitImmediateSuccess()
         {
-            // D10: 이미 시작한 백귀야행은 마지막 원혼이 사라져도 끝까지 실행한다.
+            // D10: 이미 시작한 백귀야행은 마지막 원혼이 사라져도 끝까지 실행한다
             if ((_snapshot.State == BossFinalState.SoulWindow) && AllSoulsRemoved())
             {
                 CommitKillable();

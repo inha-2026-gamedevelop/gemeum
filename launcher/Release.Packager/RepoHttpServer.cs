@@ -9,8 +9,10 @@ using Geumeum.Patch;
 
 namespace Geumeum.Packager;
 
-/// 로컬 저장소 폴더를 R2와 같은 방식(Range·강한 ETag)으로 내보낸다. R2 전까지 이 PC를 배포 서버로 쓰고, 런처 자동 검증에도 쓴다.
-/// Kestrel이라 LAN 주소로 열 때 관리자 권한(urlacl)이 필요 없다.
+/// <summary>
+/// 로컬 저장소 폴더를 R2와 같은 방식(Range, 강한 ETag)으로 내보낸다. R2 전까지 이 PC를 배포 서버로 쓰고, 런처 자동 검증에도 쓴다
+/// Kestrel이라 LAN 주소로 열 때 관리자 권한(urlacl)이 필요 없다
+/// </summary>
 public sealed class RepoHttpServer : IDisposable
 {
     private const int BUFFER_SIZE = 256 * 1024;
@@ -19,7 +21,9 @@ public sealed class RepoHttpServer : IDisposable
     private readonly WebApplication  _app;
     private int _abortBudget;
 
-    /// prefix 예: http://localhost:8765/ (이 PC만), http://0.0.0.0:8765/ (LAN·외부)
+    /// <summary>
+    /// prefix 예: http://localhost:8765/ (이 PC만), http://0.0.0.0:8765/ (LAN, 외부)
+    /// </summary>
     public RepoHttpServer(string repoRoot, string prefix)
     {
         _root  = Path.GetFullPath(repoRoot);
@@ -34,7 +38,9 @@ public sealed class RepoHttpServer : IDisposable
 
     public string Prefix { get; }
 
+    /// <summary>
     /// 다음 응답 N개를 본문 도중 이 바이트 수에서 끊는다. 이어받기 검증용
+    /// </summary>
     public long AbortAfterBytes { get; set; } = -1;
 
     public int AbortCount
@@ -43,7 +49,9 @@ public sealed class RepoHttpServer : IDisposable
         set => _abortBudget = value;
     }
 
+    /// <summary>
     /// 요청 기록: "GET key 206" 같은 한 줄. 끊은 응답은 상태 코드가 음수다
+    /// </summary>
     public ConcurrentQueue<string> Requests { get; } = new();
 
     public Action<string>? Log { get; set; }

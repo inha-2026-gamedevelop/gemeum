@@ -1,9 +1,13 @@
 namespace Geumeum.Patch;
 
-/// 배포 저장소의 경로 규칙. 로컬 폴더·R2 버킷·HTTP 경로가 모두 같은 키를 쓴다(설계서 6장).
+/// <summary>
+/// 배포 저장소의 경로 규칙. 로컬 폴더, R2 버킷, HTTP 경로가 모두 같은 키를 쓴다
+/// </summary>
 public static class RepoLayout
 {
+    /// <summary>
     /// 처음 받는 사람을 위한 고정 주소. 자동 업데이트는 이 파일이 아니라 LAUNCHER_LATEST_KEY가 가리키는 객체를 받는다
+    /// </summary>
     public const string LAUNCHER_KEY        = "launcher/GeumeumLauncher.exe";
     public const string LAUNCHER_LATEST_KEY = "launcher/latest.json";
 
@@ -19,7 +23,9 @@ public static class RepoLayout
         return Path.Combine(repoDir, key.Replace('/', Path.DirectorySeparatorChar));
     }
 
-    /// 객체·manifest는 불변이라 길게, 채널 문서는 매번 재검증하게 캐시한다(설계서 10장).
+    /// <summary>
+    /// 객체, manifest는 불변이라 길게, 채널 문서는 매번 재검증하게 캐시한다
+    /// </summary>
     public static string CacheControlFor(string key)
     {
         return key.StartsWith("channels/", StringComparison.Ordinal) || key == LAUNCHER_KEY || key == LAUNCHER_LATEST_KEY
@@ -28,7 +34,9 @@ public static class RepoLayout
     }
 }
 
-/// 설계서 10장 게시 순서 중 로컬 저장소를 만드는 부분. CLI와 테스트가 같이 쓴다.
+/// <summary>
+/// 로컬 저장소를 만드는 부분. CLI와 테스트가 같이 쓴다
+/// </summary>
 public static class RepoPublisher
 {
     public sealed record PackResult(ReleaseManifest Manifest, int NewObjects, string ManifestPath);
@@ -140,7 +148,9 @@ public static class RepoPublisher
         return payload;
     }
 
-    /// 새 런처를 객체 저장소에 넣고 서명된 latest.json을 쓴다. 이미 더 높은 버전이 게시돼 있으면 거부한다(자동 다운그레이드 방지).
+    /// <summary>
+    /// 새 런처를 객체 저장소에 넣고 서명된 latest.json을 쓴다. 이미 더 높은 버전이 게시돼 있으면 거부한다(자동 다운그레이드 방지)
+    /// </summary>
     public static LauncherRelease PublishLauncher(string repoDir, string exePath, Version version, string keyId, string privateKeyPem, DateTimeOffset nowUtc)
     {
         var release = new LauncherRelease
@@ -187,7 +197,9 @@ public static class RepoPublisher
         return release;
     }
 
-    /// 게시 도구가 자기 저장소의 이전 sequence를 읽을 때만 쓴다. 런처는 반드시 VerifyAndOpen을 쓴다.
+    /// <summary>
+    /// 게시 도구가 자기 저장소의 이전 sequence를 읽을 때만 쓴다. 런처는 반드시 VerifyAndOpen을 쓴다
+    /// </summary>
     public static ChannelPayload OpenUnverified(byte[] envelopeBytes)
     {
         SignedEnvelope envelope = SignedEnvelope.Parse(envelopeBytes);

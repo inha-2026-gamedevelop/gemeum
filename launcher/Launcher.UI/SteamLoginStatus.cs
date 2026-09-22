@@ -7,7 +7,9 @@ namespace Geumeum.Launcher;
 
 public enum SteamLoginState { NotRunning, SignedOut, SignedIn, Unknown }
 
-/// 로컬 Steam 세션만 확인한다. 온라인 서비스 연결 여부는 게임의 Steamworks API가 판정한다.
+/// <summary>
+/// 로컬 Steam 세션만 확인한다. 온라인 서비스 연결 여부는 게임의 Steamworks API가 판정한다
+/// </summary>
 public static class SteamLoginStatus
 {
     public static SteamLoginState Evaluate(bool running, int? activeUser, bool sessionProcessMatches)

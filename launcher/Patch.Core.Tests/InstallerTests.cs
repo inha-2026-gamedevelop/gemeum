@@ -7,7 +7,9 @@ using Xunit;
 
 namespace Geumeum.Patch.Tests;
 
-/// 설계서 12장 P2 통과 기준과 필수 검증 목록 중 런처 엔진이 맡는 항목.
+/// <summary>
+/// P2 통과 기준과 필수 검증 목록 중 런처 엔진이 맡는 항목
+/// </summary>
 public sealed class InstallerTests : IDisposable
 {
     private const string KEY_ID  = "test-key";
@@ -220,7 +222,7 @@ public sealed class InstallerTests : IDisposable
         await InstallAsync(remote);
         AssertInstalled(v2, V2());
 
-        // 다운로드가 끝난 뒤 멈췄다면 staging·버전 폴더를 이어 써서 다시 받지 않는다
+        // 다운로드가 끝난 뒤 멈췄다면 staging, 버전 폴더를 이어 써서 다시 받지 않는다
         if (crashAt is "after-download" or "before-move" or "before-switch" or "after-switch")
         {
             Assert.Empty(remote.Downloads);

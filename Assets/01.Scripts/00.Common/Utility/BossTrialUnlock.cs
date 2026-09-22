@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 보스 트라이 해금 상태. 런을 한 번이라도 시작했으면 열리고, 실행 인자로는 무조건 열린다.
+    /// 보스 트라이 해금 상태. 런을 한 번이라도 시작했으면 열리고, 실행 인자로는 무조건 열린다
     /// 이 프로젝트에서 유일하게 남는 로컬 값이라 bool 하나로 끝낸다
     /// </summary>
     public static class BossTrialUnlock

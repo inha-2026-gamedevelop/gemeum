@@ -1,10 +1,10 @@
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 런 흐름의 씬 역할과 실제 씬 이름을 잇는다.
+    /// 런 흐름의 씬 역할과 실제 씬 이름을 잇는다
     ///
     /// Mirror에 넘길 때는 문자열이 필요한데, 호출부마다 문자열을 적으면 씬 이름이 바뀌는 순간
-    /// 컴파일 에러 없이 런타임에 실패한다. 변환을 한 곳에 모아 그 실패를 여기서만 낸다.
+    /// 컴파일 에러 없이 런타임에 실패한다. 변환을 한 곳에 모아 그 실패를 여기서만 낸다
     /// Mirror에 의존하지 않는 순수 C#이라 데디케이티드로 옮길 때 그대로 쓴다
     /// </summary>
     public static class RunSceneCatalog
@@ -92,7 +92,7 @@ namespace Geumeum.Common
         }
 
         /// <summary>
-        /// 도착한 뒤 참가자 전투 상태를 되부어야 하는 씬인지.
+        /// 도착한 뒤 참가자 전투 상태를 되부어야 하는 씬인지
         /// 결과 씬은 정산만 보여주므로 되부을 이유가 없고, 그 판단을 씬마다 흩어 두면 규칙이 갈라진다
         /// </summary>
         public static bool ShouldRestoreParticipants(RunSceneId sceneId)
@@ -103,9 +103,9 @@ namespace Geumeum.Common
         }
 
         /// <summary>
-        /// 이 phase가 있어야 하는 씬. 씬을 바꾸지 않는 phase면 false다.
+        /// 이 phase가 있어야 하는 씬. 씬을 바꾸지 않는 phase면 false다
         ///
-        /// 결계 축소 세 단계는 전부 Field에 머문다. 축소는 씬 교체가 아니라 같은 씬 안의 반경 변화다.
+        /// 결계 축소 세 단계는 전부 Field에 머문다. 축소는 씬 교체가 아니라 같은 씬 안의 반경 변화다
         /// Boss phase 자체의 목적지는 Boss_Arena다. 정식 전실 경유는 phase가 아니라
         /// BossEntranceState를 키로 쓰는 TryGetSceneForBossEntrance가 결정한다
         /// </summary>

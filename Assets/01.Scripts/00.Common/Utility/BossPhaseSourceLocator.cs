@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Geumeum.Common
 {
-    /// <summary>Client-lifetime source used by arena presentation without scene polling.</summary>
+    /// <summary>Client-lifetime source used by arena presentation without scene polling</summary>
     public static class BossPhaseSourceLocator
     {
         private static IBossPhaseSource _current;

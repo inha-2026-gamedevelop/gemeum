@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// 관리 창이 열려 있는 동안 HUD를 숨긴다.
+    /// 관리 창이 열려 있는 동안 HUD를 숨긴다
     /// GameObject를 끄지 않고 Canvas만 끄므로, 숨어 있는 동안에도 바인딩과 값 갱신은 계속된다
     /// </summary>
     [RequireComponent(typeof(Canvas))]

@@ -86,8 +86,8 @@ namespace Geumeum.Systems.Tests
 
             Assert.IsTrue(_wallet.TryApplyReviveLoss(participant, 3u, 0.2f,
                 out int loss));
-            // 비-spawn EditMode NetworkBehaviour에서는 SyncVar hook가 자동 실행되지 않는다.
-            // 실제 publish 시점과 같은 인자로 hook를 호출해 재진입 경계를 검증한다.
+            // 비-spawn EditMode NetworkBehaviour에서는 SyncVar hook가 자동 실행되지 않는다
+            // 실제 publish 시점과 같은 인자로 hook를 호출해 재진입 경계를 검증한다
             Invoke(_wallet, "OnBalanceChanged", 100, 80);
 
             Assert.AreEqual(20, loss);

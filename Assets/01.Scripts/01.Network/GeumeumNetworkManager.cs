@@ -127,7 +127,7 @@ namespace Geumeum.Network
             // onlineScene을 비워 두고 ServerChangeScene을 쓰는 프로젝트라 Mirror의
             // clientLoadedScene만으로는 초기 SceneMessage를 예측할 수 없다. 원격은
             // 인증 응답에 기록된 scene sync를 기다려 OnClientSceneChanged에서 한 번만
-            // Ready/AddPlayer를 보낸다. Host는 scene load callback이 생략될 수 있어 즉시 처리한다.
+            // Ready/AddPlayer를 보낸다. Host는 scene load callback이 생략될 수 있어 즉시 처리한다
             if (NetworkServer.active || !GeumeumAuthenticator.ClientSceneSyncExpected)
             {
                 base.OnClientConnect();
@@ -137,7 +137,7 @@ namespace Geumeum.Network
         }
 
         /// <summary>
-        /// Mirror가 씬 전환을 끝내고 NetworkClient.Ready()까지 부른 뒤에 불린다.
+        /// Mirror가 씬 전환을 끝내고 NetworkClient.Ready()까지 부른 뒤에 불린다
         /// 도착 보고는 반드시 여기서 한다 - SceneManager.sceneLoaded 시점은 아직 ready가 아니라
         /// Command가 버려지고 서버가 이 클라를 계속 기다린다
         /// </summary>

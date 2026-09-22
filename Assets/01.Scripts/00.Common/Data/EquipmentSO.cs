@@ -10,7 +10,7 @@ using Geumeum.Common;
 namespace Geumeum.Data
 {
     /// <summary>
-    /// 장비 원본 설계도. 등급별 공격력 롤 범위와 무기별 특수옵션 풀을 가진다.
+    /// 장비 원본 설계도. 등급별 공격력 롤 범위와 무기별 특수옵션 풀을 가진다
     /// 굴려진 결과는 EquipmentInstance가 들고 여기에는 두지 않는다
     /// </summary>
     [CreateAssetMenu(fileName = "EquipmentSO", menuName = "Geumeum/EquipmentSO")]

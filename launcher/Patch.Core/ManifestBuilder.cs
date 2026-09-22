@@ -1,9 +1,13 @@
 namespace Geumeum.Patch;
 
-/// Unity 빌드 폴더를 훑어 manifest를 만든다. 제외는 명시 규칙으로만 하고, 나머지는 전부 넣는다.
+/// <summary>
+/// Unity 빌드 폴더를 훑어 manifest를 만든다. 제외는 명시 규칙으로만 하고, 나머지는 전부 넣는다
+/// </summary>
 public static class ManifestBuilder
 {
-    /// 빌드 폴더에 있어도 배포하면 안 되는 것. Development 빌드의 실행 스크립트와 Unity가 "배포하지 말라"고 이름 붙인 폴더.
+    /// <summary>
+    /// 빌드 폴더에 있어도 배포하면 안 되는 것. Development 빌드의 실행 스크립트와 Unity가 "배포하지 말라"고 이름 붙인 폴더
+    /// </summary>
     public static readonly string[] DefaultExcludeDirectories =
     {
         "gemeum_BackUpThisFolder_ButDontShipItWithYourGame",

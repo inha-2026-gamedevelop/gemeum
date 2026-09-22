@@ -1,6 +1,8 @@
 namespace Geumeum.Patch;
 
-/// 설계서 6장 manifest. 파일 목록은 경로 Ordinal 정렬로 고정해 같은 입력이면 같은 바이트가 나오게 한다.
+/// <summary>
+/// manifest. 파일 목록은 경로 Ordinal 정렬로 고정해 같은 입력이면 같은 바이트가 나오게 한다
+/// </summary>
 public sealed class ReleaseManifest
 {
     public const int CURRENT_SCHEMA_VERSION = 1;
@@ -27,7 +29,9 @@ public sealed class ReleaseManifest
         return StrictJson.SerializeToUtf8Bytes(this);
     }
 
-    /// 바이트를 먼저 해시로 검증한 뒤에만 호출한다. 여기서는 형식만 본다.
+    /// <summary>
+    /// 바이트를 먼저 해시로 검증한 뒤에만 호출한다. 여기서는 형식만 본다
+    /// </summary>
     public static ReleaseManifest Parse(ReadOnlySpan<byte> utf8)
     {
         ReleaseManifest manifest = StrictJson.Deserialize<ReleaseManifest>(utf8, ManifestLimits.MAX_MANIFEST_BYTES);

@@ -11,9 +11,9 @@ using Geumeum.Data;
 namespace Geumeum.Art
 {
     /// <summary>
-    /// BossController.PatternImpact·PatternTelegraphVfx 신호를 받아 지점에 패턴별 VFX 프리팹을
-    /// 생성했다가 지운다. 판정에는 관여하지 않는 표현 전용 러프 연출 — 1페이즈 4템플릿 전부 붙였다.
-    /// 정식 프로덕션 파이프라인(PresentationConfigSO·풀링)을 거치지 않는 임시 구현이다
+    /// BossController.PatternImpact, PatternTelegraphVfx 신호를 받아 지점에 패턴별 VFX 프리팹을
+    /// 생성했다가 지운다. 판정에는 관여하지 않는 표현 전용 러프 연출 - 1페이즈 4템플릿 전부 붙였다
+    /// 정식 프로덕션 파이프라인(PresentationConfigSO, 풀링)을 거치지 않는 임시 구현이다
     /// </summary>
     [RequireComponent(typeof(BossController))]
     public sealed class BossPatternImpactVfxView : MonoBehaviour

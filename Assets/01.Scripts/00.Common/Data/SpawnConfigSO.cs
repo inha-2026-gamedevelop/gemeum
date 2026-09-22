@@ -10,7 +10,7 @@ using Geumeum.Common;
 namespace Geumeum.Data
 {
     /// <summary>
-    /// 구간별 동시 존재 수, 구성 비율, 리스폰 주기.
+    /// 구간별 동시 존재 수, 구성 비율, 리스폰 주기
     /// 스폰이 없는 구간은 항목 자체를 두지 않는다, 결계 데이터와 달리 전 구간을 채우지 않아도 정상이다
     /// </summary>
     [CreateAssetMenu(fileName = "SpawnConfigSO", menuName = "Geumeum/SpawnConfigSO")]
@@ -80,7 +80,7 @@ namespace Geumeum.Data
         ****************************************/
 
         /// <summary>
-        /// 구간별 스폰 설정을 찾는다.
+        /// 구간별 스폰 설정을 찾는다
         /// false는 데이터 오류가 아니라 그 구간에 스폰이 없다는 뜻이다, Shrink3와 Boss가 여기 해당한다
         /// </summary>
         public bool TryGetPhase(RunPhase phase, out PhaseEntry entry)
@@ -104,7 +104,7 @@ namespace Geumeum.Data
             return false;
         }
 
-        /// <summary>생산 스폰과 축소 몰이의 상한, 유예, 경로 재시도 정의를 검증한다.</summary>
+        /// <summary>생산 스폰과 축소 몰이의 상한, 유예, 경로 재시도 정의를 검증한다</summary>
         public bool ValidateDefinition(out string failure)
         {
             if ((_clusterSizeMin <= 0) || (_clusterSizeMax < _clusterSizeMin) ||

@@ -8,8 +8,8 @@ using Geumeum.Common;
 namespace Geumeum.Systems
 {
     /// <summary>
-    /// 네트워크, RunManager 없이 BarrierJudge 보간, 판정만 눈으로 확인하는 독립 테스트 도구.
-    /// Play만 누르면 인스펙터 값대로 반경이 줄어드는 걸 Scene 뷰에서 바로 볼 수 있다.
+    /// 네트워크, RunManager 없이 BarrierJudge 보간, 판정만 눈으로 확인하는 독립 테스트 도구
+    /// Play만 누르면 인스펙터 값대로 반경이 줄어드는 걸 Scene 뷰에서 바로 볼 수 있다
     /// BarrierController와 무관하고, 실제 결계 판정에는 전혀 관여하지 않는다. 확인 끝나면 씬에서 빼도 된다
     /// </summary>
     public class BarrierJudgeGizmoPreview : MonoBehaviour

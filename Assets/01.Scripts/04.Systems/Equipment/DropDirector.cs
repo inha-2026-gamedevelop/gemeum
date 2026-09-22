@@ -16,7 +16,7 @@ using Geumeum.Network;
 namespace Geumeum.Systems
 {
     /// <summary>
-    /// 적이 죽으면 드랍 여부를 정하고 장비를 만들어 월드에 스폰한다.
+    /// 적이 죽으면 드랍 여부를 정하고 장비를 만들어 월드에 스폰한다
     /// 생성기와 난수는 런 하나에 하나만 두어, 씬을 옮겨도 인스턴스 ID가 겹치지 않게 한다
     /// </summary>
     [DisallowMultipleComponent]

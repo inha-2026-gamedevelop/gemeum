@@ -13,7 +13,9 @@ public enum InstallStage
     Repairing,
 }
 
-/// 화면 진행률. 파일 검사·복사와 다운로드를 따로 보여 준다(설계서 9장).
+/// <summary>
+/// 화면 진행률. 파일 검사, 복사와 다운로드를 따로 보여 준다
+/// </summary>
 public readonly record struct InstallProgress(
     InstallStage Stage,
     long         DoneBytes,
@@ -29,7 +31,9 @@ public sealed class InstallerOptions
     public long     SafetyMarginBytes { get; init; } = 512L * 1024 * 1024;
     public bool     CheckVolume       { get; init; } = true;
 
-    /// 자동 검증이 강제 종료를 흉내 내는 지점. 운영에서는 비워 둔다.
+    /// <summary>
+    /// 자동 검증이 강제 종료를 흉내 내는 지점. 운영에서는 비워 둔다
+    /// </summary>
     public Action<string>? Checkpoint { get; init; }
 
     public Func<DateTimeOffset> Clock { get; init; } = () => DateTimeOffset.UtcNow;
@@ -40,7 +44,9 @@ public sealed class LocalStatus
     public ActivePointer?   Active         { get; init; }
     public ReleaseManifest? ActiveManifest { get; init; }
 
+    /// <summary>
     /// 설치가 있지만 실행할 수 없는 이유. 없으면 null
+    /// </summary>
     public string? Problem { get; init; }
 
     public bool IsInstalled => Active != null && Problem == null;
@@ -57,12 +63,14 @@ public sealed class UpdateCheck
 
 public sealed record RepairResult(int Checked, int Repaired, int RemovedExtras);
 
-/// 설계서 7장 설치 순서와 복구. 기존 버전 폴더를 덮어쓰지 않고 새 폴더를 완성한 뒤 포인터만 바꾼다.
+/// <summary>
+/// 설치 순서와 복구. 기존 버전 폴더를 덮어쓰지 않고 새 폴더를 완성한 뒤 포인터만 바꾼다
+/// </summary>
 public sealed class Installer
 {
     public const int MAX_NOTES_BYTES = 64 * 1024;
 
-    // 설치 폴더 안에 있어도 되는 실행 파일 외 부산물. 나머지 exe·dll은 manifest에 없으면 지운다
+    // 설치 폴더 안에 있어도 되는 실행 파일 외 부산물. 나머지 exe, dll은 manifest에 없으면 지운다
     private static readonly string[] ExecutableSuffixes = { ".exe", ".dll" };
 
     private readonly InstallLayout                       _layout;
@@ -113,7 +121,9 @@ public sealed class Installer
         return new LocalStatus { Active = active, ActiveManifest = manifest, Problem = problem };
     }
 
-    /// 포인터와 그 manifest, 버전 폴더의 파일 존재·크기까지 본다. 해시는 비싸서 검사·복구와 업데이트 때만 계산한다.
+    /// <summary>
+    /// 포인터와 그 manifest, 버전 폴더의 파일 존재, 크기까지 본다. 해시는 비싸서 검사, 복구와 업데이트 때만 계산한다
+    /// </summary>
     private ActivePointer? TryLoadPointer(string path, out ReleaseManifest? manifest, out string? problem, bool checkFiles = true)
     {
         manifest = null;
@@ -204,7 +214,9 @@ public sealed class Installer
         return null;
     }
 
-    /// 강제 종료 뒤 상태를 맞춘다. 잠금을 가진 상태에서만 부른다(설계서 7장 마지막 문단).
+    /// <summary>
+    /// 강제 종료 뒤 상태를 맞춘다. 잠금을 가진 상태에서만 부른다(마지막 문단)
+    /// </summary>
     private void Recover()
     {
         TransactionRecord? transaction = ReadTransaction();
@@ -450,7 +462,9 @@ public sealed class Installer
         return created;
     }
 
-    /// 현재·직전 버전에서 같은 해시 파일을 찾을 후보. 실제 내용은 복사하면서 다시 해시한다.
+    /// <summary>
+    /// 현재, 직전 버전에서 같은 해시 파일을 찾을 후보. 실제 내용은 복사하면서 다시 해시한다
+    /// </summary>
     private Dictionary<string, List<string>> LocalSources(LocalStatus local)
     {
         var sources = new Dictionary<string, List<string>>(StringComparer.Ordinal);
@@ -478,7 +492,7 @@ public sealed class Installer
         return sources;
     }
 
-    // 새 버전 전체 복사 크기 + 받아야 할 크기 + 여유분을 본다(설계서 7장 5단계)
+    // 새 버전 전체 복사 크기 + 받아야 할 크기 + 여유분을 본다(5단계)
     private void EnsureDiskSpace(ReleaseManifest target, string staging, Dictionary<string, List<string>> sources)
     {
         long already = 0;
@@ -646,7 +660,7 @@ public sealed class Installer
             }
             catch (RemoteNotFoundException e)
             {
-                // 다른 릴리스 파일로 대체하지 않는다(설계서 8장)
+                // 다른 릴리스 파일로 대체하지 않는다
                 throw new PatchTrustException($"배포가 불완전하다 — 객체가 서버에 없다: {sha}", e);
             }
             catch (Exception e) when (e is RemoteTransientException or IOException && !ct.IsCancellationRequested)
@@ -689,7 +703,7 @@ public sealed class Installer
         File.Delete(part + ".json");
     }
 
-    // staging이 manifest와 정확히 같은지 본다. 목록에 없는 파일·링크가 있으면 전환하지 않는다
+    // staging이 manifest와 정확히 같은지 본다. 목록에 없는 파일, 링크가 있으면 전환하지 않는다
     private static void ValidateStaging(string staging, ReleaseManifest target)
     {
         PathGuard.EnsureNoReparsePoints(staging);
@@ -744,7 +758,7 @@ public sealed class Installer
         Cleanup(after);
     }
 
-    // 현재·직전 정상 버전만 남긴다. 실행 중인 버전은 지우지 않는다(설계서 10장)
+    // 현재, 직전 정상 버전만 남긴다. 실행 중인 버전은 지우지 않는다
     private void Cleanup(LocalStatus current)
     {
         var keep = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { current.Active!.ReleaseId };
@@ -902,7 +916,7 @@ public sealed class Installer
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
-    // 한 번 읽으면서 복사와 해시를 같이 한다. 기존 파일의 실제 내용을 크기·시각이 아니라 해시로 확인한다
+    // 한 번 읽으면서 복사와 해시를 같이 한다. 기존 파일의 실제 내용을 크기, 시각이 아니라 해시로 확인한다
     private static async Task<string> CopyWithHashAsync(string source, string destination, CancellationToken ct)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);

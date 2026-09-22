@@ -3,7 +3,9 @@ using Geumeum.Patch.Client;
 
 namespace Geumeum.Packager;
 
-/// 설계서 10장 게시 순서의 도구. 객체·manifest는 불변 경로에, 채널 envelope만 교체한다.
+/// <summary>
+/// 게시 순서의 도구. 객체, manifest는 불변 경로에, 채널 envelope만 교체한다
+/// </summary>
 internal static class Program
 {
     private const string USAGE = """
@@ -245,7 +247,7 @@ internal static class Program
         return 0;
     }
 
-    // 게시 순서 4단계: 실제 다운로드 경로에서 서명·해시가 맞는지 런처와 같은 코드로 확인한다
+    // 게시 순서 4단계: 실제 다운로드 경로에서 서명, 해시가 맞는지 런처와 같은 코드로 확인한다
     private static async Task<int> VerifyRemoteAsync(Dictionary<string, string> o)
     {
         string channel = Require(o, "channel");
@@ -270,7 +272,7 @@ internal static class Program
                 string part = Path.Combine(temp, file.Sha256);
                 if (file.Size == 0)
                 {
-                    // 이어받기는 0/0을 완료로 보므로 빈 객체도 GET으로 존재·내용을 확인한다.
+                    // 이어받기는 0/0을 완료로 보므로 빈 객체도 GET으로 존재, 내용을 확인한다
                     byte[] empty = await remote.GetBytesAsync(RepoLayout.ObjectKey(file.Sha256), 1, CancellationToken.None);
                     await File.WriteAllBytesAsync(part, empty);
                 }

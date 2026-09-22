@@ -1,4 +1,4 @@
-﻿# 클라이언트 접속 결과를 요약한다. 접속은 호스트가 승인해야 성립하므로 조금 기다린다.
+﻿# 클라이언트 접속 결과를 요약한다. 접속은 호스트가 승인해야 성립하므로 조금 기다린다
 param(
     [Parameter(Mandatory = $true)][string]$LogPath,
     [int]$TimeoutSeconds = 45

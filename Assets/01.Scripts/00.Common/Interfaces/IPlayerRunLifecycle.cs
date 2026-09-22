@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 런 경계에서 서버가 플레이어에게 하는 조작. 위치 이동과 상태 초기화만 담는다.
+    /// 런 경계에서 서버가 플레이어에게 하는 조작. 위치 이동과 상태 초기화만 담는다
     /// 역할 배분은 IPlayerRoleAssignment가 따로 맡는다
     /// </summary>
     public interface IPlayerRunLifecycle
@@ -19,7 +19,7 @@ namespace Geumeum.Common
         void ResetForNewRun();
 
         /// <summary>
-        /// 지금 값을 그릇에 담는다. 이탈 직전과 씬을 옮기기 직전에 부른다.
+        /// 지금 값을 그릇에 담는다. 이탈 직전과 씬을 옮기기 직전에 부른다
         /// 상태를 바꾸지 않으며, 담을 것이 하나도 없으면 false다
         /// </summary>
         bool CaptureRunState(RunParticipantSnapshot snapshot);

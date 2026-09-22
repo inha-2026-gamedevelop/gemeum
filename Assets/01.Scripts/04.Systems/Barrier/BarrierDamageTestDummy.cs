@@ -7,7 +7,7 @@ using Geumeum.Common;
 namespace Geumeum.Systems
 {
     /// <summary>
-    /// 결계 서버 피해 tick이 실제로 IDamageable.TakeDamage를 호출하는지 눈으로 확인하는 테스트 전용 더미.
+    /// 결계 서버 피해 tick이 실제로 IDamageable.TakeDamage를 호출하는지 눈으로 확인하는 테스트 전용 더미
     /// Player.prefab 없이 Dev_Barrier 씬에 바로 놓고 확인할 때 쓴다, 정식 컨텐츠가 아니라 확인 끝나면 빼도 된다
     /// </summary>
     public class BarrierDamageTestDummy : MonoBehaviour, IDamageable

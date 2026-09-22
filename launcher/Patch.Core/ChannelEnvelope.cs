@@ -1,6 +1,8 @@
 namespace Geumeum.Patch;
 
-/// 채널 최신 배포를 가리키는 서명 봉투. 서명 대상은 payloadBase64를 디코딩한 원본 바이트다 — JSON을 다시 만들어 검증하지 않는다.
+/// <summary>
+/// 채널 최신 배포를 가리키는 서명 봉투. 서명 대상은 payloadBase64를 디코딩한 원본 바이트다 - JSON을 다시 만들어 검증하지 않는다
+/// </summary>
 public sealed class SignedEnvelope
 {
     public string KeyId           { get; set; } = "";
@@ -29,7 +31,9 @@ public sealed class SignedEnvelope
         };
     }
 
-    /// 신뢰 키 목록으로 서명을 확인하고 payload를 돌려준다. 실패는 전부 예외 — 우회 경로를 두지 않는다.
+    /// <summary>
+    /// 신뢰 키 목록으로 서명을 확인하고 payload를 돌려준다. 실패는 전부 예외 - 우회 경로를 두지 않는다
+    /// </summary>
     public ChannelPayload VerifyAndOpen(IReadOnlyDictionary<string, string> trustedPublicKeysPem, DateTimeOffset nowUtc, long? lastSeenSequence)
     {
         ChannelPayload opened = ChannelPayload.Parse(VerifyPayload(trustedPublicKeysPem));
@@ -50,7 +54,9 @@ public sealed class SignedEnvelope
         return opened;
     }
 
-    /// 서명만 확인하고 원본 payload 바이트를 돌려준다. 해석은 문서 종류별 Parse가 한다.
+    /// <summary>
+    /// 서명만 확인하고 원본 payload 바이트를 돌려준다. 해석은 문서 종류별 Parse가 한다
+    /// </summary>
     public byte[] VerifyPayload(IReadOnlyDictionary<string, string> trustedPublicKeysPem)
     {
         if (!trustedPublicKeysPem.TryGetValue(KeyId, out string? publicKeyPem))
@@ -79,7 +85,9 @@ public sealed class SignedEnvelope
     }
 }
 
-/// 최신 런처를 가리키는 서명 문서(launcher/latest.json의 payload). exe는 게임 파일과 같은 객체 저장소에 해시 이름으로 둔다.
+/// <summary>
+/// 최신 런처를 가리키는 서명 문서(launcher/latest.json의 payload). exe는 게임 파일과 같은 객체 저장소에 해시 이름으로 둔다
+/// </summary>
 public sealed class LauncherRelease
 {
     public const int  CURRENT_SCHEMA_VERSION = 1;
@@ -114,7 +122,9 @@ public sealed class LauncherRelease
         return r;
     }
 
-    /// 1.2.0.0 같은 파일 버전을 세 자리로 맞춘다. 런처 자기 버전 비교와 같은 규칙이다.
+    /// <summary>
+    /// 1.2.0.0 같은 파일 버전을 세 자리로 맞춘다. 런처 자기 버전 비교와 같은 규칙이다
+    /// </summary>
     public static System.Version Normalize(System.Version v) => new(v.Major, v.Minor, Math.Max(v.Build, 0));
 }
 
@@ -159,7 +169,9 @@ public sealed class ChannelPayload
         return p;
     }
 
-    /// 다운로드한 manifest 바이트가 서명된 payload가 가리키는 것인지 확인한 뒤에만 파싱한다.
+    /// <summary>
+    /// 다운로드한 manifest 바이트가 서명된 payload가 가리키는 것인지 확인한 뒤에만 파싱한다
+    /// </summary>
     public ReleaseManifest OpenManifest(ReadOnlySpan<byte> manifestUtf8)
     {
         if (manifestUtf8.Length != ManifestSize)
@@ -187,7 +199,9 @@ public sealed class PatchTrustException : Exception
     public PatchTrustException(string message, Exception inner) : base(message, inner) { }
 }
 
-/// PC 시계 오차는 다른 오류와 구분해 안내한다(설계서 6장).
+/// <summary>
+/// PC 시계 오차는 다른 오류와 구분해 안내한다
+/// </summary>
 public sealed class PatchClockException : Exception
 {
     public PatchClockException(string message) : base(message) { }

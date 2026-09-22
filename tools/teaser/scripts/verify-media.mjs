@@ -10,7 +10,7 @@ import {probeMedia, videoMetadata, verifyVideo, verifyAudio} from './media.mjs';
 import {validatePlan} from '../src/plan.mjs';
 import {registerMedia} from './register-media.mjs';
 
-// Synthetic sources are isolated and never registered in the production manifest.
+// Synthetic sources are isolated and never registered in the production manifest
 const root = fileURLToPath(new URL('../', import.meta.url));
 const id = `verify-${randomUUID()}`;
 const mediaRoot = resolve(root, 'public/media', id);
@@ -56,7 +56,7 @@ for (const [i, trim] of [[0,60], [1,0]]) {
   shot.selectedTakeId = shot.takes[0].id;
   verifyVideo(probeMedia(video), plan, shot, shot.takes[0]);
 }
-// 'origin' here only exercises the contract. This test pattern is not Unity footage.
+// 'origin' here only exercises the contract. This test pattern is not Unity footage
 plan.audioCues = [{id: 'test-tone', startFrame: 0, durationFrames: 240, sourceInFrame: 60, volume: 1, label: '검증용 합성음', assetPath: `media/${id}/synthetic-tone.wav`}];
 verifyAudio(probeMedia(sound), plan, plan.audioCues[0]);
 assert.deepEqual(validatePlan(plan), []);
@@ -73,7 +73,7 @@ const clip = resolve(output, 'synthetic-review.mp4');
 await renderMedia({serveUrl, composition, inputProps, codec: 'h264', audioCodec: 'aac', outputLocation: clip, frameRange: [0,59], concurrency: 2});
 const samples = ffmpeg(['-i', clip, '-vn', '-ac', '1', '-ar', '48000', '-f', 'f32le', 'pipe:1'], true);
 let sum = 0, count = 0;
-// First 0.2s must already contain sound: source silence was trimmed off.
+// First 0.2s must already contain sound: source silence was trimmed off
 for (let offset = 0; offset < Math.min(samples.length, 9600*4); offset += 4) { sum += samples.readFloatLE(offset) ** 2; count++; }
 assert.ok(count > 0 && Math.sqrt(sum/count) > .2, 'Trimmed audio is silent or attenuated unexpectedly.');
 assert.equal(readFileSync(manifest, 'utf8'), original, 'Production manifest changed during verification.');

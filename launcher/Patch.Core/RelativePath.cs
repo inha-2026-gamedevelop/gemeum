@@ -1,6 +1,8 @@
 namespace Geumeum.Patch;
 
-/// manifest 안의 파일 경로 규칙. 설계서 7장 — 설치 루트 밖으로 쓰기가 나가지 않게 막는다.
+/// <summary>
+/// manifest 안의 파일 경로 규칙. - 설치 루트 밖으로 쓰기가 나가지 않게 막는다
+/// </summary>
 public static class RelativePath
 {
     public const int MAX_LENGTH = 240;
@@ -12,7 +14,9 @@ public static class RelativePath
         "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
     };
 
-    /// 통과하면 null, 아니면 거부 사유를 돌려준다. manifest 경로는 항상 '/' 구분자다.
+    /// <summary>
+    /// 통과하면 null, 아니면 거부 사유를 돌려준다. manifest 경로는 항상 '/' 구분자다
+    /// </summary>
     public static string? Validate(string path)
     {
         if (string.IsNullOrEmpty(path))              return "빈 경로";
@@ -39,7 +43,9 @@ public static class RelativePath
         return null;
     }
 
-    /// 대소문자 충돌과 파일·디렉터리 충돌을 목록 전체에서 찾는다.
+    /// <summary>
+    /// 대소문자 충돌과 파일, 디렉터리 충돌을 목록 전체에서 찾는다
+    /// </summary>
     public static List<string> FindCollisions(IEnumerable<string> paths)
     {
         var errors      = new List<string>();

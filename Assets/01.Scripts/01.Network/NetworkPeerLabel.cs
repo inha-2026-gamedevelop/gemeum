@@ -7,13 +7,13 @@ using Geumeum.Common;
 namespace Geumeum.Network
 {
     /// <summary>
-    /// 서버 로그에 사람을 적는 방법 한 곳.
+    /// 서버 로그에 사람을 적는 방법 한 곳
     ///
-    /// connectionId만 적으면 3인 테스트에서 1번이 누구였는지 매 판 다시 맞춰야 한다.
+    /// connectionId만 적으면 3인 테스트에서 1번이 누구였는지 매 판 다시 맞춰야 한다
     /// 이름을 알 수 있으면 이름을 앞에 두고, connectionId는 뒤에 남긴다 -
-    /// 이름은 같을 수 있고 Mirror 로그와 맞춰 볼 때는 번호가 필요하다.
+    /// 이름은 같을 수 있고 Mirror 로그와 맞춰 볼 때는 번호가 필요하다
     ///
-    /// 접속·인증 시점에는 아직 플레이어 오브젝트가 없어 이름을 알 수 없다.
+    /// 접속, 인증 시점에는 아직 플레이어 오브젝트가 없어 이름을 알 수 없다
     /// 그때는 번호만 적힌다
     /// </summary>
     public static class NetworkPeerLabel

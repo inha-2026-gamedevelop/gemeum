@@ -12,7 +12,7 @@ using Geumeum.Common;
 namespace Geumeum.Data
 {
     /// <summary>
-    /// 결계 단계별 시간, 반경, 피해량.
+    /// 결계 단계별 시간, 반경, 피해량
     /// 각 파트가 시간을 따로 계산해 자기 상태를 바꾸지 않도록 구간 전환 시각도 여기 하나에 모은다
     /// </summary>
     [CreateAssetMenu(fileName = "BarrierPhaseSO", menuName = "Geumeum/BarrierPhaseSO")]
@@ -48,7 +48,7 @@ namespace Geumeum.Data
         *                Fields
         ****************************************/
 
-        // 필드 구간의 상한이다. 보스전은 여기에 이어 붙지 않고 자기 시계로 14분을 센다.
+        // 필드 구간의 상한이다. 보스전은 여기에 이어 붙지 않고 자기 시계로 14분을 센다
         // 이 값에 도달하면 실패가 아니라 보스맵으로 강제 이동한다
         [Header("필드 길이")]
         [FormerlySerializedAs("_runTimeLimitSeconds")]
@@ -142,7 +142,7 @@ namespace Geumeum.Data
             return false;
         }
 
-        /// <summary>생산 필드 결계의 후보 탐색 한계와 필수 랜드마크 정의를 검증한다.</summary>
+        /// <summary>생산 필드 결계의 후보 탐색 한계와 필수 랜드마크 정의를 검증한다</summary>
         public bool ValidateDefinition(out string failure)
         {
             if (!IsFinitePositive(_fieldTimeLimitSeconds) ||

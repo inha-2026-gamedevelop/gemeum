@@ -41,7 +41,7 @@ namespace Geumeum.Network.Tests
             _requiredDropPrefab.AddComponent<DroppedItem>();
             SetField(provider, "_droppedItemPrefab", _requiredDropPrefab);
 
-            // 기존 부트 목록이 모두 유효해도 공급자가 요구한 프리팹은 별도로 등록되어야 한다.
+            // 기존 부트 목록이 모두 유효해도 공급자가 요구한 프리팹은 별도로 등록되어야 한다
             for (int i = 0; i < 6; ++i)
             {
                 _manager.spawnPrefabs.Add(CreateNetworkPrefab($"RegisteredSpawnPrefab{i}"));

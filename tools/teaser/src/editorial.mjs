@@ -8,7 +8,7 @@ export function inkAmount(overlay, frame, plan) {
   if (local < 0 || local >= overlay.durationFrames) return 0;
   if (!overlay.targetShotId) return local / (overlay.durationFrames - 1);
   const boundary = plan.shots.find(s => s.id === overlay.targetShotId).startFrame - overlay.startFrame;
-  // Entire image is covered on both sides of the cut; output duration never shrinks.
+  // Entire image is covered on both sides of the cut; output duration never shrinks
   if (local < boundary) return Math.min(1, local / Math.max(1, boundary - 1));
   return Math.max(0, 1 - (local - boundary) / Math.max(1, overlay.durationFrames - 1 - boundary));
 }

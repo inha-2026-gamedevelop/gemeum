@@ -2,7 +2,9 @@ using System.Security.Cryptography;
 
 namespace Geumeum.Patch;
 
-/// ECDSA P-256 + SHA-256, 서명 형식은 IEEE P1363 고정 64바이트. 송수신이 같은 형식을 써야 한다(설계서 6장).
+/// <summary>
+/// ECDSA P-256 + SHA-256, 서명 형식은 IEEE P1363 고정 64바이트. 송수신이 같은 형식을 써야 한다
+/// </summary>
 public static class ReleaseSigner
 {
     public const int SIGNATURE_LENGTH = 64;

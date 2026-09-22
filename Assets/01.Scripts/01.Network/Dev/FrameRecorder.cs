@@ -28,7 +28,7 @@ namespace Geumeum.Network
         private const string PANEL_TITLE = "프레임 기록";
 
         [Header("단축키")]
-        // F9는 GDebugOverlay의 로그 비우기와, F1은 호스트 시작과 겹친다.
+        // F9는 GDebugOverlay의 로그 비우기와, F1은 호스트 시작과 겹친다
         // F1~F12가 전부 차 있어 F키 밖으로 뺐다
         [SerializeField] private KeyCode _writeKeyCode = KeyCode.Insert;
 
@@ -61,7 +61,7 @@ namespace Geumeum.Network
 
         private void Awake()
         {
-            // 잠겨 있으면 프레임 상한도 건드리지 않고 패널도 등록하지 않는다.
+            // 잠겨 있으면 프레임 상한도 건드리지 않고 패널도 등록하지 않는다
             // 치트 모드를 켜기 전의 릴리스 빌드는 이 도구가 없는 것과 같아야 한다
             if (!DevAccess.IsUnlocked)
             {
@@ -121,7 +121,7 @@ namespace Geumeum.Network
         }
 
         /// <summary>
-        /// 측정값은 브라우저 개발 패널에서 본다.
+        /// 측정값은 브라우저 개발 패널에서 본다
         /// 화면 왼쪽 위에 고정으로 겹쳐 그리던 것을 옮긴 것이다 -
         /// 로비 UI와 다른 개발 표시가 같은 자리에서 서로를 덮었다
         /// </summary>

@@ -11,7 +11,7 @@ using Geumeum.Common;
 namespace Geumeum.Art
 {
     /// <summary>
-    /// 순간 접근(TargetedDash, 패턴 3) 예고가 뜬 동안 보스 모델을 숨겨 순간이동처럼 보이게 한다.
+    /// 순간 접근(TargetedDash, 패턴 3) 예고가 뜬 동안 보스 모델을 숨겨 순간이동처럼 보이게 한다
     /// 서버가 확정한 cue 시각(StartServerTime~ImpactServerTime)만 읽어 표현만 한다,
     /// 판정에는 관여하지 않는다. 도착 시각(=impact)에 다시 보이고, 그 직후 Phase1State가
     /// 강제로 이어 붙이는 여우불 봉 3연격(패턴1)으로 넘어간다
@@ -52,7 +52,7 @@ namespace Geumeum.Art
         {
             _telegraphSource = GetComponentInParent<IBossTelegraphSource>();
 
-            // root 전체를 잡으면 꼬리(PartVisual)·원혼(SoulVisual) 같은 형제 비주얼까지 같이
+            // root 전체를 잡으면 꼬리(PartVisual), 원혼(SoulVisual) 같은 형제 비주얼까지 같이
             // 켜고 꺼버린다 - 이 오브젝트(Model) 아래 본체 스킨 메쉬만 대상으로 한다
             _renderers = GetComponentsInChildren<Renderer>(includeInactive: true);
         }

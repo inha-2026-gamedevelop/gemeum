@@ -1,6 +1,8 @@
 namespace Geumeum.Patch.Client;
 
-/// 화면에 사용자 조치를 안내하려고 오류를 종류별로 나눈다(설계서 8장 표).
+/// <summary>
+/// 화면에 사용자 조치를 안내하려고 오류를 종류별로 나눈다(표)
+/// </summary>
 public sealed class InstallBusyException : Exception
 {
     public InstallBusyException(string message, Exception? inner = null) : base(message, inner) { }
@@ -40,19 +42,25 @@ public sealed class InstallBrokenException : Exception
     public InstallBrokenException(string message) : base(message) { }
 }
 
-/// 네트워크 404. 배포가 불완전하다는 뜻이라 재시도하지 않는다.
+/// <summary>
+/// 네트워크 404. 배포가 불완전하다는 뜻이라 재시도하지 않는다
+/// </summary>
 public sealed class RemoteNotFoundException : Exception
 {
     public RemoteNotFoundException(string key) : base($"배포 서버에 없다: {key}") { }
 }
 
-/// 재시도할 가치가 있는 원격 오류(5xx·연결 끊김·무응답).
+/// <summary>
+/// 재시도할 가치가 있는 원격 오류(5xx, 연결 끊김, 무응답)
+/// </summary>
 public sealed class RemoteTransientException : Exception
 {
     public RemoteTransientException(string message, Exception? inner = null) : base(message, inner) { }
 }
 
-/// 재시도할 가치가 없는 원격 오류(4xx·응답 형식 위반).
+/// <summary>
+/// 재시도할 가치가 없는 원격 오류(4xx, 응답 형식 위반)
+/// </summary>
 public sealed class RemoteProtocolException : Exception
 {
     public RemoteProtocolException(string message) : base(message) { }

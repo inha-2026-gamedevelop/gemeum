@@ -1,6 +1,8 @@
 namespace Geumeum.Patch;
 
-/// 게임 빌드가 자기 배포 정체성을 담는 파일. Unity 빌드 스크립트가 쓰고 패키징 도구가 manifest와 대조한다.
+/// <summary>
+/// 게임 빌드가 자기 배포 정체성을 담는 파일. Unity 빌드 스크립트가 쓰고 패키징 도구가 manifest와 대조한다
+/// </summary>
 public sealed class BuildIdentity
 {
     public const string PLATFORM_WIN_X64  = "win-x64";
@@ -24,7 +26,9 @@ public sealed class BuildIdentity
 
     public byte[] ToUtf8Bytes() => StrictJson.SerializeToUtf8Bytes(this);
 
-    /// 게임 내장값과 manifest가 어긋나면 사유 목록, 같으면 빈 목록.
+    /// <summary>
+    /// 게임 내장값과 manifest가 어긋나면 사유 목록, 같으면 빈 목록
+    /// </summary>
     public List<string> Mismatches(ReleaseManifest manifest)
     {
         var errors = new List<string>();

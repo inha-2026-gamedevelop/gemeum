@@ -79,7 +79,7 @@ namespace Geumeum.Systems.Tests
             _inventory = _player.AddComponent<InventoryController>();
             _identity  = _player.GetComponent<NetworkIdentity>();
 
-            // EditMode에서는 Unity의 Awake/서버 시작 수명을 직접 진행한다.
+            // EditMode에서는 Unity의 Awake/서버 시작 수명을 직접 진행한다
             Invoke(_weapon, "Awake");
             Invoke(_talent, "Awake");
             Invoke(_buff, "Awake");

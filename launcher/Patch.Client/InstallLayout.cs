@@ -1,6 +1,8 @@
 namespace Geumeum.Patch.Client;
 
-/// 설치 루트 아래 폴더 구조(설계서 7장). staging·versions·state는 같은 볼륨에 있어야 폴더 이동이 원자적이다.
+/// <summary>
+/// 설치 루트 아래 폴더 구조. staging, versions, state는 같은 볼륨에 있어야 폴더 이동이 원자적이다
+/// </summary>
 public sealed class InstallLayout
 {
     public InstallLayout(string root)
@@ -38,7 +40,9 @@ public sealed class InstallLayout
     }
 }
 
-/// manifest 경로를 실제 경로로 바꾸는 유일한 통로. 설치 루트 밖으로 나가는 쓰기를 막는다.
+/// <summary>
+/// manifest 경로를 실제 경로로 바꾸는 유일한 통로. 설치 루트 밖으로 나가는 쓰기를 막는다
+/// </summary>
 public static class PathGuard
 {
     public static string Resolve(string baseDir, string manifestPath)
@@ -64,7 +68,9 @@ public static class PathGuard
         return Path.GetFullPath(path).StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
     }
 
-    /// 트리 안에 심볼릭 링크·정션이 있으면 거부한다. 링크를 따라 설치 루트 밖을 쓰거나 지우는 것을 막는다.
+    /// <summary>
+    /// 트리 안에 심볼릭 링크, 정션이 있으면 거부한다. 링크를 따라 설치 루트 밖을 쓰거나 지우는 것을 막는다
+    /// </summary>
     public static void EnsureNoReparsePoints(string directory)
     {
         if (!Directory.Exists(directory))
@@ -87,7 +93,9 @@ public static class PathGuard
         }
     }
 
-    /// 링크를 따라가지 않고 지운다. 설치 루트 밖이면 아무것도 하지 않고 예외.
+    /// <summary>
+    /// 링크를 따라가지 않고 지운다. 설치 루트 밖이면 아무것도 하지 않고 예외
+    /// </summary>
     public static void DeleteTree(string root, string directory)
     {
         if (!IsInside(root, directory))
@@ -119,7 +127,9 @@ public static class PathGuard
     }
 }
 
-/// 1차 지원 범위는 로컬 NTFS 고정 디스크다(설계서 7장).
+/// <summary>
+/// 1차 지원 범위는 로컬 NTFS 고정 디스크다
+/// </summary>
 public static class LocalVolume
 {
     public static string? Problem(string root)

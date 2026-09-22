@@ -12,7 +12,7 @@ using Geumeum.Data;
 namespace Geumeum.EditorTools
 {
     /// <summary>
-    /// 빌드에서 만진 카메라 조정값을 정본 SO에 반영한다.
+    /// 빌드에서 만진 카메라 조정값을 정본 SO에 반영한다
     /// 빌드 안의 값은 프로세스가 끝나면 사라지므로, 파일을 거쳐 여기서 확정해야 팀에 남는다
     /// </summary>
     public static class GeumeumCameraTuneMenu

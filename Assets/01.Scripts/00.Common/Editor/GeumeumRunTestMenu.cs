@@ -9,8 +9,8 @@ using UnityEngine;
 namespace Geumeum.EditorTools
 {
     /// <summary>
-    /// 툴바의 그믐 - 런 테스트 메뉴.
-    /// tools 폴더의 실행 스크립트를 Unity 밖에서 직접 찾아 실행하던 것을 여기로 모았다.
+    /// 툴바의 그믐 - 런 테스트 메뉴
+    /// tools 폴더의 실행 스크립트를 Unity 밖에서 직접 찾아 실행하던 것을 여기로 모았다
     /// 스크립트 자체는 그대로 두고 호출만 옮긴다 - 다른 PC에서 배치 파일로 직접 돌리는 경로가 살아 있어야 한다
     /// </summary>
     public static class GeumeumRunTestMenu
@@ -165,7 +165,7 @@ namespace Geumeum.EditorTools
         }
 
         /// <summary>
-        /// 실행 인자(-host, -platformid 등)는 개발 빌드에서만 동작한다.
+        /// 실행 인자(-host, -platformid 등)는 개발 빌드에서만 동작한다
         /// 릴리스 빌드로 돌리면 아무 일도 안 일어나는데 원인이 안 보인다
         /// </summary>
         private static bool HasDevelopmentBuild()

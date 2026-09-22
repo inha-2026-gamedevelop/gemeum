@@ -1,7 +1,9 @@
 namespace Geumeum.Patch.Client;
 
-/// 런처 자기 업데이트(설계서 11장). 서명된 latest.json이 더 높은 버전을 가리킬 때만 받는다.
-/// 실행 중인 exe는 덮어쓸 수 없지만 이름은 바꿀 수 있다 — 현재 exe를 .old로 비키고 새 exe를 그 자리에 옮긴 뒤 재시작한다.
+/// <summary>
+/// 런처 자기 업데이트. 서명된 latest.json이 더 높은 버전을 가리킬 때만 받는다
+/// 실행 중인 exe는 덮어쓸 수 없지만 이름은 바꿀 수 있다 - 현재 exe를 .old로 비키고 새 exe를 그 자리에 옮긴 뒤 재시작한다
+/// </summary>
 public sealed class LauncherUpdater
 {
     public const int MAX_LATEST_BYTES = 16 * 1024;
@@ -22,7 +24,9 @@ public sealed class LauncherUpdater
         _log         = log;
     }
 
-    /// 더 높은 버전이 게시돼 있으면 그 정보를, 아니면 null. 게시 정보가 아예 없으면(첫 도입 전) null.
+    /// <summary>
+    /// 더 높은 버전이 게시돼 있으면 그 정보를, 아니면 null. 게시 정보가 아예 없으면(첫 도입 전) null
+    /// </summary>
     public async Task<LauncherRelease?> CheckAsync(CancellationToken ct)
     {
         byte[] bytes;
@@ -45,7 +49,9 @@ public sealed class LauncherUpdater
         return release;
     }
 
-    /// exe 옆에 .new로 받고 크기·해시를 확인한다. 같은 폴더라 교체가 이름 바꾸기로 끝난다.
+    /// <summary>
+    /// exe 옆에 .new로 받고 크기, 해시를 확인한다. 같은 폴더라 교체가 이름 바꾸기로 끝난다
+    /// </summary>
     public async Task<string> DownloadAsync(LauncherRelease release, string exePath, Action<long> onLength, CancellationToken ct)
     {
         // 다른 버전의 조각이 남아 있을 수 있다. 런처 exe는 작아 이어받기보다 새로 받는 편이 안전하다
@@ -63,7 +69,9 @@ public sealed class LauncherUpdater
         return newPath;
     }
 
-    /// 현재 exe를 비키고 새 exe를 그 자리에 둔다. 중간에 실패하면 원래 exe를 되돌려 놓는다.
+    /// <summary>
+    /// 현재 exe를 비키고 새 exe를 그 자리에 둔다. 중간에 실패하면 원래 exe를 되돌려 놓는다
+    /// </summary>
     public static void Swap(string exePath, string newPath)
     {
         string oldPath = exePath + OLD_SUFFIX;
@@ -92,7 +100,9 @@ public sealed class LauncherUpdater
         }
     }
 
-    /// 새 런처가 뜬 뒤 이전 exe와 남은 조각을 치운다. 이전 프로세스가 아직 끝나는 중이면 잠깐 기다린다.
+    /// <summary>
+    /// 새 런처가 뜬 뒤 이전 exe와 남은 조각을 치운다. 이전 프로세스가 아직 끝나는 중이면 잠깐 기다린다
+    /// </summary>
     public static async Task CleanupAsync(string exePath, PatchLog log)
     {
         string? dir = Path.GetDirectoryName(exePath);

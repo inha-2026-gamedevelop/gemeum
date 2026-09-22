@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Geumeum.Common
 {
-    /// <summary>Invokes every observer even when one subscriber fails.</summary>
+    /// <summary>Invokes every observer even when one subscriber fails</summary>
     public static class ObserverDispatch
     {
         public static void Invoke<T>(Action<T> handlers, T value,

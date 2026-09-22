@@ -3,7 +3,9 @@ using Xunit;
 
 namespace Geumeum.Patch.Tests;
 
-/// 런처 자기 업데이트: 서명된 latest.json → 해시 검증 → exe 교체 → 이전 exe 정리.
+/// <summary>
+/// 런처 자기 업데이트: 서명된 latest.json -> 해시 검증 -> exe 교체 -> 이전 exe 정리
+/// </summary>
 public sealed class LauncherUpdaterTests : IDisposable
 {
     private const string KEY_ID = "test-key";

@@ -153,7 +153,7 @@ namespace Geumeum.AI
 
         private static float ResolveWeight(float value)
         {
-            // 새 필드가 없는 기존 에셋의 0은 D14의 1차 이관값 1.0으로 취급한다.
+            // 새 필드가 없는 기존 에셋의 0은 D14의 1차 이관값 1.0으로 취급한다
             return (IsFinite(value) && (value > 0f)) ? value : 1f;
         }
 

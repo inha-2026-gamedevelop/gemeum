@@ -11,7 +11,7 @@ using Geumeum.Data;
 namespace Geumeum.Art
 {
     /// <summary>
-    /// 동기화된 체력이 줄었을 때 렌더러 색을 잠깐 덮는다. 플레이어, 잡귀, 보스가 같이 쓴다.
+    /// 동기화된 체력이 줄었을 때 렌더러 색을 잠깐 덮는다. 플레이어, 잡귀, 보스가 같이 쓴다
     /// 서버가 확정한 체력만 보고 반응하므로 세 화면이 같은 피격에 번쩍인다
     /// </summary>
     [DisallowMultipleComponent]

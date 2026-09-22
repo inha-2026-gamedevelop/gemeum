@@ -8,8 +8,8 @@ using UnityEngine.UI;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// 시작화면 메뉴의 조작과 각 항목의 동작.
-    /// 방향키 이동과 Enter 확인은 EventSystem이 처리하고, 여기서는 확인키 G만 더한다.
+    /// 시작화면 메뉴의 조작과 각 항목의 동작
+    /// 방향키 이동과 Enter 확인은 EventSystem이 처리하고, 여기서는 확인키 G만 더한다
     /// 네트워크를 붙이기 전이라 참가 주소는 받기만 하고 쓰지 않는다
     /// </summary>
     public class TitleMenuController : MonoBehaviour
@@ -130,7 +130,7 @@ namespace Geumeum.UI
 #endif
         }
 
-        // 씬 이동은 여기 한 곳에서만 한다.
+        // 씬 이동은 여기 한 곳에서만 한다
         // 네트워크를 붙일 때 로비는 씬이 아니라 패널이 되므로 이 메서드만 갈아끼운다
         private void LoadLobby()
         {

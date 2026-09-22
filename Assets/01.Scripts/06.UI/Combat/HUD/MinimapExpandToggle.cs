@@ -5,9 +5,9 @@ using UnityEngine.UI;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// 미니맵을 화면 정중앙의 큰 지도로 펼쳤다 되돌린다.
-    /// 확대판을 따로 만들지 않고 같은 MinimapPlayerDots의 배치 · 표시 반경 · 점 크기만 바꾼다 —
-    /// 점과 결계를 두 벌 그리면 둘이 어긋날 수 있다.
+    /// 미니맵을 화면 정중앙의 큰 지도로 펼쳤다 되돌린다
+    /// 확대판을 따로 만들지 않고 같은 MinimapPlayerDots의 배치, 표시 반경, 점 크기만 바꾼다 -
+    /// 점과 결계를 두 벌 그리면 둘이 어긋날 수 있다
     /// 게임 입력은 막지 않는다. 지도를 펼친 채로 이동과 카메라가 그대로 동작한다
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
@@ -109,7 +109,7 @@ namespace Geumeum.UI
 
         private void Update()
         {
-            // 관리 창이 열리면 HudVisibilityGate가 HUD 캔버스를 끈다.
+            // 관리 창이 열리면 HudVisibilityGate가 HUD 캔버스를 끈다
             // 보이지도 않는 지도가 키를 먹으면 창을 닫았을 때 펼쳐진 채로 돌아온다
             if ((_canvas != null) && (!_canvas.enabled))
             {

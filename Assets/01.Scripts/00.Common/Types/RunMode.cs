@@ -1,7 +1,7 @@
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 런의 종류. 리더보드 등록 가능 여부가 여기서 갈린다.
+    /// 런의 종류. 리더보드 등록 가능 여부가 여기서 갈린다
     /// 직렬화되므로 명시값을 유지하고 기존 값을 재배열하지 않는다
     /// </summary>
     public enum RunMode

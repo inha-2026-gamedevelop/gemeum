@@ -1,9 +1,9 @@
-﻿# 이 PC를 배포 서버로 연다(R2 전까지). 창을 닫거나 Ctrl+C로 끄면 팀원이 업데이트를 받지 못한다.
+﻿# 이 PC를 배포 서버로 연다(R2 전까지). 창을 닫거나 Ctrl+C로 끄면 팀원이 업데이트를 받지 못한다
 #
-#   .\serve-repo.ps1              # Builds\PatchRepo를 8765 포트로 LAN·외부에 연다
+#   .\serve-repo.ps1              # Builds\PatchRepo를 8765 포트로 LAN, 외부에 연다
 #   .\serve-repo.ps1 -Port 9000
 #
-# 처음 실행하면 Windows 방화벽 허용 창이 뜬다. 팀원이 다른 네트워크에 있으면 "공용 네트워크"에도 체크한다.
+# 처음 실행하면 Windows 방화벽 허용 창이 뜬다. 팀원이 다른 네트워크에 있으면 "공용 네트워크"에도 체크한다
 param(
     [int]$Port    = 8765,
     [string]$Repo = ""

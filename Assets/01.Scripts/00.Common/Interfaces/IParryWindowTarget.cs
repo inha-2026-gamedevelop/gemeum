@@ -17,7 +17,7 @@ namespace Geumeum.Common
             double impactTime);
 
         /// <summary>
-        /// 공격이 취소되거나 공격자가 사라지면 창을 닫는다.
+        /// 공격이 취소되거나 공격자가 사라지면 창을 닫는다
         /// 만료를 기다리면 이미 없는 공격을 패링해 성공하는 상황이 생긴다
         /// </summary>
         void CloseParryWindow(ParryWindowKey key);

@@ -9,7 +9,7 @@ using Geumeum.Common;
 
 namespace Geumeum.AI
 {
-    /// <summary>축소 뒤 스폰 유예와 몰이 중 임시 동시 상한을 계산하는 순수 규칙.</summary>
+    /// <summary>축소 뒤 스폰 유예와 몰이 중 임시 동시 상한을 계산하는 순수 규칙</summary>
     public static class SpawnHerdingRules
     {
         public static double GetFirstSpawnGameplayTime(RunPhase phase,

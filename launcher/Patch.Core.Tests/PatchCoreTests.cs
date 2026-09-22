@@ -3,7 +3,9 @@ using Xunit;
 
 namespace Geumeum.Patch.Tests;
 
-/// 설계서 12장 P1 통과 기준: 동일 입력 재현, 잘못된 경로·서명·ID 불일치 거부.
+/// <summary>
+/// P1 통과 기준: 동일 입력 재현, 잘못된 경로, 서명, ID 불일치 거부
+/// </summary>
 public sealed class PatchCoreTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "geumeum-patch-tests", Guid.NewGuid().ToString("N"));
@@ -176,7 +178,7 @@ public sealed class PatchCoreTests : IDisposable
         SignedEnvelope forged = SignedEnvelope.Create("k1", otherPriv, payload);
         Assert.Throws<PatchTrustException>(() => forged.VerifyAndOpen(trusted, now, null));
 
-        // sequence 후퇴 · 만료 · 미래 발행
+        // sequence 후퇴, 만료, 미래 발행
         Assert.Throws<PatchTrustException>(() => envelope.VerifyAndOpen(trusted, now, 6));
         Assert.Throws<PatchTrustException>(() => envelope.VerifyAndOpen(trusted, now.AddDays(200), null));
         Assert.Throws<PatchClockException>(() => envelope.VerifyAndOpen(trusted, now.AddDays(-1), null));

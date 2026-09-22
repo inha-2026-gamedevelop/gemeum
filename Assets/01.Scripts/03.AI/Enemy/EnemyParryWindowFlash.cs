@@ -11,7 +11,7 @@ namespace Geumeum.AI
 {
     /// <summary>
     /// EnemyController.ParryWindowVisuallyOpenChanged를 구독해, 실제 패링 판정 구간(근사치) 동안만
-    /// 렌더러를 강조색으로 바꾼다. 판정에는 관여하지 않는 표현 전용 컴포넌트 — 이슈 #52: 기존에는
+    /// 렌더러를 강조색으로 바꾼다. 판정에는 관여하지 않는 표현 전용 컴포넌트 - 이슈 #52: 기존에는
     /// 공격 모션 시작과 동시에 창이 열린 것처럼 보여 실제 판정 구간(모션 중반)과 신호가 어긋났다
     /// </summary>
     [RequireComponent(typeof(EnemyController))]

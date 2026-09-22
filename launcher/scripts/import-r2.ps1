@@ -1,4 +1,4 @@
-﻿# 현재 Windows 사용자에게 암호화된 게시 자격 증명을 프로세스 환경으로만 읽는다.
+﻿# 현재 Windows 사용자에게 암호화된 게시 자격 증명을 프로세스 환경으로만 읽는다
 $r2ConfigPath = Join-Path $env:USERPROFILE '.geumeum\r2-config.json'
 $r2CredentialPath = Join-Path $env:USERPROFILE '.geumeum\r2-credentials.xml'
 if (Test-Path $r2ConfigPath) {

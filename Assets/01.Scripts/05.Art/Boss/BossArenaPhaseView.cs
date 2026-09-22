@@ -18,7 +18,7 @@ namespace Geumeum.Art
         Underworld = 2,
     }
 
-    /// <summary>권위 보스 phase snapshot을 아레나의 날씨와 재질 표현으로 옮긴다.</summary>
+    /// <summary>권위 보스 phase snapshot을 아레나의 날씨와 재질 표현으로 옮긴다</summary>
     public class BossArenaPhaseView : MonoBehaviour, IRunSceneBinding
     {
         private const float DEFAULT_PHASE_TRANSITION_SECONDS = 6f;
@@ -146,7 +146,7 @@ namespace Geumeum.Art
             _isLocatorSubscribed = false;
         }
 
-        /// <summary>개발 미리보기에서 권위 snapshot 없이 즉시 페이즈를 바꾼다.</summary>
+        /// <summary>개발 미리보기에서 권위 snapshot 없이 즉시 페이즈를 바꾼다</summary>
         public void ShowPhase(BossArenaPhase phase)
         {
             ApplyImmediatePhase(phase);
@@ -537,7 +537,7 @@ namespace Geumeum.Art
             }
             else
             {
-                // Active-only fallback cannot bind the duplicate root that the guard discarded.
+                // Active-only fallback cannot bind the duplicate root that the guard discarded
                 _fog = FindAnyObjectByType<WeatherMakerFullScreenFogScript>();
                 _sky = FindAnyObjectByType<WeatherMakerSkySphereScript>();
                 if (_weatherMakerMoon == null)

@@ -1,7 +1,7 @@
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 런 상태 머신의 단계. RunManager가 서버에서만 전환하고 SyncVar로 배포한다.
+    /// 런 상태 머신의 단계. RunManager가 서버에서만 전환하고 SyncVar로 배포한다
     /// SyncVar로 직렬화되므로 명시값을 유지하고 기존 값을 재배열하지 않는다
     /// </summary>
     public enum RunPhase

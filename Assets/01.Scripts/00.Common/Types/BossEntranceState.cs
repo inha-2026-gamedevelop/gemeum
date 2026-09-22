@@ -4,7 +4,7 @@ using System;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 필드 입구가 보스 아레나 준비를 끝낼 때까지의 서버 상태.
+    /// 필드 입구가 보스 아레나 준비를 끝낼 때까지의 서버 상태
     /// RunPhase와 별개로 동기화하므로 전실에서도 필드 phase를 억지로 바꾸지 않는다
     /// </summary>
     public enum BossEntranceState

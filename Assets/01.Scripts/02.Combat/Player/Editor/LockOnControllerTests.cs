@@ -56,7 +56,7 @@ namespace Geumeum.Combat.Tests
             _cameraObject.tag = "MainCamera";
             _cameraObject.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
 
-            // Mirror requires NetworkIdentity to exist before a NetworkBehaviour is added.
+            // Mirror requires NetworkIdentity to exist before a NetworkBehaviour is added
             _playerObject = new GameObject("LockOnTestPlayer", typeof(NetworkIdentity));
             _controller = _playerObject.AddComponent<LockOnController>();
             NetworkIdentity playerIdentity = _playerObject.GetComponent<NetworkIdentity>();

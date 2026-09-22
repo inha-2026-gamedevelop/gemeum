@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 피해 판정이 "무엇을 맞혔는가"를 해석하는 단일 창구.
+    /// 피해 판정이 "무엇을 맞혔는가"를 해석하는 단일 창구
     /// 맞은 콜라이더에서 부모로 올라가며 처음 만나는 IDamageable에서 멈춘다
     /// </summary>
     public static class DamageTargetResolver

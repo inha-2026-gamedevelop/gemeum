@@ -3,20 +3,28 @@ using System.Net.Http.Headers;
 
 namespace Geumeum.Patch.Client;
 
-/// 배포 저장소 읽기 창구. 키는 RepoLayout 규칙을 따른다.
+/// <summary>
+/// 배포 저장소 읽기 창구. 키는 RepoLayout 규칙을 따른다
+/// </summary>
 public interface IRemoteRepository : IDisposable
 {
     string Description { get; }
 
-    /// 작은 메타데이터를 통째로 받는다. 상한을 넘으면 거부한다.
+    /// <summary>
+    /// 작은 메타데이터를 통째로 받는다. 상한을 넘으면 거부한다
+    /// </summary>
     Task<byte[]> GetBytesAsync(string key, int maxBytes, CancellationToken ct);
 
-    /// partPath에 이어 받는다. 끝나면 partPath 길이가 expectedSize다. 해시 검증은 호출자가 한다.
-    /// onLength는 지금까지 받은 누적 길이(이어받기 시작점 포함)를 알린다.
+    /// <summary>
+    /// partPath에 이어 받는다. 끝나면 partPath 길이가 expectedSize다. 해시 검증은 호출자가 한다
+    /// onLength는 지금까지 받은 누적 길이(이어받기 시작점 포함)를 알린다
+    /// </summary>
     Task DownloadAsync(string key, long expectedSize, string partPath, Action<long> onLength, CancellationToken ct);
 }
 
-/// R2 공개 URL 같은 HTTPS 정적 저장소(설계서 8장). redirect와 전송 압축을 허용하지 않는다.
+/// <summary>
+/// R2 공개 URL 같은 HTTPS 정적 저장소. redirect와 전송 압축을 허용하지 않는다
+/// </summary>
 public sealed class HttpRemoteRepository : IRemoteRepository
 {
     private const int BUFFER_SIZE = 256 * 1024;
@@ -261,7 +269,9 @@ public sealed class HttpRemoteRepository : IRemoteRepository
     }
 }
 
-/// 로컬·공유 폴더를 저장소로 쓴다. 자동 검증과 개발용 확인에 쓴다.
+/// <summary>
+/// 로컬, 공유 폴더를 저장소로 쓴다. 자동 검증과 개발용 확인에 쓴다
+/// </summary>
 public sealed class FolderRemoteRepository : IRemoteRepository
 {
     private readonly string _root;

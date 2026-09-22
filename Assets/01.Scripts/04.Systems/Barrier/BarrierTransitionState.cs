@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 결계 축소 한 구간의 전환 정보. 중심과 반경을 하나로 묶어 같은 t로 보간되게 한다.
+    /// 결계 축소 한 구간의 전환 정보. 중심과 반경을 하나로 묶어 같은 t로 보간되게 한다
     /// 둘을 따로 SyncVar로 보내면 도착 순서가 엇갈려 "그려진 원"과 "때리는 원"이 어긋난다
     /// </summary>
     [Serializable]

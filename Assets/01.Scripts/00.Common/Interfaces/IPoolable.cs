@@ -1,7 +1,7 @@
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 풀에서 재사용되는 오브젝트의 상태 복원 계약.
+    /// 풀에서 재사용되는 오브젝트의 상태 복원 계약
     /// 재사용은 Destroy를 건너뛰므로 지난 사용의 파티클, Trail, 코루틴, 임시 참조가 그대로 남는다
     /// </summary>
     public interface IPoolable

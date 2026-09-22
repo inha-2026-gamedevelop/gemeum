@@ -8,8 +8,8 @@ using Geumeum.Common;
 namespace Geumeum.Systems
 {
     /// <summary>
-    /// 적 하나가 죽었을 때 장비를 떨어뜨릴지, 어떤 무기로 굴릴지 정한다.
-    /// Mirror와 UnityEngine에 의존하지 않는 순수 규칙이라 고정 seed로 검증할 수 있다.
+    /// 적 하나가 죽었을 때 장비를 떨어뜨릴지, 어떤 무기로 굴릴지 정한다
+    /// Mirror와 UnityEngine에 의존하지 않는 순수 규칙이라 고정 seed로 검증할 수 있다
     /// 실제 생성은 EquipmentGenerator가, 월드 스폰은 서버 실행부가 맡는다
     /// </summary>
     public sealed class DropRules
@@ -18,7 +18,7 @@ namespace Geumeum.Systems
         *               Constants
         ****************************************/
 
-        // Constants.Combat.FIELD_LEVEL_COUNT는 4이고 유효 레벨은 0~3이다.
+        // Constants.Combat.FIELD_LEVEL_COUNT는 4이고 유효 레벨은 0~3이다
         // 게임 디자인 6.4의 3차 가중치는 보스 처치 보상에만 쓴다
         public const int BOSS_REWARD_FIELD_LEVEL = Constants.Combat.FIELD_LEVEL_COUNT - 1;
 
@@ -79,7 +79,7 @@ namespace Geumeum.Systems
         }
 
         /// <summary>
-        /// 이번 사망에 장비를 떨어뜨릴지 정한다.
+        /// 이번 사망에 장비를 떨어뜨릴지 정한다
         /// 보스는 확률을 타지 않고 팀 보상으로 항상 하나 준다
         /// </summary>
         public bool ShouldDrop(bool isBoss)

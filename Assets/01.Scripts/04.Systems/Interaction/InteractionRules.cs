@@ -57,8 +57,8 @@ namespace Geumeum.Systems
     }
 
     /// <summary>
-    /// 줍기 · 양도 · 객주가 공통으로 통과해야 하는 조건을 계산한다.
-    /// Mirror와 UnityEngine에 의존하지 않아, 물건마다 검증을 복제하지 않고 한 곳에서 고정한다.
+    /// 줍기, 양도, 객주가 공통으로 통과해야 하는 조건을 계산한다
+    /// Mirror와 UnityEngine에 의존하지 않아, 물건마다 검증을 복제하지 않고 한 곳에서 고정한다
     /// 거리와 유예 시간은 값을 박지 않고 호출자가 SO에서 읽어 넘긴다
     /// </summary>
     public static class InteractionRules
@@ -103,7 +103,7 @@ namespace Geumeum.Systems
         }
 
         /// <summary>
-        /// 마지막 전투 시각으로부터 유예가 지났는지. 안내 문구를 띄울지 판단할 때도 같은 값을 쓴다.
+        /// 마지막 전투 시각으로부터 유예가 지났는지. 안내 문구를 띄울지 판단할 때도 같은 값을 쓴다
         /// 한 번도 전투하지 않았으면 마지막 전투 시각이 음수다
         /// </summary>
         public static bool IsInCombat(in InteractionRequest request)

@@ -1,4 +1,4 @@
-﻿# 로컬 빌드·런처 버전을 배포 서버와 비교하고, 다르면 서버에 동기화한다.
+﻿# 로컬 빌드, 런처 버전을 배포 서버와 비교하고, 다르면 서버에 동기화한다
 #
 #   .\sync-server.ps1 -Check          # 비교만 한다. 아무것도 바꾸지 않는다
 #   .\sync-server.ps1                 # 다르면 게시한다. 패치 노트는 두 빌드 사이의 git 커밋으로 만든다
@@ -8,7 +8,7 @@
 #   .\sync-server.ps1 -Only game      # 게임만(또는 launcher만) 맞춘다
 #   .\sync-server.ps1 -Version 0.1.0  # 테스트 버전을 직접 정한다. 기본은 마지막 게시 버전 끝자리 +1 (0.0.1부터)
 #
-# 게시 기록은 Builds\publish-history.md에 한 줄씩 남는다.
+# 게시 기록은 Builds\publish-history.md에 한 줄씩 남는다
 param(
     [switch]$Check,
     [string]$Notes     = "",
@@ -67,12 +67,12 @@ function Get-Commit([string]$contentVersion) {
     return $null
 }
 
-# ─── 로컬 게임 빌드 ─────────────────────────────────────────
+# --- 로컬 게임 빌드 -----------------------------------------
 $identityPath = Join-Path $build "gemeum_Data\StreamingAssets\build-identity.json"
 $localBuild   = if (Test-Path $identityPath) { Get-Content $identityPath -Raw | ConvertFrom-Json } else { $null }
 $head         = (git -C $projectRoot rev-parse --short=12 HEAD 2>$null)
 
-# ─── 배포 저장소·서버 ───────────────────────────────────────
+# --- 배포 저장소, 서버 ---------------------------------------
 $envelopePath = Join-Path $repo "channels\$Channel\envelope.json"
 $repoChannel  = Read-LocalEnvelope $envelopePath
 $repoRelease  = $null
@@ -97,7 +97,7 @@ $serverText    = if ($ServerUrl) { Read-RemoteText "$ServerUrl/channels/$Channel
 $serverChannel = if ($serverText) { Open-Envelope $serverText } else { $null }
 $serverMatchesRepo = $serverText -and (Test-Path $envelopePath) -and ($serverText -eq [IO.File]::ReadAllText($envelopePath))
 
-# ─── 런처 ──────────────────────────────────────────────────
+# --- 런처 --------------------------------------------------
 $csprojText       = [IO.File]::ReadAllText($csproj)
 $launcherVersion  = [version]([regex]::Match($csprojText, '<Version>([^<]+)</Version>').Groups[1].Value)
 $publishedLauncher = Read-LocalEnvelope (Join-Path $repo "launcher\latest.json")
@@ -113,7 +113,7 @@ $newestSource = Get-ChildItem $sourceDirs -Recurse -File -Include *.cs, *.xaml, 
 $launcherChanged = $publishedLauncher -and $newestSource -and
     ($newestSource.LastWriteTimeUtc -gt ([DateTimeOffset]::Parse($publishedLauncher.issuedAtUtc)).UtcDateTime)
 
-# ─── 판단 ──────────────────────────────────────────────────
+# --- 판단 --------------------------------------------------
 $gameAction = "none"
 if (-not $localBuild) {
     $gameAction = "no-local-build"
@@ -139,7 +139,7 @@ if ($Version -ne "" -and ($Version -notmatch '^\d+\.\d+\.\d+$' -or $nextTestVers
     throw "테스트 버전은 x.y.z 형식이고 마지막 게시 $lastTestVersion 보다 커야 한다: $Version"
 }
 
-# ─── 보고 ──────────────────────────────────────────────────
+# --- 보고 --------------------------------------------------
 Write-Host ""
 Write-Host "[게임 빌드]"
 if ($localBuild) {
@@ -197,7 +197,7 @@ if (-not (Test-Path $history)) {
 
 $didSomething = $false
 
-# ─── 런처 먼저 ─────────────────────────────────────────────
+# --- 런처 먼저 ---------------------------------------------
 if ($launcherAction -in "publish", "bump") {
     if (-not $ServerUrl) { throw "런처를 게시하려면 서버 주소가 필요하다: -ServerUrl" }
     if ($launcherAction -eq "bump") {
@@ -212,7 +212,7 @@ if ($launcherAction -in "publish", "bump") {
     Add-Content $history ("| {0:yyyy-MM-dd HH:mm} | 런처 | {1} | | |" -f (Get-Date), $launcherVersion) -Encoding UTF8
 }
 
-# ─── 게임 빌드 ─────────────────────────────────────────────
+# --- 게임 빌드 ---------------------------------------------
 if ($gameAction -eq "publish") {
     if ($Notes -eq "") {
         $Notes = Join-Path $workDir ("notes-{0}.txt" -f $localBuild.releaseId)
@@ -271,7 +271,7 @@ if (-not $didSomething) {
     exit 0
 }
 
-# ─── 결과 확인 ─────────────────────────────────────────────
+# --- 결과 확인 ---------------------------------------------
 $after = if ($ServerUrl) { Read-RemoteText "$ServerUrl/channels/$Channel/envelope.json" } else { $null }
 Write-Host ""
 if (-not $after) {

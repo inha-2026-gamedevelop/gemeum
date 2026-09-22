@@ -3,6 +3,7 @@ using System;
 
 namespace Geumeum.Common
 {
+    /// <summary> 서버 스냅샷으로 전달하는 보스 전투 단계, 직렬화 값은 재배열하지 않는다 </summary>
     public enum BossEncounterStage
     {
         Fighting          = 0,
@@ -22,7 +23,7 @@ namespace Geumeum.Common
         public BossEncounterStage Stage;
         public uint               Revision;
         public double             ChangedServerTime;
-        /// <summary>PhaseIndex가 마지막으로 바뀐 권위 게임 시간. stage 갱신에는 바뀌지 않는다.</summary>
+        /// <summary>PhaseIndex가 마지막으로 바뀐 권위 게임 시간. stage 갱신에는 바뀌지 않는다</summary>
         public double             PhaseChangedGameplayTime;
     }
 }

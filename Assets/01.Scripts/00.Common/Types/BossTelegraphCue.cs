@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 보스 공격 예고 1건의 서버 확정 값. 판정과 클라이언트 표현이 이 값을 함께 쓴다.
+    /// 보스 공격 예고 1건의 서버 확정 값. 판정과 클라이언트 표현이 이 값을 함께 쓴다
     /// Mirror Weaver가 읽어 쓸 수 있도록
     /// public 값 필드의 mutable struct로 둔다, 서버는 생성 뒤 복사본을 바꾸지 않는다
     /// </summary>

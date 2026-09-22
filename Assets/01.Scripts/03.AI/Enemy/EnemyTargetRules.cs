@@ -6,7 +6,7 @@ using Geumeum.Common;
 
 namespace Geumeum.AI
 {
-    /// <summary>일반 적이 추적하거나 공격할 수 없는 플레이어 상태를 판정한다.</summary>
+    /// <summary>일반 적이 추적하거나 공격할 수 없는 플레이어 상태를 판정한다</summary>
     public static class EnemyTargetRules
     {
         public static bool IsUnavailable(IDamageable damageable)

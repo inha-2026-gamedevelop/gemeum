@@ -1,11 +1,11 @@
-﻿# 그믐 빌드를 런처 배포 저장소에 올린다. 설계서 10장 게시 순서: 패키징 → 채널 서명 → 검증 → (R2 업로드 → 원격 검증)
+﻿# 그믐 빌드를 런처 배포 저장소에 올린다. 게시 순서: 패키징 -> 채널 서명 -> 검증 -> (R2 업로드 -> 원격 검증)
 #
 #   .\publish-build.ps1                                  # Builds\Development를 internal 채널로 로컬 저장소에 게시
 #   .\publish-build.ps1 -Notes notes.txt -Upload -Url https://pub-xxxx.r2.dev
 #   .\publish-build.ps1 -Version 0.1.0                   # 테스트 버전을 직접 정한다(기본은 끝자리 +1, Builds\test-version.json)
 #   .\publish-build.ps1 -Promote -ReleaseId win64-20260919-1907 -Channel stable -Upload -Url ...   # 재빌드 없이 승격
 #
-# R2 업로드에는 환경 변수 R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET이 필요하다.
+# R2 업로드에는 환경 변수 R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET이 필요하다
 param(
     [string]$Build     = "",
     [string]$Channel   = "internal",
@@ -71,7 +71,7 @@ if (-not $Promote) {
         }
         if ($next -le $last) { throw "테스트 버전은 올라가기만 한다: 마지막 $last, 요청 $next" }
 
-        # 빌드 폴더의 정체성 파일에 적어 게임 로그·manifest·런처가 같은 번호를 보게 한다. 필드 구성은 패키저 계약 그대로
+        # 빌드 폴더의 정체성 파일에 적어 게임 로그, manifest, 런처가 같은 번호를 보게 한다. 필드 구성은 패키저 계약 그대로
         $identity.displayVersion = "$next"
         $identityJson = '{"releaseId":"' + $identity.releaseId + '","displayVersion":"' + $next + '","protocolVersion":' + $identity.protocolVersion + ',"contentVersion":"' + $identity.contentVersion + '"}'
         [IO.File]::WriteAllText($identityPath, $identityJson, (New-Object Text.UTF8Encoding($false)))
@@ -97,7 +97,7 @@ if (Test-Path $envelopePath) {
     $sequence = [long]$payload.sequence + 1
     if ($MinLauncher -eq "") { $MinLauncher = $payload.minLauncherVersion }
 
-    # 같은 빌드·같은 최소 런처 버전을 다시 게시하면 팀원 쪽에 바뀌는 것이 없다
+    # 같은 빌드, 같은 최소 런처 버전을 다시 게시하면 팀원 쪽에 바뀌는 것이 없다
     if ($payload.releaseId -eq $ReleaseId -and $payload.minLauncherVersion -eq $MinLauncher -and -not $Upload) {
         Write-Host "$Channel 채널은 이미 $ReleaseId 를 가리킨다 (seq $($payload.sequence)). 바꿀 것이 없다." -ForegroundColor Green
         exit 0

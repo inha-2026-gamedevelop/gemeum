@@ -19,8 +19,8 @@ namespace Geumeum.Dev
     }
 
     /// <summary>
-    /// 게임 화면에 선과 글자를 그려 값을 눈으로 확인하는 개발용 도구.
-    /// 한 프레임에 여러 후보 값을 한번에 비교해야 하는 경우 브레이크포인트로는 못 보므로 그림으로 본다.
+    /// 게임 화면에 선과 글자를 그려 값을 눈으로 확인하는 개발용 도구
+    /// 한 프레임에 여러 후보 값을 한번에 비교해야 하는 경우 브레이크포인트로는 못 보므로 그림으로 본다
     /// 그리는 일은 GGizmoRenderer가 하고, 여기는 무엇을 그릴지 모아 두는 곳이다
     /// </summary>
     public static class GGizmo
@@ -31,7 +31,7 @@ namespace Geumeum.Dev
 
         public const int CHANNEL_COUNT = 6;
 
-        /// <summary> 원·구·부채꼴을 몇 조각의 선으로 쪼갤지 </summary>
+        /// <summary> 원, 구, 부채꼴을 몇 조각의 선으로 쪼갤지 </summary>
         private const int CIRCLE_STEPS = 24;
 
         private const int MAX_SEGMENTS = 6000; // 한 프레임에 담을 선의 최대 개수
@@ -439,7 +439,7 @@ namespace Geumeum.Dev
         }
 
         /// <summary>
-        /// 여러 프레임에 걸쳐 변하는 값을 꺾은선으로 남긴다.
+        /// 여러 프레임에 걸쳐 변하는 값을 꺾은선으로 남긴다
         /// 브레이크포인트로는 "느낌이 이상한" 구간을 못 찾는다, 흔들리는 모양을 봐야 찾는다
         /// </summary>
         [Conditional("UNITY_EDITOR")]
@@ -510,7 +510,7 @@ namespace Geumeum.Dev
         ****************************************/
 
         /// <summary>
-        /// 수명이 끝난 것을 버린다. 프레임이 시작될 때 한 번 부른다.
+        /// 수명이 끝난 것을 버린다. 프레임이 시작될 때 한 번 부른다
         /// 그린 직후에 버리면 카메라가 두 번 그리는 경우에 두 번째 카메라에서 사라진다
         /// </summary>
         public static void Sweep()
@@ -612,7 +612,7 @@ namespace Geumeum.Dev
         }
 
         /// <summary>
-        /// 꺼진 갈래는 아예 쌓지 않는다.
+        /// 꺼진 갈래는 아예 쌓지 않는다
         /// 모아 두고 그릴 때 걸러도 되지만, 그러면 꺼 놓아도 판정 루프의 비용이 그대로 남는다
         /// </summary>
         private static bool IsCollecting(GGizmoChannel channel)

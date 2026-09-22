@@ -24,7 +24,7 @@ namespace Geumeum.Systems
         ****************************************/
 
         // 서버 원본과 공개 SyncList(_nodeIds, Net/TalentController.network.cs)를 분리한다. 장비 거래 원본이 모두 확정되기 전에
-        // SyncList callback이 실행되어 절반짜리 loadout을 관찰하지 않게 한다.
+        // SyncList callback이 실행되어 절반짜리 loadout을 관찰하지 않게 한다
         private readonly List<int>     _serverNodeIds = new List<int>();
 
         private IEquipmentWeaponTarget      _weaponTarget;

@@ -17,7 +17,7 @@ using Geumeum.Data;
 
 namespace Geumeum.AI
 {
-    /// <summary> Multi-impact, tail gate, and final-soul invariants that must survive prefab wiring. </summary>
+    /// <summary> Multi-impact, tail gate, and final-soul invariants that must survive prefab wiring </summary>
     public sealed class BossAdvancedRulesTests
     {
         private const BindingFlags INSTANCE = BindingFlags.Instance |

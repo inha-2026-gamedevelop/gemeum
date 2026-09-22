@@ -9,7 +9,9 @@ using Geumeum.Patch;
 
 namespace Geumeum.Packager;
 
-/// Cloudflare R2(S3 호환)로 로컬 저장소를 올린다. 객체·manifest를 먼저, 채널 envelope를 마지막에 올린다(설계서 10장).
+/// <summary>
+/// Cloudflare R2(S3 호환)로 로컬 저장소를 올린다. 객체, manifest를 먼저, 채널 envelope를 마지막에 올린다
+/// </summary>
 public sealed class R2Uploader : IDisposable
 {
     public const string ENV_ACCOUNT_ID = "R2_ACCOUNT_ID";
@@ -30,7 +32,9 @@ public sealed class R2Uploader : IDisposable
         _log      = log;
     }
 
-    /// 자격 증명은 환경 변수로만 받는다. 저장소·명령줄·로그에 남기지 않는다.
+    /// <summary>
+    /// 자격 증명은 환경 변수로만 받는다. 저장소, 명령줄, 로그에 남기지 않는다
+    /// </summary>
     public static R2Uploader FromEnvironment(Action<string> log)
     {
         string accountId = RequireEnv(ENV_ACCOUNT_ID);
@@ -60,7 +64,9 @@ public sealed class R2Uploader : IDisposable
         return value;
     }
 
-    /// 채널 envelope가 가리키는 배포 전체를 올린다. 원격 채널이 더 앞서 있으면 덮어쓰지 않는다.
+    /// <summary>
+    /// 채널 envelope가 가리키는 배포 전체를 올린다. 원격 채널이 더 앞서 있으면 덮어쓰지 않는다
+    /// </summary>
     public async Task UploadChannelAsync(string repoDir, string channel, CancellationToken ct)
     {
         string envelopeKey   = RepoLayout.EnvelopeKey(channel);
@@ -117,7 +123,9 @@ public sealed class R2Uploader : IDisposable
         _log($"{channel} 채널 게시: seq {local.Sequence} → {local.ReleaseId}");
     }
 
-    /// 런처 객체와 처음 받는 사람용 exe를 먼저 올리고, 자동 업데이트가 읽는 latest.json을 마지막에 올린다.
+    /// <summary>
+    /// 런처 객체와 처음 받는 사람용 exe를 먼저 올리고, 자동 업데이트가 읽는 latest.json을 마지막에 올린다
+    /// </summary>
     public async Task UploadLauncherAsync(string repoDir, CancellationToken ct)
     {
         string latestKey = RepoLayout.LAUNCHER_LATEST_KEY;

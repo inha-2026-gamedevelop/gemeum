@@ -1,10 +1,10 @@
-﻿# 런처를 .NET 설치 없이 도는 단일 exe로 만들고, 서명해서 배포 저장소에 올린다.
-# 팀원 런처는 다음에 켤 때 스스로 새 런처를 받아 교체한다. 먼저 Launcher.UI.csproj의 <Version>을 올린다.
+﻿# 런처를 .NET 설치 없이 도는 단일 exe로 만들고, 서명해서 배포 저장소에 올린다
+# 팀원 런처는 다음에 켤 때 스스로 새 런처를 받아 교체한다. 먼저 Launcher.UI.csproj의 <Version>을 올린다
 #
 #   .\publish-launcher.ps1 -ServerUrl http://169.212.47.146:8765   # 팀장 PC 서버 주소를 내장
 #   .\publish-launcher.ps1 -Upload                                   # launcher-config.json 주소 그대로, R2로 올린다
 #
-# -ServerUrl을 주지 않고 내장 주소도 CHANGE-ME면, 팀원이 런처 설정에서 서버 주소를 직접 넣어야 한다.
+# -ServerUrl을 주지 않고 내장 주소도 CHANGE-ME면, 팀원이 런처 설정에서 서버 주소를 직접 넣어야 한다
 param(
     [string]$ServerUrl = "",
     [string]$Repo      = "",

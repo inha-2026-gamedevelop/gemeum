@@ -1,7 +1,7 @@
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 런 상태를 소리로 옮기는 창구. 어느 구간에 어떤 곡이 흐르는지를 여기서만 정한다.
+    /// 런 상태를 소리로 옮기는 창구. 어느 구간에 어떤 곡이 흐르는지를 여기서만 정한다
     /// RunManager가 판정을 소유하고 이 클래스는 그 결과를 받기만 한다, 반대 방향 호출은 없다
     /// </summary>
     public static class RunSoundDirector
@@ -60,7 +60,7 @@ namespace Geumeum.Common
         }
 
         /// <summary>
-        /// 구간에 걸린 트랙.
+        /// 구간에 걸린 트랙
         /// 보스 2페이즈는 RunPhase가 아니라 보스 내부 상태라 여기가 아니라 보스 쪽에서 건다
         /// </summary>
         private static BgmTrack ResolveTrack(RunPhase phase)

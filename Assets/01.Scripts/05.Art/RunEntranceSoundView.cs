@@ -10,7 +10,7 @@ using Geumeum.Network;
 
 namespace Geumeum.Art
 {
-    /// <summary>Plays the boss gate cue once while the replicated entrance route enters.</summary>
+    /// <summary>Plays the boss gate cue once while the replicated entrance route enters</summary>
     [DisallowMultipleComponent]
     public sealed class RunEntranceSoundView : MonoBehaviour
     {

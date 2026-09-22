@@ -3,7 +3,9 @@ using System.Text.Json.Serialization;
 
 namespace Geumeum.Patch;
 
-/// 원격 메타데이터를 읽는 유일한 통로. 중복 필드·주석·후행 쉼표를 거부하고 크기 상한을 둔다.
+/// <summary>
+/// 원격 메타데이터를 읽는 유일한 통로. 중복 필드, 주석, 후행 쉼표를 거부하고 크기 상한을 둔다
+/// </summary>
 public static class StrictJson
 {
     public static readonly JsonSerializerOptions Options = new()

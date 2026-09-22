@@ -16,7 +16,7 @@ using Geumeum.Data;
 namespace Geumeum.Systems
 {
     /// <summary>
-    /// 한 런의 파티 성장 상태를 서버에서 소유한다.
+    /// 한 런의 파티 성장 상태를 서버에서 소유한다
     /// 적 사망 이벤트만 구독하므로 AI와 성장 시스템 사이에 직접 참조가 생기지 않는다
     /// </summary>
     [DisallowMultipleComponent]

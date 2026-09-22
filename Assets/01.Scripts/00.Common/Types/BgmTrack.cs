@@ -1,7 +1,7 @@
 namespace Geumeum.Common
 {
     /// <summary>
-    /// BGM 트랙. 트랙 하나가 곡 하나에 대응한다.
+    /// BGM 트랙. 트랙 하나가 곡 하나에 대응한다
     /// 직렬화되므로 기존 값을 재배열하지 않고 뒤에만 추가한다
     /// </summary>
     public enum BgmTrack

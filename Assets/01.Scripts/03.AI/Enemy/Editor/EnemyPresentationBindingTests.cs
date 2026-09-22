@@ -54,7 +54,7 @@ namespace Geumeum.AI.Tests
                 flash.enabled = false;
             }
 
-            // 구독자가 없는 동안 복제 상태가 바뀐 상황이다. 이벤트를 재발행하지 않는다.
+            // 구독자가 없는 동안 복제 상태가 바뀐 상황이다. 이벤트를 재발행하지 않는다
             SetState(controller, "_isParryWindowVisuallyOpen", true);
             if (reenable)
             {
@@ -113,7 +113,7 @@ namespace Geumeum.AI.Tests
             Assert.That(actual.a, Is.EqualTo(expected.a).Within(0.00001f));
         }
 
-        // EditMode는 일반 MonoBehaviour의 수명 콜백을 자동 실행하지 않는다.
+        // EditMode는 일반 MonoBehaviour의 수명 콜백을 자동 실행하지 않는다
         private static void InvokeLifecycle(EnemyParryWindowFlash flash, string name)
         {
             typeof(EnemyParryWindowFlash).GetMethod(name,

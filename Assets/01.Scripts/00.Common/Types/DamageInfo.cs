@@ -1,7 +1,7 @@
 namespace Geumeum.Common
 {
     /// <summary>
-    /// 피해 한 건의 내용. 가해자를 netId로만 들고 있어 파트 간 구체 클래스 참조가 생기지 않는다.
+    /// 피해 한 건의 내용. 가해자를 netId로만 들고 있어 파트 간 구체 클래스 참조가 생기지 않는다
     /// 서버가 만들어 IDamageable에 넘기며 클라이언트는 이 값을 만들지 않는다
     /// </summary>
     public readonly struct DamageInfo
