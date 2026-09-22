@@ -1,7 +1,7 @@
 # 그믐 (晦) — 세부 기획서: 기술 구현
 
 > 아키텍처 · 데이터 구조 · 파트별 기술 스펙
-> 문서 버전 0.3 · 최종 수정 2026-08-23
+> 현재 구현 대조: 2026-09-22
 
 ---
 
@@ -12,7 +12,7 @@
 | 엔진 | Unity 6.4.7f1 | |
 | 렌더 파이프라인 | URP | Unity 6 기본. **프로젝트 중간 변경 금지** |
 | 네트워크 | **Mirror** · 호스트 권위 (리슨 서버) | 추후 데디케이티드 전환 가능성 열어둠 |
-| 트랜스포트 | **KCP · FizzySteamworks 병행** | 실행 환경으로 고른다 — 바로 아래 표 |
+| 트랜스포트 | **AccountRelayTransport · 개발 KCP · Steam FizzySteamworks** | 실행 환경으로 고른다 — 바로 아래 표 |
 | 지형 | Gaia for Unity 6 | 에디터 타임 생성, 런타임 생성 아님 |
 | 형상 관리 | Git + **Git LFS** | 대용량 에셋 필수 |
 
@@ -23,9 +23,10 @@
 | 환경 | 트랜스포트 | 목적 | 신원 |
 |---|---|---|---|
 | 로컬 개발 · LAN 3PC | **KCP** | 빠른 반복. Steam 미기동 상태에서도 돈다 | 실행 인자 `-platformid` |
-| Steam 테스트 · 배포 | **FizzySteamworks + Steamworks.NET** | 로비 · 초대 · 배포 경로 | `conn.address`의 SteamID64 |
+| 자체 계정 운영 | **AccountRelayTransport** | 런처 파티·AWS UDP 릴레이 | HTTPS 게임 세션과 일회 접속 티켓 |
+| Steam 호환 테스트 | **FizzySteamworks + Steamworks.NET** | 로비 · 초대 · 배포 경로 | `conn.address`의 SteamID64 |
 
-- 두 경로 모두 인증기를 거치므로 **신원 소스만 갈리고 권위 경계는 같다.**
+- 접속 경로별 신원 검증을 거치며 게임 판정은 공통으로 방장 서버 권위다. 자체 계정은 API 접속 승인과 Unity 게임 판정을 구분한다.
 - Steam이 실행 중이 아니면 Fizzy 경로가 성립하지 않으므로, 개발 실행은 KCP를 기본으로 둔다.
 - 병행 규칙과 신원 확정 근거는 Steam 로비 구조 전환안 13장을 따른다.
 
@@ -220,13 +221,10 @@ public interface ICombatFeedback
 
 - Mirror `NetworkManager` 기반 세션 관리 (최대 3명, 3명 준비 완료 후 시작, 호스트 생성, 연결 해제 처리)
 - 플레이어 이동 · 구르기 · 공격 입력 처리와 동기화
-- 패링 판정과 패링 게이지 동기화
+- 패링 판정과 반격 표식과 수명 동기화
 - 사망 · 부활 처리
 
-> 현재 구현 기준(`57cb59d`): `ServerBootGate`, `GeumeumNetworkManager`,
-> `LobbyController`, `RunManager`, `RunPhaseTimeline`, `RunTimelineBuilder`가 존재한다.
-> 부트 게이트와 런 시계는 L2까지 확인됐고, 3인 준비·무기 배분·이탈 경로는 M2 검증 대기다.
-> 플레이어는 이동과 패링의 초기 Command만 있으며 상태·공격·부활은 아직 계획 단계다.
+> 현재 코드에는 PlayerStatus·PlayerAttack·ReviveController, 장비·성장·결계·보스·정산·규칙형 봇과 자체 계정 릴레이가 구현돼 있다. 코드 존재와 실행 검증은 [현재 구현](IMPLEMENTATION_STATUS.md)에서 구분한다.
 
 #### 권위 모델
 
@@ -241,8 +239,7 @@ public interface ICombatFeedback
 `NetworkTransform`에 예측·재조정을 맡기지 않는다. 근거는 아래 "패링 동기화의 기술적 과제" 마지막 항을 따른다.
 
 공격 입력의 클라이언트 Command 진입점은 `PlayerAttack` 하나로 고정한다.
-활도 `PlayerAttack`이 현재 무기의 `BowAbility`를 선택하고, 서버 전용 `ArrowLauncher`가
-화살을 스폰한다. `ArrowLauncher`에 별도의 클라이언트 Command를 두지 않는다.
+활도 `PlayerAttack` 서버 경로가 화살을 생성한다. 별도 BowAbility/ArrowLauncher 클래스를 현재 구현인 것처럼 전제하지 않는다.
 
 전체 API 매핑은 [네트워크 권위 5.5절](unity/NETWORK_AUTHORITY.md).
 
@@ -266,10 +263,10 @@ public interface ICombatFeedback
 
 | 상태 | 처리 |
 |---|---|
-| 락온 | **2026-09-03 폐기 → 2026-09-05 부활.** 정밀 사격이 조준 수단에서 **그로기 카운터**로 층이 바뀌어 배타 관계가 사라졌다. **대상 고정과 스트레이프까지이고 화살 유도는 없다** ([게임 디자인 2.4 · 4.1](02-game-design.md)) |
+| 락온 | **2026-09-03 폐기 → 2026-09-05 부활.** 정밀 사격이 조준 수단에서 **그로기 카운터**로 층이 바뀌어 배타 관계가 사라졌다. 대상 고정·스트레이프와 제한된 일반 화살 보조가 구현되어 있다. 정밀 사격 및 활성 쐐기 일반 사격의 예외는 조준 계약을 따른다 ([게임 디자인 2.4 · 4.1](02-game-design.md)) |
 | 명중 보조 | **유일한 보정.** 발사각 보정 없음, 반경 0.4m 구형 판정 |
 | 정밀 사격 | 우클릭 유지 0.6초 → 정밀 상태. 이동 40%·무방비, 스태미나 15. 텔레그래프 중 명중 시 **시전 취소 + 그로기** |
-| 관통 특성 | 유도 없음, 직선 비행 — **여러 적을 뚫어야 하므로 휘면 안 된다.** 락온 유도가 부활(2026-09-05)한 뒤에도 관통만은 예외다 ([카메라와 락온 12.4](unity/CAMERA_AND_LOCKON.md)) |
+| 관통 특성 | 관통과 조준 보조는 현재 ArrowFireSnapshot과 ArrowProjectile의 조건을 따른다. 관통 노드는 일반·정밀 발사에 적용된다 ([카메라와 락온 12.4](unity/CAMERA_AND_LOCKON.md)) |
 
 유도 대상이 죽거나 유도 시간이 끝나면 직진으로 전환한다. 유도 상태 변화는 호스트가 판단하고 결과만 동기화하여, 클라이언트마다 궤적이 갈라지지 않게 한다.
 
@@ -393,15 +390,15 @@ BarrierController (호스트 권위)
 | 구분 | 역할 |
 |---|---|
 | `EquipmentSO` (ScriptableObject) | 원본 설계도. 등급, 이름, 롤 범위, **무기 종류별 특수옵션 풀** |
-| `EquipmentInstance` (런타임 클래스) | 개별 드랍 결과. 실제 굴려진 수치 보유 |
+| `WeaponCombatSnapshot` (런타임 클래스) | 개별 드랍 결과. 실제 굴려진 수치 보유 |
 
 이렇게 해야 같은 무기라도 드랍마다 스탯이 달라지는 구조가 깔끔하게 나온다.
 
-`EquipmentInstance`에는 ScriptableObject나 Unity 오브젝트 참조를 넣지 않는다. Mirror에 전달할 때는 `EquipmentInstanceSerializer`가 장비 ID, 무기 종류, 등급, 공격력 롤, 옵션 ID·값만 명시적으로 직렬화하고, 클라이언트는 동일한 `GameDB`에서 표시 정보를 조회한다.
+`WeaponCombatSnapshot`에는 ScriptableObject나 Unity 오브젝트 참조를 넣지 않는다. Mirror에 전달할 때는 `WeaponCombatSnapshot 직렬화`가 장비 ID, 무기 종류, 등급, 공격력 롤, 옵션 ID·값만 명시적으로 직렬화하고, 클라이언트는 동일한 `GameDB`에서 표시 정보를 조회한다.
 
 #### 스탯 재조정권 · 등급 상승권
 
-- 재조정권: 같은 `EquipmentSO`로 `EquipmentInstance`를 재생성
+- 재조정권: 같은 `EquipmentSO`로 `WeaponCombatSnapshot`를 재생성
 - 등급 상승권: 상위 등급 `EquipmentSO`로 교체 후 재생성
 
 두 기능 모두 위 구조를 그대로 재사용하므로 추가 구현 비용이 거의 없다.
@@ -539,18 +536,18 @@ Gaia 기본 지형(사실적 자연) + 여러 출처의 건축 에셋 + 저승 �
 | 데디케이티드 서버 전환 여부 | 추후 검토 |
 | ~~공용 권위 시뮬레이션 틱~~ | **결정됨(2026-09-02 갱신).** 별도 스케줄러로 확정 — `AuthorityTickScheduler`가 `FixedUpdate`에서 우선순위 순으로 실행하며 `Constants.Network`의 `TICK_PRIORITY_MOVEMENT`(0) · `TICK_PRIORITY_AI`(100) · projectile(200) · ability(300)이 순서를 소유한다. `PlayerStatus` · `PlayerController` · `EnemyController`가 실제로 등록한다. 투사체는 아직 이 틱을 우회하므로 편입이 남았다 |
 | ~~애니메이션 에셋 소싱~~ | **설계됨(2026-09-02 갱신).** [애니메이션 파이프라인 설계](unity/ANIMATION_PIPELINE_DESIGN.md)가 Humanoid 리타게팅 · Override Controller · 서버 cue · 소싱 상한을 확정했다. 실제 구매 · 라이선스 확정만 남았다 |
-| ~~빌드 배포 방식 (테스트용)~~ | **결정됨(2026-09-20).** 저장소 루트 `launcher/`의 별도 런처로 배포한다 — 팀원이 런처를 받아 설치·업데이트하고 런처가 게임을 Steam 로비 경로로 띄운다. 파일 단위 SHA-256 패치, ECDSA 서명 검증, 실패 시 이전 버전 보존, 런처 자기 업데이트. 배포 서버는 팀장 PC(정적 HTTP)이고 R2 전환은 주소만 바꾸면 된다. 계약·운영 절차는 [런처·패치 시스템 설계](unity/PATCH_SYSTEM_DESIGN.md) |
+| 빌드 배포 | Cloudflare R2 서명 패치 및 런처 자기 업데이트. 기본 실행은 자체 계정 파티, Steam은 호환 경로. [패치 시스템](unity/PATCH_SYSTEM_DESIGN.md) |
 
 ### 8.1 기능별 상세 설계 (2026-09-02 편입)
 
-아래 다섯 문서가 미구현 기능의 구현 계약을 확정한다. 파트별 기술 스펙(4장)이 "무엇을"이라면, 이 문서들은 "어떻게"다.
+아래 문서는 현재 구현 계약과 후속 검증 범위를 설명한다. 파트별 기술 스펙(4장)이 "무엇을"이라면, 이 문서들은 "어떻게"다.
 
 | 문서 | 확정 범위 | 담당 |
 |---|---|---|
 | [몬스터 공격 → 패링 창 연결](unity/MONSTER_PARRY_LINK_DESIGN.md) | 창귀 돌진이 패링 창을 여는 수직 슬라이스, 최소 텔레그래프 | 몬스터 · 보스 |
 | [PlayerAttack 공통 계약](unity/PLAYER_ATTACK_DESIGN.md) | 검 · 활 · 방울 공통 공격 계약, 서버 권위 화살 | 네트워크 · 전투 |
 | [보스 설계](unity/BOSS_DESIGN.md) | 보스 1마리 2페이즈, 실행 템플릿 4개 · 데이터 항목 8개 | 몬스터 · 보스 |
-| [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) | 결계 축소 · 피해, 드랍 · 노잣돈 · 객주. **인벤토리 절은 4칸 기준이라 폐기 대상** — 12칸은 [프로젝트 구조 설계서](04-architecture.md) | 게임플레이 시스템 |
+| [결계 · 인벤토리 · 상점](unity/BARRIER_INVENTORY_SHOP_DESIGN.md) | 결계 축소 · 피해, 드랍 · 노잣돈 · 객주. 현재 4×3 12칸 통합 인벤토리. 구조는 [프로젝트 구조 설계서](04-architecture.md) | 게임플레이 시스템 |
 | [애니메이션 파이프라인](unity/ANIMATION_PIPELINE_DESIGN.md) | 리타게팅, Override Controller, 서버 cue, 에셋 소싱 | 테크니컬 아트 |
 
 각 문서는 목표 · 권위 경계 · 구조 · 데이터 · 흐름 · 구현 순서 · 검증 · 대안 · 비용의 9절 형식이며, 서버/클라이언트 경계와 M0~M3 검증 기준을 포함한다.

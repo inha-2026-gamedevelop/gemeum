@@ -26,6 +26,49 @@ AI가 `RunManager`를 직접 잡지 말고 `RunTimeLocator`를 쓴다. 그래야
 
 ---
 
+### 0.1 플레이어 공통 서버 행동 진입점 (2026-09-19)
+
+봇 전환 1단계에서 기존 Command가 호출하는 공통 실행 경로를 추출했다. 아래는 모두 `[Server]` API다. 클라이언트는 기존 Command 경로를 사용하고, 서버 내부 제어자는 반환값으로 수락 여부를 확인한다. 입력 출처의 ControlMode·제어 세대·Unity Behavior 연결은 0.3절을 따른다. 수동 스폰은 0.2절을 따른다.
+
+| 컴포넌트 | API | 결과 |
+|---|---|---|
+| `PlayerController` | `ServerReceiveMoveInput(PlayerMoveInput)` | 순서·유한성 검증 후 버퍼 수락 여부. 이동 가능 여부는 권위 틱에서 판정 |
+| `PlayerAttack` | `ServerRequestAttack(uint, Vector2, PrecisionAimRay)` | `ActionRejection` |
+| `PlayerRollController` | `ServerRequestRoll(uint, Vector2)` | `ActionRejection` |
+| `HealController` | `ServerRequestHeal(uint)` | `ActionRejection` |
+| `ParryController` | `ServerRequestParry(uint)` | `ParryResultCode`; 서버 현재 시각, RTT 보정 없음. 창 시각은 반환하지 않음 |
+| `PrecisionShotController` | `ServerBeginPrecisionShot(run, scene, request, hold)` | `ActionRejection` |
+| `PrecisionShotController` | `ServerReleasePrecisionShot(run, scene, request, hold, aim, out rejection)` | `PrecisionReleaseDecision`: 홀드 미달 취소 / 발사 / 거부 |
+| `PrecisionShotController` | `ServerCancelPrecisionShot(run, scene, request, hold)` | 명시적 취소 성공 여부. Ready여도 화살을 발사하지 않음 |
+| `ReviveController` | `ServerBeginRescue(target, kind, targetGeneration, holdGeneration)` / `ServerCancelRescueRequest(holdGeneration)` | 수락 여부. 유지·이동·피격 취소는 기존 서버 틱 담당 |
+| `LockOnController` | `ServerSetLockOn(uint, byte)` | 대상·부위·거리 검증 후 수락 여부 |
+| `InteractionController` | `ServerRequestInteract(uint)` | 대상 전달 여부. 실제 상호작용 승인은 대상이 판정 |
+| `ShopTransactionService` | `ServerRequestPotion(actorNetId, header, slot, itemKind, inventoryRevision)` | `ShopTransactionResult`; 참가자는 서버 객체에서 조회, 중복 요청 재전송은 재소비 없음 |
+
+요청 번호는 행동별로 단조 증가시킨다. 공통 함수는 비용·쿨다운·생명 상태 검증을 생략하는 우회로가 아니다. 공격의 활 조준 입력은 현재 카메라 조준 계약을 그대로 검증하므로 봇 조준 생성 어댑터는 별도로 필요하다. `ActionRejection.InvalidInput = 7`은 비유한 방향·잘못된 조준을 나타내며 기존 enum 값은 유지했다. 사람의 패링 Command는 기존 창 키·RTT 보정을 유지한다.
+
+### 0.2 참가자 신원과 수동 봇 스폰 (2026-09-19)
+
+`ParticipantId`는 `(ParticipantKind, ulong)`이다. 기존 `new ParticipantId(value)`는 Human이며 Bot 번호는 `ParticipantDirectory.TryAllocateBot(out id)`가 발급한다. 서버 세션에서 발급한 번호는 제거 후에도 재사용하지 않는다. 플랫폼 ID에 봇 번호를 넣지 않는다.
+
+- `ParticipantDirectory.Register(id, NetworkIdentity)`는 살아 있는 다른 객체의 같은 신원을 덮어쓰지 않는다. `TryGet`으로 객체를 조회하고 연결 유무는 객체의 `connectionToClient`로 별도로 확인한다.
+- `PlayerStatus.ServerSetParticipantId(id)`는 Directory와 성장 등록을 함께 갱신한다. 종료 시 자신이 등록한 객체만 해제한다.
+- `PlayerBotSpawner.TrySpawn(prefab, position, rotation, weapon, character, out bot)`는 서버에서만 호출한다. 정원·필수 컴포넌트를 검사하고 소유자 없이 스폰·역할 확정을 실행한다. 실패하면 생성 객체를 제거한다. `TryDespawn(id)`는 봇만 제거한다.
+- 로비 자동 충원은 `BotParty.TryFill()`을 거쳐 이 스폰 API를 사용한다. 복구는 `PlayerBotSpawner.TryRestore()`와 참가자 스냅샷 경로를 따른다(0.4절).
+- 결과는 `RunPartyKind.HumansOnly / BotAssisted / UnknownLegacy`로 구분한다. `RunLeaderboardStore.TryLoadResults(path, partyKind, out results, out failure)`로 같은 분류만 조회한다. v1 파일은 Human 신원·UnknownLegacy 분류로 읽고 다음 저장에 v2로 기록한다.
+
+참가자 스냅샷 형식은 6, 로컬 리더보드 형식은 2다. 결과 네트워크 필드가 추가됐으므로 호스트·클라이언트 모두 같은 새 빌드를 사용해야 한다.
+
+### 0.3 서버 플레이어 BT (2026-09-19)
+
+`PlayerController.OnStartServer`가 일반 C# 객체 `PlayerBrain`을 만들고 이동 틱의 입력 처리 전에 평가한다. Unity Behavior 1.0.16의 `BehaviorGraphAgent`를 서버에만 추가하고 `Resources/BT/PlayerBehavior`를 인스턴스화한다. 자동 Update는 비활성화하며 서버 권위 틱에서 패키지 그래프를 평가한다. 종료 시 Agent·구독·예약을 정리한다. 공통 루트는 실행 금지 → Human → Bot 순서이며 Human은 기존 Command·행동 게이트와 이동 버퍼를 그대로 사용한다. 별도 입력 지연이나 공격/이동 간 배타 Selector를 추가하지 않는다.
+
+`ServerBrain`의 Mode·Generation·ActiveNode·TargetNetId·AcceptedAttacks·PathFailures·LastRejection은 서버 진단용이다. 봇 여부는 참가자 Kind로 결정하며 런 중 사람↔봇 소유권 전환 기능은 아니다.
+
+봇은 `Resources/BotConfig`와 `Resources/BotSkillProfile`을 읽는다. 자산 원본은 `Assets/09.Data/Resources/`다. 적의 전방 시야·거리·물리 가림 확인 후 인지 지연·누락·조준 오차를 적용한다. NavMesh는 이동 방향만 만들고 실제 이동·공격 판정은 공통 서버 API가 처리한다. 경로가 없으면 정지하고 실패 수를 남긴다.
+
+기본 공격 예약은 런·씬·제어 세대·대상과 실행/만료 시각을 검증해 한 번 소비한다. 중단·일시정지·재개는 이전 예약과 이동 입력을 폐기한다. 방어 예고 관측·패링·구르기 예약, 피격 기억, 치유·구조·물약 판단을 연결했다. 그래프는 기본 Try In Order와 Sequence로 우선순위를 정하고 `PlayerBehaviorAction` 리프가 기존 실행기를 호출한다. 그래프 편집 위치와 동기식 실행 제약은 PLAYER_BT_AND_BOT_DESIGN 18장을 따른다. 보스 내부 창 시각은 읽지 않는다.
+
 ## 1. 런 시간 읽기
 
 스폰 주기, 결계 축소, 보스 패턴 쿨다운은 **`Time.time`이 아니라 런 시간**을 봐야 한다. 런은 이탈자 대기 중에 멈추는데 `Time.time`은 안 멈춘다.
@@ -312,7 +355,7 @@ public interface ICombatLoadoutProvider
 
 `Revision`이 같으면 전투 쪽에서 다시 만들지 않는다. **매 명중마다 인벤토리를 다시 뒤지지 않게 하려는 값이다.**
 
-2026-09-09 현재 구현은 `InventoryController`다. `PlayerAttack`은 공격 수락 때 값을 복사하고 명중 때 그 복사본을 사용한다. 검·활·방울의 장착 공격력과 수락 당시 치명 준비 상태가 유지된다. `MaxHealth`는 현재 파티 성장 상태를 사용하며, 성장 관리자가 없는 개발 구성에서는 시작 레벨 곡선 값으로 대체한다. 장비 옵션·특성 적용은 아직 없다.
+2026-09-09 현재 구현은 `InventoryController`다. `PlayerAttack`은 공격 수락 때 값을 복사하고 명중 때 그 복사본을 사용한다. 검·활·방울의 장착 공격력과 수락 당시 치명 준비 상태가 유지된다. `MaxHealth`는 현재 파티 성장 상태를 사용하며, 성장 관리자가 없는 개발 구성에서는 시작 레벨 곡선 값으로 대체한다. CombatStatCalculator가 장착 WeaponCombatSnapshot·성장·39특성 배분을 합성한다. 수락한 전투 snapshot을 사용하며 영역 버프의 타격/발사 확정 시점은 PlayerAttack의 현행 경로를 따른다.
 
 서버의 `IGrowthParticipant.GrowthChanged`를 구독해 성장 변경 즉시 전투 revision을 갱신한다. 따라서 `TryBuildLoadout`을 다시 호출하기 전에 revision만 읽는 캐시도 성장 변경을 감지한다. 동일 성장 상태 재적용은 중복 증가시키지 않는다.
 
@@ -334,7 +377,7 @@ public interface ICombatLoadoutProvider
 ### 공용 재화와 부활 비용
 
 - `PartyWalletLocator.HasProvider`로 연결 여부를 확인하고 `Current`의 `Balance`/`BalanceChanged`를 읽는다. 생산 `SessionManagers.prefab`의 `CurrencyManager`가 서버 원본을 소유한다.
-- 서버 거래는 `TryPrepareSpend`로 계획을 만들고 `TryCommitSpend`로 확정한다. 계획의 런 ID·잔액·revision이 하나라도 달라지면 거부한다. 구매 상품 지급·위치·개방 조건은 아직 별도 상점 실행기 구현 대상이다.
+- 서버 거래는 `TryPrepareSpend`로 계획을 만들고 `TryCommitSpend`로 확정한다. 계획의 런 ID·잔액·revision이 하나라도 달라지면 거부한다. 구매 상품 지급·위치·개방 조건은 ShopTransactionService가 검증한다.
 - 잡귀 재화는 스폰 당시 FieldLevel과 보상 배수를 적용해 정수 내림한다. 보스는 잡귀 재화를 지급하지 않는다. 같은 런의 같은 적은 한 번만 지급한다.
 - 장비 드랍도 `FieldLevelAtSpawn`을 사용하고 같은 사망의 드랍 여부를 한 번만 결정한다. 보스 factory는 3구간 보상으로 고정하며 잡귀 배수를 장비 등급에 곱하지 않는다.
 - 부활 차감은 `TryApplyReviveLoss(ParticipantId, deathGeneration, ratio, out loss)`로 확정한다. 같은 틱에는 구조 우선이며 구조 10%, 자동 20%를 확정 직전 잔액에서 내림한다. 잔액 0도 부활할 수 있다.
@@ -581,9 +624,9 @@ GDebug.Server("방울 3명 적중, 신력 +15");   // 서버가 확정한 사실
 
 ---
 
-## 17.5 거래와 정밀 사격 창구 (2026-09-09 구현, 통합 검증 중)
+## 17.5 거래와 정밀 사격 창구
 
-아래 창구는 현재 코드에 추가됐다. 검증 통과 범위는 후속 실행 기록으로 확인하며, 구매·양도 UI와 물약 사용은 별도 구현 대상이다.
+아래 창구와 구매·양도 UI·물약 사용 경로는 구현되어 있다. API 존재와 실제 빌드 통합 검증을 구분한다.
 
 | 창구 | 호출/구독 | 계약 |
 |---|---|---|
@@ -603,18 +646,14 @@ GDebug.Server("방울 3명 적중, 신력 +15");   // 서버가 확정한 사실
 
 정밀 입력은 Player의 `PrecisionShotController`가 소유한다. 활을 장착한 뒤 Mouse1 홀드·해제로 요청하며, 홀드 시간·이동 배율·스태미나는 `CombatConfigSO`에서 읽는다. 충돌 대상의 `PrecisionTargetRef`가 RunId·SceneRevision·NetId·PartId를 제공하며, 화살은 발사 당시 세대와 일치하는 대상만 전달한다. 보스는 현재 예고·대상·신궁 대응 패턴과 phase의 `IsAttackWindup(attackInstanceId)`를 검사하고 보스 공격 InstanceId당 한 번만 중단한다. UI가 이 인터페이스를 호출해 적을 직접 중단해서는 안 된다.
 
-## 18. 아직 없는 것
+## 18. 현재 구현 상태
 
-기대하고 짜면 안 되는 것들이다.
+- 보스 본체·꼬리·원혼은 부위 식별과 hitbox를 가지며 BossPartController가 부위 활성·파괴를 관리한다.
+- 정밀 사격의 TryInterruptPrecisionShot, 검 패링과 방울 공명이 보스 카운터 경로에 연결되어 있다.
+- CombatStatCalculator가 장비 공격력·옵션·성장·39특성을 전투 snapshot에 반영한다.
+- RunStatistics가 IRunResultProvider를 구현해 기여·점수를 결과에 공급하고 호스트 로컬 리더보드에 저장한다.
 
-- ~~**표식을 읽는 소비자**~~ — 해소됨(2026-09-08). 보스 무녀 공명이 첫 소비자다. 아래 "무녀 표식 공명" 참조
-- ~~**`MarkRegistry.ClearAll()` 호출부**~~ — 해소됨(2026-09-09). 런 초기화·결과·서버 종료·씬 전환에 연결됨
-- **그로기 잔여** — 보스 게이지 감소·차사 패링·**무녀 공명**·진입 시 공격 취소·본체 피해 배율은 구현됨(2026-09-08). 신궁 정밀 사격은 2026-09-09 코드 추가 후 통합 검증 중이며, 꼬리 배율·잡귀 연장은 아직 미구현
-- **보스 부위** — `TargetRef.PartId`는 준비됐지만 부위를 가진 프리팹이 없다
-- **장비 옵션/특성 수치** — 장착 공격력과 파티 성장의 최대 HP 공급은 구현됨(2026-09-09). 옵션·특성 반영은 남아 있다
-- **점수** — `IRunResultProvider` 구현체가 없어 지금은 0점이 나온다
-
----
+남은 검증·표현 작업은 [로드맵](../05-implementation-roadmap.md)에서 관리한다.
 
 ## 물어볼 곳
 
@@ -642,6 +681,25 @@ GDebug.Server("방울 3명 적중, 신력 +15");   // 서버가 확정한 사실
 - 카운터 패턴은 코드가 아니라 `BossPatternSO`의 `GaugeReductionEntry.CounterPatternIds`에 있다 — 차사 1·6, 신궁 5·9, 무녀 4·8. **바꿀 때 코드를 고치지 않는다.**
 - 표식 조회는 `MarkRegistry.IsMarkedWithin(target, serverTime, window)`다. `serverTime`에는 부여·조회 모두 `RunTimeLocator.Current.GameplayElapsedSeconds`를 넣는다. 누가 걸었는지는 보지 않는다.
 - 대상 참조에는 런 id와 씬 세대가 함께 들어간다. 이전 런에서 남은 표식은 구조적으로 맞지 않는다.
-- 신궁(5·9) 카운터는 **데이터만 있고 호출부가 없다.** 정밀 사격 시전 취소가 선행이다.
+- 신궁 카운터는 정밀 사격 서버 충돌 결과에서 BossController.TryInterruptPrecisionShot을 호출하며 같은 공격 인스턴스의 중복 중단을 거부한다.
 
 - 현재는 단일 예고만 표현할 수 있는 상태 계약이다. 3인 순차 표식·다중 cue·재접속 일시정지 시각 보정·실제 데칼은 추가 구현 대상이다. 3PC 검증 전에는 네트워크 완료로 보지 않는다.
+
+## 19. 자동 충원과 참가자 복구
+
+- 자체 계정 경로의 준비·선호·봇은 런처의 `POST /v1/rooms/{id}/lobby`에서 처리한다. API가 출발 시 명단을 동결하고 서버 키로 인증된 heartbeat 응답에만 `launch_members`와 `fill_with_bots`를 전달한다. `LobbyController.ServerApplyLauncherParty`는 예정된 전원과 실제 로스터 ID가 일치하고 바인딩이 끝난 뒤 역할 배분·봇 충원·런 시작을 실행한다. 클라이언트의 준비/선호/봇 Command와 개발 자동준비는 자체계정 서버에서 거부한다.
+- 기존 호스트 경로의 `LobbyController.RequestBotFill(bool)` → `CmdSetBotFill`은 localConnection만 허용한다. 실제 사람 전원 ready 후 빈 역할을 `BotParty.TryFill`로 채운다. 기본3인 출발과 `LobbySlot.IsRoomOwner` 동기화는 유지한다.
+- `ParticipantDirectory.Actors`: 연결 없는 봇까지 포함하는 서버 읽기 전용 참가자 뷰. 연결 승인/로딩 ack에는 사용하지 않고, 참가자 상태·도착 배치 등에 사용한다.
+- `PlayerBotSpawner.TryRestore(prefab,snapshot,out identity)`: 같은 Bot ParticipantId의 ownerless 객체 생성과 공통 캐리어 복구. 중복 신원은 거절한다. `RunSceneDirector`가 캡처→복구→커밋을 소유한다.
+- `InventoryController.ServerCopySlots(buffer)`: 서버 판단용 슬롯 복사. 봇 장착·물약은 기존 revision·공통 거래 경로를 통과한다.
+- `InventoryController.RequestBotInventory(botNetId, runId, sceneRevision)` / `TryGetBotInventory(..., out snapshot)`: 자신의 소유 캐리어에서 같은 파티 봇 장비·12슬롯 읽기. 서버는 Human 요청자/Bot 대상의 참가자 등록, 런·씬 세대와 전환 상태를 확인하고 TargetRpc로만 응답한다. 다른 Human 조회는 거절한다. UI는 0.5초 주기, 서버 요청 제한은 0.2초다. 조회를 통한 장착/사용/양도는 제공하지 않는다.
+- 봇 판단은 `PlayerBrain`이 서버에서만 실행한다. 위협 관측은 공개 표현/cue, 실행 취소 확인은 공격 식별자만 사용한다. 예약된 대응을 실행할 때도 기존 자원/쿨다운/생명/씬 게이트를 통과한다.
+- 참가자 Kind/Value는 클라이언트에 복제되며, `PlayerStatus.Participant`와 이름표/파티창에서 조회할 수 있다. 이것은 클라이언트에 판정 권한을 부여하지 않는다.
+
+## 자체 계정 리슨 서버 (2026-09-21)
+출발 명단은 FastAPI가 확정하고, 방장 게임이 POST /v1/rooms/{id}/host로 방 단위 호스트 키를 한 번 발급받는다. Mirror StartHost로 실행하며 참가자와 같은 challenge/ticket 인증을 통과한다. 호스트 준비 heartbeat 후 나머지 런처가 게임을 실행한다. 게임 판정은 방장 프로세스의 기존 Server 메서드가 담당한다. FastAPI는 로그인·파티·접속 인증·임대만 담당한다. 별도 게임 worker는 기본 listen 모드에서 사용하지 않는다. 외부 자체 계정 접속은 AccountRelayTransport/AWS UDP 릴레이다. 직접 KCP는 로컬 개발, FizzySteamworks는 Steam 호환 경로다. FastAPI는 릴레이 자격도 발급하며 게임 판정은 계속 방장 프로세스가 담당한다.
+
+
+## 무기 능력 내부 진입점
+
+`PlayerAttack.ServerRequestWeaponSkill`과 `ServerRequestEchoRecall`은 서버 행동 경로다. UI는 이 메서드를 직접 부르지 않고 [클라이언트 API](CLIENT_API_REFERENCE.md)의 공개 요청을 사용한다. 검 반격·활 쐐기·방울 설치의 비용·중복·취소·수명은 해당 PlayerAttack partial을 따른다.

@@ -214,8 +214,9 @@ public override void OnClientConnect()
 
 ### 트랜스포트
 
-Mirror 기본은 **KCP Transport**다. UDP 기반이라 지연이 낮고 별도 설정이 거의 없다.
-추후 Steam 출시를 고려하면 `FizzySteamworks`로 교체할 수 있다. 트랜스포트 교체는 컴포넌트 수준이라 게임 로직에 영향이 없다.
+배포 기본은 자체 계정 `AccountRelayTransport`와 AWS 암호화 UDP 릴레이다. 로컬 개발은 직접 KCP, Steam 호환은 이미 도입된 FizzySteamworks를 사용한다. 연결 경로가 달라도 게임 판정 권위는 방장 리슨 서버에 남는다.
+
+FastAPI는 로그인·파티 명단·호스트 임대·접속 티켓·허용 빌드·릴레이 자격을 확정한다. 방장 게임은 인증된 명단으로 시뮬레이션한다. 계정 모드의 준비·무기 선호·봇 편성은 런처/API 경로를 사용하며 Unity 클라이언트의 변경 Command는 거부한다.
 
 ---
 

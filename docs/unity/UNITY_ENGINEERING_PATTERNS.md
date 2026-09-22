@@ -100,8 +100,7 @@ void OnDisable() {
 이벤트 구독에는 명확한 소유권과 해제 시점을 둔다.
 해제하지 않으면 파괴된 오브젝트가 계속 호출되어 `MissingReferenceException`이 난다.
 
-**정적 이벤트는 쓰지 않는다.** 구독자 목록이 씬 수명과 무관하게 살아남는다.
-Domain Reload를 끄면 플레이를 멈춰도 핸들러가 남아 다음 플레이에서 중복 호출된다.
+씬 수명보다 오래 사는 정적 이벤트는 명시적인 `Bind`/`Unbind` 또는 `Register`/`Unregister`와 리셋 책임이 있을 때만 사용한다. `LocalCombatState`와 locator의 `Changed` 이벤트가 이 예외다. 일반 씬 이벤트는 인스턴스 이벤트나 `GameEventBus`를 사용한다. Domain Reload를 껐을 때 구독자가 남지 않는지도 확인한다.
 
 ### 같은 파트 안 — 인스턴스 이벤트를 직접 쓴다
 
@@ -173,14 +172,14 @@ bus.Unsubscribe<RunPhaseChangedEvent>(HandlePhaseChanged);
 
 ## 5. 직렬화된 enum
 
-`EquipGrade`, `EnemyType` 같은 직렬화 대상 enum은 **명시값을 유지**하고 기존 값을 재배열하지 않는다.
+`ItemGrade`, `EnemyKind` 같은 직렬화 대상 enum은 **명시값을 유지**하고 기존 값을 재배열하지 않는다.
 
 ```csharp
-public enum EquipGrade {
+public enum ItemGrade {
     Common  = 0,
     Talisman = 1,
-    Sacred  = 2,
-    Relic   = 3,
+    Spiritual  = 2,
+    Divine   = 3,
 }
 ```
 
@@ -191,17 +190,14 @@ public enum EquipGrade {
 
 ## 6. 오브젝트 풀링
 
-잡귀와 투사체는 풀링을 검토한다.
+로컬 VFX는 프로젝트의 `LocalObjectPoolService`를 사용한다.
 
 | 대상 | 이유 |
 |---|---|
-| 화살 | 연사 특성이면 초당 여러 발 |
-| 잡귀 | 구간별 18~22마리, 리스폰 반복 |
 | 히트 이펙트 | 전투 중 지속 생성 |
+| 검기와 행동 VFX | 3인이 반복 재생하며 수명이 짧음 |
 
-Unity 6에는 `UnityEngine.Pool.ObjectPool<T>`가 내장되어 있다. 직접 구현하지 않는다.
-
-**단, 프로토타입 단계에서는 하지 않는다.** 성능 문제가 실제로 관찰된 뒤에 적용한다.
+`NetworkServer.Spawn` 대상인 화살과 잡귀는 이 로컬 풀에 넣지 않는다. 네트워크 개체 풀링은 Mirror 스폰 핸들러를 등록하는 별도 작업이다. 새 로컬 연출은 `LocalPoolRoot`와 `IPoolable` 계약을 따르고, 새 풀 구현을 만들지 않는다.
 
 ---
 

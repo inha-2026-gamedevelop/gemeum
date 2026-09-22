@@ -28,20 +28,24 @@ Rain Maker 등 경쟁 에셋이 프로젝트에 같이 있으면 충돌하니 �
 
 ---
 
-## 2. 최초 활성화 (한 번만)
+## 2. 최초 확인
 
-1. **Window → Weather Maker → Enable URP** 클릭.
-2. [Demo/Scenes/DemoScene.unity](../../Assets/99.ThirdParty/Background/WeatherMaker/Demo/Scenes/DemoScene.unity)를 열어 Play — 하늘·구름·태양·달·기본 오디오가 보이면 정상.
+**`Window → Weather Maker → Enable URP` 메뉴를 실행하지 않는다.** 이 메뉴는 프로젝트의 렌더 파이프라인을 Weather Maker 번들 프로필로 바꿀 수 있다. 그믐은 기존 `PC_RPAsset`과 Renderer Data를 유지한다.
 
-이 단계는 씬을 건드리지 않으므로 승인 없이 진행 가능.
+1. `Project Settings → Graphics`와 `Quality`가 그믐의 RPAsset을 가리키는지 확인한다.
+2. 현재 Renderer Data의 Renderer Features에 Weather Maker 항목이 있는지 확인하고, 필요하면 기존 Renderer Data에 수동으로 추가한다.
+3. [Demo/Scenes/DemoScene.unity](../../Assets/99.ThirdParty/Background/WeatherMaker/Demo/Scenes/DemoScene.unity)를 열어 Play한다. 데모를 저장하거나 Build Settings에 추가하지 않는다.
+4. 설정을 바꿨다면 `git diff`로 Graphics·Quality·Renderer Data 외의 예상하지 않은 변경이 없는지 확인한다.
 
 ---
 
-## 3. Main.unity 세팅 체크리스트 (승인 후 진행)
+## 3. 레거시 Main.unity 세팅 참고
+
+현재 플레이 런타임은 Release/Field다. WeatherMaker 프리팹·Mirror sync는 Main에 있고 Field에는 아직 동일 구성이 없다. ArtProductionWiringHelper의 Field 연결은 DayCycleController/프로필 범위이므로 아래 Main 세팅을 생산 적용 완료로 해석하지 않는다. Field 날씨 반영은 별도 통합·L2/L3 검증 대상이다.
 
 ### 프리팹 배치
 - [Prefab/WeatherMakerPrefab.prefab](../../Assets/99.ThirdParty/Background/WeatherMaker/Prefab/WeatherMakerPrefab.prefab)을 씬 **루트**에 배치한다. (2D 프로젝트면 `WeatherMakerPrefab2D`)
-- 하위 오브젝트 중 다음은 **비활성화해도 되지만 삭제하면 안 된다**: `AudioManager`, `DayNightCycle`, `LightManager`, `SkySphere`, `FullScreenEffects/Clouds` — 이 다섯은 항상 활성 상태를 유지해야 한다.
+- 하위 오브젝트 `AudioManager`, `DayNightCycle`, `LightManager`, `SkySphere`, `FullScreenEffects/Clouds`는 삭제하거나 비활성화하지 않는다.
 - `IsPermanent`(WeatherMakerScript, 기본 true) — 그믐은 로그라이크라 런 중 씬 전환이 잦다. 런처/영속 씬 하나에만 넣고 `IsPermanent = true`(기본값) 유지를 권장. 씬마다 새로 넣으려면 `false`로 바꾼다.
 
 ### 카메라
@@ -86,7 +90,7 @@ Rain Maker 등 경쟁 에셋이 프로젝트에 같이 있으면 충돌하니 �
 
 ---
 
-## 6. 날씨를 바꾸는 법 (프로필 기반, 코드 수정 없음)
+## 6. 날씨를 바꾸는 법 (일반 프로필 변경은 코드 수정 없음)
 
 모든 기능이 ScriptableObject 프로필로 구성된다. 밸런스 수치와 마찬가지로 [밸런스 데이터 작업](BALANCE_DATA_WORKFLOW.md) 원칙과 동일하게 — **코드로 박지 않고 에셋으로 관리**한다.
 
