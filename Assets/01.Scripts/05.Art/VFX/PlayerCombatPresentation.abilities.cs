@@ -41,16 +41,17 @@ namespace Geumeum.Art
         {
             _abilities = GetComponent<PlayerAttack>();
             _chargeSource = GetComponent<PrecisionShotController>();
+            _bowStatus = GetComponent<PlayerStatus>();
             _effectCharacter = GetComponent<PlayerCharacter>();
             _abilityAnimation = GetComponent<PlayerAnimationController>();
             _abilityFacing = GetComponent<PlayerPresentation>();
             _skillVisualWeapon = GetComponent<PlayerWeapon>();
-            if (_abilities != null) { _abilities.AbilityPresented += PlayAbility; }
+            if (_abilities != null) { _abilities.AbilityPresented += PlayAbility; _abilities.PrecisionShotPresented += PlayBowLaser; }
         }
 
         private void OnDestroy()
         {
-            if (_abilities != null) { _abilities.AbilityPresented -= PlayAbility; }
+            if (_abilities != null) { _abilities.AbilityPresented -= PlayAbility; _abilities.PrecisionShotPresented -= PlayBowLaser; }
             if (_accentMesh != null) { Destroy(_accentMesh); }
             if (_abilityVisualRoot != null) { Destroy(_abilityVisualRoot); }
         }
@@ -101,6 +102,7 @@ namespace Geumeum.Art
             BeginAccents();
             // 성공 패링은 장판과 잔광보다 먼저 메시 예산을 받는다
             DrawDeflection(Time.unscaledDeltaTime);
+            UpdateBowVisuals(now);
             DrawCharge(now);
             DrawWeaponSkill(now);
             DrawSustainedAccents(now);
@@ -288,7 +290,8 @@ namespace Geumeum.Art
                     }
                 }
             }
-            else { QueueAbilityPulse(kind, point, count, time); }
+            else if (!(kind == WeaponAbilityEvent.BowReleased && count != 0 && _bowLaserCueTime == time))
+            { QueueAbilityPulse(kind, point, count, time); }
             if (IsLocalPlayer && count > 0 && (kind == WeaponAbilityEvent.SwordSkill || kind == WeaponAbilityEvent.BowStab))
             {
                 _abilityAnimation?.PlayHitStop(kind == WeaponAbilityEvent.SwordSkill ? GameDB.Presentation.SwordSkillHitStopSeconds : GameDB.Presentation.BowStabHitStopSeconds);

@@ -72,6 +72,7 @@ GameObject:
   - component: {fileID: 7777117034329814904}
   - component: {fileID: 1922186990658148849}
   - component: {fileID: 8596000307667448832}
+  - component: {fileID: 8230923000000000001}
   m_Layer: 9
   m_Name: Player
   m_TagString: Untagged
@@ -617,6 +618,54 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.DamageFlashView
   _visualRoot: {fileID: 0}
+--- !u!114 &8230923000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3550045087523702412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f3c24e74b1a45a1a92c72f30bd66a48, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Art.PlayerVfxController
+  _entries:
+  - _key: melee_slash
+    _prefab: {fileID: 6755605753164234163, guid: b0995a10602e4554c8037a6efa6fdc6d, type: 3}
+    _initialCapacity: 3
+    _maxSize: 18
+    _anchor: {fileID: 0}
+  - _key: bell_pulse
+    _prefab: {fileID: 2509292420777381881, guid: 0d036e9c671867a41a4a4610cfc3d991, type: 3}
+    _initialCapacity: 3
+    _maxSize: 9
+    _anchor: {fileID: 0}
+  - _key: heal_cast
+    _prefab: {fileID: 4942927148076373807, guid: cb04e0b109b558540811415130d76046, type: 3}
+    _initialCapacity: 3
+    _maxSize: 9
+    _anchor: {fileID: 0}
+  - _key: parry
+    _prefab: {fileID: 44359322229653309, guid: 0bbdf57af3faf7243990839e0dd0b0dc, type: 3}
+    _initialCapacity: 3
+    _maxSize: 9
+    _anchor: {fileID: 0}
+  - _key: mark
+    _prefab: {fileID: 568261827445443260, guid: cd1fe913584c3844ea1253f2d0c04648, type: 3}
+    _initialCapacity: 6
+    _maxSize: 18
+    _anchor: {fileID: 0}
+  - _key: bow_charge
+    _prefab: {fileID: 7032305409660491570, guid: 3d69d9aa2332142438c812ed2f68be2e, type: 3}
+    _initialCapacity: 3
+    _maxSize: 6
+    _anchor: {fileID: 0}
+  - _key: bow_laser_release
+    _prefab: {fileID: 2232017021099093677, guid: f14da063191ac5548948db66bc173c24, type: 3}
+    _initialCapacity: 6
+    _maxSize: 12
+    _anchor: {fileID: 0}
 --- !u!1001 &1331680180131862316
 PrefabInstance:
   m_ObjectHideFlags: 0

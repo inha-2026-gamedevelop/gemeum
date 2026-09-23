@@ -13,6 +13,7 @@ namespace Geumeum.Network
     public sealed partial class VerificationCommandDriver
     {
         private uint _abilityHold;
+        private readonly Dictionary<uint, uint> _abilityHoldsByActor = new Dictionary<uint, uint>();
         [Serializable]
         private sealed class GripVerificationState
         {
@@ -73,6 +74,7 @@ namespace Geumeum.Network
         // 본체 partial에는 OnDisable이 없다. 검증 보조가 남긴 상태만 여기서 되돌린다
         private void OnDisable()
         {
+            _abilityHoldsByActor.Clear();
             foreach (var pair in _rollLockOnFixtures)
             {
                 RollLockOnFixture fixture = pair.Value;
@@ -248,6 +250,10 @@ namespace Geumeum.Network
                         "/recordFrom=" + typeof(Geumeum.Art.MeleeSlashView).GetField("_recordFrom", AbilityPrivate).GetValue(trail) +
                         "/recordUntil=" + typeof(Geumeum.Art.MeleeSlashView).GetField("_recordUntil", AbilityPrivate).GetValue(trail);
                 }
+                var bowLeases = presentationType.GetField("_bowLasers", AbilityPrivate)?.GetValue(presentation) as System.Collections.ICollection;
+                var bowCharge = presentationType.GetField("_bowCharge", AbilityPrivate)?.GetValue(presentation) as Geumeum.Art.PooledVisualLifetime;
+                message += ";bowLasers=" + (bowLeases == null ? 0 : bowLeases.Count) +
+                    ";bowCharge=" + (bowCharge != null && bowCharge.IsRented);
                 message += ";gameplay=" + RunTimeLocator.Current.GameplayElapsedSeconds;
                 return true;
             }
@@ -424,14 +430,17 @@ namespace Geumeum.Network
             }
             if (command.verb == "ability_precision_begin")
             {
+                uint hold = ++_abilityHold;
                 var rejection = actor.GetComponent<PrecisionShotController>().ServerBeginPrecisionShot(
-                    RunManager.ServerInstance.RunId.Value, RunSceneDirector.ServerInstance.Revision.Value, request, ++_abilityHold);
+                    RunManager.ServerInstance.RunId.Value, RunSceneDirector.ServerInstance.Revision.Value, request, hold);
+                if (rejection == ActionRejection.None) { _abilityHoldsByActor[actor.netId] = hold; }
                 message = rejection.ToString(); return rejection == ActionRejection.None;
             }
             if (command.verb == "ability_precision_release")
             {
+                uint hold = _abilityHoldsByActor.TryGetValue(actor.netId, out uint acceptedHold) ? acceptedHold : _abilityHold;
                 var decision = actor.GetComponent<PrecisionShotController>().ServerReleasePrecisionShot(
-                    RunManager.ServerInstance.RunId.Value, RunSceneDirector.ServerInstance.Revision.Value, request, _abilityHold, aim, out ActionRejection rejection);
+                    RunManager.ServerInstance.RunId.Value, RunSceneDirector.ServerInstance.Revision.Value, request, hold, aim, out ActionRejection rejection);
                 if (decision == PrecisionReleaseDecision.Fire && command.secondaryIndex == 1)
                 { Invoke(nameof(PauseHitTest), .08f); }
                 message = decision + "/" + rejection; return rejection == ActionRejection.None;

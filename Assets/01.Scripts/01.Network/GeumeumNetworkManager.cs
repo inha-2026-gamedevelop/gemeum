@@ -10,6 +10,7 @@ using Mirror;
 
 // 프로젝트 내부
 using Geumeum.Common;
+using Geumeum.Art;
 
 namespace Geumeum.Network
 {
@@ -21,6 +22,7 @@ namespace Geumeum.Network
         ****************************************/
 
         private static readonly List<string> _bootFailures = new List<string>();
+        private bool _devStartPending;
 
         /// <summary> 로컬 클라이언트가 서버에 붙었다 </summary>
         public static event System.Action ClientConnected;
@@ -64,8 +66,37 @@ namespace Geumeum.Network
 
             if (Input.GetKeyDown(_devStartHostKey))
             {
-                Debug.Log($"[GeumeumNetworkManager] Dev 단축키({_devStartHostKey})로 호스트를 시작한다");
-                StartHost();
+                StartDevHostAfterBoot();
+            }
+        }
+
+        private async void StartDevHostAfterBoot()
+        {
+            if (_devStartPending)
+            {
+                return;
+            }
+            _devStartPending = true;
+            try
+            {
+                await PresentationPoolPrewarmer.WaitForBootAsync(destroyCancellationToken);
+                if (this != null && !isNetworkActive)
+                {
+                    Debug.Log($"[GeumeumNetworkManager] Dev 단축키({_devStartHostKey})로 호스트를 시작한다");
+                    StartHost();
+                }
+            }
+            catch (System.OperationCanceledException)
+            {
+                return;
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogError("[GeumeumNetworkManager] Boot 프리워밍 실패: " + exception.Message, this);
+            }
+            finally
+            {
+                _devStartPending = false;
             }
         }
 

@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Mirror;
 using Newtonsoft.Json;
+using Geumeum.Art;
 using Geumeum.Common;
 
 namespace Geumeum.Network
@@ -173,6 +174,8 @@ namespace Geumeum.Network
                 Debug.Log("[LauncherGameSession] 계정 세션 확인: accountId=" + AccountId);
                 if (IsFrontendMode)
                 {
+                    // Boot의 영속 세션 오브젝트와 풀을 준비한 뒤 오프라인 방 화면으로 간다.
+                    await PresentationPoolPrewarmer.WaitForBootAsync(_lifetime.Token);
                     EnterLobbyScene();
                 }
                 else
@@ -395,7 +398,8 @@ namespace Geumeum.Network
             {
                 try
                 {
-                    // 티켓 발급은 이 값으로 방을 검증한다.
+                    // 연결할 방은 GPU Boot 완료 뒤에만 묶는다. 티켓 발급은 이 값으로 방을 검증한다.
+                    await PresentationPoolPrewarmer.WaitForBootAsync(linked.Token);
                     self.EnsureCurrentConnection(revision, linked.Token);
                     RoomId = room.room_id;
                     await self.StartConnectionAsync(room.room_id, room.address, room.port,
@@ -441,6 +445,8 @@ namespace Geumeum.Network
         private async Task StartConnectionAsync(string room, string address, int port,
             bool isHost, Uri origin, int revision, CancellationToken cancellationToken)
         {
+            // 릴레이 자격 발급과 호스트 권한 요청 전에 GPU 준비를 끝낸다.
+            await PresentationPoolPrewarmer.WaitForBootAsync(cancellationToken);
             EnsureCurrentConnection(revision, cancellationToken);
             NetworkManager manager = NetworkManager.singleton;
             kcp2k.KcpTransport transport = manager == null ? null : manager.GetComponent<kcp2k.KcpTransport>();

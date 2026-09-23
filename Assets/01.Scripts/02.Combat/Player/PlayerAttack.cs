@@ -1263,7 +1263,6 @@ namespace Geumeum.Combat
         [Server]
         private void SpawnArrow(in ArrowFireSnapshot snapshot, ArrowConfigSO arrowConfig)
         {
-            RpcAbilityEvent(WeaponAbilityEvent.BowReleased, snapshot.Origin, (byte)(snapshot.IsPrecision ? 1 : 0), AbilityTime);
             if ((_arrowPrefab == null) || (arrowConfig == null))
             {
                 Debug.LogError("[PlayerAttack] 화살 프리팹이나 설정이 없어 원거리 공격이 나가지 않는다", this);
@@ -1271,6 +1270,15 @@ namespace Geumeum.Combat
             }
 
             SpawnAcceptedArrow(snapshot, arrowConfig);
+            if (snapshot.IsPrecision)
+            {
+                RpcPrecisionShotVisual(snapshot.Origin, snapshot.Direction, snapshot.ActionId,
+                    snapshot.ShotIndex, AbilityTime, snapshot.RunIdValue, snapshot.SceneRevisionValue);
+            }
+            else
+            {
+                RpcAbilityEvent(WeaponAbilityEvent.BowReleased, snapshot.Origin, 0, AbilityTime);
+            }
         }
 
         [Server]

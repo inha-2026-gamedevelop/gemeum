@@ -6,6 +6,7 @@ using UnityEngine;
 
 // 서드파티
 using Mirror;
+using Geumeum.Art;
 
 namespace Geumeum.Network
 {
@@ -31,7 +32,7 @@ namespace Geumeum.Network
         *              Unity Event
         ****************************************/
 
-        private void Start()
+        private async void Start()
         {
             NetworkManager manager = NetworkManager.singleton;
             if (manager == null)
@@ -44,6 +45,24 @@ namespace Geumeum.Network
 
             ApplyPlatformId(args);
             ApplyPort(args);
+
+            try
+            {
+                await PresentationPoolPrewarmer.WaitForBootAsync(destroyCancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError("[NetworkLaunchArgs] Boot 프리워밍 실패로 접속을 시작하지 않는다: " + exception.Message, this);
+                return;
+            }
+            if (this == null || manager == null || manager.isNetworkActive)
+            {
+                return;
+            }
 
             if (TryFindValue(args, ARG_CLIENT, out string address))
             {

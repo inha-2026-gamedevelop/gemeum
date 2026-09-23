@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Geumeum.Common;
+using Geumeum.Art;
 using Mirror;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -130,6 +131,7 @@ namespace Geumeum.Network
                     { BaseAddress = origin, Timeout = TimeSpan.FromSeconds(10) };
                 _http.DefaultRequestHeaders.Add("X-Server-Key", key);
                 await Task.Yield();
+                await PresentationPoolPrewarmer.WaitForBootAsync(_lifetime.Token);
                 _manager = NetworkManager.singleton as GeumeumNetworkManager;
                 var transport = _manager == null ? null : _manager.GetComponent<kcp2k.KcpTransport>();
                 if (transport == null)
