@@ -701,10 +701,34 @@ namespace Geumeum.UI
 
         private void ExitQuickTransferMode()
         {
+            // 평소 배낭을 닫는 것까지 건드리지 않는다
+            if (IsQuickTransferMode)
+            {
+                WithdrawQuickOffer();
+            }
+
             _quickRecipientNetId = 0u;
             _quickRecipientName  = string.Empty;
             _quickBoxSlot        = -1;
             CancelQuickDrag();
+        }
+
+        /// <summary>
+        /// 내가 보낸 제안을 거두어들인다
+        ///
+        /// 이 창은 양도 한 건이 곧 창 하나다. 닫았는데 제안이 30초 동안 남아 있으면
+        /// 보낸 사람은 그런 줄 모르고, 그 동안 다른 사람에게는 줄 수도 없다
+        ///
+        /// 상대가 이미 수락했으면 State가 Offered가 아니므로 아무것도 하지 않는다
+        /// </summary>
+        private void WithdrawQuickOffer()
+        {
+            if ((_transferService == null) || (!CanLocalCancelOffer()))
+            {
+                return;
+            }
+
+            _transferService.RequestCancel(_activeOffer.OfferId);
         }
 
         public void OpenShop(uint shopNetId)
