@@ -51,6 +51,12 @@ namespace Geumeum.UI
         [Header("창")]
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private Button _closeButton;
+        [Tooltip("옆으로 미는 대상. 우측 콘텐츠를 한 덩어리로 들고 있는 Window를 넣는다")]
+        [SerializeField] private RectTransform _slideRoot;
+        [Tooltip("닫힌 상태에서 오른쪽으로 밀어 두는 거리(px, 1280 기준). 우측 판 왼쪽 끝이 180이라 460이면 화면 밖으로 빠진다")]
+        [SerializeField] private float _slideDistance = 480f;
+        [Tooltip("열리고 닫히는 데 걸리는 시간(초)")]
+        [SerializeField] private float _slideDuration = 0.22f;
         [SerializeField] private Button _shopTabButton;
         [SerializeField] private GameObject _inventoryPage;
         [SerializeField] private GameObject _talentPage;
@@ -136,6 +142,11 @@ namespace Geumeum.UI
         private float _nextSnapshotPollTime;
         private float _nextNetworkScanTime;
 
+        // 슬라이드 연출. 0이면 완전히 닫힌 자리, 1이면 제자리다
+        private float _revealProgress;
+        private Vector2 _slideOpenPosition;
+        private bool _hasSlideOrigin;
+
         public static FunctionalManagementPanel Instance { get; private set; }
 
         /// <summary> 관리 창이 열리고 닫힐 때. HUD처럼 같이 숨겨야 하는 화면이 듣는다 </summary>
@@ -212,7 +223,8 @@ namespace Geumeum.UI
             }
 
             BindButtons();
-            SetVisible(false);
+            CacheSlideOrigin();
+            SetVisible(false, true);
         }
 
         private readonly List<Image> _talentEdges = new List<Image>();
@@ -548,7 +560,7 @@ namespace Geumeum.UI
                 _transferService.TransferChanged -= HandleTransferChanged;
             }
 
-            SetVisible(false);
+            SetVisible(false, true);
         }
 
         private void OnDestroy()
@@ -571,6 +583,9 @@ namespace Geumeum.UI
 
         private void Update()
         {
+            // 닫히는 연출은 _isVisible이 이미 false인 상태로 진행되므로 아래 조기 반환보다 앞에 있어야 한다
+            AdvanceRevealAnimation();
+
             RefreshLocalBinding();
             RefreshObservedContext();
 
@@ -965,14 +980,30 @@ namespace Geumeum.UI
 
         private void SetVisible(bool visible)
         {
+            SetVisible(visible, false);
+        }
+
+        /// <param name="instant">
+        /// 연출 없이 즉시 맞춘다. 초기화(Awake)와 비활성화(OnDisable)는 화면에 보여 줄 프레임이
+        /// 없으므로 애니메이션을 돌리면 다음에 켰을 때 중간 자세로 남는다
+        /// </param>
+        private void SetVisible(bool visible, bool instant)
+        {
             bool changed = (_isVisible != visible);
 
             _isVisible = visible;
+
+            // 입력 차단은 연출을 기다리지 않는다. 닫는 중인 창이 클릭을 먹으면 오작동한다
             if (_canvasGroup != null)
             {
-                _canvasGroup.alpha = visible ? 1f : 0f;
                 _canvasGroup.interactable = visible;
                 _canvasGroup.blocksRaycasts = visible;
+            }
+
+            if (instant || (_slideDuration <= 0f))
+            {
+                _revealProgress = visible ? 1f : 0f;
+                ApplyRevealProgress();
             }
 
             if (!visible)
@@ -988,6 +1019,61 @@ namespace Geumeum.UI
             {
                 VisibilityChanged?.Invoke(visible);
             }
+        }
+
+        /// <summary>
+        /// 슬라이드 기준 자리를 한 번만 잡아 둔다. 연출로 옮긴 뒤의 좌표를 기준으로 삼으면
+        /// 열고 닫을 때마다 창이 조금씩 밀려난다
+        /// </summary>
+        private void CacheSlideOrigin()
+        {
+            if (_hasSlideOrigin || (_slideRoot == null))
+            {
+                return;
+            }
+
+            _slideOpenPosition = _slideRoot.anchoredPosition;
+            _hasSlideOrigin    = true;
+        }
+
+        private void AdvanceRevealAnimation()
+        {
+            float target = _isVisible ? 1f : 0f;
+            if (Mathf.Approximately(_revealProgress, target))
+            {
+                return;
+            }
+
+            // 관리 창은 시간이 멈춘 상태에서도 열릴 수 있어 unscaled를 쓴다
+            float step = (_slideDuration > 0f) ? (Time.unscaledDeltaTime / _slideDuration) : 1f;
+
+            _revealProgress = Mathf.MoveTowards(_revealProgress, target, step);
+            ApplyRevealProgress();
+        }
+
+        private void ApplyRevealProgress()
+        {
+            // 시작과 끝을 함께 눅인다. 등속으로 밀면 멈추는 순간이 딱딱하게 걸린다
+            float eased = Mathf.SmoothStep(0f, 1f, _revealProgress);
+
+            // 카메라가 이 값을 읽어 측면으로 비킨다. 창이 화면을 덮는 만큼 캐릭터가 반대쪽으로 간다
+            CameraFrame.MenuRevealProgress = eased;
+
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.alpha = eased;
+            }
+
+            if (_slideRoot == null)
+            {
+                return;
+            }
+
+            CacheSlideOrigin();
+
+            // 닫힌 자리는 오른쪽 화면 밖이다. 거기서 제자리로 당겨 온다
+            _slideRoot.anchoredPosition = _slideOpenPosition
+                + (Vector2.right * (_slideDistance * (1f - eased)));
         }
 
         private void SetPage(PageKind page)

@@ -20,9 +20,9 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0, g: 0, b: 0, a: 0}
-  m_AmbientEquatorColor: {r: 0, g: 0, b: 0, a: 0}
-  m_AmbientGroundColor: {r: 0, g: 0, b: 0, a: 0}
+  m_AmbientSkyColor: {r: 0.3821127, g: 0.40278387, b: 0.5, a: 0.5}
+  m_AmbientEquatorColor: {r: 0.25, g: 0.25, b: 0.25, a: 0.25}
+  m_AmbientGroundColor: {r: 0.5, g: 0.5, b: 0.5, a: 0.5}
   m_AmbientIntensity: 1
   m_AmbientMode: 3
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
@@ -9557,6 +9557,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 167707630372204324, guid: 0742ec19c481e4b46b316c6adf71ca21, type: 3}
+      propertyPath: _slideRoot
+      value: 
+      objectReference: {fileID: 573495999}
     - target: {fileID: 338233512123957299, guid: 0742ec19c481e4b46b316c6adf71ca21, type: 3}
       propertyPath: m_fontColor32.rgba
       value: 4293456629
@@ -9974,6 +9978,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 868372234}
   m_SourcePrefab: {fileID: 100100000, guid: 0742ec19c481e4b46b316c6adf71ca21, type: 3}
+--- !u!224 &573495999 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 4321368464416622774, guid: 0742ec19c481e4b46b316c6adf71ca21, type: 3}
+  m_PrefabInstance: {fileID: 573495998}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &576561357
 GameObject:
   m_ObjectHideFlags: 0
@@ -43428,7 +43437,6 @@ MonoBehaviour:
   OnClientAuthenticated:
     m_PersistentCalls:
       m_Calls: []
-  _buildId: dev
   _devIdentitySourceBehaviour: {fileID: 1936258991}
   _steamIdentitySourceBehaviour: {fileID: 1936258998}
 --- !u!114 &1936258993
@@ -46792,22 +46800,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: '@RunManagementUI'
       objectReference: {fileID: 0}
-    - target: {fileID: 2743483700576439791, guid: 2c1971b168ce54b44a52eb86931d5e4a, type: 3}
-      propertyPath: m_fontColor32.rgba
-      value: 4291355376
-      objectReference: {fileID: 0}
-    - target: {fileID: 2743483700576439791, guid: 2c1971b168ce54b44a52eb86931d5e4a, type: 3}
-      propertyPath: m_TextStyleHashCode
-      value: -1183493901
-      objectReference: {fileID: 0}
-    - target: {fileID: 2754323853817385832, guid: 2c1971b168ce54b44a52eb86931d5e4a, type: 3}
-      propertyPath: m_fontColor32.rgba
-      value: 4291355376
-      objectReference: {fileID: 0}
-    - target: {fileID: 3850786646916598895, guid: 2c1971b168ce54b44a52eb86931d5e4a, type: 3}
-      propertyPath: m_fontColor32.rgba
-      value: 4291355376
-      objectReference: {fileID: 0}
     - target: {fileID: 6894435719443802728, guid: 2c1971b168ce54b44a52eb86931d5e4a, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -46900,10 +46892,6 @@ PrefabInstance:
       propertyPath: _shopTransactions
       value: 
       objectReference: {fileID: 408841956}
-    - target: {fileID: 8724952500177912409, guid: 2c1971b168ce54b44a52eb86931d5e4a, type: 3}
-      propertyPath: m_fontColor32.rgba
-      value: 4281022397
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
