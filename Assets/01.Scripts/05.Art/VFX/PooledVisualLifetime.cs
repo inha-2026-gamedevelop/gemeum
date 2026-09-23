@@ -1,12 +1,13 @@
 // Unity
 using UnityEngine;
+using UnityEngine.VFX;
 
 // Project
 using Geumeum.Common;
 
 namespace Geumeum.Art
 {
-    /// <summary>Returns particle and trail presentation objects to the local pool</summary>
+    /// <summary>Returns particle, trail, and VFX Graph presentation objects to the local pool</summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(LocalPoolRoot))]
     public sealed class PooledVisualLifetime : MonoBehaviour, IPoolable
@@ -14,12 +15,18 @@ namespace Geumeum.Art
         [SerializeField, Min(0.01f)] private float _lifetimeSeconds = 1f;
 
         private ParticleSystem[] _particles;
+        private VisualEffect[] _visualEffects;
+        private bool[] _visualEffectsPausedByRun;
         private TrailRenderer[] _trails;
         private IActionCueVisual[] _cueVisuals;
         private float _remainingSeconds;
         private bool _isRented;
         private bool _particlesPaused;
+        private bool _automaticReturnSuppressed;
         private uint _leaseGeneration;
+
+        private const float GRAPH_SIMULATION_STEP_SECONDS = 1f / 60f;
+        private const int MAX_GRAPH_SIMULATION_STEPS = 1024;
 
         public float LifetimeSeconds => Mathf.Max(0.01f, _lifetimeSeconds);
         public bool IsRented => _isRented;
@@ -40,10 +47,17 @@ namespace Geumeum.Art
             if (RunTimeLocator.Current.IsPaused)
             {
                 PauseParticles();
+                PauseVisualEffects();
                 return;
             }
 
             ResumeParticles();
+            ResumeVisualEffects();
+
+            if (_automaticReturnSuppressed)
+            {
+                return;
+            }
 
             _remainingSeconds -= Time.unscaledDeltaTime;
             if (_remainingSeconds <= 0f)
@@ -60,11 +74,13 @@ namespace Geumeum.Art
                 : _leaseGeneration + 1u;
             _isRented = true;
             _particlesPaused = false;
+            _automaticReturnSuppressed = false;
             _remainingSeconds = LifetimeSeconds;
-            ResetAndPlayParticles(0f);
+            ResetAndPlayVisuals(0f);
             if (RunTimeLocator.Current.IsPaused)
             {
                 PauseParticles();
+                PauseVisualEffects();
             }
         }
 
@@ -72,8 +88,18 @@ namespace Geumeum.Art
         {
             _isRented = false;
             _particlesPaused = false;
+            _automaticReturnSuppressed = false;
             _remainingSeconds = 0f;
             StopAndClearVisuals();
+        }
+
+        /// <summary>Prevents a temporary cook lease from expiring before its visual work finishes</summary>
+        public void SetAutomaticReturnSuppressed(bool suppressed)
+        {
+            if (_isRented)
+            {
+                _automaticReturnSuppressed = suppressed;
+            }
         }
 
         /// <summary>Seeks late cues without replaying the elapsed beginning</summary>
@@ -92,10 +118,11 @@ namespace Geumeum.Art
                 return;
             }
 
-            ResetAndPlayParticles(LifetimeSeconds * progress);
+            ResetAndPlayVisuals(LifetimeSeconds * progress);
             if (RunTimeLocator.Current.IsPaused)
             {
                 PauseParticles();
+                PauseVisualEffects();
             }
         }
 
@@ -152,11 +179,17 @@ namespace Geumeum.Art
         private void CacheVisuals()
         {
             _particles = GetComponentsInChildren<ParticleSystem>(true);
+            _visualEffects = GetComponentsInChildren<VisualEffect>(true);
+            if ((_visualEffectsPausedByRun == null) ||
+                (_visualEffectsPausedByRun.Length != _visualEffects.Length))
+            {
+                _visualEffectsPausedByRun = new bool[_visualEffects.Length];
+            }
             _trails = GetComponentsInChildren<TrailRenderer>(true);
             _cueVisuals = GetComponentsInChildren<IActionCueVisual>(true);
         }
 
-        private void ResetAndPlayParticles(float elapsedSeconds)
+        private void ResetAndPlayVisuals(float elapsedSeconds)
         {
             _particlesPaused = false;
             for (int i = 0; i < _trails.Length; ++i)
@@ -182,6 +215,27 @@ namespace Geumeum.Art
                 }
 
                 particle.Play(false);
+            }
+
+            for (int i = 0; i < _visualEffects.Length; ++i)
+            {
+                _visualEffectsPausedByRun[i] = false;
+                VisualEffect effect = _visualEffects[i];
+                if ((effect == null) || (effect.visualEffectAsset == null))
+                {
+                    continue;
+                }
+
+                effect.pause = false;
+                // Reinit already sends the configured initial event; Play would send it twice.
+                effect.Reinit();
+                if (elapsedSeconds > 0f)
+                {
+                    int stepCount = Mathf.Clamp(
+                        Mathf.CeilToInt(elapsedSeconds / GRAPH_SIMULATION_STEP_SECONDS),
+                        1, MAX_GRAPH_SIMULATION_STEPS);
+                    effect.Simulate(elapsedSeconds / stepCount, (uint)stepCount);
+                }
             }
         }
 
@@ -221,6 +275,38 @@ namespace Geumeum.Art
             _particlesPaused = false;
         }
 
+        private void PauseVisualEffects()
+        {
+            for (int i = 0; i < _visualEffects.Length; ++i)
+            {
+                VisualEffect effect = _visualEffects[i];
+                if ((effect != null) && !effect.pause)
+                {
+                    effect.pause = true;
+                    _visualEffectsPausedByRun[i] = true;
+                }
+            }
+        }
+
+        private void ResumeVisualEffects()
+        {
+            for (int i = 0; i < _visualEffects.Length; ++i)
+            {
+                if (!_visualEffectsPausedByRun[i])
+                {
+                    continue;
+                }
+
+                VisualEffect effect = _visualEffects[i];
+                if (effect != null)
+                {
+                    effect.pause = false;
+                }
+
+                _visualEffectsPausedByRun[i] = false;
+            }
+        }
+
         private void StopAndClearVisuals()
         {
             if (_particles != null)
@@ -243,6 +329,25 @@ namespace Geumeum.Art
                     {
                         _trails[i].Clear();
                     }
+                }
+            }
+
+            if (_visualEffects != null)
+            {
+                for (int i = 0; i < _visualEffects.Length; ++i)
+                {
+                    _visualEffectsPausedByRun[i] = false;
+                    VisualEffect effect = _visualEffects[i];
+                    if ((effect == null) || (effect.visualEffectAsset == null))
+                    {
+                        continue;
+                    }
+
+                    effect.pause = false;
+                    effect.Stop();
+                    // Stop halts spawners; Reinit also discards particles from this lease.
+                    effect.Reinit();
+                    effect.Stop();
                 }
             }
         }

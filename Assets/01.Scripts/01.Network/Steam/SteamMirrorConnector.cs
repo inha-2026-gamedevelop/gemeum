@@ -6,6 +6,7 @@ using UnityEngine;
 
 // 서드파티
 using Mirror;
+using Geumeum.Art;
 
 namespace Geumeum.Network
 {
@@ -18,6 +19,8 @@ namespace Geumeum.Network
         ****************************************/
 
         private NetworkManager _manager;
+        private bool _hostStartPending;
+        private bool _connectPending;
 
         /****************************************
         *              Unity Event
@@ -57,8 +60,33 @@ namespace Geumeum.Network
         ****************************************/
 
         /// <summary> 로비에 세션 값을 게시하고 호스트를 시작한 뒤 접속 신호를 보낸다 </summary>
-        public void StartSteamHost()
+        public async void StartSteamHost()
         {
+            if (_hostStartPending)
+            {
+                return;
+            }
+            _hostStartPending = true;
+            try
+            {
+                await PresentationPoolPrewarmer.WaitForBootAsync(destroyCancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                _hostStartPending = false;
+                return;
+            }
+            catch (Exception exception)
+            {
+                _hostStartPending = false;
+                Debug.LogError("[SteamMirrorConnector] Boot 프리워밍 실패: " + exception.Message, this);
+                return;
+            }
+            _hostStartPending = false;
+            if (this == null || !isActiveAndEnabled || _manager == null || _manager.isNetworkActive)
+            {
+                return;
+            }
             if (!SteamTransportSelector.IsSteamTransport(Transport.active))
             {
                 Debug.LogError("[SteamMirrorConnector] Steam 경로가 아니다, -steam 인자로 실행할 것", this);
@@ -161,8 +189,38 @@ namespace Geumeum.Network
             JoinLobby(lobbyId);
         }
 
-        private void ConnectTo(ulong hostSteamId)
+        private async void ConnectTo(ulong hostSteamId)
         {
+            if (_connectPending)
+            {
+                return;
+            }
+            _connectPending = true;
+            try
+            {
+                await PresentationPoolPrewarmer.WaitForBootAsync(destroyCancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                _connectPending = false;
+                return;
+            }
+            catch (Exception exception)
+            {
+                _connectPending = false;
+                Debug.LogError("[SteamMirrorConnector] Boot 프리워밍 실패: " + exception.Message, this);
+                return;
+            }
+            _connectPending = false;
+            if (this == null || !isActiveAndEnabled || _manager == null || _manager.isNetworkActive)
+            {
+                return;
+            }
+            SteamLobbyService currentLobby = SteamLobbyService.Instance;
+            if (currentLobby == null || !currentLobby.IsInLobby)
+            {
+                return;
+            }
             if (hostSteamId == 0UL)
             {
                 Debug.LogError("[SteamMirrorConnector] 호스트 SteamID가 0이다", this);

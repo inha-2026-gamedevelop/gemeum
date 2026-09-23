@@ -45,6 +45,7 @@ namespace Geumeum.Combat
         private double _echoDiscountEnd;
         private HealController _abilityHeal;
         public event Action<WeaponAbilityEvent, Vector3, byte, double> AbilityPresented;
+        public event Action<Vector3, Vector3, uint, int, double, uint, uint> PrecisionShotPresented;
         public WeaponAbilityMark Wedge => _wedge;
         public WeaponAbilityMark EchoFirst => _echoFirst;
         public WeaponAbilityMark EchoSecond => _echoSecond;
@@ -403,6 +404,14 @@ namespace Geumeum.Combat
         private void RpcEchoStarted(PlayerActionCue cue) { _animation?.PlayActionCue(in cue); }
         [ClientRpc]
         private void RpcEchoCancelled(uint execution) { _animation?.CancelActionCue(PlayerActionCueKind.EchoRecall, execution); }
+        [ClientRpc]
+        private void RpcPrecisionShotVisual(Vector3 origin, Vector3 direction, uint actionId,
+            int shotIndex, double time, uint runId, uint sceneRevision)
+        {
+            PrecisionShotPresented?.Invoke(origin, direction, actionId, shotIndex, time, runId, sceneRevision);
+            AbilityPresented?.Invoke(WeaponAbilityEvent.BowReleased, origin, 1, time);
+        }
+
         [ClientRpc]
         private void RpcAbilityEvent(WeaponAbilityEvent kind, Vector3 point, byte count, double time)
         { AbilityPresented?.Invoke(kind, point, count, time); }

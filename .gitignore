@@ -171,4 +171,10 @@ coverage/
 .claude/reconnect-*
 .claude/roll-*
 .claude/tooltip-*
+# VFX 제작용 개인 스크립트와 재생성 빌더. 로컬에서 지우지 않는다
+.claude/cs/
+.claude/cs[0-9]/
+.claude/tools/
+# Codex 개인 설정
+.codex/
 /Assets/Screenshots.meta

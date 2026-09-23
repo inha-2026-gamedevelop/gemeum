@@ -16,6 +16,7 @@ namespace Geumeum.Art
     public sealed partial class PlayerCombatPresentation : MonoBehaviour, IPlayerActionCueSink
     {
         private NetworkIdentity _identity;
+        private PlayerVfxController _vfxController;
         private IWeaponBladeSource _blade;
         private PooledVisualLifetime _activeVisual;
         private uint _activeVisualLease;
@@ -31,11 +32,13 @@ namespace Geumeum.Art
         {
             BindAbilities();
             _identity = GetComponent<NetworkIdentity>();
+            _vfxController = GetComponent<PlayerVfxController>();
             _blade = GetComponent<IWeaponBladeSource>();
         }
 
         private void OnDisable()
         {
+            StopBowVisuals();
             if (_abilityVisualRoot != null) { _abilityVisualRoot.SetActive(false); }
             foreach (var pulse in _pulseViews) { if (pulse != null) { HidePulse(pulse); } }
             StopActiveVisual();
@@ -169,7 +172,8 @@ namespace Geumeum.Art
                 return;
             }
 
-            RentVisual(config.MarkPrefab, worldPosition, Quaternion.identity,
+            RentVisual(ResolveRegisteredPrefab(PlayerVfxController.MARK_KEY,
+                config.MarkPrefab), worldPosition, Quaternion.identity,
                 null, 0f, out _);
             SfxPlayer.Play(SoundKey.MarkApplied, worldPosition, IsLocalPlayer,
                 (_identity == null) ? 0u : _identity.netId);
@@ -187,7 +191,15 @@ namespace Geumeum.Art
             return GameDB.IsInitialized ? GameDB.Presentation : null;
         }
 
-        private static GameObject ResolveActionPrefab(PresentationConfigSO config,
+        private GameObject ResolveRegisteredPrefab(string key, GameObject fallback)
+        {
+            return (_vfxController != null &&
+                _vfxController.TryGetPrefab(key, out GameObject registered))
+                ? registered
+                : fallback;
+        }
+
+        private GameObject ResolveActionPrefab(PresentationConfigSO config,
             in PlayerActionCue cue)
         {
             switch (cue.Kind)
@@ -195,7 +207,8 @@ namespace Geumeum.Art
                 case PlayerActionCueKind.Attack:
                     if (cue.Weapon == WeaponKind.Sword)
                     {
-                        return config.MeleeSlashPrefab;
+                        return ResolveRegisteredPrefab(PlayerVfxController.MELEE_SLASH_KEY,
+                            config.MeleeSlashPrefab);
                     }
 
                     if (cue.Weapon == WeaponKind.Bell)
@@ -206,10 +219,12 @@ namespace Geumeum.Art
                     return null;
 
                 case PlayerActionCueKind.Heal:
-                    return config.HealCastPrefab;
+                    return ResolveRegisteredPrefab(PlayerVfxController.HEAL_CAST_KEY,
+                        config.HealCastPrefab);
 
                 case PlayerActionCueKind.Parry:
-                    return config.ParryPrefab;
+                    return ResolveRegisteredPrefab(PlayerVfxController.PARRY_KEY,
+                        config.ParryPrefab);
 
                 default:
                     return null;

@@ -20,6 +20,7 @@ namespace Geumeum.Common
 
         // 프리팹 하나에 풀 하나
         private readonly Dictionary<GameObject, ObjectPool<GameObject>> _pools = new Dictionary<GameObject, ObjectPool<GameObject>>();
+        private readonly Dictionary<GameObject, int> _maxSizeOf = new Dictionary<GameObject, int>();
 
         // 반납할 때 이 인스턴스가 어느 풀 것인지 알아야 한다
         private readonly Dictionary<GameObject, GameObject> _prefabOf = new Dictionary<GameObject, GameObject>();
@@ -55,6 +56,7 @@ namespace Geumeum.Common
             }
 
             _pools.Clear();
+            _maxSizeOf.Clear();
             _prefabOf.Clear();
             _poolableOf.Clear();
             _rented.Clear();
@@ -100,11 +102,50 @@ namespace Geumeum.Common
 
             ObjectPool<GameObject> pool = CreatePool(prefab, initialCapacity, maxSize);
             _pools.Add(prefab, pool);
+            _maxSizeOf.Add(prefab, Mathf.Max(1, maxSize));
+            FillToCapacity(pool, initialCapacity);
+        }
 
-            for (int i = 0; i < initialCapacity; ++i)
+        /// <summary>
+        /// 프리팹별 전체 생성 수(대여 중인 개체 포함)를 최소 initialCapacity까지 보장한다.
+        /// 최초 호출의 maxSize가 보관 가능한 비활성 개체 상한으로 고정된다.
+        /// 후속 호출의 maxSize는 상한을 변경하지 않으며, 요청 용량이 기존 상한을 넘으면 실패한다.
+        /// </summary>
+        public bool EnsurePrewarmed(GameObject prefab, int initialCapacity, int maxSize)
+        {
+            if (prefab == null)
             {
-                pool.Release(CreateInstance(prefab));
+                Debug.LogError("[LocalObjectPoolService] 프리팹이 비어 있어 프리워밍할 수 없다", this);
+                return false;
             }
+
+            if ((initialCapacity < 0) || (maxSize < 1) || (maxSize < initialCapacity))
+            {
+                Debug.LogError($"[LocalObjectPoolService] {prefab.name} 프리워밍 용량이 잘못됐다", this);
+                return false;
+            }
+
+            if (!_pools.TryGetValue(prefab, out ObjectPool<GameObject> pool))
+            {
+                if (!IsPoolable(prefab))
+                {
+                    return false;
+                }
+
+                pool = CreatePool(prefab, initialCapacity, maxSize);
+                _pools.Add(prefab, pool);
+                _maxSizeOf.Add(prefab, maxSize);
+            }
+
+            int registeredMaxSize = _maxSizeOf[prefab];
+            if (initialCapacity > registeredMaxSize)
+            {
+                Debug.LogError($"[LocalObjectPoolService] {prefab.name} 요청 용량 {initialCapacity}이 등록된 보관 상한 {registeredMaxSize}을 넘는다", this);
+                return false;
+            }
+
+            FillToCapacity(pool, initialCapacity);
+            return true;
         }
 
         /// <summary> 풀에서 하나 꺼내 배치한다. 등록되지 않은 프리팹이면 그 자리에서 풀을 만든다 </summary>
@@ -127,6 +168,7 @@ namespace Geumeum.Common
 
                 pool = CreatePool(prefab, 0, LAZY_POOL_MAX_SIZE);
                 _pools.Add(prefab, pool);
+                _maxSizeOf.Add(prefab, LAZY_POOL_MAX_SIZE);
             }
 
             GameObject instance = pool.Get();
@@ -226,6 +268,26 @@ namespace Geumeum.Common
                 collectionCheck: false, // 중복 반납은 _rented가 먼저 잡고 원인을 알려 준다
                 defaultCapacity: Mathf.Max(1, initialCapacity),
                 maxSize:         Mathf.Max(1, maxSize));
+        }
+
+        private static void FillToCapacity(ObjectPool<GameObject> pool, int targetCount)
+        {
+            if (pool.CountAll >= targetCount)
+            {
+                return;
+            }
+
+            // Get은 먼저 비활성 개체를 꺼낸다. 잠시 보유한 뒤 부족분만 생성해 한꺼번에 반납한다.
+            List<GameObject> held = new List<GameObject>();
+            while (pool.CountAll < targetCount)
+            {
+                held.Add(pool.Get());
+            }
+
+            for (int i = 0; i < held.Count; ++i)
+            {
+                pool.Release(held[i]);
+            }
         }
 
         private GameObject CreateInstance(GameObject prefab)

@@ -32,6 +32,8 @@ namespace Geumeum.Art
         private void DrawCharge(double now)
         {
             bool holding = _chargeSource != null && (_chargeSource.State == PrecisionShotState.Holding || _chargeSource.State == PrecisionShotState.Ready);
+            holding &= _bowChargeView == null && !IsReleasedBowHold &&
+                (_bowStatus == null || (!_bowStatus.IsDead && !_bowStatus.IsSwallowed && !_bowStatus.IsHitReacting));
             _chargeLine.enabled = holding;
             if (!holding) { return; }
             float progress = Mathf.Clamp01((float)((now - _chargeSource.HoldStartGameTime) / GameDB.Combat.PrecisionShotHoldDuration));

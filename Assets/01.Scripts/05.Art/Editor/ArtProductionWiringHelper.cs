@@ -279,6 +279,14 @@ namespace Geumeum.Art.Editor
                     root.AddComponent<PlayerCombatPresentation>();
                 }
 
+                PlayerVfxController vfxController = root.GetComponent<PlayerVfxController>();
+                if (vfxController == null)
+                {
+                    vfxController = root.AddComponent<PlayerVfxController>();
+                }
+
+                WirePlayerVfxEntries(vfxController);
+
                 if (root.GetComponent<DamageFlashView>() == null)
                 {
                     root.AddComponent<DamageFlashView>();
@@ -292,6 +300,58 @@ namespace Geumeum.Art.Editor
             }
 
             RestoreRootNetworkAssetId(PLAYER_PATH, networkAssetId);
+        }
+
+        private static void WirePlayerVfxEntries(PlayerVfxController controller)
+        {
+            string[] keys =
+            {
+                PlayerVfxController.MELEE_SLASH_KEY,
+                PlayerVfxController.BELL_PULSE_KEY,
+                PlayerVfxController.HEAL_CAST_KEY,
+                PlayerVfxController.PARRY_KEY,
+                PlayerVfxController.MARK_KEY,
+            };
+            int[] initialCapacities = { 3, 3, 3, 3, 6 };
+            int[] maxSizes = { 18, 9, 9, 9, 18 };
+
+            SerializedObject serialized = new SerializedObject(controller);
+            SerializedProperty entries = serialized.FindProperty("_entries");
+            for (int i = 0; i < keys.Length; ++i)
+            {
+                bool exists = false;
+                for (int j = 0; j < entries.arraySize; ++j)
+                {
+                    if (entries.GetArrayElementAtIndex(j)
+                        .FindPropertyRelative("_key").stringValue == keys[i])
+                    {
+                        exists = true;
+                        break;
+                    }
+                }
+
+                if (exists)
+                {
+                    continue;
+                }
+
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(G_Vfx[i].Wrapper);
+                if (prefab == null)
+                {
+                    throw new InvalidOperationException("Missing VFX wrapper: " + G_Vfx[i].Wrapper);
+                }
+
+                int index = entries.arraySize;
+                entries.InsertArrayElementAtIndex(index);
+                SerializedProperty entry = entries.GetArrayElementAtIndex(index);
+                entry.FindPropertyRelative("_key").stringValue = keys[i];
+                entry.FindPropertyRelative("_prefab").objectReferenceValue = prefab;
+                entry.FindPropertyRelative("_initialCapacity").intValue = initialCapacities[i];
+                entry.FindPropertyRelative("_maxSize").intValue = maxSizes[i];
+                entry.FindPropertyRelative("_anchor").objectReferenceValue = null;
+            }
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void WireCharacterAnimationReceivers()
