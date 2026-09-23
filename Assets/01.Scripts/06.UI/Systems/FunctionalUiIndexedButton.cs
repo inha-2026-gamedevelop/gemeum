@@ -18,6 +18,9 @@ namespace Geumeum.UI
         [SerializeField] private TMP_Text _label;
         [SerializeField] private int      _index;
 
+        [Tooltip("분류 필터에 걸렸을 때 켜지는 흰 테두리. 비워 두면 강조를 건너뛴다")]
+        [SerializeField] private GameObject _highlightBorder;
+
         public int Index => _index;
         public void SetIndex(int index) { _index = index; }
         public TMP_Text Label => _label;
@@ -80,6 +83,15 @@ namespace Geumeum.UI
         public void SetInteractable(bool interactable)
         {
             Interactable = interactable;
+        }
+
+        /// <summary> 분류 필터에 걸렸음을 흰 테두리로 알린다 </summary>
+        public void SetHighlighted(bool highlighted)
+        {
+            if ((_highlightBorder != null) && (_highlightBorder.activeSelf != highlighted))
+            {
+                _highlightBorder.SetActive(highlighted);
+            }
         }
 
         private void Awake()

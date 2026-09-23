@@ -79,6 +79,11 @@ namespace Geumeum.UI
         // 받는 쪽은 제안이 도착하면 자동으로 열린다(HandleTransferChanged)
         [SerializeField] private Button _openTransferButton;
 
+        [Header("배낭 필터")]
+        [Tooltip("무기·물약·권 순서대로. 같은 것을 다시 누르면 풀린다")]
+        [SerializeField] private FunctionalUiIndexedButton[] _inventoryFilterButtons =
+            new FunctionalUiIndexedButton[0];
+
         [Header("곁에 선 파티원에게 바로 양도")]
         [Tooltip("배낭 페이지 안에서 장비를 끌어다 놓는 상자")]
         [SerializeField] private RectTransform _quickTransferBox;
@@ -153,6 +158,9 @@ namespace Geumeum.UI
         // 곁에 선 파티원에게 바로 주는 모드. 0이면 평소 배낭이다
         private uint   _quickRecipientNetId = 0u;
         private string _quickRecipientName  = string.Empty;
+        // 지금 고른 분류. None이면 필터가 꾸지 않았다는 뜻
+        private InventoryFilter _inventoryFilter = InventoryFilter.None;
+
         private int    _quickBoxSlot        = -1;
         private int    _quickDragSlot       = -1;
         private uint _talentRevision;
@@ -234,6 +242,15 @@ namespace Geumeum.UI
             Talent,
             Shop,
             Transfer,
+        }
+
+        /// <summary> 배낭에서 어느 분류를 돋보이게 할지. 칸을 감추지 않고 테두리만 밝힌다 </summary>
+        private enum InventoryFilter
+        {
+            None      = 0,
+            Weapon    = 1,
+            Potion    = 2,
+            Ticket    = 3,
         }
 
         // 소유권(Instance)은 여기서 잡지 않는다. 꺼진 사본도 Awake는 돌기 때문에
@@ -753,6 +770,45 @@ namespace Geumeum.UI
             SetVisible(false);
         }
 
+        /// <summary>
+        /// 분류 버튼을 눌렀다. 같은 것을 다시 누르면 풀린다
+        ///
+        /// 칸을 숨기지 않는다. 12칸 자리가 그대로 있어야 손에 익은 위치가 흔들리지 않는다
+        /// </summary>
+        public void SelectInventoryFilter(int filterIndex)
+        {
+            InventoryFilter wanted = ToInventoryFilter(filterIndex);
+            _inventoryFilter = (_inventoryFilter == wanted) ? InventoryFilter.None : wanted;
+            RefreshInventoryView();
+        }
+
+        private static InventoryFilter ToInventoryFilter(int filterIndex)
+        {
+            switch (filterIndex)
+            {
+                case 0:  return InventoryFilter.Weapon;
+                case 1:  return InventoryFilter.Potion;
+                case 2:  return InventoryFilter.Ticket;
+                default: return InventoryFilter.None;
+            }
+        }
+
+        /// <summary> 이 칸이 지금 고른 분류에 들어가는가 </summary>
+        private bool MatchesInventoryFilter(in InventorySlotSnapshot slot)
+        {
+            switch (_inventoryFilter)
+            {
+                case InventoryFilter.Weapon:
+                    return (slot.Kind == InventoryItemKind.Equipment);
+                case InventoryFilter.Potion:
+                    return (slot.Kind == InventoryItemKind.Consumable) && IsPotion(slot.ItemId);
+                case InventoryFilter.Ticket:
+                    return (slot.Kind == InventoryItemKind.Consumable) && IsTicket(slot.ItemId);
+                default:
+                    return false;
+            }
+        }
+
         public void SelectInventorySlot(int slotIndex)
         {
             if ((slotIndex < 0) || (slotIndex >= _slots.Length))
@@ -1194,6 +1250,7 @@ namespace Geumeum.UI
             BindButton(_quickTransferConfirmButton, RequestQuickTransfer);
             BindButton(_quickTransferCancelButton, Close);
 
+            BindIndexedButtons(_inventoryFilterButtons, SelectInventoryFilter);
             BindIndexedButtons(_inventoryButtons, SelectInventorySlot);
 
             // 배낭 칸은 클릭으로 장착하고, 끌면 양도 상자로 간다. 두 경로가 겹치지 않는다
@@ -1534,6 +1591,7 @@ namespace Geumeum.UI
                 string prefix = (i == _selectedSlot) ? "선택 " : string.Empty;
                 button.SetLabel(prefix + FunctionalUiText.DescribeSlot(_slots[i]));
                 button.SetInteractable(_inventoryRevision != 0u);
+                button.SetHighlighted(MatchesInventoryFilter(_slots[i]));
             }
 
             if ((_selectedSlot < 0) || (_selectedSlot >= _slots.Length))
@@ -1571,7 +1629,22 @@ namespace Geumeum.UI
             SetInteractable(_targetEquippedButton, (_inventory != null) &&
                 _inventory.EquippedWeapon.HasEquipment);
 
+            RefreshFilterButtons();
             RefreshQuickTransferView();
+        }
+
+        private void RefreshFilterButtons()
+        {
+            for (int i = 0; i < ArrayLength(_inventoryFilterButtons); ++i)
+            {
+                if (_inventoryFilterButtons[i] == null)
+                {
+                    continue;
+                }
+
+                // 누른 버튼도 같은 흰 테두리로 표시한다. 칸과 버튼이 같은 문법이면 눈이 따라가기 쉽다
+                _inventoryFilterButtons[i].SetHighlighted(_inventoryFilter == ToInventoryFilter(i));
+            }
         }
 
         private void RefreshTalentView()
