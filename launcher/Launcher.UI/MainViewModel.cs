@@ -181,8 +181,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         LauncherState.UpdateAvailable  => "업데이트",
         LauncherState.Installing       => "일시정지",
         LauncherState.Paused           => "계속",
-        LauncherState.Ready            => _gameAccounts ? "원정대 찾기" : "게임 시작",
-        LauncherState.Offline          => _gameAccounts ? "원정대 찾기" : "게임 시작",
+        LauncherState.Ready            => "게임 시작",
+        LauncherState.Offline          => "게임 시작",
         LauncherState.Running          => "실행 중",
         LauncherState.LauncherOutdated => "런처 받기",
         _                              => "다시 시도",
@@ -630,14 +630,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CommandManagerRefresh();
         try
         {
-            AccountRoom? room = null;
-            if (_gameAccounts)
-            {
-                if (Account?.IsSignedIn != true) throw new AccountException("먼저 계정에 로그인해 주세요.");
-                var rooms = new RoomWindow(Account, _local.Active.ReleaseId) { Owner = Application.Current.MainWindow };
-                if (rooms.ShowDialog() != true) return;
-                room = rooms.SelectedRoom;
-            }
+            if (_gameAccounts && Account?.IsSignedIn != true)
+                throw new AccountException("먼저 계정에 로그인해 주세요.");
             using var pipe = _gameAccounts ? new GameSessionPipe() : null;
             var arguments = GameArguments().ToList();
             if (pipe != null)
@@ -650,7 +644,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             _log.Info($"게임 실행: {_local.Active.ReleaseId} (pid {process.Id})");
             if (pipe != null)
             {
-                await pipe.DeliverAsync(process.Id, new Uri(Account!.ApiOrigin), gameSession!, _lifetime.Token, room);
+                await pipe.DeliverAsync(process.Id, new Uri(Account!.ApiOrigin), gameSession!, _lifetime.Token);
                 _log.Info("게임 계정 세션 전달 확인");
             }
             process.Exited += (_, _) => Application.Current.Dispatcher.InvokeAsync(async () =>

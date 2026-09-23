@@ -73,6 +73,31 @@ namespace Geumeum.Network
             Instance.Run(room, key, (ushort)port, origin);
         }
 
+        /// <summary>인게임 방 찾기로 돌아갈 때 listen host만 정리한다. 전용 서버에는 적용하지 않는다.</summary>
+        public static void StopListenForLobby()
+        {
+            AccountGameServer server = Instance;
+            if ((!_listenHost) || (server == null))
+            {
+                return;
+            }
+            server._lifetime?.Cancel();
+            if ((server._manager != null) && (NetworkServer.active))
+            {
+                if (NetworkClient.active)
+                {
+                    server._manager.StopHost();
+                }
+                else
+                {
+                    server._manager.StopServer();
+                }
+            }
+            Instance = null;
+            _listenHost = false;
+            Destroy(server.gameObject);
+        }
+
         private void Start()
         {
             if (_listenHost)
@@ -203,6 +228,11 @@ namespace Geumeum.Network
 
                     if (_partyApplied && RunManager.ServerInstance != null && RunManager.ServerInstance.Phase == RunPhase.Lobby)
                     {
+                        if ((_listenHost) && (LauncherGameSession.IsFrontendMode))
+                        {
+                            LauncherGameSession.ReturnToLobby("원정이 끝났습니다. 새 방을 선택해 주세요.");
+                            return;
+                        }
                         throw new InvalidOperationException();
                     }
 
@@ -212,6 +242,12 @@ namespace Geumeum.Network
             catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
             catch (Exception)
             {
+                if ((_listenHost) && (LauncherGameSession.IsFrontendMode))
+                {
+                    Debug.LogWarning("[AccountGameServer] 방 호스트 임대가 종료되어 방 찾기로 돌아갑니다.");
+                    LauncherGameSession.ReturnToLobby("방 호스트 연결이 종료되었습니다. 새 방을 선택해 주세요.");
+                    return;
+                }
                 Debug.LogWarning("[AccountGameServer] 서버 인증/임대가 종료되어 프로세스를 닫습니다.");
                 if (_manager != null && NetworkServer.active)
                 { if (_listenHost)
@@ -316,6 +352,15 @@ namespace Geumeum.Network
         public bool TryGetNickname(int connectionId, out string nickname) => _names.TryGetValue(connectionId, out nickname);
         public bool IsRoomOwner(int connectionId) => _owners.Contains(connectionId);
         public void Forget(int connectionId) { _pending.Remove(connectionId); _names.Remove(connectionId); _sessions.Remove(connectionId); _owners.Remove(connectionId); }
-        private void OnDestroy() { _lifetime?.Cancel(); _http?.Dispose(); Instance = null; }
+        private void OnDestroy()
+        {
+            _lifetime?.Cancel();
+            _http?.Dispose();
+            if (Instance == this)
+            {
+                Instance = null;
+                _listenHost = false;
+            }
+        }
     }
 }

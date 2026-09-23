@@ -14,7 +14,7 @@ from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from .accounts import lock_account, session_valid
-from .api import DB, Auth, launcher_only, recheck_locked, throttle
+from .api import DB, Auth, recheck_locked, throttle
 from .models import Account, AuthSession, JoinTicket, Room, RoomMember
 from .schemas import Input, validate_nickname
 from .security import digest, now, token
@@ -49,6 +49,26 @@ class Heartbeat(Input):
     state: Literal["ready", "running"]
     accounts: list[str] = Field(max_length=3)
     sessions: list[SessionClaim] = Field(default_factory=list, max_length=3)
+
+
+async def room_parent_session_id(db, auth):
+    """Keep game-driven lobby seats bound to their valid launcher parent."""
+    account, session = auth
+    if session.kind == "launcher":
+        return session.id
+    if session.kind != "game" or session.parent_id is None:
+        raise HTTPException(403, "Launcher-backed game session required")
+    parent = await db.get(
+        AuthSession, session.parent_id, with_for_update=True, populate_existing=True
+    )
+    if (
+        parent is None
+        or parent.kind != "launcher"
+        or parent.account_id != account.id
+        or not await session_valid(db, account, parent)
+    ):
+        raise HTTPException(403, "Launcher-backed game session required")
+    return parent.id
 
 
 def room_view(room, owner_name="", members=None):
@@ -211,7 +231,6 @@ def install(app):
 
     @app.post("/v1/rooms", status_code=201)
     async def create(data: NewRoom, request: Request, auth: Auth, db: DB):
-        launcher_only(auth)
         settings = app.state.settings
         if (
             settings.game_hosting == "dedicated" and not settings.game_executable
@@ -223,6 +242,7 @@ def install(app):
             raise HTTPException(422, "Room name must be 2-16 valid characters") from None
         await throttle(request, [(f"room_create:{auth[0].id}", 5)])
         await recheck_locked(db, auth)
+        parent_id = await room_parent_session_id(db, auth)
         # Global allocation lock also serializes capacity with the worker
         await db.execute(text("SELECT pg_advisory_xact_lock(74621001)"))
         await leave_other_rooms(db, auth[0].id)
@@ -247,7 +267,7 @@ def install(app):
                 room_id=room.id,
                 account_id=auth[0].id,
                 session_id=auth[1].id,
-                launcher_session_id=auth[1].id,
+                launcher_session_id=parent_id,
                 expires_at=now() + timedelta(seconds=45),
             )
         )
@@ -256,8 +276,8 @@ def install(app):
 
     @app.post("/v1/rooms/{room_id}/lobby")
     async def lobby(room_id: uuid.UUID, data: LobbyAction, auth: Auth, db: DB):
-        launcher_only(auth)
         await recheck_locked(db, auth)
+        parent_id = await room_parent_session_id(db, auth)
         await db.execute(text("SELECT pg_advisory_xact_lock(74621001)"))
         room = await db.get(Room, room_id, with_for_update=True)
         if room is None or room.state == "closed":
@@ -280,10 +300,11 @@ def install(app):
                     expires_at=now() + timedelta(seconds=45),
                 )
                 db.add(member)
-            member.launcher_session_id = member.session_id = auth[1].id
+            member.launcher_session_id = parent_id
+            member.session_id = auth[1].id
             member.ready = False
         elif (
-            member is None or member.launcher_session_id != auth[1].id or member.expires_at <= now()
+            member is None or member.launcher_session_id != parent_id or member.expires_at <= now()
         ):
             raise HTTPException(409, "Join this party again")
         if data.action == "leave":
@@ -404,12 +425,18 @@ def install(app):
 
     @app.delete("/v1/rooms/{room_id}")
     async def close(room_id: uuid.UUID, auth: Auth, db: DB):
-        launcher_only(auth)
         await recheck_locked(db, auth)
+        parent_id = await room_parent_session_id(db, auth)
         await db.execute(text("SELECT pg_advisory_xact_lock(74621001)"))
         room = await db.get(Room, room_id, with_for_update=True)
         if room is None or room.owner_id != auth[0].id:
             raise HTTPException(404, "Room not found")
+        if room.state == "closed":
+            return {"closed": True}
+        if auth[1].kind == "game":
+            member = await db.get(RoomMember, (room_id, auth[0].id))
+            if member is None or member.launcher_session_id != parent_id:
+                raise HTTPException(403, "Departed party owner required")
         room.state = "closed"
         await db.commit()
         return {"closed": True}

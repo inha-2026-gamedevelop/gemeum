@@ -26,6 +26,9 @@ public sealed class GameSessionPipeTests
         using var json = JsonDocument.Parse(payload);
         Assert.Equal("123", json.RootElement.GetProperty("account_id").GetString());
         Assert.Equal(1, json.RootElement.GetProperty("version").GetInt32());
+        Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("room_id").ValueKind);
+        Assert.Equal(0, json.RootElement.GetProperty("port").GetInt32());
+        Assert.False(json.RootElement.GetProperty("is_host").GetBoolean());
     }
 
     [Fact]

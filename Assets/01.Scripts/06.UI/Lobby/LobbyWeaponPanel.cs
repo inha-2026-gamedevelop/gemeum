@@ -81,10 +81,17 @@ namespace Geumeum.UI
             _roster = GetComponent<LobbyRoster>();
             _run = GetComponent<RunManager>();
             _director = GetComponent<RunSceneDirector>();
+            LauncherGameSession.ReturnedToLobby += OnReturnedToLobby;
         }
+
+        private void OnReturnedToLobby(string _) { _enteredRun = false; }
 
         private void Update()
         {
+            if ((!NetworkClient.active) && (!NetworkServer.active))
+            {
+                _enteredRun = false;
+            }
             if (Time.unscaledTime < _nextRefresh)
             {
                 return;
@@ -97,7 +104,18 @@ namespace Geumeum.UI
                     _enteredRun = true;
                 }
 
-                if (_enteredRun && _run.Phase == RunPhase.Lobby) { Application.Quit(); return; }
+                if ((_enteredRun) && (_run.Phase == RunPhase.Lobby))
+                {
+                    if (LauncherGameSession.IsFrontendMode)
+                    {
+                        LauncherGameSession.ReturnToLobby("원정이 끝났습니다. 새 방을 선택해 주세요.");
+                    }
+                    else
+                    {
+                        Application.Quit();
+                    }
+                    return;
+                }
             }
             bool visible = (_lobby != null) && _lobby.isClient && (NetworkClient.localPlayer != null)
                 && (_run != null) && (_run.Phase == RunPhase.Lobby)
@@ -137,7 +155,11 @@ namespace Geumeum.UI
             ReleaseInput();
         }
 
-        private void OnDestroy() { ReleaseInput(); }
+        private void OnDestroy()
+        {
+            LauncherGameSession.ReturnedToLobby -= OnReturnedToLobby;
+            ReleaseInput();
+        }
 
         /****************************************
         *                Methods
@@ -263,7 +285,10 @@ namespace Geumeum.UI
             {
                 var loading = Surface("ExpeditionLoading", _root.transform, new Vector2(2400f, 1500f), Vector2.zero, PANEL_COLOR, false);
                 Label(loading, "원정에 입장하는 중", new Vector2(0f, 35f), new Vector2(1000f, 70f), 40f).color = GOLD;
-                Label(loading, "런처에서 준비한 파티를 연결하고 있습니다.", new Vector2(0f, -45f), new Vector2(1000f, 60f), 25f);
+                Label(loading, LauncherGameSession.IsFrontendMode
+                    ? "선택한 파티를 게임 서버에 연결하고 있습니다."
+                    : "런처에서 준비한 파티를 연결하고 있습니다.",
+                    new Vector2(0f, -45f), new Vector2(1000f, 60f), 25f);
                 FixedAspectViewport.Register(canvas);
                 return;
             }

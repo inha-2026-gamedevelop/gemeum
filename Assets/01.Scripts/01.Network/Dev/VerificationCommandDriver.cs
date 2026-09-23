@@ -52,6 +52,8 @@ namespace Geumeum.Network
             public int index;
             public int secondaryIndex;
             public uint uintValue;
+            public string text;
+            public bool enabled;
             public bool captureScreen;
         }
 
@@ -151,6 +153,20 @@ namespace Geumeum.Network
             public bool resultHasAuthoritativeScore;
             public int resultScore;
             public string resultEvaluationMessage;
+            public string frontendScreen;
+            public bool frontendBusy;
+            public string frontendStatus;
+            public string frontendCurrentRoomId;
+            public int frontendRoomCount;
+            public int frontendPartyMemberCount;
+            public bool frontendSessionReady;
+            public AccountRoom[] frontendRooms;
+            public AccountRoom frontendParty;
+            public string frontendActiveScene;
+            public string frontendEventSystem;
+            public string frontendTitleState;
+            public bool frontendVisible;
+            public bool frontendOwnInput;
         }
 
         [Serializable]
@@ -423,6 +439,14 @@ namespace Geumeum.Network
         private static bool ExecuteKnownVerb(FunctionalManagementPanel panel,
             VerificationCommand command, out string message)
         {
+            if (command.verb.StartsWith("account_", StringComparison.Ordinal))
+            {
+                return ExecuteAccountVerb(command, out message);
+            }
+            if (command.verb.StartsWith("front_", StringComparison.Ordinal))
+            {
+                return ExecuteFrontendVerb(command, out message);
+            }
             if (command.verb.StartsWith("ability_", StringComparison.Ordinal))
             { return G_Instance.ExecuteAbilityVerification(command, out message); }
             if (command.verb == "hit_test_overlap")
@@ -831,6 +855,38 @@ namespace Geumeum.Network
 
             message = "명령을 기능 UI에 전달했다";
             return true;
+        }
+
+        private static bool ExecuteAccountVerb(VerificationCommand command,
+            out string message)
+        {
+            AccountLobbyPanel account = AccountLobbyPanel.Instance;
+            if (account == null)
+            {
+                message = "계정 로비 화면을 찾지 못했다";
+                return false;
+            }
+
+            bool accepted;
+            switch (command.verb)
+            {
+                case "account_home": accepted = account.ShowHome(); break;
+                case "account_rooms": accepted = account.ShowRooms(); break;
+                case "account_refresh": accepted = account.RefreshRooms(); break;
+                case "account_create": accepted = account.CreateRoom(command.text); break;
+                case "account_join": accepted = account.JoinRoom(command.text); break;
+                case "account_preference": accepted = account.SelectPreference(command.index); break;
+                case "account_ready": accepted = account.SetReady(command.enabled); break;
+                case "account_bots": accepted = account.SetBots(command.enabled); break;
+                case "account_start": accepted = account.StartRoom(); break;
+                case "account_leave": accepted = account.LeaveRoom(); break;
+                case "account_return": accepted = account.ReturnToLobby(); break;
+                default:
+                    message = "허용되지 않은 계정 로비 명령이다";
+                    return false;
+            }
+            message = accepted ? "요청을 예약했다" : "현재 화면이나 상태에서 수행할 수 없다";
+            return accepted;
         }
 
         private static bool ExecuteLobbyVerb(VerificationCommand command,
@@ -1275,7 +1331,25 @@ namespace Geumeum.Network
                 applicationFocused = Application.isFocused,
                 graphicsDeviceType = SystemInfo.graphicsDeviceType.ToString(),
                 resultEvaluationMessage = string.Empty,
+                frontendScreen = string.Empty,
+                frontendStatus = string.Empty,
+                frontendCurrentRoomId = string.Empty,
+                frontendRooms = Array.Empty<AccountRoom>(),
+                frontendSessionReady = LauncherGameSession.State == LauncherGameSession.SessionState.Ready,
             };
+            AccountLobbyPanel account = AccountLobbyPanel.Instance;
+            if (account != null)
+            {
+                snapshot.frontendScreen = account.ScreenName;
+                snapshot.frontendBusy = account.IsBusy;
+                snapshot.frontendStatus = account.StatusMessage;
+                snapshot.frontendCurrentRoomId = account.CurrentRoomId;
+                snapshot.frontendRoomCount = account.RoomCount;
+                snapshot.frontendPartyMemberCount = account.PartyMemberCount;
+                snapshot.frontendRooms = account.Rooms;
+                snapshot.frontendParty = account.CurrentRoom;
+            }
+            CaptureFrontendInput(snapshot);
             LobbyController lobby = NetworkServer.active ? LobbyController.ServerInstance : FindClientLobbyController();
             LobbyRoster roster = lobby == null ? null : lobby.GetComponent<LobbyRoster>();
             snapshot.lobbyBotFill = lobby != null && lobby.FillWithBots;

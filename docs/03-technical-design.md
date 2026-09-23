@@ -23,10 +23,12 @@
 | 환경 | 트랜스포트 | 목적 | 신원 |
 |---|---|---|---|
 | 로컬 개발 · LAN 3PC | **KCP** | 빠른 반복. Steam 미기동 상태에서도 돈다 | 실행 인자 `-platformid` |
-| 자체 계정 운영 | **AccountRelayTransport** | 런처 파티·AWS UDP 릴레이 | HTTPS 게임 세션과 일회 접속 티켓 |
+| 자체 계정 운영 | **AccountRelayTransport** | 런처 로그인·인게임 파티·AWS UDP 릴레이 | HTTPS 게임 세션과 일회 접속 티켓 |
 | Steam 호환 테스트 | **FizzySteamworks + Steamworks.NET** | 로비 · 초대 · 배포 경로 | `conn.address`의 SteamID64 |
 
 - 접속 경로별 신원 검증을 거치며 게임 판정은 공통으로 방장 서버 권위다. 자체 계정은 API 접속 승인과 Unity 게임 판정을 구분한다.
+- 자체 계정 UI는 런처 로그인→게임 Boot→Release/Title→Release/Lobby 방 목록·파티→게임 순서다. 런처는 기존 PID 검증 Named Pipe로 방 없는 게임 자식 세션을 전달한다. 게임의 방 변경 요청은 유효한 부모 런처 세션에 묶이며, 방장·정원·준비·출발 검증은 API가 유지한다. 한 판 종료 후 게임 계정 세션을 유지하고 Title로 돌아간다. [인게임 로비 흐름](unity/INGAME_LOBBY_FLOW.md).
+- 연결 전 로비 입력은 네트워크 스폰에 종속되지 않는 FrontendEventSystem이 담당한다. Mirror가 SessionManagers를 스폰 전 비활성화하므로 자식 RunEventSystem을 오프라인 입력으로 가정하지 않는다. 게임 연결 시 전용 입력을 끄고, 복귀 후 기존 활성 입력 시스템이 있으면 양보한다.
 - Steam이 실행 중이 아니면 Fizzy 경로가 성립하지 않으므로, 개발 실행은 KCP를 기본으로 둔다.
 - 병행 규칙과 신원 확정 근거는 Steam 로비 구조 전환안 13장을 따른다.
 

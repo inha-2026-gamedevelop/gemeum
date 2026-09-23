@@ -778,6 +778,8 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 
 전부 **로컬 전용**이다. 이 폴더의 클래스가 NetworkBehaviour를 상속하면 설계 위반이다.
 
+**재사용 참조 VFX(2026-09-23)** — `VFX/BowChargeVfxView.cs`, `VFX/BowLaserVfxView.cs`는 외부 시계로 충전·짧은 화살을 평가하고, `Boss/BeamReferenceVfxDriver.cs`는 흑심 빔의 충전·발사·종료를 구동한다. 프리팹·그래프·재질·텍스처와 함께 사용할 수 있는 현재 구현이다. 에셋 묶음에 제작 도구·게임 공격/RPC 배선은 포함하지 않는다. [사용법과 의존성](unity/vfx/REFERENCE_VFX_USAGE.md).
+
 ```
 05.Art/                    namespace Geumeum.Art
 ├ DayCycleController.cs    MB  RunManager의 경과 시간 → DayCycleSO로 조명 · 스카이박스 · 안개
@@ -990,11 +992,15 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │                           기상 시 차오름, 광폭화 예고 · 발동 문구, 보스 제거 시 숨김까지 확인했다.
 │                           3인 접속(L3)은 아직 확인하지 못했다 [미검증]
 ├ Lobby/     [구현완료]
-│  ├ TitleScreenController.cs · TitleMenuController.cs  시작화면 (네트워크 미연결)
+│  ├ TitleScreenController.cs · TitleMenuController.cs  개발용 Dev_Title 시작화면 (네트워크 미연결)
+│  ├ AccountTitleMenu.cs  MB  [현재] Release/Title 안내·원정대 찾기·생성·종료. 로그인은 런처에서 유지
+│  ├ AccountLobbyPanel.cs MB  [현재] Release/Lobby 방 목록·파티 준비·출발. 연결 전 FrontendEventSystem을 활성화
+│  ├ UiPointerRoute.cs       [현재] 검증용 레이캐스트·포인터·submit 경로. 가림·비활성·입력 시스템 누락 시 거절
 │  ├ SteamLobbyPanel.cs    MB  Steam 로비 화면. 방 만들기 · 로비 ID 참가 · 정원이 차면 시작.
 │  │                           런이 시작되면 접히고, 열려 있는 동안 커서 소유권을 가진다. 대기방에서 무기 선호를 고른다
 │  ├ LobbyWeaponPanel.cs   MB  3인 로비 무기 선호 · 준비 UI. 서버 로스터만 표시하고 LobbyController 요청 API를 부른다
-│  └ Editor/SteamLobbyUiBuilder.cs  위 화면을 SessionNetwork 프리팹 안에 짓는 에디터 도구
+│  ├ Editor/SteamLobbyUiBuilder.cs  Steam 화면을 SessionNetwork 프리팹 안에 짓는 에디터 도구
+│  └ Editor/AccountLobbyUiBuilder.cs · ReleaseTitleBuilder.cs  계정 UI 프리팹 배선·Dev_Title 기반 출시 Title 생성
 ├ Systems/   [구현완료] 인벤토리, 특성 트리, 객주 상점, 장비 양도, 정산 · 리더보드
 │  ├ FunctionalManagementPanel.cs · RunStatusPanel.cs · RunResultPanel.cs ·
 │  │  RunResultViewAdapter.cs · FunctionalUiIndexedButton.cs · FunctionalUiText.cs
@@ -1435,6 +1441,6 @@ Mirror의 `StartHost`/`StartServer` 호출을 가로챌 수 없어, 서버가 �
 
 ## 현행 추가 진입점
 
-- 자체 계정: `01.Network/Identity/AccountGameServer`, `LauncherGameSession`, `AccountRelayTransport`. API는 신원·방, 게임 호스트는 시뮬레이션 권위다.
+- 자체 계정: `01.Network/Identity/AccountGameServer`, `LauncherGameSession`, `AccountRoom`, `AccountRelayTransport`. API는 신원·방, 게임 호스트는 시뮬레이션 권위다. 런처가 방 없는 게임 자식 세션을 전달하면 게임의 Title→Lobby에서 방을 찾고 준비한다. `01.Network/Dev/VerificationCommandDriver.frontend.cs`는 실제 uGUI 이벤트 경로를 검사한다.
 - 플레이어: `PlayerBrain`, `PlayerBotSpawner`, `PlayerAttack`의 counter/skills/placement/abilities partial과 `03.AI/PlayerBot`.
 - UI·표현: `WeaponAbilityHUD`, `FixedAspectViewport`, `InteractionPromptView`, `BotInventoryView`.
