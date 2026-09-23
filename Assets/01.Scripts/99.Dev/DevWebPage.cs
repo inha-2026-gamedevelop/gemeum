@@ -13,6 +13,9 @@ namespace Geumeum.Dev
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
 
+        /// <summary> 서버가 페이지를 내줄 때 명령 토큰으로 바꿔 넣는 자리 </summary>
+        public const string TOKEN_PLACEHOLDER = "__GEUMEUM_DEV_TOKEN__";
+
         /// <summary> GET / 로 나가는 페이지 전체 </summary>
         public const string HTML = @"<!doctype html>
 <html lang='ko'>
@@ -145,6 +148,7 @@ function send(panel, control, value) {
     try {
       const res = await fetch('/api/command', {
         method: 'POST',
+        headers: { 'X-Geumeum-Dev-Token': '__GEUMEUM_DEV_TOKEN__' },
         body: JSON.stringify({ panel: panel, control: control, value: String(value) })
       });
       if (!res.ok) { throw new Error('명령 전송 실패'); }

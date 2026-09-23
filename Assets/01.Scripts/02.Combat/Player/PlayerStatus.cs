@@ -1403,6 +1403,13 @@ namespace Geumeum.Combat
         [Command]
         public void CmdDevSetInfiniteResources(bool isOn)
         {
+            // 보낸 쪽의 잠금은 조작된 클라이언트가 건너뛸 수 있다. 호스트가 치트 모드를 켠 방에서만 받는다
+            if (isOn && !DevAccess.IsUnlocked)
+            {
+                Debug.LogWarning($"[PlayerStatus] 호스트의 치트 모드가 꺼져 있어 무한 자원 요청을 거절했다: {NetworkPeerLabel.Describe(connectionToClient)}", this);
+                return;
+            }
+
             _devInfiniteResources = isOn;
 
             if (!isOn)

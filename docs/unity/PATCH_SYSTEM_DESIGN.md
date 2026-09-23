@@ -30,6 +30,8 @@ Unity 빌드 → 파일 해시·메타데이터 서명 → R2 게시 → 런처 
 .\launcher\scripts\publish-build.ps1 -Build Builds\Development -Channel internal
 ```
 
+완성 전 internal 테스트는 개발 빌드로 게시한다. `stable` 채널은 `그믐/빌드/릴리스로 빌드`(`Builds\Release`) 산출물만 받는다. 게시 스크립트는 stable 게시·승격에서 `boot.config`의 디버거 연결(`player-connection-debug=1`)이나 `Assembly-CSharp.dll`의 검증 드라이버가 보이면 거부한다.
+
 원격 게시에는 `-Upload -Url <배포 HTTPS 주소>`와 `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` 환경 변수가 필요하다. 실제 값을 채팅·로그·문서에 출력하지 않는다. 운영 승격은 스크립트의 `-Promote -ReleaseId ... -Channel stable`을 사용한다.
 
 1. 빌드의 `gemeum_Data/StreamingAssets/build-identity.json`이 존재하는지 확인한다.
