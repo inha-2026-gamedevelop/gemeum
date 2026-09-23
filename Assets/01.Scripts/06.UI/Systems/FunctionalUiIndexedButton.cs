@@ -11,7 +11,8 @@ namespace Geumeum.UI
 {
     /// <summary> 반복 생성한 기능 버튼의 번호와 문구를 패널에 전달한다 </summary>
     public sealed class FunctionalUiIndexedButton : MonoBehaviour,
-        IPointerEnterHandler, IPointerExitHandler, ISelectHandler, IDeselectHandler
+        IPointerEnterHandler, IPointerExitHandler, ISelectHandler, IDeselectHandler,
+        IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         [SerializeField] private Button   _button;
         [SerializeField] private TMP_Text _label;
@@ -43,6 +44,20 @@ namespace Geumeum.UI
         /// 비활성 Selectable에 가지 않으므로 select 경로는 고를 수 있는 항목만 온다
         /// </summary>
         public event Action<int, bool> HoverChanged;
+
+        /// <summary>
+        /// 이 칸을 끌기 시작했다. 배낭에서 양도 상자로 장비를 옮길 때만 쓴다
+        /// 무엇을 끌 수 있는지는 패널이 정한다 - 버튼은 번호와 포인터만 넘긴다
+        /// </summary>
+        public event Action<int, PointerEventData> DragBegan;
+
+        public event Action<int, PointerEventData> Dragged;
+
+        public event Action<int, PointerEventData> DragEnded;
+
+        public void OnBeginDrag(PointerEventData eventData) { DragBegan?.Invoke(_index, eventData); }
+        public void OnDrag(PointerEventData eventData)      { Dragged?.Invoke(_index, eventData); }
+        public void OnEndDrag(PointerEventData eventData)   { DragEnded?.Invoke(_index, eventData); }
 
         public void OnPointerEnter(PointerEventData eventData) { RaiseHover(true); }
         public void OnPointerExit(PointerEventData eventData) { RaiseHover(false); }

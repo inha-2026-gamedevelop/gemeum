@@ -5,6 +5,7 @@ using System.Collections.Generic;
 // Unity
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 // Third party
@@ -78,6 +79,24 @@ namespace Geumeum.UI
         // 받는 쪽은 제안이 도착하면 자동으로 열린다(HandleTransferChanged)
         [SerializeField] private Button _openTransferButton;
 
+        [Header("곁에 선 파티원에게 바로 양도")]
+        [Tooltip("배낭 페이지 안에서 장비를 끌어다 놓는 상자")]
+        [SerializeField] private RectTransform _quickTransferBox;
+
+        [Tooltip("상자에 올려 둔 장비 이름")]
+        [SerializeField] private TMP_Text _quickTransferBoxLabel;
+
+        [Tooltip("누구에게 주는지 적는 줄. 장비를 올리면 상자 문구가 장비 이름으로 바뀌므로 따로 둔다")]
+        [SerializeField] private TMP_Text _quickTransferTitleText;
+
+        [SerializeField] private Button _quickTransferConfirmButton;
+        [SerializeField] private Button _quickTransferCancelButton;
+
+        [Tooltip("끄는 동안 커서를 따라다니는 표시. 창이 밀려도 커서에서 어긋나지 않게 Window 밖에 둔다")]
+        [SerializeField] private RectTransform _quickTransferDragGhost;
+
+        [SerializeField] private TMP_Text _quickTransferDragGhostLabel;
+
         [Header("특성")]
         [SerializeField] private TMP_Text _talentPointText;
         [SerializeField] private TMP_Text _talentStatusText;
@@ -130,6 +149,12 @@ namespace Geumeum.UI
         private ShopInteractionPoint _activeShopPoint;
 
         private uint _inventoryRevision;
+
+        // 곁에 선 파티원에게 바로 주는 모드. 0이면 평소 배낭이다
+        private uint   _quickRecipientNetId = 0u;
+        private string _quickRecipientName  = string.Empty;
+        private int    _quickBoxSlot        = -1;
+        private int    _quickDragSlot       = -1;
         private uint _talentRevision;
         private uint _observedRunId;
         private uint _observedSceneRevision;
@@ -644,6 +669,41 @@ namespace Geumeum.UI
             Open(PageKind.Transfer);
         }
 
+        /// <summary>
+        /// 곁에 선 파티원을 받을 사람으로 못 박고 배낭을 연다
+        ///
+        /// 받는 사람을 고르는 단계가 없다는 점만 다르고, 화면과 슬라이드 연출은 평소 배낭 그대로다
+        /// 서버에 보내는 것은 기존 EquipmentTransferService.RequestOffer 하나뿐이며,
+        /// 확인을 눌러도 제안이 갈 뿐이고 상대가 수락해야 장비가 넘어간다
+        /// </summary>
+        public void OpenTransferTo(uint recipientNetId, string recipientName)
+        {
+            if (recipientNetId == 0u)
+            {
+                return;
+            }
+
+            _quickRecipientNetId = recipientNetId;
+            _quickRecipientName  = string.IsNullOrEmpty(recipientName) ? "참가자" : recipientName;
+            _quickBoxSlot        = -1;
+            CancelQuickDrag();
+
+            Open(PageKind.Inventory);
+            SetText(_inventoryStatusText, "줄 장비를 위 상자로 끌어다 놓으세요.");
+            RefreshInventoryView();
+        }
+
+        /// <summary> 양도 모드인가. 평소 배낭과 화면 구성이 달라진다 </summary>
+        private bool IsQuickTransferMode => (_quickRecipientNetId != 0u);
+
+        private void ExitQuickTransferMode()
+        {
+            _quickRecipientNetId = 0u;
+            _quickRecipientName  = string.Empty;
+            _quickBoxSlot        = -1;
+            CancelQuickDrag();
+        }
+
         public void OpenShop(uint shopNetId)
         {
             if (!_shopPoints.TryGetValue(shopNetId, out ShopInteractionPoint shopPoint) ||
@@ -659,6 +719,10 @@ namespace Geumeum.UI
 
         public void Close()
         {
+            ExitQuickTransferMode();
+
+            // 모드를 끈 상태를 화면에도 반영한다. 안 하면 다음에 열 때 옛 상자가 한 프레임 비친다
+            RefreshQuickTransferView();
             SetVisible(false);
         }
 
@@ -879,6 +943,167 @@ namespace Geumeum.UI
                 : $"{recipient.DisplayName}님에게 양도를 제안했습니다.");
         }
 
+        /****************************************
+        *           Quick Transfer Drag
+        ****************************************/
+
+        private void HandleInventoryDragBegan(int slotIndex, PointerEventData eventData)
+        {
+            CancelQuickDrag();
+
+            if ((!IsQuickTransferMode) || (slotIndex < 0) || (slotIndex >= _slots.Length))
+            {
+                return;
+            }
+
+            // 서버는 배낭에 있는 장비만 받는다. 물약이나 권을 끌 수 있게 두면 헛손질만 늘어난다
+            if (_slots[slotIndex].Kind != InventoryItemKind.Equipment)
+            {
+                SetText(_inventoryStatusText, "장비만 양도할 수 있습니다.");
+                return;
+            }
+
+            _quickDragSlot = slotIndex;
+            SetText(_quickTransferDragGhostLabel,
+                FunctionalUiText.DescribeWeapon(_slots[slotIndex].Equipment));
+            SetActive(_quickTransferDragGhost, true);
+            HandleInventoryDragged(slotIndex, eventData);
+        }
+
+        private void HandleInventoryDragged(int slotIndex, PointerEventData eventData)
+        {
+            if ((_quickDragSlot < 0) || (_quickTransferDragGhost == null) || (eventData == null))
+            {
+                return;
+            }
+
+            RectTransform parent = _quickTransferDragGhost.parent as RectTransform;
+            if (parent == null)
+            {
+                return;
+            }
+
+            Vector2 local;
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(parent,
+                    eventData.position, eventData.pressEventCamera, out local))
+            {
+                _quickTransferDragGhost.anchoredPosition = local;
+            }
+        }
+
+        private void HandleInventoryDragEnded(int slotIndex, PointerEventData eventData)
+        {
+            int dropped = _quickDragSlot;
+            CancelQuickDrag();
+
+            if ((dropped < 0) || (_quickTransferBox == null) || (eventData == null))
+            {
+                return;
+            }
+
+            // IDropHandler 대신 직접 본다. 커서를 따라다니는 표시가 레이캐스트를 가리는 사고를 피한다
+            if (!RectTransformUtility.RectangleContainsScreenPoint(_quickTransferBox,
+                    eventData.position, eventData.pressEventCamera))
+            {
+                return;
+            }
+
+            _quickBoxSlot = dropped;
+            SetText(_inventoryStatusText,
+                "확인을 누르면 " + _quickRecipientName + "님에게 제안이 갑니다.");
+            RefreshInventoryView();
+        }
+
+        private void CancelQuickDrag()
+        {
+            _quickDragSlot = -1;
+            SetActive(_quickTransferDragGhost, false);
+        }
+
+        /// <summary> 상자에 올려 둔 장비를 곁에 선 파티원에게 제안한다 </summary>
+        public void RequestQuickTransfer()
+        {
+            if ((_transferService == null) || (!IsQuickTransferMode) ||
+                (_quickBoxSlot < 0) || (_quickBoxSlot >= _slots.Length))
+            {
+                SetText(_inventoryStatusText, "줄 장비를 먼저 상자에 올려 주세요.");
+                return;
+            }
+
+            InventorySlotSnapshot slot = _slots[_quickBoxSlot];
+            if (slot.Kind != InventoryItemKind.Equipment)
+            {
+                _quickBoxSlot = -1;
+                SetText(_inventoryStatusText, "장비만 양도할 수 있습니다.");
+                RefreshInventoryView();
+                return;
+            }
+
+            uint requestId = _transferService.RequestOffer(_quickRecipientNetId, _quickBoxSlot,
+                slot.Equipment.InstanceId, _inventoryRevision);
+
+            // 0은 보내지 못했다는 뜻이고, 양수라도 서버가 받아들였다는 뜻은 아니다
+            SetText(_inventoryStatusText, (requestId == 0u)
+                ? "지금은 양도 제안을 보낼 수 없습니다."
+                : _quickRecipientName + "님에게 양도를 제안했습니다. 수락을 기다립니다.");
+        }
+
+        private void UpdateQuickTransferStatus(in EquipmentTransferResult result)
+        {
+            if (!result.Succeeded)
+            {
+                SetText(_inventoryStatusText, FunctionalUiText.GetTransactionRejection(result.Rejection));
+                return;
+            }
+
+            // 제안이 떴을 뿐이고 장비는 아직 넘어가지 않았다. 상자는 그대로 둔다
+            if (result.Offer.State == EquipmentTransferState.Offered)
+            {
+                SetText(_inventoryStatusText,
+                    _quickRecipientName + "님에게 제안이 도착했습니다. 수락을 기다립니다.");
+                return;
+            }
+
+            SetText(_inventoryStatusText, GetTransferCompletionText(result.Offer.State));
+            _quickBoxSlot = -1;
+            RefreshQuickTransferView();
+        }
+
+        private void RefreshQuickTransferView()
+        {
+            // 상자는 배낭을 보고 있을 때만 띄운다. 특성이나 객주로 넘어가면 끌 곳이 없다
+            bool mode = IsQuickTransferMode && (_currentPage == PageKind.Inventory);
+
+            SetActive(_quickTransferBox, mode);
+            SetActive(_quickTransferConfirmButton, mode);
+            SetActive(_quickTransferCancelButton, mode);
+            SetActive(_quickTransferTitleText, mode);
+
+            if (!mode)
+            {
+                CancelQuickDrag();
+                return;
+            }
+
+            bool hasItem = (_quickBoxSlot >= 0) && (_quickBoxSlot < _slots.Length) &&
+                (_slots[_quickBoxSlot].Kind == InventoryItemKind.Equipment);
+
+            SetText(_quickTransferTitleText, _quickRecipientName + "에게 양도");
+            SetText(_quickTransferBoxLabel, hasItem
+                ? FunctionalUiText.DescribeWeapon(_slots[_quickBoxSlot].Equipment)
+                : "줄 장비를 여기로 끌어다 놓기");
+
+            SetInteractable(_quickTransferConfirmButton, hasItem);
+        }
+
+        private static void SetActive(Component target, bool active)
+        {
+            if ((target != null) && (target.gameObject.activeSelf != active))
+            {
+                target.gameObject.SetActive(active);
+            }
+        }
+
         public void RequestAcceptTransfer()
         {
             if ((_transferService == null) || (_inventory == null) ||
@@ -931,7 +1156,23 @@ namespace Geumeum.UI
             BindButton(_rejectTransferButton, RequestRejectTransfer);
             BindButton(_cancelTransferButton, RequestCancelTransfer);
 
+            BindButton(_quickTransferConfirmButton, RequestQuickTransfer);
+            BindButton(_quickTransferCancelButton, Close);
+
             BindIndexedButtons(_inventoryButtons, SelectInventorySlot);
+
+            // 배낭 칸은 클릭으로 장착하고, 끌면 양도 상자로 간다. 두 경로가 겹치지 않는다
+            for (int i = 0; i < ArrayLength(_inventoryButtons); ++i)
+            {
+                if (_inventoryButtons[i] == null)
+                {
+                    continue;
+                }
+
+                _inventoryButtons[i].DragBegan += HandleInventoryDragBegan;
+                _inventoryButtons[i].Dragged   += HandleInventoryDragged;
+                _inventoryButtons[i].DragEnded += HandleInventoryDragEnded;
+            }
             BindIndexedButtons(_talentButtons, RequestAllocateTalent);
 
             // 상세 설명은 특성 노드에서만 띄운다. 잠긴 노드도 hover는 들어온다
@@ -1195,6 +1436,7 @@ namespace Geumeum.UI
             RefreshTalentView();
             RefreshShopView();
             RefreshRecipientView();
+            RefreshQuickTransferView();
         }
 
         private void RefreshInventorySnapshot()
@@ -1293,6 +1535,8 @@ namespace Geumeum.UI
                 (_targetEquipped || (_selectedEquipmentSlot >= 0)));
             SetInteractable(_targetEquippedButton, (_inventory != null) &&
                 _inventory.EquippedWeapon.HasEquipment);
+
+            RefreshQuickTransferView();
         }
 
         private void RefreshTalentView()
@@ -1688,6 +1932,13 @@ namespace Geumeum.UI
 
         private void HandleTransferChanged(EquipmentTransferResult result)
         {
+            // 곁에 선 파티원에게 바로 주는 중이면 배낭 안내 줄에도 결과를 적는다.
+            // 아래 양도 페이지 문구는 그 페이지를 볼 때만 보이므로, 배낭에 선 사람은 결과를 못 본다
+            if (IsQuickTransferMode)
+            {
+                UpdateQuickTransferStatus(result);
+            }
+
             if (result.Offer.State == EquipmentTransferState.Offered)
             {
                 _activeOffer = result.Offer;
