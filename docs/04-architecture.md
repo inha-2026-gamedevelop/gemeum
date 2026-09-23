@@ -371,10 +371,12 @@ Main.unity
 │  │                              (2026-09-16, 보스 입장 후 호스트 연결 끊김 수정. 회귀: 00.Common/Editor/LocalObjectPoolServiceTests)
 │  └ LocalPoolRoot.cs      MB  [구현완료] 풀에 넣어도 되는 프리팹임을 선언하는 표식.
 │                              네트워크 개체를 걸러내는 화이트리스트다
-├ CameraFrame.cs           static [구현완료] 카메라 yaw · 입력 허용 플래그 · 락온 상태 셋.
+├ CameraFrame.cs           static [구현완료] 카메라 yaw · 입력 허용 플래그 · 락온 상태 셋 ·
+│                                 관리 창 열림 진행도.
 │                                 yaw는 카메라(05.Art)가 밀고 전투(02.Combat)가 읽으며,
 │                                 락온은 반대로 전투가 밀고 카메라가 읽는다 — 방향은 반대여도
 │                                 "오브젝트가 아니라 값"이라는 원칙은 같다.
+│                                 관리 창 진행도도 UI(06.UI)가 밀고 카메라가 읽는 같은 꼴이다.
 │                                 카메라가 없으면 yaw 0이라 지금과 같이 동작한다
 ├ AimAssistPoint.cs        MB  [구현완료] IAimAssistTarget의 기본 구현. 로컬 오프셋 하나로
 │                                 조준점을 만든다. 부위마다 하나씩 붙인다 —

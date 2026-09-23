@@ -60,6 +60,10 @@ namespace Geumeum.Data
         [Tooltip("오버숄더 측면 오프셋(m). 화면 정중앙이 비어야 그 자리가 조준선이 된다")]
         [SerializeField] private float _sideOffset = 0.6f;
 
+        [Tooltip("관리 창이 열렸을 때 추가로 미는 측면 오프셋(m). 창이 덮는 쪽 반대로 캐릭터를 보낸다. "
+            + "FOV 60 · 거리 4.5m에서 화면 가로가 약 9.2m라 1m가 화면 폭의 약 11%다")]
+        [SerializeField] private float _menuSideOffset = 1.5f;
+
         [Tooltip("대상 추적 스무딩(초). 회전은 스무딩하지 않는다 - 하면 입력 지연으로 느껴진다")]
         [SerializeField] private float _followSmoothTime = 0.08f;
 
@@ -148,6 +152,7 @@ namespace Geumeum.Data
         public float PivotHeight      => _pivotHeight;
         public float Distance         => _distance;
         public float SideOffset       => _sideOffset;
+        public float MenuSideOffset   => _menuSideOffset;
         public float FollowSmoothTime => _followSmoothTime;
 
         public float DefaultPitch        => _defaultPitch;
@@ -253,6 +258,8 @@ namespace Geumeum.Data
                     c => c._distance, (c, v) => c._distance = v),
                 new Tunable("추적", "side-offset", "화면 중앙을 비우려고 옆으로", "m 민다", -2.0f, 2.0f,
                     c => c._sideOffset, (c, v) => c._sideOffset = v),
+                new Tunable("추적", "menu-side-offset", "관리 창이 열리면 옆으로", "m 더 민다", 0.0f, 4.0f,
+                    c => c._menuSideOffset, (c, v) => c._menuSideOffset = v),
                 new Tunable("추적", "follow-smooth", "대상이 움직이면", "초에 걸쳐 부드럽게 쫓아간다", 0.0f, 0.5f,
                     c => c._followSmoothTime, (c, v) => c._followSmoothTime = v),
                 new Tunable("회전", "default-pitch", "런을 시작할 때 카메라는", "도 내려다본다", -30f, 60f,
