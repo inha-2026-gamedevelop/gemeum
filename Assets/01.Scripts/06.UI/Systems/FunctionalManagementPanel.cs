@@ -696,6 +696,9 @@ namespace Geumeum.UI
         /// <summary> 양도 모드인가. 평소 배낭과 화면 구성이 달라진다 </summary>
         private bool IsQuickTransferMode => (_quickRecipientNetId != 0u);
 
+        /// <summary> 아직 답을 받지 못한 제안이 떠 있는가. 서버는 한 번에 하나만 받는다 </summary>
+        private bool HasPendingOffer => (_activeOffer.State == EquipmentTransferState.Offered);
+
         private void ExitQuickTransferMode()
         {
             _quickRecipientNetId = 0u;
@@ -1039,6 +1042,12 @@ namespace Geumeum.UI
                 return;
             }
 
+            if (HasPendingOffer)
+            {
+                SetText(_inventoryStatusText, "이미 진행 중인 양도 제안이 있습니다.");
+                return;
+            }
+
             uint requestId = _transferService.RequestOffer(_quickRecipientNetId, _quickBoxSlot,
                 slot.Equipment.InstanceId, _inventoryRevision);
 
@@ -1093,7 +1102,9 @@ namespace Geumeum.UI
                 ? FunctionalUiText.DescribeWeapon(_slots[_quickBoxSlot].Equipment)
                 : "줄 장비를 여기로 끌어다 놓기");
 
-            SetInteractable(_quickTransferConfirmButton, hasItem);
+            // 이미 떠 있는 제안이 있으면 또 보내지 않는다. 서버는 OfferConflict로 돌려보내며,
+            // 양도 페이지의 받는 사람 버튼도 같은 조건을 본다(RefreshRecipientView)
+            SetInteractable(_quickTransferConfirmButton, hasItem && !HasPendingOffer);
         }
 
         private static void SetActive(Component target, bool active)
