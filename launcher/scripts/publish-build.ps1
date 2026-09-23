@@ -1,6 +1,6 @@
 ﻿# 그믐 빌드를 런처 배포 저장소에 올린다. 게시 순서: 패키징 -> 채널 서명 -> 검증 -> (R2 업로드 -> 원격 검증)
 #
-#   .\publish-build.ps1                                  # Builds\Development를 internal 채널로 로컬 저장소에 게시
+#   .\publish-build.ps1                                  # Builds\Development를 internal 채널로 로컬 저장소에 게시. stable 채널은 릴리스 빌드만 받는다
 #   .\publish-build.ps1 -Notes notes.txt -Upload -Url https://pub-xxxx.r2.dev
 #   .\publish-build.ps1 -Version 0.1.0                   # 테스트 버전을 직접 정한다(기본은 끝자리 +1, Builds\test-version.json)
 #   .\publish-build.ps1 -Promote -ReleaseId win64-20260919-1907 -Channel stable -Upload -Url ...   # 재빌드 없이 승격
@@ -34,6 +34,27 @@ function Invoke-Pack {
     if ($LASTEXITCODE -ne 0) { throw "geumeum-pack $($Arguments[0]) 실패 (코드 $LASTEXITCODE)" }
 }
 
+# stable 배포물에 개발 빌드가 섞이지 않게 막는다. 개발 빌드는 디버거 연결을 열고 검증 드라이버를 싣는다
+# 완성 전 internal 테스트는 개발 빌드로 게시하므로 검사하지 않는다
+function Assert-ReleaseBuild([string]$BootConfig, [string]$Assembly) {
+    if (-not (Test-Path $BootConfig)) { throw "boot.config가 없어 빌드 종류를 확인하지 못했다: $BootConfig" }
+    if (-not (Test-Path $Assembly))   { throw "Assembly-CSharp.dll이 없어 빌드 종류를 확인하지 못했다: $Assembly" }
+    if (Select-String -LiteralPath $BootConfig -Pattern '^player-connection-debug=1' -Quiet) {
+        throw "개발 빌드는 게시하지 않는다(디버거 연결 켜짐). Unity 메뉴 그믐/빌드/릴리스로 빌드로 다시 만든다"
+    }
+    $text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($Assembly))
+    if ($text.Contains("VerificationCommandDriver")) {
+        throw "개발 빌드는 게시하지 않는다(검증 드라이버 포함). Unity 메뉴 그믐/빌드/릴리스로 빌드로 다시 만든다"
+    }
+}
+
+# 승격은 빌드 폴더가 없으니 manifest가 가리키는 저장소 객체로 같은 검사를 한다
+function Get-ReleaseObject([object]$Manifest, [string]$Path) {
+    $entry = $Manifest.files | Where-Object { $_.path -eq $Path } | Select-Object -First 1
+    if (-not $entry) { throw "$($Manifest.releaseId) manifest에 $Path 가 없다" }
+    return Join-Path $Repo "objects\sha256\$($entry.sha256)"
+}
+
 # 패키저를 Release로 한 번 빌드해 쓴다. 실행 중 잠금을 피하려고 Builds\Tools로 복사한다
 $toolDir = Join-Path $projectRoot "Builds\Tools\geumeum-pack"
 dotnet build (Join-Path $launcherDir "Release.Packager") -c Release -o $toolDir --nologo -v quiet
@@ -48,6 +69,9 @@ if (-not $Promote) {
     if (-not (Test-Path $identityPath)) { throw "빌드에 build-identity.json이 없다. Unity 메뉴 그믐/빌드로 다시 빌드한다: $identityPath" }
     $identity  = Get-Content $identityPath -Raw | ConvertFrom-Json
     $ReleaseId = $identity.releaseId
+    if ($Channel -eq "stable") {
+        Assert-ReleaseBuild (Join-Path $Build "gemeum_Data\boot.config") (Join-Path $Build "gemeum_Data\Managed\Assembly-CSharp.dll")
+    }
 
     # releaseId는 빌드 시각이라 같은 id면 같은 빌드다. 이미 패키징됐으면 게시만 이어서 한다
     $manifestPath = Join-Path $Repo "releases\$ReleaseId\manifest.json"
@@ -86,6 +110,12 @@ if (-not $Promote) {
 }
 elseif ($ReleaseId -eq "") {
     throw "-Promote에는 -ReleaseId가 필요하다"
+}
+elseif ($Channel -eq "stable") {
+    $manifestPath = Join-Path $Repo "releases\$ReleaseId\manifest.json"
+    if (-not (Test-Path $manifestPath)) { throw "승격할 릴리스가 저장소에 없다: $manifestPath" }
+    $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+    Assert-ReleaseBuild (Get-ReleaseObject $manifest "gemeum_Data/boot.config") (Get-ReleaseObject $manifest "gemeum_Data/Managed/Assembly-CSharp.dll")
 }
 
 # 로컬 채널의 다음 sequence. R2가 더 앞서 있으면 upload가 거부하고 알려 준다

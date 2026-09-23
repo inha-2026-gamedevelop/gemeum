@@ -45,6 +45,9 @@ namespace Geumeum.Dev
         private const string ARG_PORT = "-devpanelport"; // 뒤에 포트 번호가 온다
         private const string ARG_LAN  = "-devpanellan";  // 다른 기기에서도 접속할 수 있게 연다
 
+        private const string TOKEN_HEADER = "X-Geumeum-Dev-Token";
+        private const int    TOKEN_BYTES  = 32;
+
         /****************************************
         *                Fields
         ****************************************/
@@ -55,6 +58,10 @@ namespace Geumeum.Dev
         private volatile bool _isRunning = false;
 
         private int _port = DEFAULT_PORT;
+
+        // 우리가 내준 페이지만 명령을 보낼 수 있게 하는 값. 다른 사이트는 이 값을 읽지 못한다
+        private static string _token = string.Empty;
+        private static string _page  = string.Empty;
 
         /****************************************
         *              Properties
@@ -90,6 +97,9 @@ namespace Geumeum.Dev
         protected override void OnSingletonAwake()
         {
             bool isLanOpen = HasArg(ARG_LAN);
+
+            _token = CreateToken();
+            _page  = DevWebPage.HTML.Replace(DevWebPage.TOKEN_PLACEHOLDER, _token);
 
             // 기본은 이 PC만. 개발 패널은 게임을 조작할 수 있어 아무 기기에나 열어 둘 것이 아니다
             IPAddress address = isLanOpen ? IPAddress.Any : IPAddress.Loopback;
@@ -170,7 +180,9 @@ namespace Geumeum.Dev
                 _thread = null;
             }
 
-            Url = string.Empty;
+            Url    = string.Empty;
+            _token = string.Empty;
+            _page  = string.Empty;
         }
 
         /// <summary> 배경 스레드. 여기서 Unity API를 부르면 그 자리에서 예외가 난다 </summary>
@@ -187,7 +199,7 @@ namespace Geumeum.Dev
                     client.ReceiveTimeout = SOCKET_TIMEOUT_MS;
                     client.SendTimeout    = SOCKET_TIMEOUT_MS;
 
-                    Handle(client);
+                    Handle(client, _port);
                 }
                 catch (Exception)
                 {
@@ -203,18 +215,24 @@ namespace Geumeum.Dev
             }
         }
 
-        private static void Handle(TcpClient client)
+        private static void Handle(TcpClient client, int port)
         {
             using (NetworkStream stream = client.GetStream())
             {
-                if (!TryReadRequest(stream, out string method, out string path, out string body))
+                if (!TryReadRequest(stream, out string method, out string path, out string[] headers, out string body))
                 {
+                    return;
+                }
+
+                if (!IsAllowedHost(FindHeader(headers, "Host"), port))
+                {
+                    Respond(stream, "403 Forbidden", "text/plain; charset=utf-8", "허용하지 않은 주소다");
                     return;
                 }
 
                 if ((method == "GET") && ((path == "/") || (path == "/index.html")))
                 {
-                    Respond(stream, "200 OK", "text/html; charset=utf-8", DevWebPage.HTML);
+                    Respond(stream, "200 OK", "text/html; charset=utf-8", _page);
                     return;
                 }
 
@@ -227,6 +245,14 @@ namespace Geumeum.Dev
 
                 if ((method == "POST") && (path == "/api/command"))
                 {
+                    // 브라우저는 다른 사이트가 사용자 정의 헤더를 붙여 보내는 것을 사전 확인에서 막는다
+                    if ((_token.Length == 0)
+                        || (!string.Equals(FindHeader(headers, TOKEN_HEADER), _token, StringComparison.Ordinal)))
+                    {
+                        Respond(stream, "403 Forbidden", "text/plain; charset=utf-8", "토큰이 맞지 않는다");
+                        return;
+                    }
+
                     DevPanelHost.EnqueueCommandBody(body);
                     Respond(stream, "200 OK", "application/json; charset=utf-8", "{\"ok\":true}");
                     return;
@@ -241,11 +267,12 @@ namespace Geumeum.Dev
         /// 청크 전송이나 파이프라이닝은 받지 않는다
         /// </summary>
         private static bool TryReadRequest(NetworkStream stream, out string method, out string path,
-                                           out string body)
+                                           out string[] headers, out string body)
         {
-            method = string.Empty;
-            path   = string.Empty;
-            body   = string.Empty;
+            method  = string.Empty;
+            path    = string.Empty;
+            headers = Array.Empty<string>();
+            body    = string.Empty;
 
             var    header = new MemoryStream();
             byte[] one    = new byte[1];
@@ -286,8 +313,9 @@ namespace Geumeum.Dev
                 return false;
             }
 
-            method = request[0];
-            path   = request[1];
+            method  = request[0];
+            path    = request[1];
+            headers = lines;
 
             int length = ResolveContentLength(lines);
             if (length <= 0)
@@ -331,6 +359,55 @@ namespace Geumeum.Dev
             }
 
             return 0;
+        }
+
+        private static string FindHeader(string[] lines, string name)
+        {
+            for (int i = 1; i < lines.Length; ++i)
+            {
+                string line  = lines[i];
+                int    colon = line.IndexOf(':');
+
+                if ((colon == name.Length) && line.StartsWith(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return line.Substring(colon + 1).Trim();
+                }
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 주소창에 IP나 localhost로 연 요청만 받는다. 남의 도메인을 이 PC로 돌려 붙는 DNS 리바인딩을 막는다
+        /// </summary>
+        private static bool IsAllowedHost(string host, int port)
+        {
+            int colon = host.LastIndexOf(':');
+            if ((colon <= 0) || (colon < host.LastIndexOf(']')))
+            {
+                return false;
+            }
+
+            if ((!int.TryParse(host.Substring(colon + 1), out int requested)) || (requested != port))
+            {
+                return false;
+            }
+
+            string name = host.Substring(0, colon).Trim('[', ']');
+            return string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase)
+                || IPAddress.TryParse(name, out _);
+        }
+
+        private static string CreateToken()
+        {
+            byte[] bytes = new byte[TOKEN_BYTES];
+
+            using (var random = System.Security.Cryptography.RandomNumberGenerator.Create())
+            {
+                random.GetBytes(bytes);
+            }
+
+            return BitConverter.ToString(bytes).Replace("-", string.Empty);
         }
 
         private static void Respond(NetworkStream stream, string status, string contentType, string content)
