@@ -871,6 +871,15 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 06.UI/                     namespace Geumeum.UI
 ├ Combat/    HUD(HP · 스태미나 · 신력 · 반격 표식), 정밀 조준 상태, 무녀 표식 슬롯, 관전 화면
 │  └ HUD/
+│     ├ AllyTransferPromptView.cs [구현완료] 파티원 3m 안에 들면 그 사람 머리 위에 `양도 [G]`를 띄운다.
+│     │                           거리는 GameDB.Combat.InteractRange를 읽어 서버 판정과 같은 값을 쓴다.
+│     │                           줍기·객주 후보가 잡혀 있거나 로비·정산 단계면 비킨다.
+│     │                           G를 받으면 FunctionalManagementPanel.OpenTransferTo로 배낭을
+│     │                           양도 모드로 열 뿐이고 서버에 아무 요청도 보내지 않는다.
+│     │                           호스트+봇 2인 필드 런에서 표시·드래그·양도 완료까지 확인했다.
+│     │                           **전투 중에도 안내가 뜨는 것은 아직 막지 못한다** - CombatClock이
+│     │                           서버에만 쌓여 순수 클라이언트가 전투 상태를 모른다. 팀장께 SyncVar를
+│     │                           요청해 둔 상태다 [계획]. 3인 접속은 미검증
 │     ├ HUDController.cs         [구현완료] HP · 신력 · 스태미나 바를 PlayerStatus.Local에 바인딩
 │     ├ MinimapPlayerDots.cs     [구현완료] 파티원 위치를 점으로, 결계를 판과 원으로 그린다. 캐릭터별 색.
 │     │                           결계 밖을 위험 색으로 덮는다 - UI에 역마스크가 없어 판 하나를 칠하고
