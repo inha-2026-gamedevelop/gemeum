@@ -628,7 +628,8 @@ Main.unity
 │  │                           색 덮기와 복원은 RendererTintRegistry(ParryWindow 층)에 맡긴다
 │  ├ EnemyController.cs    NB  잡귀 공통: 추적 · 공격 실행 · 사망 → 드랍/경험치 이벤트 발행.
 │  │                           EnemySO의 종류 필드로 구동 (종류별 상속 대신 데이터 구동)
-│  ├ EnemyStatus.cs        NB  HP SyncVar + 강화 배수 적용. IDamageable 구현.
+│  ├ EnemyStatus.cs        NB  HP · 최대 HP SyncVar + 강화 배수 적용. IDamageable 구현.
+│  │                           때린 플레이어에게만 TargetRpc로 HitByLocalPlayer를 보낸다 (머리 위 체력 바)
 │  │                           HP 감소 훅이 IDamagePresentationSource.HealthDecreased를 발생시킨다 (각 화면 피격 플래시)
 │  │                           배수는 스폰 시점의 결계 단계로 확정하고 이후 재계산하지 않는다
 │  │                           (교전 중 최대 HP가 변하면 체력바가 어긋난다 — 게임 디자인 5.2)
@@ -1002,10 +1003,22 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │  │                        호스트 1인에서 표시, 체력 · 그로기 비율 갱신, 그로기 진입 시 빈 바와
 │  │                        기상 시 차오름, 광폭화 예고 · 발동 문구, 보스 제거 시 숨김까지 확인했다.
 │  │                        3인 접속(L3)은 아직 확인하지 못했다 [미검증]
-│  └ EnemyHpBar.cs          [계획] 잡귀가 맞으면 머리 위에 체력 바를 잠깐 띄운다. 뼈대만 있고 미배선 · 미검증.
-│                           EnemyStatus.HealthDecreased를 구독해 비율을 그린다. 최대 체력이 아직
-│                           서버 전용 값이라 클라이언트에서 0이고, 동기화 전까지 바가 뜨지 않는다 -
-│                           결계 강화 · 몰이 강화가 최대 체력을 바꿔 밸런스 원본으로 대신할 수 없다.
+│  ├ EnemyHpBar.cs          [구현완료] 내가 때린 잡귀의 머리 위에만 체력 바를 띄우고 3초 뒤 흐려진다.
+│  │                        파티원이 때린 잡귀의 바는 내 화면에 뜨지 않는다. 띄우는 입구는 EnemyStatus.HitByLocalPlayer
+│  │                        (서버가 공격자 연결에만 보내는 TargetRpc) 하나이고, HealthDecreased는 떠 있는 바의 값만 맞춘다 -
+│  │                        RPC가 체력 SyncVar보다 먼저 오면 옛 체력으로 뜨므로 뒤따르는 훅이 바로잡는다.
+│  │                        비율은 Health / MaxHealth. 최대 체력은 결계 강화 · 몰이 강화가 바꿔 밸런스 원본으로
+│  │                        대신할 수 없으므로 EnemyStatus.network.cs의 SyncVar로 받는다. 처치되면 바로 숨긴다.
+│  │                        잡귀 프리팹 자식(중첩 프리팹 02.Prefabs/UI/HUD/EnemyHpBar.prefab)으로 붙는다.
+│  │                        그림은 파티 줄 체력 바(Bar_Track · Bar_Fill_Health)와 같다. 그림의 위아래 투명 여백이
+│  │                        커서 캔버스를 70 x 165로 잡아야 띠가 읽힌다.
+│  │                        Dev_Combat 호스트 1인에서 내 타격만 표시 · 연결 없는 공격자 타격 미표시 · 떠 있는 바의
+│  │                        값 갱신 · 비율 · 3초 뒤 사라짐 · 처치 시 숨김을 확인했다.
+│  │                        원격 클라이언트에서의 TargetRpc · SyncVar 도착(L3)은 아직이다 [미검증]
+│  └ Editor/EnemyHpBarWiringHelper.cs  메뉴 그믐/Production/UI/Wire enemy HP bars.
+│                           바 프리팹이 없으면 만들고 허깨비 · 창귀 · 액귀 프리팹의 콜라이더 꼭대기 0.1m 위에 붙인다.
+│                           이미 붙어 있으면 건너뛴다. LoadPrefabContents로 저장하면 Mirror가 NetworkIdentity의
+│                           assetId를 0으로 지우므로 저장 뒤 GUID 기준 값을 되살린다 - 0이면 빌드에서 스폰이 깨진다
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  개발용 Dev_Title 시작화면 (네트워크 미연결)
 │  ├ AccountTitleMenu.cs  MB  [현재] Release/Title 안내·원정대 찾기·생성·종료. 로그인은 런처에서 유지
