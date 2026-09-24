@@ -26,20 +26,36 @@ namespace Geumeum.UI
     {
         private const float SNAPSHOT_POLL_INTERVAL = 0.2f;
         private const float NETWORK_SCAN_INTERVAL = 0.5f;
-        // 4갈래 x 5행 격자. 검/활은 2열 5행, 방울은 뿌리 1 + 세 갈래 4개를 쓴다
-        private const int TALENT_BUTTON_COUNT = 20;
+        // 가지 하나는 4열 x 5행 칸을 가진다. 지금 트리는 무기마다 뿌리 1 + 세 갈래 4개를 쓴다
+        // 칸 번호는 가지 * 20 + 열 * 5 + 행이다. 가지는 파티 순번(1P, 2P, 3P)이다
+        private const int TALENT_COLUMNS_PER_ARM = 4;
         private const int TALENT_ROWS_PER_COLUMN = 5;
+        private const int TALENT_SLOTS_PER_ARM   = TALENT_COLUMNS_PER_ARM * TALENT_ROWS_PER_COLUMN;
+        private const int TALENT_ARM_COUNT       = Constants.Network.MAX_PLAYERS;
+        private const int TALENT_BUTTON_COUNT    = TALENT_ARM_COUNT * TALENT_SLOTS_PER_ARM;
 
-        // 특성 노드 설명 상자. 기준 좌표계(308 너비) 값이고 _talentLayoutScale로 함께 늘린다
-        private const float TALENT_TOOLTIP_WIDTH = 260f;
-        private const float TALENT_TOOLTIP_PADDING = 10f;
-        private const float TALENT_TOOLTIP_GAP = 8f;
-        private const float TALENT_TOOLTIP_FONT_SIZE = 13f;
-        private const float TALENT_TOOLTIP_MIN_FONT_SIZE = 8f;
+        // 특성 노드 설명 상자. 특성 페이지 좌표계(1280x720) px
+        private const float TALENT_TOOLTIP_WIDTH         = 280f;
+        private const float TALENT_TOOLTIP_PADDING       = 12f;
+        private const float TALENT_TOOLTIP_GAP           = 8f;
+        private const float TALENT_TOOLTIP_FONT_SIZE     = 15f;
+        private const float TALENT_TOOLTIP_MIN_FONT_SIZE = 9f;
 
         // 제작 UI 팔레트와 같은 값을 쓴다
         private static readonly Color G_TooltipBackground = new Color(0.075f, 0.095f, 0.13f, 0.98f);
         private static readonly Color G_TooltipText = new Color(0.96f, 0.95f, 0.91f, 1f);
+
+        // 별자리. 고른 노드만 빛나고 고르지 않은 노드는 모두 회색이다
+        // 고를 수 있는 노드와 잠긴 노드는 색이 아니라 모양(별/점)으로 가른다
+        private static readonly Color G_TalentAllocated = new Color(0.86f, 0.97f, 1f, 1f);
+        private static readonly Color G_TalentOpen      = new Color(0.62f, 0.62f, 0.62f, 0.9f);
+        private static readonly Color G_TalentLocked    = new Color(0.5f, 0.5f, 0.5f, 0.85f);
+        private static readonly Color G_TalentOther     = new Color(0.42f, 0.42f, 0.42f, 0.6f);
+        private static readonly Color G_TalentLineLit   = new Color(0.75f, 0.9f, 1f, 0.9f);
+        private static readonly Color G_TalentLine      = new Color(0.5f, 0.5f, 0.5f, 0.55f);
+        private static readonly Color G_TalentLineOther = new Color(0.4f, 0.4f, 0.4f, 0.4f);
+        private static readonly Color G_TalentArmLabel  = new Color(0.86f, 0.9f, 1f, 1f);
+        private static readonly Color G_TalentArmOther  = new Color(0.6f, 0.65f, 0.78f, 0.7f);
 
         private static readonly ShopItemKind[] G_ShopItems =
         {
@@ -109,6 +125,22 @@ namespace Geumeum.UI
         [SerializeField] private FunctionalUiIndexedButton[] _talentButtons;
         [SerializeField] private Button _talentResetButton;
 
+        [Header("특성 별자리")]
+        [SerializeField] private TalentConstellationLayout _talentConstellation =
+            new TalentConstellationLayout();
+
+        [Tooltip("가운데 그믐. 별자리 중심으로 옮긴다")]
+        [SerializeField] private RectTransform _talentHub;
+
+        [Tooltip("고른 노드와 고를 수 있는 노드")]
+        [SerializeField] private Sprite _talentStarSprite;
+
+        [Tooltip("아직 잠긴 노드와 남의 가지 노드")]
+        [SerializeField] private Sprite _talentDotSprite;
+
+        [Tooltip("특성 탭에서는 끈다. 별하늘을 가리는 우측 판 같은 것")]
+        [SerializeField] private GameObject[] _hideOnTalentPage = new GameObject[0];
+
         [Header("객주")]
         [SerializeField] private TMP_Text _walletText;
         [SerializeField] private TMP_Text _shopHintText;
@@ -133,7 +165,14 @@ namespace Geumeum.UI
 
         private readonly InventorySlotSnapshot[] _slots =
             new InventorySlotSnapshot[InventorySnapshot.SLOT_COUNT];
+        // 내가 고를 수 있는 노드만 담는다. 남의 가지는 그리기만 하므로 _drawnTalentNodeIds에만 있다
         private readonly int[] _visibleTalentNodeIds = new int[TALENT_BUTTON_COUNT];
+        private readonly int[] _drawnTalentNodeIds = new int[TALENT_BUTTON_COUNT];
+
+        // 파티원 무기. 남의 가지를 그 사람 무기의 트리 모양으로 그린다
+        private readonly Dictionary<uint, PlayerWeapon> _partyWeapons =
+            new Dictionary<uint, PlayerWeapon>();
+        private readonly List<uint> _talentArmNetIds = new List<uint>();
         private readonly Dictionary<uint, ShopInteractionPoint> _shopPoints =
             new Dictionary<uint, ShopInteractionPoint>();
         private readonly Dictionary<uint, RecipientEntry> _recipients =
@@ -270,8 +309,12 @@ namespace Geumeum.UI
         }
 
         private readonly List<Image> _talentEdges = new List<Image>();
-        private float _talentLayoutScale = 1f;
-        private Vector2 _talentLayoutOffset;
+
+        // 노드 버튼 안에 둔 별 그림. 버튼 자체는 투명한 누름 영역이다
+        private Image[] _talentNodeImages = new Image[0];
+
+        // 가지 주인 이름. 첫 열 이름표를 복제해 만든다
+        private TMP_Text[] _talentArmTexts = new TMP_Text[0];
 
         // 특성 노드 상세 설명. 프리팹을 고치지 않도록 런타임에 만든다
         private GameObject _talentTooltip;
@@ -283,15 +326,14 @@ namespace Geumeum.UI
         // 바깥에서 들어온 이벤트로 특성 설명이 다른 탭 위에 뜨지 않는다
         private PageKind _currentPage = PageKind.Inventory;
 
-        // 기존 프리팹의 버튼/폰트를 재사용해 씬마다 오래된 10칸 UI가 남지 않게 한다
+        /// <summary>
+        /// 프리팹에 있는 노드 버튼 하나를 본으로 가지 셋 몫의 칸을 채우고 별 모양으로 바꾼다
+        /// 프리팹에는 버튼을 몇 개만 두어도 된다 - 칸 수는 코드가 맞춘다
+        /// </summary>
         private void EnsureTalentViewCapacity()
         {
             if (_talentButtons == null || _talentButtons.Length == 0 || _talentButtons[0] == null) { return; }
-            // 프리팹마다 페이지 위치/배율이 다르므로 기존 콘텐츠 좌표계에서 배치한다
-            _talentLayoutScale = _talentPointText == null ? 1f : _talentPointText.rectTransform.rect.width / 308f;
-            float center = _talentPointText == null ? 476f : _talentPointText.rectTransform.anchoredPosition.x;
-            float top = ((RectTransform)_talentButtons[0].transform).anchoredPosition.y;
-            _talentLayoutOffset = new Vector2(center - 476f * _talentLayoutScale, top - 118f * _talentLayoutScale);
+
             int previous = _talentButtons.Length;
             Array.Resize(ref _talentButtons, TALENT_BUTTON_COUNT);
             for (int i = previous; i < TALENT_BUTTON_COUNT; ++i)
@@ -301,25 +343,88 @@ namespace Geumeum.UI
                 button.SetIndex(i);
                 _talentButtons[i] = button;
             }
+
+            _talentNodeImages = new Image[TALENT_BUTTON_COUNT];
+            for (int i = 0; i < TALENT_BUTTON_COUNT; ++i)
+            {
+                _talentNodeImages[i] = StyleTalentNode(_talentButtons[i]);
+            }
+
             if (_talentColumnTexts != null && _talentColumnTexts.Length > 0)
             {
                 previous = _talentColumnTexts.Length;
-                Array.Resize(ref _talentColumnTexts, 4);
-                for (int i = previous; i < 4; ++i)
+                Array.Resize(ref _talentColumnTexts, TALENT_COLUMNS_PER_ARM);
+                for (int i = previous; i < TALENT_COLUMNS_PER_ARM; ++i)
                 { _talentColumnTexts[i] = Instantiate(_talentColumnTexts[0], _talentColumnTexts[0].transform.parent); }
+
+                _talentArmTexts = new TMP_Text[TALENT_ARM_COUNT];
+                for (int i = 0; i < TALENT_ARM_COUNT; ++i)
+                {
+                    TMP_Text label = Instantiate(_talentColumnTexts[0], _talentColumnTexts[0].transform.parent);
+                    label.name = "TalentArm" + i;
+                    _talentArmTexts[i] = label;
+                }
+            }
+
+            if (_talentHub != null)
+            {
+                _talentHub.anchoredPosition = _talentConstellation.Center;
             }
 
             EnsureTalentTooltip();
         }
 
-        private Vector2 TalentPosition(int column, int row)
+        /// <summary>
+        /// 버튼 판을 투명한 누름 영역으로 두고 그 안에 별 그림을 하나 넣는다
+        /// 별이 점만 해져도 가리키기 쉬워야 하므로 누름 영역은 크기를 고정한다
+        /// </summary>
+        private Image StyleTalentNode(FunctionalUiIndexedButton button)
         {
-            if (GameDB.Talent.MaxColumnsPerWeapon > 2)
-            { return TalentLayoutPoint(column == 0 ? new Vector2(476, 136) : new Vector2(370 + (column - 1) * 106, 42 - row * 60)); }
-            return TalentLayoutPoint(new Vector2(397 + column * 158, 118 - row * 62));
+            Transform existing = button.transform.Find("Star");
+            if (existing != null)
+            {
+                return existing.GetComponent<Image>();
+            }
+
+            // 비활성 틴트가 노드 색을 덮어쓰지 않게 한다. 상태 색은 RefreshTalentView가 정한다
+            Button uiButton = button.GetComponent<Button>();
+            if (uiButton != null)
+            {
+                uiButton.transition = Selectable.Transition.None;
+            }
+
+            Image hitArea = button.GetComponent<Image>();
+            if (hitArea != null)
+            {
+                hitArea.sprite = null;
+                hitArea.color = Color.clear;
+                hitArea.raycastTarget = true;
+            }
+
+            if (button.Label != null)
+            {
+                button.Label.gameObject.SetActive(false);
+            }
+
+            var rect = (RectTransform)button.transform;
+            rect.sizeDelta = Vector2.one * _talentConstellation.HitSize;
+
+            GameObject star = new GameObject("Star", typeof(RectTransform), typeof(Image));
+            star.transform.SetParent(button.transform, false);
+            Image image = star.GetComponent<Image>();
+            image.raycastTarget = false;
+            image.preserveAspect = true;
+            return image;
         }
 
-        private Vector2 TalentLayoutPoint(Vector2 point) => point * _talentLayoutScale + _talentLayoutOffset;
+        /// <summary> 한 무기 트리의 노드 자리. 열 수와 줄기 길이는 데이터에서 읽는다 </summary>
+        private Vector2 TalentPosition(TalentTreeSO tree, int arm, WeaponKind weapon, int column, int row)
+        {
+            int trunkRows = tree.TryGetColumn(weapon, 0, out TalentTreeSO.ColumnEntry trunk)
+                ? trunk.NodeCount : 1;
+            return _talentConstellation.NodePosition(arm, column, row,
+                tree.CountColumns(weapon), trunkRows);
+        }
 
         /// <summary>
         /// 노드 설명 상자를 노드와 같은 부모에 한 번만 만든다
@@ -352,7 +457,7 @@ namespace Geumeum.UI
             GameObject textObject = new GameObject("TalentTooltipText", typeof(RectTransform));
             textObject.transform.SetParent(root.transform, false);
 
-            float padding = TALENT_TOOLTIP_PADDING * _talentLayoutScale;
+            float padding = TALENT_TOOLTIP_PADDING;
             RectTransform textRect = (RectTransform)textObject.transform;
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
@@ -361,7 +466,7 @@ namespace Geumeum.UI
 
             TextMeshProUGUI label = textObject.AddComponent<TextMeshProUGUI>();
             label.font = ResolveTalentFont();
-            label.fontSize = TALENT_TOOLTIP_FONT_SIZE * _talentLayoutScale;
+            label.fontSize = TALENT_TOOLTIP_FONT_SIZE;
             label.color = G_TooltipText;
             label.alignment = TextAlignmentOptions.TopLeft;
             label.raycastTarget = false;
@@ -473,13 +578,13 @@ namespace Geumeum.UI
             // anchoredPosition은 앵커 기준이라 부모 Rect와 비교하려면 앵커 위치를 더해야 한다
             Rect bounds = parent.rect;
 
-            float padding = TALENT_TOOLTIP_PADDING * _talentLayoutScale;
-            float width = Mathf.Min(TALENT_TOOLTIP_WIDTH * _talentLayoutScale,
+            float padding = TALENT_TOOLTIP_PADDING;
+            float width = Mathf.Min(TALENT_TOOLTIP_WIDTH,
                 Mathf.Max(1f, bounds.width));
 
             // 앞선 노드에서 켜 둔 자동 축소가 남아 있으면 이번 높이를 잘못 잰다. 늘 같은
             // 글자 크기로 재고 나서 넘칠 때만 줄인다
-            float fontSize = TALENT_TOOLTIP_FONT_SIZE * _talentLayoutScale;
+            float fontSize = TALENT_TOOLTIP_FONT_SIZE;
             _talentTooltipText.enableAutoSizing = false;
             _talentTooltipText.fontSize = fontSize;
 
@@ -506,8 +611,7 @@ namespace Geumeum.UI
                 (anchor.anchorMin.y - parent.pivot.y) * bounds.height);
             Vector2 center = anchorOrigin + anchor.anchoredPosition;
 
-            float offset = (anchor.sizeDelta.x * 0.5f) + (width * 0.5f) +
-                (TALENT_TOOLTIP_GAP * _talentLayoutScale);
+            float offset = (anchor.sizeDelta.x * 0.5f) + (width * 0.5f) + TALENT_TOOLTIP_GAP;
             float x = center.x + offset;
             if ((x + (width * 0.5f)) > bounds.xMax)
             {
@@ -521,36 +625,87 @@ namespace Geumeum.UI
             _talentTooltipRect.anchoredPosition = new Vector2(x, y) - anchorOrigin;
         }
 
-        private void RefreshTalentEdges(TalentTreeSO tree)
+        /// <summary>
+        /// 그려진 노드마다 선행 노드와 선을 잇는다. 선행이 없는 뿌리는 가운데 그믐에 잇는다
+        /// 내 가지에서 이미 고른 노드에서 나가는 선만 밝힌다
+        /// </summary>
+        private void RefreshTalentEdges(TalentTreeSO tree, int localArm)
         {
             int used = 0;
-            for (int i = 0; i < _visibleTalentNodeIds.Length; ++i)
+            for (int i = 0; i < _drawnTalentNodeIds.Length; ++i)
             {
-                if (!tree.TryGetNode(_visibleTalentNodeIds[i], out var node) || !node.HasExplicitPrerequisites) { continue; }
-                foreach (int parent in node.Prerequisites)
+                if (!tree.TryGetNode(_drawnTalentNodeIds[i], out TalentTreeSO.NodeEntry node))
                 {
-                    if (!tree.TryGetNode(parent, out var prerequisite)) { continue; }
-                    if (used == _talentEdges.Count)
+                    continue;
+                }
+
+                int arm = i / TALENT_SLOTS_PER_ARM;
+                bool mine = arm == localArm;
+                Vector2 end = TalentPosition(tree, arm, node.WeaponKind, node.ColumnIndex, node.RowIndex);
+
+                bool hasParent = false;
+                foreach (int parent in tree.EnumeratePrerequisites(node))
+                {
+                    if (!tree.TryGetNode(parent, out TalentTreeSO.NodeEntry prerequisite))
                     {
-                        var go = new GameObject("TalentConnection", typeof(RectTransform), typeof(Image));
-                        go.transform.SetParent(_talentButtons[i].transform.parent, false);
-                        go.transform.SetAsFirstSibling();
-                        var image = go.GetComponent<Image>(); image.raycastTarget = false;
-                        _talentEdges.Add(image);
+                        continue;
                     }
-                    var line = _talentEdges[used++]; line.gameObject.SetActive(true);
-                    var start = TalentPosition(prerequisite.ColumnIndex, prerequisite.RowIndex);
-                    var end = TalentPosition(node.ColumnIndex, node.RowIndex);
-                    var rect = line.rectTransform;
-                    var template = (RectTransform)_talentButtons[i].transform;
-                    rect.anchorMin = template.anchorMin; rect.anchorMax = template.anchorMax;
-                    rect.anchoredPosition = (start + end) * .5f;
-                    rect.sizeDelta = new Vector2(Vector2.Distance(start, end), 2);
-                    rect.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(end.y - start.y, end.x - start.x) * Mathf.Rad2Deg);
-                    line.color = _allocation.Contains(parent) ? new Color(.65f, .8f, .85f, .8f) : new Color(.3f, .36f, .4f, .6f);
+
+                    hasParent = true;
+                    Vector2 start = TalentPosition(tree, arm, prerequisite.WeaponKind,
+                        prerequisite.ColumnIndex, prerequisite.RowIndex);
+                    PlaceTalentEdge(used++, start, end, !mine ? G_TalentLineOther :
+                        _allocation.Contains(parent) ? G_TalentLineLit : G_TalentLine);
+                }
+
+                if (!hasParent)
+                {
+                    PlaceTalentEdge(used++, _talentConstellation.Center, end, !mine ? G_TalentLineOther :
+                        _allocation.Contains(node.NodeId) ? G_TalentLineLit : G_TalentLine);
                 }
             }
+
             for (int i = used; i < _talentEdges.Count; ++i) { _talentEdges[i].gameObject.SetActive(false); }
+        }
+
+        /// <summary>
+        /// 선 하나를 두 점 사이에 눕힌다. 모자라면 새로 만든다
+        /// 그믐 바로 아래에 끼운다 - 맨 앞에 두면 별하늘 층에 가려진다
+        /// </summary>
+        private void PlaceTalentEdge(int index, Vector2 start, Vector2 end, Color color)
+        {
+            if (index == _talentEdges.Count)
+            {
+                var go = new GameObject("TalentConnection", typeof(RectTransform), typeof(Image));
+                go.transform.SetParent(_talentButtons[0].transform.parent, false);
+                if ((_talentHub != null) && (_talentHub.parent == go.transform.parent))
+                {
+                    go.transform.SetSiblingIndex(_talentHub.GetSiblingIndex());
+                }
+                else
+                {
+                    go.transform.SetAsFirstSibling();
+                }
+                var image = go.GetComponent<Image>();
+                image.raycastTarget = false;
+                _talentEdges.Add(image);
+            }
+
+            Image line = _talentEdges[index];
+            if (!line.gameObject.activeSelf)
+            {
+                line.gameObject.SetActive(true);
+            }
+
+            RectTransform rect = line.rectTransform;
+            var template = (RectTransform)_talentButtons[0].transform;
+            rect.anchorMin = template.anchorMin;
+            rect.anchorMax = template.anchorMax;
+            rect.anchoredPosition = (start + end) * 0.5f;
+            rect.sizeDelta = new Vector2(Vector2.Distance(start, end), _talentConstellation.LineWidth);
+            rect.localRotation = Quaternion.Euler(0f, 0f,
+                Mathf.Atan2(end.y - start.y, end.x - start.x) * Mathf.Rad2Deg);
+            line.color = color;
         }
 
         private void OnEnable()
@@ -1419,6 +1574,12 @@ namespace Geumeum.UI
             SetActive(_shopPage, page == PageKind.Shop);
             SetActive(_transferPage, page == PageKind.Transfer);
 
+            // 특성 탭은 화면 전체가 별하늘이다. 우측 판이 남으면 별자리 한쪽을 가린다
+            for (int i = 0; i < _hideOnTalentPage.Length; ++i)
+            {
+                SetActive(_hideOnTalentPage[i], page != PageKind.Talent);
+            }
+
             if (page != PageKind.Talent)
             {
                 // 탭을 옮기면 포인터 나감이 오지 않는 경로가 있어 직접 지운다
@@ -1658,10 +1819,8 @@ namespace Geumeum.UI
             // 지우기 전에 어떤 노드를 보고 있었는지 남긴다
             int hoveredNodeBefore = ResolveHoveredTalentNodeId();
 
-            for (int i = 0; i < _visibleTalentNodeIds.Length; ++i)
-            {
-                _visibleTalentNodeIds[i] = 0;
-            }
+            Array.Clear(_visibleTalentNodeIds, 0, _visibleTalentNodeIds.Length);
+            Array.Clear(_drawnTalentNodeIds, 0, _drawnTalentNodeIds.Length);
 
             if ((_talentRevision == 0u) || !_allocation.HasWeapon ||
                 !GameDB.IsInitialized || (GameDB.Talent == null))
@@ -1672,84 +1831,38 @@ namespace Geumeum.UI
             }
 
             // 무기마다 갈래 수와 갈래별 노드 수가 다르다. 격자를 통째로 도는 대신
-            // 실제 정의된 열/노드만 그린다 - 없는 칸에 "1단계 특성"이 남으면 안 된다
+            // 실제 정의된 열/노드만 그린다 - 없는 칸에 빈 별이 남으면 안 된다
             TalentTreeSO tree = GameDB.Talent;
-            int columnCount = tree.CountColumns(_allocation.Weapon);
+            int localArm = ResolveTalentArms();
             int missing = 0;
 
-            for (int i = 0; i < ArrayLength(_talentColumnTexts); ++i)
+            for (int arm = 0; arm < TALENT_ARM_COUNT; ++arm)
             {
-                SetText(_talentColumnTexts[i], string.Empty);
-                _talentColumnTexts[i].gameObject.SetActive(i < columnCount);
-                var labelRect = _talentColumnTexts[i].rectTransform;
-                labelRect.anchoredPosition = TalentLayoutPoint(GameDB.Talent.MaxColumnsPerWeapon > 2 ?
-                    (i == 0 ? new Vector2(476, 173) : new Vector2(370 + (i - 1) * 106, 82)) : new Vector2(397 + i * 158, 168));
-                labelRect.sizeDelta = new Vector2(GameDB.Talent.MaxColumnsPerWeapon > 2 ? 102 : 150, 28) * _talentLayoutScale;
+                bool mine = (arm == localArm);
+
+                // 내 가지는 특성 배분이 들고 있는 무기를 따른다. 버튼 판정이 같은 값을 쓰기 때문이다
+                WeaponKind weapon = _allocation.Weapon;
+                bool hasWeapon = mine || TryGetTalentArmWeapon(arm, out weapon);
+
+                RefreshTalentArmLabel(arm, mine, hasWeapon, weapon);
+                if (hasWeapon)
+                {
+                    missing += DrawTalentArm(tree, arm, weapon, mine, available);
+                }
             }
 
-            for (int column = 0; column < columnCount; ++column)
-            {
-                if (!tree.TryGetColumn(_allocation.Weapon, column,
-                        out TalentTreeSO.ColumnEntry columnEntry))
-                {
-                    continue;
-                }
-
-                if (column < ArrayLength(_talentColumnTexts))
-                {
-                    SetText(_talentColumnTexts[column],
-                        string.IsNullOrWhiteSpace(columnEntry.DisplayName)
-                            ? $"{FunctionalUiText.GetWeaponName(_allocation.Weapon)} 특성"
-                            : columnEntry.DisplayName);
-                }
-
-                for (int row = 0; row < columnEntry.NodeCount; ++row)
-                {
-                    if (!tree.TryGetNode(_allocation.Weapon, column, row,
-                            out TalentTreeSO.NodeEntry node))
-                    {
-                        continue;
-                    }
-
-                    int index = (column * TALENT_ROWS_PER_COLUMN) + row;
-                    if ((index >= ArrayLength(_talentButtons)) ||
-                        (index >= _visibleTalentNodeIds.Length))
-                    {
-                        ++missing;
-                        continue;
-                    }
-
-                    FunctionalUiIndexedButton button = _talentButtons[index];
-                    SetTalentButtonActive(button, true);
-                    var rect = (RectTransform)button.transform;
-                    rect.anchoredPosition = TalentPosition(column, row);
-                    rect.sizeDelta = new Vector2(GameDB.Talent.MaxColumnsPerWeapon > 2 ? 100 : 150, 50) * _talentLayoutScale;
-                    _visibleTalentNodeIds[index] = node.NodeId;
-                    bool allocated = _allocation.Contains(node.NodeId);
-                    string name = string.IsNullOrWhiteSpace(node.DisplayName)
-                        ? $"{row + 1}단계 특성" : node.DisplayName;
-                    string state = allocated ? "선택됨" :
-                        FunctionalUiText.DescribeTalentValue(node.EffectKind, node.Value);
-                    button.SetLabel($"{name}\n{state}");
-                    TalentAllocationResult allowed = TalentRules.CanAllocate(tree,
-                        _allocation, available + _allocation.SpentPoints,
-                        node.NodeId, out _);
-                    SetTalentButtonInteractable(button, (!allocated) &&
-                        (allowed == TalentAllocationResult.Success));
-                }
-            }
+            RefreshTalentColumnLabels(tree, localArm);
 
             // 이번에 쓰지 않은 칸만 뒤늦게 숨긴다. 쓰는 노드를 먼저 껐다 켜면 포인터가
             // 그대로인데도 hover가 끊겨 설명이 0.2초마다 사라진다
-            int slotCount = Mathf.Min(ArrayLength(_talentButtons), _visibleTalentNodeIds.Length);
+            int slotCount = Mathf.Min(ArrayLength(_talentButtons), _drawnTalentNodeIds.Length);
             for (int i = 0; i < slotCount; ++i)
             {
-                if (_visibleTalentNodeIds[i] > 0)
+                if (_drawnTalentNodeIds[i] > 0)
                 {
                     continue;
                 }
 
-                _talentButtons[i].SetLabel(string.Empty);
                 SetTalentButtonInteractable(_talentButtons[i], false);
                 SetTalentButtonActive(_talentButtons[i], false);
             }
@@ -1757,17 +1870,198 @@ namespace Geumeum.UI
             if (missing > 0)
             {
                 // 고르지 못하는 노드가 있는 화면을 조용히 넘기지 않는다
-                Debug.LogError($"[FunctionalManagementPanel] 특성 버튼이 {missing}개 모자라 " +
-                    "일부 노드를 표시하지 못했다. 관리 창 프리팹을 다시 생성해야 한다", this);
+                Debug.LogError($"[FunctionalManagementPanel] 특성 칸이 {missing}개 모자라 " +
+                    "일부 노드를 표시하지 못했다. 트리가 가지 한 칸 수(4열 x 5행)를 넘었다", this);
             }
 
-            RefreshTalentEdges(tree);
+            RefreshTalentEdges(tree, localArm);
             SetInteractable(_talentResetButton, _allocation.SpentPoints > 0);
 
             ReleaseStaleTalentHover(hoveredNodeBefore);
 
             // 포인트나 배분이 바뀌면 떠 있는 설명의 상태 줄도 같이 갱신해야 한다
             RefreshTalentTooltip();
+        }
+
+        /// <summary>
+        /// 가지 하나를 그린다. 내 가지는 고를 수 있는 노드를 열고, 남의 가지는 모양만 보인다
+        /// 칸이 모자라 그리지 못한 노드 수를 돌려준다
+        /// </summary>
+        private int DrawTalentArm(TalentTreeSO tree, int arm, WeaponKind weapon, bool mine,
+            int available)
+        {
+            int missing = 0;
+            int columnCount = tree.CountColumns(weapon);
+            for (int column = 0; column < columnCount; ++column)
+            {
+                if (!tree.TryGetColumn(weapon, column, out TalentTreeSO.ColumnEntry columnEntry))
+                {
+                    continue;
+                }
+
+                for (int row = 0; row < columnEntry.NodeCount; ++row)
+                {
+                    if (!tree.TryGetNode(weapon, column, row, out TalentTreeSO.NodeEntry node))
+                    {
+                        continue;
+                    }
+
+                    int index = (arm * TALENT_SLOTS_PER_ARM) + (column * TALENT_ROWS_PER_COLUMN) + row;
+                    if ((column >= TALENT_COLUMNS_PER_ARM) || (row >= TALENT_ROWS_PER_COLUMN) ||
+                        (index >= ArrayLength(_talentButtons)))
+                    {
+                        ++missing;
+                        continue;
+                    }
+
+                    FunctionalUiIndexedButton button = _talentButtons[index];
+                    SetTalentButtonActive(button, true);
+                    ((RectTransform)button.transform).anchoredPosition =
+                        TalentPosition(tree, arm, weapon, column, row);
+                    _drawnTalentNodeIds[index] = node.NodeId;
+
+                    if (!mine)
+                    {
+                        // 남이 고른 노드는 아직 받지 않는다. 뿌리만 별로 두어 가지 모양을 알아보게 한다
+                        bool root = column == 0;
+                        SetTalentButtonInteractable(button, false);
+                        ApplyTalentNodeLook(index, root ? _talentStarSprite : _talentDotSprite,
+                            root ? _talentConstellation.OtherRootSize : _talentConstellation.OtherSize,
+                            G_TalentOther);
+                        continue;
+                    }
+
+                    _visibleTalentNodeIds[index] = node.NodeId;
+                    bool allocated = _allocation.Contains(node.NodeId);
+                    TalentAllocationResult allowed = TalentRules.CanAllocate(tree,
+                        _allocation, available + _allocation.SpentPoints,
+                        node.NodeId, out _);
+                    bool open = (!allocated) && (allowed == TalentAllocationResult.Success);
+                    SetTalentButtonInteractable(button, open);
+
+                    if (allocated)
+                    {
+                        ApplyTalentNodeLook(index, _talentStarSprite,
+                            _talentConstellation.AllocatedSize, G_TalentAllocated);
+                    }
+                    else if (open)
+                    {
+                        ApplyTalentNodeLook(index, _talentStarSprite,
+                            _talentConstellation.OpenSize, G_TalentOpen);
+                    }
+                    else
+                    {
+                        ApplyTalentNodeLook(index, _talentDotSprite,
+                            _talentConstellation.LockedSize, G_TalentLocked);
+                    }
+                }
+            }
+
+            return missing;
+        }
+
+        /// <summary>
+        /// 파티원을 netId 순으로 세워 가지를 나눈다. 파티 HUD와 같은 순서라 세 화면이 같다
+        /// 내가 목록에 없으면(네트워크 없이 연 창) 1P 자리를 내게 준다. 내 가지 번호를 돌려준다
+        /// </summary>
+        private int ResolveTalentArms()
+        {
+            _talentArmNetIds.Clear();
+            foreach (uint netId in _partyWeapons.Keys)
+            {
+                _talentArmNetIds.Add(netId);
+            }
+
+            _talentArmNetIds.Sort();
+
+            uint localNetId = (_localIdentity == null) ? 0u : _localIdentity.netId;
+            int localArm = (localNetId == 0u) ? -1 : _talentArmNetIds.IndexOf(localNetId);
+            if ((localArm < 0) || (localArm >= TALENT_ARM_COUNT))
+            {
+                _talentArmNetIds.Remove(localNetId);
+                _talentArmNetIds.Insert(0, 0u);
+                localArm = 0;
+            }
+
+            return localArm;
+        }
+
+        private bool TryGetTalentArmWeapon(int arm, out WeaponKind weapon)
+        {
+            weapon = default;
+            if ((arm >= _talentArmNetIds.Count) ||
+                !_partyWeapons.TryGetValue(_talentArmNetIds[arm], out PlayerWeapon player) ||
+                (player == null) || !player.HasWeapon)
+            {
+                return false;
+            }
+
+            weapon = player.Weapon;
+            return true;
+        }
+
+        private void RefreshTalentArmLabel(int arm, bool mine, bool hasWeapon, WeaponKind weapon)
+        {
+            if (arm >= _talentArmTexts.Length)
+            {
+                return;
+            }
+
+            TMP_Text label = _talentArmTexts[arm];
+            label.rectTransform.anchoredPosition = _talentConstellation.ArmLabelPosition(arm);
+            label.color = mine ? G_TalentArmLabel : G_TalentArmOther;
+
+            string seat = $"{arm + 1}P";
+            SetText(label, !hasWeapon ? $"{seat} 빈 자리" :
+                mine ? $"{seat} {FunctionalUiText.GetWeaponRoleName(weapon)} (나)" :
+                $"{seat} {FunctionalUiText.GetWeaponRoleName(weapon)}");
+        }
+
+        /// <summary>
+        /// 갈래 이름은 내 가지에만 단다. 남의 가지까지 달면 별보다 글자가 많아진다
+        /// 줄기(0열) 이름은 가지 주인 이름표와 자리가 겹쳐 달지 않는다 - 뿌리 설명에 나온다
+        /// </summary>
+        private void RefreshTalentColumnLabels(TalentTreeSO tree, int localArm)
+        {
+            WeaponKind weapon = _allocation.Weapon;
+            int columnCount = tree.CountColumns(weapon);
+            int trunkRows = tree.TryGetColumn(weapon, 0, out TalentTreeSO.ColumnEntry trunk)
+                ? trunk.NodeCount : 1;
+
+            for (int i = 0; i < ArrayLength(_talentColumnTexts); ++i)
+            {
+                TMP_Text label = _talentColumnTexts[i];
+                TalentTreeSO.ColumnEntry entry = default;
+                bool shown = (i > 0) && (i < columnCount) && tree.TryGetColumn(weapon, i, out entry);
+                SetActive(label.gameObject, shown);
+                if (!shown)
+                {
+                    continue;
+                }
+
+                SetText(label, string.IsNullOrWhiteSpace(entry.DisplayName)
+                    ? $"{FunctionalUiText.GetWeaponName(weapon)} 특성" : entry.DisplayName);
+                label.rectTransform.anchoredPosition = _talentConstellation.BranchLabelPosition(
+                    localArm, i, entry.NodeCount, columnCount, trunkRows);
+            }
+        }
+
+        /// <summary> 노드 상태를 별 모양, 크기, 색으로 보인다. 같은 값이면 건드리지 않는다 </summary>
+        private void ApplyTalentNodeLook(int index, Sprite sprite, float size, Color color)
+        {
+            Image image = (index < _talentNodeImages.Length) ? _talentNodeImages[index] : null;
+            if (image == null)
+            {
+                return;
+            }
+
+            if (image.sprite != sprite)
+            {
+                image.sprite = sprite;
+            }
+
+            image.color = color;
+            image.rectTransform.sizeDelta = Vector2.one * size;
         }
 
         /// <summary> 지금 가리키는 칸이 들고 있는 노드 ID. 가리키는 칸이 없으면 0 </summary>
@@ -1811,9 +2105,9 @@ namespace Geumeum.UI
 
         private void SetTalentButtonsUnavailable()
         {
+            // 확인 중이라는 안내는 포인트 줄이 한다. 노드에는 글자를 두지 않는다
             for (int i = 0; i < ArrayLength(_talentButtons); ++i)
             {
-                _talentButtons[i].SetLabel("특성 확인 중");
                 _talentButtons[i].SetInteractable(false);
             }
 
@@ -1916,6 +2210,7 @@ namespace Geumeum.UI
 
                 _shopPoints.Remove(key);
                 _recipients.Remove(key);
+                _partyWeapons.Remove(key);
                 _scannedIdentities.Remove(key);
             }
 
@@ -1940,6 +2235,12 @@ namespace Geumeum.UI
                 {
                     _shopPoints[pair.Key] = shopPoint;
                     shopPoint.OpenRequested += OpenShop;
+                }
+
+                PlayerWeapon weapon = identity.GetComponent<PlayerWeapon>();
+                if (weapon != null)
+                {
+                    _partyWeapons[pair.Key] = weapon;
                 }
 
                 if (identity.GetComponent<InventoryController>() != null)
@@ -1968,6 +2269,7 @@ namespace Geumeum.UI
 
             _shopPoints.Clear();
             _recipients.Clear();
+            _partyWeapons.Clear();
             _scannedIdentities.Clear();
         }
 

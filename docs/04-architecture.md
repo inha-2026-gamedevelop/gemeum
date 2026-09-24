@@ -1032,6 +1032,13 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 ├ Systems/   [구현완료] 인벤토리, 특성 트리, 객주 상점, 장비 양도, 정산 · 리더보드
 │  ├ FunctionalManagementPanel.cs · RunStatusPanel.cs · RunResultPanel.cs ·
 │  │  RunResultViewAdapter.cs · FunctionalUiIndexedButton.cs · FunctionalUiText.cs
+│  ├ TalentConstellationLayout.cs  [현재] 특성 탭 별자리 배치 계산(직렬화 클래스). 가운데 그믐에서
+│  │                           파티 순번(netId 순, 1P 위 · 2P 좌 · 3P 우)마다 가지가 뻗고 뿌리에서 갈래가 갈라진다.
+│  │                           내 가지만 고를 수 있고 남의 가지는 그 사람 무기 트리 모양만 그린다.
+│  │                           남이 고른 노드 표시는 [계획] - TalentController가 소유자에게만 복제해 아직 받지 못한다.
+│  │                           호스트 + 봇 2로 확인, 3인 미검증
+│  ├ TalentSkyAnimator.cs  MB  [현재] 특성 탭 별하늘 연출. 은하수 두 층을 흘리고 별을 반짝인다.
+│  │                           특성 탭이 켜져 있을 때만 돌고 별도 Canvas로 묶어 노드 재구성을 막는다
 │  ├ EscapeMenuPanel.cs    MB  ESC로 여닫는 중앙 상단 가로 바. 배낭 · 특성 · 설정 입구만 맡는다.
 │  │                           ESC 입력을 단독으로 읽어 관리창 → 설정 → 메뉴 순으로 하나씩 닫는다
 │  ├ SettingsPanel.cs      MB  설정 창. 여닫기 골격만 있고 실제 항목은 아직 없다 [계획]
