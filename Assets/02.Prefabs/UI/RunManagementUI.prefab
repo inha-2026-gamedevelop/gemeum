@@ -18207,11 +18207,13 @@ MonoBehaviour:
     _branchSpread: 34
     _zigzag: 9
     _labelDistance: 34
+    _armLabelOffset: 3
     _hitSize: 36
     _allocatedSize: 44
     _openSize: 20
     _lockedSize: 12
     _otherSize: 10
+    _otherRootSize: 18
     _lineWidth: 2
   _talentHub: {fileID: 3871571936948732293}
   _talentStarSprite: {fileID: 21300000, guid: b534b26530bf7e74d9643c5f5a5d83b4, type: 3}
