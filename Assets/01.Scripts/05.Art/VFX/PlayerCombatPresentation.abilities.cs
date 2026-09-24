@@ -299,6 +299,29 @@ namespace Geumeum.Art
 
             if (IsLocalPlayer && kind == WeaponAbilityEvent.EchoBurst)
             { _abilityAnimation?.PlayHitStop(GameDB.Presentation.BellBurstHitStopSeconds); }
+
+            if (IsLocalPlayer) { PlayAbilityCamera(kind, count); }
+        }
+
+        /// <summary> 내 스킬의 카메라 연출과 셰이크. 남의 스킬까지 흔들면 3인에서 화면이 쉬지 않는다 </summary>
+        private static void PlayAbilityCamera(WeaponAbilityEvent kind, byte count)
+        {
+            CameraRig rig = CameraRig.Current;
+            CameraConfigSO camera = GameDB.Camera;
+            if (rig == null || camera == null) { return; }
+            switch (kind)
+            {
+                // count가 0이 아닌 발사가 정밀 사격이다
+                case WeaponAbilityEvent.BowReleased when count != 0:
+                    rig.PlayEffect(camera.EffectPrecisionShot); rig.Shake(camera.ShakePrecisionShot); break;
+                // 시전 연출은 늘 주고 흔들림은 맞혔을 때만 준다
+                case WeaponAbilityEvent.SwordSkill:
+                    rig.PlayEffect(camera.EffectSwordSkill); if (count > 0) { rig.Shake(camera.ShakeSwordSkill); } break;
+                case WeaponAbilityEvent.BowStab:
+                    rig.PlayEffect(camera.EffectBowStab); if (count > 0) { rig.Shake(camera.ShakeBowStab); } break;
+                case WeaponAbilityEvent.EchoBurst:
+                    rig.PlayEffect(camera.EffectEchoBurst); rig.Shake(camera.ShakeEchoBurst); break;
+            }
         }
     }
 }

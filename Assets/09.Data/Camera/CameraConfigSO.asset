@@ -36,21 +36,126 @@ MonoBehaviour:
   _fieldOfView: 60
   _shakeScale: 1
   _shakeMaxAmplitude: 0.3
+  _shakeMaxRotationDegrees: 0.5
+  _shakeMaxFovKick: 4
   _shakeHitLight:
-    Amplitude: 0.06
-    Duration: 0.12
+    Amplitude: 0.07
+    Duration: 0.14
+    Frequency: 22
+    RotationDegrees: 0.25
+    Direction: 3
+    Lateral: 0.3
+    DecayPower: 2
+    FovKick: -0.6
   _shakeHitHeavy:
-    Amplitude: 0.12
-    Duration: 0.18
+    Amplitude: 0.14
+    Duration: 0.22
+    Frequency: 16
+    RotationDegrees: 0.5
+    Direction: 2
+    Lateral: 0.5
+    DecayPower: 1.5
+    FovKick: 0
   _shakeParrySuccess:
     Amplitude: 0.2
-    Duration: 0.15
+    Duration: 0.18
+    Frequency: 14
+    RotationDegrees: 0.4
+    Direction: 2
+    Lateral: 0.25
+    DecayPower: 2.5
+    FovKick: -2
   _shakeCritical:
     Amplitude: 0.15
-    Duration: 0.15
+    Duration: 0.18
+    Frequency: 20
+    RotationDegrees: 0.4
+    Direction: 1
+    Lateral: 0.35
+    DecayPower: 2
+    FovKick: -1.5
   _shakeGroggyEnter:
     Amplitude: 0.25
-    Duration: 0.3
+    Duration: 0.45
+    Frequency: 8
+    RotationDegrees: 0.5
+    Direction: 1
+    Lateral: 0.6
+    DecayPower: 1.2
+    FovKick: 1.5
   _shakePartBreak:
     Amplitude: 0.3
-    Duration: 0.35
+    Duration: 0.5
+    Frequency: 10
+    RotationDegrees: 0.5
+    Direction: 0
+    Lateral: 0.5
+    DecayPower: 1.3
+    FovKick: -2.5
+  _shakeSwordSkill:
+    Amplitude: 0.12
+    Duration: 0.2
+    Frequency: 18
+    RotationDegrees: 0.35
+    Direction: 3
+    Lateral: 0.3
+    DecayPower: 2
+    FovKick: -1.2
+  _shakeBowStab:
+    Amplitude: 0.08
+    Duration: 0.14
+    Frequency: 24
+    RotationDegrees: 0.25
+    Direction: 3
+    Lateral: 0.2
+    DecayPower: 2.2
+    FovKick: -0.8
+  _shakePrecisionShot:
+    Amplitude: 0.07
+    Duration: 0.16
+    Frequency: 12
+    RotationDegrees: 0.3
+    Direction: 3
+    Lateral: 0.1
+    DecayPower: 2.5
+    FovKick: 0
+  _shakeEchoBurst:
+    Amplitude: 0.14
+    Duration: 0.28
+    Frequency: 12
+    RotationDegrees: 0.4
+    Direction: 1
+    Lateral: 0.4
+    DecayPower: 1.6
+    FovKick: 0
+  _effectScale: 1
+  _effectMaxDistance: 1.2
+  _effectMaxFov: 8
+  _effectPrecisionShot:
+    DistanceDelta: 0.6
+    FovDelta: 4
+    Dutch: 0
+    BlendIn: 0.06
+    Hold: 0.08
+    BlendOut: 0.35
+  _effectSwordSkill:
+    DistanceDelta: 0.45
+    FovDelta: 3
+    Dutch: 0
+    BlendIn: 0.05
+    Hold: 0.1
+    BlendOut: 0.3
+  _effectBowStab:
+    DistanceDelta: 0.3
+    FovDelta: 2
+    Dutch: 0
+    BlendIn: 0.04
+    Hold: 0.06
+    BlendOut: 0.25
+  _effectEchoBurst:
+    DistanceDelta: -0.4
+    FovDelta: 3
+    Dutch: 0
+    BlendIn: 0.08
+    Hold: 0.15
+    BlendOut: 0.4

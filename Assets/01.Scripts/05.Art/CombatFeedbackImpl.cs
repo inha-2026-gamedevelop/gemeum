@@ -8,7 +8,10 @@ using Geumeum.Data;
 
 namespace Geumeum.Art
 {
-    /// <summary> ICombatFeedback의 아트 구현체. 카메라 셰이크를 재생한다 </summary>
+    /// <summary>
+    /// ICombatFeedback의 아트 구현체. 카메라 셰이크와 히트스톱을 재생한다
+    /// 전투 계약 밖이지만 "내가 맞았다"도 여기서 받는다 - 체력 SyncVar 훅이 이미 세 화면에 같은 값을 준다
+    /// </summary>
     [RequireComponent(typeof(CameraRig))]
     public class CombatFeedbackImpl : MonoBehaviour, ICombatFeedback
     {
@@ -17,6 +20,9 @@ namespace Geumeum.Art
         ****************************************/
 
         private CameraRig _rig;
+
+        // 피격을 구독 중인 내 캐릭터. 스폰·재접속으로 바뀌면 옮겨 단다
+        private PlayerStatus _observedLocal;
 
         /****************************************
         *              Unity Event
@@ -35,6 +41,17 @@ namespace Geumeum.Art
         private void OnDisable()
         {
             CombatFeedbackLocator.Unregister(this);
+            ObserveLocal(null);
+        }
+
+        // 내 캐릭터가 생기고 사라지는 순간을 알려 주는 이벤트가 없어 참조만 비교한다
+        private void Update()
+        {
+            PlayerStatus local = PlayerStatus.Local;
+            if (local != _observedLocal)
+            {
+                ObserveLocal(local);
+            }
         }
 
         /****************************************
@@ -109,9 +126,33 @@ namespace Geumeum.Art
         *                Methods
         ****************************************/
 
-        private void Shake(CameraConfigSO.ShakeSpec spec)
+        private void ObserveLocal(PlayerStatus local)
         {
-            _rig.AddShake(spec.Amplitude, spec.Duration);
+            if (_observedLocal != null)
+            {
+                _observedLocal.HealthDecreased -= HandleLocalHealthDecreased;
+            }
+
+            _observedLocal = local;
+
+            if (_observedLocal != null)
+            {
+                _observedLocal.HealthDecreased += HandleLocalHealthDecreased;
+            }
+        }
+
+        /// <summary> 내가 맞은 순간. 옆으로 크게 흔들리고 다음 패링을 위해 빨리 빠진다 </summary>
+        private void HandleLocalHealthDecreased()
+        {
+            if (TryGetConfig(out CameraConfigSO config))
+            {
+                Shake(config.ShakeHitTaken);
+            }
+        }
+
+        private void Shake(in CameraConfigSO.ShakeSpec spec)
+        {
+            _rig.Shake(spec);
         }
 
         private bool TryGetConfig(out CameraConfigSO config)
