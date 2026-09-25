@@ -194,6 +194,10 @@ namespace Geumeum.UI
 
         private uint _inventoryRevision;
 
+        // 배낭 12칸을 한 번이라도 받았는지. revision 0은 "아직 못 받음"이 아니라 빈 배낭의 정상 시작값이라
+        // revision으로 대신 판단하면 빈 배낭에서는 첫 구매 · 장착 버튼이 영영 열리지 않는다
+        private bool _hasInventorySnapshot;
+
         // 곁에 선 파티원에게 바로 주는 모드. 0이면 평소 배낭이다
         private uint   _quickRecipientNetId = 0u;
         private string _quickRecipientName  = string.Empty;
@@ -1645,6 +1649,7 @@ namespace Geumeum.UI
             _inventory = null;
             _talents = null;
             _inventoryRevision = 0u;
+            _hasInventorySnapshot = false;
             _talentRevision = 0u;
 
             // 다른 플레이어의 트리로 바뀌므로 앞 플레이어의 설명을 남기지 않는다
@@ -1701,6 +1706,7 @@ namespace Geumeum.UI
             }
 
             _inventoryRevision = revision;
+            _hasInventorySnapshot = true;
             if ((_selectedSlot >= 0) && _slots[_selectedSlot].IsEmpty)
             {
                 _selectedSlot = -1;
@@ -1751,7 +1757,7 @@ namespace Geumeum.UI
 
                 string prefix = (i == _selectedSlot) ? "선택 " : string.Empty;
                 button.SetLabel(prefix + FunctionalUiText.DescribeSlot(_slots[i]));
-                button.SetInteractable(_inventoryRevision != 0u);
+                button.SetInteractable(_hasInventorySnapshot);
                 button.SetHighlighted(MatchesInventoryFilter(_slots[i]));
             }
 
@@ -2122,7 +2128,7 @@ namespace Geumeum.UI
                 : $"공용 노잣돈 {_currency.Balance}냥");
 
             bool canPurchase = (_activeShopPoint != null) &&
-                _activeShopPoint.IsOpen && (_inventoryRevision != 0u);
+                _activeShopPoint.IsOpen && _hasInventorySnapshot;
             for (int i = 0; i < ArrayLength(_shopButtons); ++i)
             {
                 ShopItemKind kind = G_ShopItems[i];
