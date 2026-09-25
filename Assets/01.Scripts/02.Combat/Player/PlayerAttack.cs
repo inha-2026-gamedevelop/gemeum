@@ -1357,7 +1357,12 @@ namespace Geumeum.Combat
                 Mathf.Max(camera.Distance, camera.LockOnDistanceEnemy),
                 Mathf.Max(camera.LockOnDistanceBossBody, camera.LockOnDistanceBossPart));
 
-            return maxBoom + Mathf.Abs(camera.SideOffset) + Mathf.Abs(camera.PivotHeight);
+            // 관리 창이 열리면 카메라가 측면으로 더 비킨다(CameraRig.ApplyTransform).
+            // 그만큼 원점이 멀어지므로 상한에 포함하지 않으면 창이 닫히는 찰나에 활 조준이 거부된다
+            return maxBoom
+                + Mathf.Abs(camera.SideOffset)
+                + Mathf.Abs(camera.MenuSideOffset)
+                + Mathf.Abs(camera.PivotHeight);
         }
 
         [Server]

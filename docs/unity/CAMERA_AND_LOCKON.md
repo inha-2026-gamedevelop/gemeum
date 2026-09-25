@@ -42,6 +42,8 @@ public static class CameraFrame
     public static float Yaw          { get; set; }   // 카메라가 매 프레임 민다
     public static bool  InputEnabled { get; set; }   // UI가 끈다 (아래 8장)
 
+    public static float MenuRevealProgress { get; set; }  // 관리 창이 얼마나 열렸나 (아래 2.4)
+
     public static Vector2 ToWorld(Vector2 input);    // 입력 축 → 월드 방향
 }
 ```
@@ -57,6 +59,7 @@ public static class CameraFrame
 | 기본 거리 | **4.5m** ⚠️ | 아래 2.1 |
 | 높이 | **1.6m** | 눈높이 |
 | 측면 오프셋 | **0.6m** ⚠️ | 오버숄더 — **화면 정중앙이 비어 조준선이 된다** |
+| 관리 창 측면 오프셋 | **1.5m** | 창이 열리면 추가로 민다 — 아래 2.4 |
 | pitch 범위 | **−30° ~ +60°** | 위 30 / 아래 60 |
 | 마우스 감도 | X **0.15** · Y **0.12** °/px | **옵션 노출 + Y 반전 옵션** |
 | 위치 스무딩 | `SmoothDamp` **0.08초** | |
@@ -100,6 +103,43 @@ public static class CameraFrame
 > **2026-09-24 예외** — *지속되는* FOV 변화(달리기 등)는 여전히 넣지 않는다. 다만 타격감을 위해 **순간 연출**은 허용했다:
 > 셰이크의 화각 펀치(`FovKick`, 합산 상한 4°, 0.2~0.5초에 복귀)와 스킬 연출(`CameraEffectSpec.FovDelta`, 합산 상한 8°).
 > 둘 다 `CameraConfigSO`의 배수(`_shakeScale`·`_effectScale`)로 0까지 끌 수 있다. 패링 방해 여부는 L3에서 본다.
+
+---
+
+### 2.4 관리 창이 열리면 옆으로 비킨다
+
+관리 창(인벤토리·특성)은 화면 오른쪽 약 36%를 덮는다. 그 자리에 캐릭터가 있으면 장비를 보면서
+자기 캐릭터를 볼 수 없다. **창 폭을 줄이는 대신 카메라를 옆으로 민다.**
+
+```
+CameraRig.ApplyTransform()
+    sideOffset = SideOffset + (MenuSideOffset * CameraFrame.MenuRevealProgress)
+```
+
+- `MenuRevealProgress`는 **UI가 민다**(`FunctionalManagementPanel`). 0이 닫힘, 1이 열림이고
+  슬라이드 연출에 이징을 먹인 값이라 창이 움직이는 것과 카메라가 비키는 것이 같이 간다
+- 별도 보간을 넣지 않는다. 피벗이 이미 `SmoothDamp` 0.08초를 타고 있어 저절로 부드럽다
+- 측정값(FOV 60 · 거리 4.5m): `MenuSideOffset` **1.5m**에서 캐릭터가 화면 가로 **43.8% → 28.3%** 로 간다
+
+#### 🔑 값을 바꾸면 활 조준 검증도 같이 본다
+
+`PlayerAttack.ResolveMaxCameraOriginDistance()`는 서버가 활 조준을 받아 줄 **카메라 원점 상한**을
+이 설정값들의 합으로 계산한다. **삼각부등식 상한이라 여유분이 아니다.**
+
+```
+maxBoom + |SideOffset| + |MenuSideOffset| + |PivotHeight|   // 9 + 0.6 + 1.5 + 1.6 = 12.7m
+```
+
+`MenuSideOffset`이 이 식에 빠지면 **창이 닫히는 찰나에 활 조준이 서버에서 거부된다.** 크래시가 아니라
+`ActionRejection.InvalidInput`으로 조용히 막히고 로그도 서버에만 남아 원인 추적이 어렵다.
+
+| 항목 | 값 |
+|---|--:|
+| 서버 허용 상한 | **12.7m** |
+| 최악 배치 실제 거리 (피치 60° · 붐 9m · 창 열림) | **10.63m** |
+| 여유 | **2.07m** |
+
+측면 오프셋 계열 값을 건드릴 때는 이 표를 다시 계산한다.
 
 ---
 

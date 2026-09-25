@@ -377,9 +377,15 @@ namespace Geumeum.Art
         {
             Quaternion rotation = Quaternion.Euler(_pitch, _yaw, 0f);
 
+            // 관리 창이 열린 만큼 옆으로 더 비킨다. 창이 덮는 쪽 반대로 캐릭터를 보내는 것이라
+            // 표현일 뿐이지만, 카메라 원점이 멀어지므로 활 조준 검증 상한도 같은 값을 더해 둔다
+            // (PlayerAttack.ResolveMaxCameraOriginDistance)
+            float sideOffset = config.SideOffset
+                + (config.MenuSideOffset * Mathf.Clamp01(CameraFrame.MenuRevealProgress));
+
             Vector3 pivot = _target.position
                 + (Vector3.up * config.PivotHeight)
-                + ((rotation * Vector3.right) * config.SideOffset);
+                + ((rotation * Vector3.right) * sideOffset);
 
             if (!_hasPivot)
             {

@@ -13,7 +13,7 @@ using Geumeum.Network;
 namespace Geumeum.UI
 {
     /// <summary>
-    /// ESC로 여닫는 메뉴. 배낭과 특성과 설정으로 가는 입구만 맡고 내용은 각 창이 맡는다.
+    /// ESC로 여닫는 메뉴. 배낭 · 특성 · 도감 · 설정으로 가는 입구만 맡고 내용은 각 창이 맡는다.
     /// ESC 입력은 이 컴포넌트가 단독으로 읽는다 — 창마다 따로 읽으면 같은 프레임에 닫히고 다시 열린다
     /// </summary>
     [DisallowMultipleComponent]
@@ -28,6 +28,7 @@ namespace Geumeum.UI
         [SerializeField] private RectTransform _slidePanel;
         [SerializeField] private Button        _inventoryButton;
         [SerializeField] private Button        _talentButton;
+        [SerializeField] private Button        _guideButton;
         [SerializeField] private Button        _settingsButton;
         [SerializeField] private SettingsPanel _settingsPanel;
 
@@ -201,6 +202,15 @@ namespace Geumeum.UI
             }
         }
 
+        /// <summary> 도감은 설정 창의 한 탭이다. 같은 창을 도감 탭으로 연다 </summary>
+        public void OpenGuide()
+        {
+            if (_settingsPanel != null)
+            {
+                _settingsPanel.OpenGuide();
+            }
+        }
+
         /// <summary> ESC 한 번에 하나만 닫힌다. 가장 위에 뜬 것부터 거둔다 </summary>
         private void HandleEscape()
         {
@@ -318,6 +328,7 @@ namespace Geumeum.UI
         {
             BindButton(_inventoryButton, OpenInventory);
             BindButton(_talentButton, OpenTalents);
+            BindButton(_guideButton, OpenGuide);
             BindButton(_settingsButton, OpenSettings);
         }
 

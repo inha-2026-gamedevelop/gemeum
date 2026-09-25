@@ -15,6 +15,7 @@ MonoBehaviour:
   _pivotHeight: 1.6
   _distance: 4.5
   _sideOffset: 0.6
+  _menuSideOffset: 1.5
   _followSmoothTime: 0.08
   _defaultPitch: 22
   _defaultSensitivityX: 0.15

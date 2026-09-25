@@ -16,6 +16,12 @@ namespace Geumeum.Common
         /// <summary> 카메라 회전 입력을 받아도 되는지. UI가 열릴 때 UI가 끈다 </summary>
         public static bool InputEnabled { get; set; } = true;
 
+        /// <summary>
+        /// 관리 창이 얼마나 열려 있는지(0 닫힘 ~ 1 열림). UI가 밀고 카메라가 읽는다
+        /// 카메라는 이 값만큼 측면으로 비켜서 캐릭터를 창 반대쪽으로 보낸다
+        /// </summary>
+        public static float MenuRevealProgress { get; set; } = 0f;
+
         /// <summary> 락온이 걸려 있는지. 전투(LockOnController)가 밀고 카메라가 읽는다 </summary>
         public static bool LockOnActive { get; set; } = false;
 
@@ -59,8 +65,9 @@ namespace Geumeum.Common
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void ResetStatic()
         {
-            Yaw          = 0f;
-            InputEnabled = true;
+            Yaw                = 0f;
+            InputEnabled       = true;
+            MenuRevealProgress = 0f;
 
             SetLockOn(false, Vector3.zero, 0f);
         }

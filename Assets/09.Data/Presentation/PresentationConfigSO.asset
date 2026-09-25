@@ -76,7 +76,6 @@ MonoBehaviour:
   _damageNumberOcclusionChecksPerFrame: 4
   _damageNumberOcclusionReuseSeconds: 0.2
   _damageNumberOcclusionEndInset: 0.3
-  _enemyHealthBarsEnabledByDefault: 1
   _enemyHealthBarMaxOnScreen: 12
   _enemyHealthBarVisibleSeconds: 3
   _enemyHealthBarFadeSeconds: 0.4

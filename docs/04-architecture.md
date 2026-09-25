@@ -106,7 +106,8 @@ Assets/
 | `Dev_Character.unity` | **현재** | 캐릭터·무기 부착 확인용. 네트워크 없음. 빌드 설정 미포함 |
 | `Dev_WeatherMakerIsolation.unity` | **현재** | WeatherMaker 격리 확인용(임시). 빌드 설정 미포함 |
 | `SampleScene.unity` | **현재** | Unity 기본 생성물. 사용하지 않는다 |
-| **`Dev_System/` (폴더)** | **현재** | 게임플레이 시스템 작업 씬 **넷**. 소유자 @kjw1237 — `Dev_Barrier` · `Dev_Lobby` · `Dev_Title` · `Dev_HUD` |
+| **`Dev_System/` (폴더)** | **현재** | 게임플레이 시스템 작업 씬 **다섯**. 소유자 @kjw1237 — `Dev_Barrier` · `Dev_Lobby` · `Dev_Title` · `Dev_HUD` · `Dev_Shop` |
+| `Dev_System/Dev_Shop.unity` | **현재(구매 불가)** | 객주 단독 테스트 씬. `Dev_Combat` 복사본에서 몬스터를 빼고 `@SessionManagers` · 임시 객주 큐브를 얹었다. 빌드 설정 미포함. **1인 설정(`RunTestPanel` 1인 실행 = 자동 준비)으로 호스트를 열어야** 로비로 끌려가지 않고 이 씬에서 런이 시작된다. 상점 열기까지는 되지만 씬 전환이 없어 씬 revision이 0이라 **구매 · 권 사용 요청은 서버가 거부한다.** 구매는 정식 흐름(`Boot` → `Lobby` → `Field`)에서 확인한다 |
 | `Dev_Art.unity` | **미생성** | 테크니컬 아트 작업 씬. 소유자 @AidenKim923 |
 
 **런타임 씬은 일곱 개다 (2026-09-06 신설).** `Assets/00.Scenes/Release/`에 **빈 껍데기로 만들어 빌드 목록에 등록했다.** 내용물은 아직 비어 있고, 전환 골격을 먼저 검증한 뒤 채운다. `Main.unity`와 `Dev_System/`의 기존 씬을 어디에 흡수할지는 내용물을 채울 때 정한다.
@@ -371,10 +372,12 @@ Main.unity
 │  │                              (2026-09-16, 보스 입장 후 호스트 연결 끊김 수정. 회귀: 00.Common/Editor/LocalObjectPoolServiceTests)
 │  └ LocalPoolRoot.cs      MB  [구현완료] 풀에 넣어도 되는 프리팹임을 선언하는 표식.
 │                              네트워크 개체를 걸러내는 화이트리스트다
-├ CameraFrame.cs           static [구현완료] 카메라 yaw · 입력 허용 플래그 · 락온 상태 셋.
+├ CameraFrame.cs           static [구현완료] 카메라 yaw · 입력 허용 플래그 · 락온 상태 셋 ·
+│                                 관리 창 열림 진행도.
 │                                 yaw는 카메라(05.Art)가 밀고 전투(02.Combat)가 읽으며,
 │                                 락온은 반대로 전투가 밀고 카메라가 읽는다 — 방향은 반대여도
 │                                 "오브젝트가 아니라 값"이라는 원칙은 같다.
+│                                 관리 창 진행도도 UI(06.UI)가 밀고 카메라가 읽는 같은 꼴이다.
 │                                 카메라가 없으면 yaw 0이라 지금과 같이 동작한다
 ├ AimAssistPoint.cs        MB  [구현완료] IAimAssistTarget의 기본 구현. 로컬 오프셋 하나로
 │                                 조준점을 만든다. 부위마다 하나씩 붙인다 —
@@ -626,7 +629,8 @@ Main.unity
 │  │                           색 덮기와 복원은 RendererTintRegistry(ParryWindow 층)에 맡긴다
 │  ├ EnemyController.cs    NB  잡귀 공통: 추적 · 공격 실행 · 사망 → 드랍/경험치 이벤트 발행.
 │  │                           EnemySO의 종류 필드로 구동 (종류별 상속 대신 데이터 구동)
-│  ├ EnemyStatus.cs        NB  HP SyncVar + 강화 배수 적용. IDamageable 구현.
+│  ├ EnemyStatus.cs        NB  HP · 최대 HP SyncVar + 강화 배수 적용. IDamageable 구현.
+│  │                           HitByLocalPlayer TargetRpc는 정의만 남아 있고 지금은 보내지 않는다(2026-09-25, 아래 EnemyHpBar)
 │  │                           HP 감소 훅이 IDamagePresentationSource.HealthDecreased를 발생시킨다 (각 화면 피격 플래시)
 │  │                           배수는 스폰 시점의 결계 단계로 확정하고 이후 재계산하지 않는다
 │  │                           (교전 중 최대 HP가 변하면 체력바가 어긋난다 — 게임 디자인 5.2)
@@ -732,7 +736,8 @@ BossController·BossPartController·BossSoulController·BossStatus·BossSpawner�
 │  ├ InteractionRules.cs   C#  ★거리 · 생사 · 씬 · 비전투 유예 판정 전용 순수 C#
 │  ├ DroppedItem.cs        NB  필드에 떨어진 장비. IInteractable, 습득은 [Command] → 서버 확정
 │  ├ ShopInteractionPoint.cs NB 객주 지점. 서버가 개방 상태와 거리를 검사한다
-│  ├ Client/InteractionClient.cs C# 로컬 후보 탐색 · G키 입력. IInteractionRequestSource로 요청만 보낸다
+│  ├ Client/InteractionClient.cs C# 로컬 후보 탐색 · G키 입력. IInteractionRequestSource로 요청만 보낸다.
+│  │                          문을 열기 전 객주는 후보가 아니라 키 없는 안내(NoticeText)로 남긴다
 │  └ Editor/InteractionClientBoundaryTests.cs  원격 줍기 후보가 서버 판정을 호출하지 않는지 EditMode 검증
 ├ Economy/                 [구현완료]
 │  ├ CurrencyManager.cs    NB  팀 공용 노잣돈 단일 SyncVar. 구매 · 부활 차감 요청을
@@ -869,6 +874,15 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 06.UI/                     namespace Geumeum.UI
 ├ Combat/    HUD(HP · 스태미나 · 신력 · 반격 표식), 정밀 조준 상태, 무녀 표식 슬롯, 관전 화면
 │  └ HUD/
+│     ├ AllyTransferPromptView.cs [구현완료] 파티원 3m 안에 들면 그 사람 머리 위에 `양도 [G]`를 띄운다.
+│     │                           거리는 GameDB.Combat.InteractRange를 읽어 서버 판정과 같은 값을 쓴다.
+│     │                           줍기·객주 후보가 잡혀 있거나 로비·정산 단계면 비킨다.
+│     │                           G를 받으면 FunctionalManagementPanel.OpenTransferTo로 배낭을
+│     │                           양도 모드로 열 뿐이고 서버에 아무 요청도 보내지 않는다.
+│     │                           호스트+봇 2인 필드 런에서 표시·드래그·양도 완료까지 확인했다.
+│     │                           **전투 중에도 안내가 뜨는 것은 아직 막지 못한다** - CombatClock이
+│     │                           서버에만 쌓여 순수 클라이언트가 전투 상태를 모른다. 팀장께 SyncVar를
+│     │                           요청해 둔 상태다 [계획]. 3인 접속은 미검증
 │     ├ HUDController.cs         [구현완료] HP · 신력 · 스태미나 바를 PlayerStatus.Local에 바인딩
 │     ├ MinimapPlayerDots.cs     [구현완료] 파티원 위치를 점으로, 결계를 판과 원으로 그린다. 캐릭터별 색.
 │     │                           결계 밖을 위험 색으로 덮는다 - UI에 역마스크가 없어 판 하나를 칠하고
@@ -977,20 +991,39 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │                                     주기마다 조금씩 깎아 HUD가 값을 따라가는지 보게 한다.
 │                                     DevToolHost에 스스로 붙고 기본은 꺼짐.
 │                                     좌하단 개인 바가 움직이는 것까지 관찰했다
-├ AI/        보스 바(체력 · 그로기) · 광폭화 경고
-│  └ BossHudController.cs   [구현완료] 스폰된 보스를 찾아 체력 바 · 그로기 저항 바 · 광폭화 문구에 물린다.
-│                           보스가 없거나 죽으면 바를 숨긴다. 스폰 목록은 주기로만 훑는다.
-│                           최대 체력과 그로기 최대치가 서버 전용 값이라 클라이언트는
-│                           GameDB.Boss의 MaxHealth · GroggyGaugeMax를 쓴다.
-│                           RunHUD.prefab(SessionManagers 안)의 루트에 배선했다 -
-│                           보스 바는 기본 비활성이라 바 위에 붙이면 스스로 켜지 못한다.
-│                           그로기 저항이 차오를 때는 바로 대입하지 않고 1.5초에 걸쳐 따라간다 -
-│                           서버가 기상 순간 최대치를 한 번에 되돌리는 데다 그 프레임에 기상 패턴이
-│                           함께 시작돼 화면이 끊기므로, 한 프레임이 옮길 양에도 상한을 둔다.
-│                           깎이는 쪽은 타격 결과라 즉시 반영한다.
-│                           호스트 1인에서 표시, 체력 · 그로기 비율 갱신, 그로기 진입 시 빈 바와
-│                           기상 시 차오름, 광폭화 예고 · 발동 문구, 보스 제거 시 숨김까지 확인했다.
-│                           3인 접속(L3)은 아직 확인하지 못했다 [미검증]
+├ AI/        보스 바(체력 · 그로기) · 광폭화 경고 · 잡귀 머리 위 체력 바
+│  ├ BossHudController.cs   [구현완료] 스폰된 보스를 찾아 체력 바 · 그로기 저항 바 · 광폭화 문구에 물린다.
+│  │                        보스가 없거나 죽으면 바를 숨긴다. 스폰 목록은 주기로만 훑는다.
+│  │                        최대 체력과 그로기 최대치가 서버 전용 값이라 클라이언트는
+│  │                        GameDB.Boss의 MaxHealth · GroggyGaugeMax를 쓴다.
+│  │                        RunHUD.prefab(SessionManagers 안)의 루트에 배선했다 -
+│  │                        보스 바는 기본 비활성이라 바 위에 붙이면 스스로 켜지 못한다.
+│  │                        그로기 저항이 차오를 때는 바로 대입하지 않고 1.5초에 걸쳐 따라간다 -
+│  │                        서버가 기상 순간 최대치를 한 번에 되돌리는 데다 그 프레임에 기상 패턴이
+│  │                        함께 시작돼 화면이 끊기므로, 한 프레임이 옮길 양에도 상한을 둔다.
+│  │                        깎이는 쪽은 타격 결과라 즉시 반영한다.
+│  │                        호스트 1인에서 표시, 체력 · 그로기 비율 갱신, 그로기 진입 시 빈 바와
+│  │                        기상 시 차오름, 광폭화 예고 · 발동 문구, 보스 제거 시 숨김까지 확인했다.
+│  │                        3인 접속(L3)은 아직 확인하지 못했다 [미검증]
+│  ├ EnemyHpBar.cs          [꺼짐 2026-09-25] 잡귀 체력 바는 06.UI/Combat/EnemyHealthBars/EnemyHealthBarLayer(화면 오버레이,
+│  │                        누가 때렸든 모두의 화면, 깎인 부분 잔상)로 대체했다. 서버가 HitByLocalPlayer를 보내지 않으므로
+│  │                        이 바는 뜨지 않는다. 설정 창 "적 체력 바" 토글은 새 층을 켜고 끈다. 아래는 꺼지기 전 설명이다.
+│  │                        내가 때린 잡귀의 머리 위에만 체력 바를 띄우고 3초 뒤 흐려진다.
+│  │                        파티원이 때린 잡귀의 바는 내 화면에 뜨지 않는다. 띄우는 입구는 EnemyStatus.HitByLocalPlayer
+│  │                        (서버가 공격자 연결에만 보내는 TargetRpc) 하나이고, HealthDecreased는 떠 있는 바의 값만 맞춘다 -
+│  │                        RPC가 체력 SyncVar보다 먼저 오면 옛 체력으로 뜨므로 뒤따르는 훅이 바로잡는다.
+│  │                        비율은 Health / MaxHealth. 최대 체력은 결계 강화 · 몰이 강화가 바꿔 밸런스 원본으로
+│  │                        대신할 수 없으므로 EnemyStatus.network.cs의 SyncVar로 받는다. 처치되면 바로 숨긴다.
+│  │                        잡귀 프리팹 자식(중첩 프리팹 02.Prefabs/UI/HUD/EnemyHpBar.prefab)으로 붙는다.
+│  │                        그림은 파티 줄 체력 바(Bar_Track · Bar_Fill_Health)와 같다. 그림의 위아래 투명 여백이
+│  │                        커서 캔버스를 70 x 165로 잡아야 띠가 읽힌다.
+│  │                        Dev_Combat 호스트 1인에서 내 타격만 표시 · 연결 없는 공격자 타격 미표시 · 떠 있는 바의
+│  │                        값 갱신 · 비율 · 3초 뒤 사라짐 · 처치 시 숨김을 확인했다.
+│  │                        원격 클라이언트에서의 TargetRpc · SyncVar 도착(L3)은 아직이다 [미검증]
+│  └ Editor/EnemyHpBarWiringHelper.cs  메뉴 그믐/Production/UI/Wire enemy HP bars.
+│                           바 프리팹이 없으면 만들고 허깨비 · 창귀 · 액귀 프리팹의 콜라이더 꼭대기 0.1m 위에 붙인다.
+│                           이미 붙어 있으면 건너뛴다. LoadPrefabContents로 저장하면 Mirror가 NetworkIdentity의
+│                           assetId를 0으로 지우므로 저장 뒤 GUID 기준 값을 되살린다 - 0이면 빌드에서 스폰이 깨진다
 ├ Lobby/     [구현완료]
 │  ├ TitleScreenController.cs · TitleMenuController.cs  개발용 Dev_Title 시작화면 (네트워크 미연결)
 │  ├ AccountTitleMenu.cs  MB  [현재] Release/Title 안내·원정대 찾기·생성·종료. 로그인은 런처에서 유지
@@ -1004,15 +1037,44 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 ├ Systems/   [구현완료] 인벤토리, 특성 트리, 객주 상점, 장비 양도, 정산 · 리더보드
 │  ├ FunctionalManagementPanel.cs · RunStatusPanel.cs · RunResultPanel.cs ·
 │  │  RunResultViewAdapter.cs · FunctionalUiIndexedButton.cs · FunctionalUiText.cs
-│  ├ EscapeMenuPanel.cs    MB  ESC로 여닫는 중앙 상단 가로 바. 배낭 · 특성 · 설정 입구만 맡는다.
+│  ├ TalentConstellationLayout.cs  [현재] 특성 탭 별자리 배치 계산(직렬화 클래스). 가운데 그믐에서
+│  │                           파티 순번(netId 순, 1P 위 · 2P 좌 · 3P 우)마다 가지가 뻗고 뿌리에서 갈래가 갈라진다.
+│  │                           내 가지만 고를 수 있고 남의 가지는 그 사람 무기 트리 모양만 그린다.
+│  │                           남이 고른 노드 표시는 [계획] - TalentController가 소유자에게만 복제해 아직 받지 못한다.
+│  │                           한 PC 3인(M2)에서 배정, 원격 선택, 무기 교체 초기화, 재접속 복구를 확인했다.
+│  │                           결함: 재접속하면 새 netId를 받아 자리 순서가 바뀐다(3P가 2P로 올라감).
+│  │                           파티 HUD도 같은 netId 순이라 함께 바뀔 것으로 보인다(미확인). 서로 다른 PC(M3)는 미검증
+│  ├ TalentSkyAnimator.cs  MB  [현재] 특성 탭 별하늘 연출. 은하수 두 층을 흘리고 별을 반짝인다.
+│  │                           특성 탭이 켜져 있을 때만 돌고 별도 Canvas로 묶어 노드 재구성을 막는다
+│  ├ EscapeMenuPanel.cs    MB  ESC로 여닫는 중앙 상단 가로 바. 배낭 · 특성 · 도감 · 설정 입구만 맡는다.
+│  │                           도감과 설정은 같은 설정 창을 각각 도감 탭 · 옵션 탭으로 연다.
 │  │                           ESC 입력을 단독으로 읽어 관리창 → 설정 → 메뉴 순으로 하나씩 닫는다
-│  ├ SettingsPanel.cs      MB  설정 창. 여닫기 골격만 있고 실제 항목은 아직 없다 [계획]
+│  ├ SettingsPanel.cs      MB  [현재] 설정 창. 위 가로 탭(도감 · 옵션 · 시스템)을 Q · E로 넘기고, 옵션 탭은 왼쪽 분류
+│  │                           (게임플레이 · 그래픽 · 오디오)로 오른쪽 줄을 바꾼다. 열 때 값을 다시 읽고 닫을 때 저장한다.
+│  │                           ESC는 읽지 않는다 - EscapeMenuPanel이 설정 → 메뉴 순으로 닫는다
+│  ├ Guide/                [현재] 도감 탭. 게임 상태를 읽지 않는 정적 안내다
+│  │  ├ GuideCatalogSO.cs  SO  분류 → 소제목 → 항목(제목 · 본문). 에셋은 09.Data/Guide/GuideCatalog.asset.
+│  │  │                    판정 값의 원본이 아니므로 본문에 적은 수치는 밸런스가 바뀌면 같이 고친다.
+│  │  │                    UI 전용 글이라 00.Common/Data(팀장 소유)가 아니라 여기 둔다
+│  │  ├ GuidePage.cs       MB  왼쪽 분류 · 가운데 목록(스크롤) · 오른쪽 설명. 줄은 템플릿을 복제해 재사용한다.
+│  │  │                    TMP가 한글을 글자마다 끊어 본문만 어절을 <nobr>로 묶는다(전역 TMP 설정은 건드리지 않음)
+│  │  └ GuideListItem.cs   MB  분류 버튼 · 항목 한 줄. 누를 때 할 일은 GuidePage가 넘긴다
+│  ├ Settings/             [현재] 설정 창 부품. 전부 이 기기에서만 쓰는 값이라 서버를 거치지 않는다
+│  │  ├ ClientPreferences.cs   static  몬스터 체력 바 표시 · 큰 지도 여는 방식(토글/누르는 동안) ·
+│  │  │                        수직 동기화 · 최대 프레임을 PlayerPrefs에 둔다. 볼륨은 SoundVolume, 화면 모드 ·
+│  │  │                        해상도는 Unity가 스스로 저장한다. 키를 Constants.ui가 아니라 여기 둔 것은
+│  │  │                        00.Common(팀장 소유)을 건드리지 않으려는 것이다
+│  │  ├ SettingsOptionsBinder.cs  MB  옵션 줄들을 위 설정 · SoundVolume · Screen에 잇는다
+│  │  ├ SettingsStepperRow.cs · SettingsSliderRow.cs  MB  ◀ 값 ▶ 줄과 슬라이더 줄. 값 목록은 모른다
+│  │  └ SettingsSystemPage.cs  MB  로비로 돌아가기 · 게임 종료. 누르면 오른쪽에 확인을 띄운다.
+│  │                           로비 복귀는 계정 경로(LauncherGameSession.IsFrontendMode)에서만 열린다
 │  ├ RailRowVisual.cs      MB  좌측 레일 한 줄(박스 · 아이콘 · 글자 · 밑줄)의 활성 표시를 바꾼다.
 │  │                           레일을 ESC 메뉴로 대체해 코드에서는 더 쓰지 않는다.
 │  │                           꺼 둔 _bak_ 레일 오브젝트가 아직 참조하므로 파일은 남겨 둔다
 │  ├ Editor/RunManagementUiBuilder.cs  위 화면을 SessionManagers 프리팹 안에 짓는 에디터 도구
-│  └ Editor/EscapeMenuUiBuilder.cs  레일을 _bak_로 꺼 두고 ESC 메뉴 · 설정 골격을
-│                              RunManagementUI 프리팹 안에 짓는 에디터 도구. 다시 돌려도 된다
+│  └ Editor/EscapeMenuUiBuilder.cs  레일을 _bak_로 꺼 두고 ESC 메뉴를 RunManagementUI 프리팹 안에
+│                              짓는 에디터 도구. 다시 돌려도 된다. 설정 창은 프리팹에서 만든 최종 화면이라
+│                              있으면 지우지 않고 잇기만 한다(없을 때만 빈 골격을 세운다)
 └ Art/       페이드 · 트랜지션, 연출성 UI
 ```
 

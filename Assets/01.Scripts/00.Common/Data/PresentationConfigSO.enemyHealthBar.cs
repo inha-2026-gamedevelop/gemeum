@@ -22,9 +22,6 @@ namespace Geumeum.Data
         ****************************************/
 
         [Header("잡귀 머리 위 체력 바")]
-        [Tooltip("사용자가 설정을 바꾸지 않았을 때 잡귀 체력 바를 보일지")]
-        [SerializeField] private bool _enemyHealthBarsEnabledByDefault = true;
-
         [Tooltip("동시에 떠 있는 바 최대 수. 넘치면 가장 오래 맞지 않은 바를 거둔다. 게임 시작 때 한 번 읽는다")]
         [SerializeField, Min(1)] private int _enemyHealthBarMaxOnScreen = 12;
 
@@ -74,7 +71,6 @@ namespace Geumeum.Data
         *              Properties
         ****************************************/
 
-        public bool  EnemyHealthBarsEnabledByDefault      => _enemyHealthBarsEnabledByDefault;
         public int   EnemyHealthBarMaxOnScreen            => Mathf.Max(1, _enemyHealthBarMaxOnScreen);
         public float EnemyHealthBarVisibleSeconds         => Mathf.Max(0f, _enemyHealthBarVisibleSeconds);
         public float EnemyHealthBarFadeSeconds            => Mathf.Max(0f, _enemyHealthBarFadeSeconds);

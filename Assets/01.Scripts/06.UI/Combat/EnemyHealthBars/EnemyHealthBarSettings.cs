@@ -4,130 +4,95 @@ using System;
 // Unity
 using UnityEngine;
 
-// 프로젝트 내부
-using Geumeum.Data;
-
 namespace Geumeum.UI
 {
     /// <summary>
-    /// 잡귀 머리 위 체력 바 켜기/끄기 사용자 설정. 이 기기에만 저장하고 판정·계정과 무관하다
-    /// 설정 UI는 Enabled를 읽고 쓰기만 하면 된다. 끄면 떠 있던 바도 바로 거둔다(DamageNumberSettings와 같은 방식)
+    /// 잡귀 머리 위 체력 바 켜기/끄기. 설정 창의 "적 체력 바" 토글(ClientPreferences.ShowEnemyHpBar)을 그대로 따른다
+    /// 저장과 기본값은 ClientPreferences가 맡는다. 여기는 체력 바 층이 쓰기 편한 값과 변경 알림만 준다
     /// </summary>
     public static class EnemyHealthBarSettings
     {
         /****************************************
-        *              Constants
-        ****************************************/
-
-        private const string PREF_ENABLED = "UI.EnemyHealthBars.Enabled";
-
-        /****************************************
         *                Fields
         ****************************************/
 
-        private static bool _isLoaded = false;
-        private static bool _enabled  = true;
+        private static bool         _isListening = false;
+        private static bool         _lastKnown   = true;
+        private static Action<bool> _enabledChanged;
 
         /****************************************
         *              Events
         ****************************************/
 
         /// <summary> 설정이 실제로 바뀌었을 때. 인자는 새 값 </summary>
-        public static event Action<bool> EnabledChanged;
+        public static event Action<bool> EnabledChanged
+        {
+            add
+            {
+                EnsureListening();
+                _enabledChanged += value;
+            }
+            remove
+            {
+                _enabledChanged -= value;
+            }
+        }
 
         /****************************************
         *              Properties
         ****************************************/
 
-        /// <summary> 맞은 잡귀 머리 위에 체력 바를 보일지. 저장값이 없으면 PresentationConfigSO의 기본값 </summary>
+        /// <summary> 맞은 잡귀 머리 위에 체력 바를 보일지 </summary>
         public static bool Enabled
         {
-            get
-            {
-                EnsureLoaded();
-                return _enabled;
-            }
+            get { return ClientPreferences.ShowEnemyHpBar; }
             set
             {
-                EnsureLoaded();
-
-                PlayerPrefs.SetInt(PREF_ENABLED, (value) ? 1 : 0);
-                PlayerPrefs.Save();
-
-                if (_enabled == value)
-                {
-                    return;
-                }
-
-                _enabled = value;
-                EnabledChanged?.Invoke(value);
+                ClientPreferences.SetShowEnemyHpBar(value);
+                ClientPreferences.Save();
             }
         }
-
-        /// <summary> 저장된 값이 있는지. 없으면 기본값을 따르고 있다 </summary>
-        public static bool HasSavedValue => PlayerPrefs.HasKey(PREF_ENABLED);
 
         /****************************************
         *              Public API
         ****************************************/
 
-        /// <summary> 저장값을 지우고 기본값으로 돌린다 </summary>
-        public static void ResetToDefault()
-        {
-            PlayerPrefs.DeleteKey(PREF_ENABLED);
-            PlayerPrefs.Save();
-
-            bool previous = _enabled;
-            _isLoaded = false;
-
-            if (Enabled != previous)
-            {
-                EnabledChanged?.Invoke(_enabled);
-            }
-        }
-
-        /// <summary> 도메인 리로드 OFF 대비 정적 상태 초기화 </summary>
+        /// <summary> 도메인 리로드 OFF 대비 정적 상태 초기화. ClientPreferences도 같은 때 구독자를 비운다 </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void ResetStatic()
         {
-            _isLoaded      = false;
-            _enabled       = true;
-            EnabledChanged = null;
+            _isListening    = false;
+            _lastKnown      = true;
+            _enabledChanged = null;
         }
 
         /****************************************
         *                Methods
         ****************************************/
 
-        private static void EnsureLoaded()
+        private static void EnsureListening()
         {
-            if (_isLoaded)
+            if (_isListening)
             {
                 return;
             }
 
-            bool defaultValue = GetDefault();
-
-            // GameDB가 아직 없으면 기본값이 확정되지 않았으므로 캐시하지 않고 다음에 다시 읽는다
-            if (PlayerPrefs.HasKey(PREF_ENABLED))
-            {
-                _enabled  = (PlayerPrefs.GetInt(PREF_ENABLED, 1) != 0);
-                _isLoaded = true;
-                return;
-            }
-
-            _enabled  = defaultValue;
-            _isLoaded = GameDB.IsInitialized;
+            _isListening = true;
+            _lastKnown   = ClientPreferences.ShowEnemyHpBar;
+            ClientPreferences.Changed += HandlePreferencesChanged;
         }
 
-        private static bool GetDefault()
+        // ClientPreferences.Changed는 표시 설정 전체에 대해 울린다. 체력 바 값이 바뀐 때만 넘긴다
+        private static void HandlePreferencesChanged()
         {
-            if ((!GameDB.IsInitialized) || (GameDB.Presentation == null))
+            bool current = ClientPreferences.ShowEnemyHpBar;
+            if (current == _lastKnown)
             {
-                return true;
+                return;
             }
 
-            return GameDB.Presentation.EnemyHealthBarsEnabledByDefault;
+            _lastKnown = current;
+            _enabledChanged?.Invoke(current);
         }
     }
 }

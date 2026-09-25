@@ -207,6 +207,26 @@ namespace Geumeum.AI
             RegisterHit(damage.AttackerNetId);
         }
 
+        /// <summary>
+        /// 지금은 호출하지 않는다(2026-09-25 팀장 결정). 잡귀 체력 바는 화면 오버레이 EnemyHealthBarLayer가 모두의 화면에 띄우고,
+        /// 프리팹의 EnemyHpBar는 이 알림으로만 뜨므로 꺼진 상태다. 다시 쓰려면 TakeDamage에서 이 호출을 되살린다
+        ///
+        /// 때린 플레이어에게만 맞혔다고 알린다. 머리 위 체력 바를 그 화면에만 띄우기 위해서다
+        /// 연결이 없는 공격자(봇, 환경 피해)는 보여줄 화면이 없으므로 건너뛴다
+        /// 처치 타격은 여기까지 오지 않는다 - 죽은 잡귀의 바는 띄우지 않는다
+        /// </summary>
+        [Server]
+        private void NotifyAttackerHit(uint attackerNetId)
+        {
+            if ((!NetworkServer.spawned.TryGetValue(attackerNetId, out NetworkIdentity attacker)) ||
+                (attacker.connectionToClient == null))
+            {
+                return;
+            }
+
+            TargetHitByLocalPlayer(attacker.connectionToClient);
+        }
+
         /// <summary> 패링 성공 등 넉백을 즉시 강제할 때 호출한다, 일반 피격 누적과 별도 경로다 </summary>
         [Server]
         public void ResetHitCount()

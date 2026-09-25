@@ -193,6 +193,11 @@ namespace Geumeum.Systems
                 }
 
                 GUILayout.EndHorizontal();
+
+                if (GUILayout.Button("타입별 1개 (필터 시험용)"))
+                {
+                    GiveOneOfEachKind(inventory);
+                }
             }
 
             GUILayout.Space(6f);
@@ -244,6 +249,65 @@ namespace Geumeum.Systems
             }
 
             _message = $"netId {inventory.netId}: 장비 {stored}개 지급";
+        }
+
+        /// <summary>
+        /// 무기 3종과 소모품 4종을 한 칸씩 넣는다
+        ///
+        /// 배낭 필터를 보려면 분류마다 하나씩 들어 있어야 한다.
+        /// 드랍과 객주로 모으면 무기만 나오거나 권이 안 나와 시간이 오래 걸린다
+        /// </summary>
+        private void GiveOneOfEachKind(InventoryController inventory)
+        {
+            if (!EnsureGenerator())
+            {
+                return;
+            }
+
+            int stored = 0;
+
+            // 무기는 직업별로 세 종류다. 등급은 드랍표가 굴리는 대로 둔다
+            var weapons = new[] { WeaponKind.Sword, WeaponKind.Bow, WeaponKind.Bell };
+            for (int i = 0; i < weapons.Length; ++i)
+            {
+                WeaponCombatSnapshot item = _generator.Generate(weapons[i], FIELD_LEVEL);
+                if (inventory.ServerTryStoreEquipment(item, inventory.Revision) != InventoryResult.Success)
+                {
+                    _message = $"netId {inventory.netId}: {stored}개 넣고 멈춤 - 무기 {weapons[i]}";
+                    return;
+                }
+
+                ++stored;
+            }
+
+            // 물약 2종과 권 2종. 수량 제한은 ShopSO 값을 그대로 따른다
+            var consumables = new[]
+            {
+                ShopItemKind.HealthPotion, ShopItemKind.SpiritPotion,
+                ShopItemKind.RerollTicket, ShopItemKind.UpgradeTicket,
+            };
+
+            for (int i = 0; i < consumables.Length; ++i)
+            {
+                ShopSO.ItemEntry entry;
+                if ((GameDB.Shop == null) || (!GameDB.Shop.TryGetItem(consumables[i], out entry)))
+                {
+                    _message = $"상품 정보가 없다 - {consumables[i]}";
+                    return;
+                }
+
+                InventoryResult result = inventory.ServerTryStoreConsumable(consumables[i], 1,
+                    entry.CarryLimit, entry.MaxStack, inventory.Revision);
+                if (result != InventoryResult.Success)
+                {
+                    _message = $"netId {inventory.netId}: {stored}개 넣고 멈춤 - {consumables[i]} {result}";
+                    return;
+                }
+
+                ++stored;
+            }
+
+            _message = $"netId {inventory.netId}: 타입별로 {stored}칸 채움";
         }
 
         private void ClearSlots(InventoryController inventory)

@@ -424,6 +424,6 @@
 | 항목 | 권위 | 내용 |
 |---|---|---|
 | 넉백 실제 밀기 | 서버 | 넉백이 걸리면 서버가 `NavMeshAgent.Move`로 잡귀를 가해자 반대쪽 수평으로 ease-out 곡선으로 밀어낸다. 가해자가 없으면 잡귀 뒤쪽. 벽, NavMesh 끝, 다른 적에 막히면 멈춘다. 거리와 시간은 `EnemySO`의 `KnockbackDistance`, `KnockbackPushSeconds`(허깨비 2.5m/0.3초, 창귀 2.0m/0.25초, 액귀 1.5m/0.25초). 위치는 기존 `NetworkTransformReliable`로 세 화면이 같다. `EnemyStatus.Knockback` 이벤트는 가해자 netId를 넘긴다(`Action<uint>`). S2의 "실제 넉백 규칙은 바꾸지 않는다"를 팀장 결정으로 바꾼 항목이다 |
-| 잡귀 HP바 | 각자 화면 | 동기화된 체력이 줄면(누가 때렸든) 잡귀 머리 위에 HP바를 3초 띄운다. 깎인 부분은 미색 잔상으로 0.4초 멈췄다가 따라 내려간다. 보스 제외, 동시 12개, 캔버스 정렬 −15(숫자 −10 아래). 설정 키 `UI.EnemyHealthBars.Enabled`. 수치는 `PresentationConfigSO.enemyHealthBar` partial. 잡귀 최대 체력(`_maxHealth`)을 SyncVar로 옮겨 원격 화면도 같은 비율을 보인다 |
+| 잡귀 HP바 | 각자 화면 | 동기화된 체력이 줄면(누가 때렸든) 잡귀 머리 위에 HP바를 3초 띄운다. 깎인 부분은 미색 잔상으로 0.4초 멈췄다가 따라 내려간다. 보스 제외, 동시 12개, 캔버스 정렬 −15(숫자 −10 아래). 켜고 끄기는 설정 창의 "적 체력 바" 토글(`ClientPreferences.ShowEnemyHpBar`)을 따른다. develop에 먼저 들어온 프리팹 부착형 `EnemyHpBar`(때린 사람에게만 표시)는 두 바가 겹치지 않도록 꺼 두었다(2026-09-25 팀장 결정). 수치는 `PresentationConfigSO.enemyHealthBar` partial. 잡귀 최대 체력(`_maxHealth`)을 SyncVar로 옮겨 원격 화면도 같은 비율을 보인다 |
 
 둘 다 구현됨(미검증)이다. L3에서 세 화면의 밀림 위치, 벽·절벽 앞 정지, 넉백 뒤 추적 복귀, HP바 비율 일치를 확인한다.

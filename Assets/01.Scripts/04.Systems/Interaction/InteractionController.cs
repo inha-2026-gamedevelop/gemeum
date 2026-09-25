@@ -32,6 +32,7 @@ namespace Geumeum.Systems
         public uint ActorNetId => netId;
         public Vector3 ActorPosition => transform.position;
         public string PromptText => (_client != null) ? _client.PromptText : null;
+        public string NoticeText => (_client != null) ? _client.NoticeText : null;
         public KeyCode InteractKey => _interactKey;
         public uint CandidateNetId => _client == null ? 0u : _client.CandidateNetId;
         public event System.Action<InteractionResult, InventoryResult, WeaponCombatSnapshot> InteractionCompleted;

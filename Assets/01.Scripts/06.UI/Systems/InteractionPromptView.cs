@@ -45,7 +45,14 @@ namespace Geumeum.UI
                 prompt = FunctionalUiText.GetGradeName(equipment.Grade) + " " +
                     FunctionalUiText.GetWeaponName(equipment.WeaponKind) + " 줍기";
             }
-            Show(string.IsNullOrEmpty(prompt) ? string.Empty : "[" + _interaction.InteractKey + "] " + prompt);
+            if (string.IsNullOrEmpty(prompt))
+            {
+                // 누를 것은 없지만 곁에 무언가 있다. 키 없이 사정만 알린다
+                Show(_interaction.NoticeText ?? string.Empty);
+                return;
+            }
+
+            Show("[" + _interaction.InteractKey + "] " + prompt);
         }
 
         private void OnCompleted(InteractionResult result, InventoryResult inventory, WeaponCombatSnapshot equipment)
