@@ -106,7 +106,8 @@ Assets/
 | `Dev_Character.unity` | **현재** | 캐릭터·무기 부착 확인용. 네트워크 없음. 빌드 설정 미포함 |
 | `Dev_WeatherMakerIsolation.unity` | **현재** | WeatherMaker 격리 확인용(임시). 빌드 설정 미포함 |
 | `SampleScene.unity` | **현재** | Unity 기본 생성물. 사용하지 않는다 |
-| **`Dev_System/` (폴더)** | **현재** | 게임플레이 시스템 작업 씬 **넷**. 소유자 @kjw1237 — `Dev_Barrier` · `Dev_Lobby` · `Dev_Title` · `Dev_HUD` |
+| **`Dev_System/` (폴더)** | **현재** | 게임플레이 시스템 작업 씬 **다섯**. 소유자 @kjw1237 — `Dev_Barrier` · `Dev_Lobby` · `Dev_Title` · `Dev_HUD` · `Dev_Shop` |
+| `Dev_System/Dev_Shop.unity` | **현재(구매 불가)** | 객주 단독 테스트 씬. `Dev_Combat` 복사본에서 몬스터를 빼고 `@SessionManagers` · 임시 객주 큐브를 얹었다. 빌드 설정 미포함. `RunSceneDirector`를 빼서 로비로 끌려가지 않지만, 그 탓에 씬 revision이 0이라 **구매·권 사용 요청이 전부 거부된다.** 개발 씬의 씬 revision 초기값은 팀장 결정 대기 |
 | `Dev_Art.unity` | **미생성** | 테크니컬 아트 작업 씬. 소유자 @AidenKim923 |
 
 **런타임 씬은 일곱 개다 (2026-09-06 신설).** `Assets/00.Scenes/Release/`에 **빈 껍데기로 만들어 빌드 목록에 등록했다.** 내용물은 아직 비어 있고, 전환 골격을 먼저 검증한 뒤 채운다. `Main.unity`와 `Dev_System/`의 기존 씬을 어디에 흡수할지는 내용물을 채울 때 정한다.
