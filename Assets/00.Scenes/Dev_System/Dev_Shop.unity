@@ -634,6 +634,7 @@ GameObject:
   m_Component:
   - component: {fileID: 328390362}
   - component: {fileID: 328390365}
+  - component: {fileID: 328390371}
   - component: {fileID: 328390370}
   m_Layer: 0
   m_Name: '@Managers'
@@ -689,6 +690,21 @@ MonoBehaviour:
   _transitionKeyCode: 286
   _targetScene: 6
   _reviveAllKeyCode: 285
+--- !u!114 &328390371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 328390360}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 846691a346b40e84da0644c887f22843, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.Network.RunSceneDirector
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1 &333624068
 GameObject:
   m_ObjectHideFlags: 0
