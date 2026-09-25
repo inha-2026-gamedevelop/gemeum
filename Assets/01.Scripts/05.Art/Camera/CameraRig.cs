@@ -3,6 +3,7 @@ using System;
 
 // Unity
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 // 서드파티
 using Mirror;
@@ -74,6 +75,9 @@ namespace Geumeum.Art
 
         private bool _defaultPitchApplied = false;
         private bool _cursorLocked = false;
+
+        // 로비에 들어오며 커서를 꺼내 둔 상태인지. 카메라가 씬마다 바뀌어도 이어지도록 정적으로 둔다
+        private static bool G_LobbyCursorReleased = false;
 
         /****************************************
         *              Properties
@@ -170,10 +174,15 @@ namespace Geumeum.Art
         private void OnEnable()
         {
             Current = this;
+
+            SceneManager.activeSceneChanged += HandleActiveSceneChanged;
+            ApplySceneCursorDefault(SceneManager.GetActiveScene());
         }
 
         private void OnDisable()
         {
+            SceneManager.activeSceneChanged -= HandleActiveSceneChanged;
+
             ReleaseCursor();
 
             if (Current == this)
@@ -515,6 +524,40 @@ namespace Geumeum.Art
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible   = true;
             _cursorLocked    = false;
+        }
+
+        private void HandleActiveSceneChanged(Scene previous, Scene next)
+        {
+            ApplySceneCursorDefault(next);
+        }
+
+        /// <summary>
+        /// 로비는 방 목록, 파티 준비를 마우스로 누르는 화면이라 커서를 꺼낸 채로 시작한다. ESC로 다시 잡는 것은 그대로다
+        /// 로비를 떠나 전투 씬에 들어가면 로비가 꺼내 둔 경우에만 원래대로 잡는다
+        /// </summary>
+        private static void ApplySceneCursorDefault(Scene scene)
+        {
+            bool isLobby = (RunSceneCatalog.FromSceneName(scene.name) == RunSceneId.Lobby);
+
+            if (isLobby && (!G_LobbyCursorReleased))
+            {
+                CameraFrame.InputEnabled = false;
+                G_LobbyCursorReleased    = true;
+                return;
+            }
+
+            if ((!isLobby) && G_LobbyCursorReleased)
+            {
+                CameraFrame.InputEnabled = true;
+                G_LobbyCursorReleased    = false;
+            }
+        }
+
+        /// <summary> 도메인 리로드 OFF 대비 정적 상태 초기화 </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatic()
+        {
+            G_LobbyCursorReleased = false;
         }
 
         /****************************************
