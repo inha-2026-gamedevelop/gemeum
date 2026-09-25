@@ -112,6 +112,10 @@ namespace Geumeum.AI
             Commit(next);
             RecordAppliedDamage(partId, damage, applied);
 
+            // 꼬리 피해는 본체 HP로 옮겨지지 않는다. 실제로 맞은 부위 한 건만 보고한다
+            ServerDamageResultHub.ServerReport(damage, netId, (sbyte) partId, true, applied, broke,
+                hitPosition);
+
             if (broke)
             {
                 CommitBreak(partId, damage.AttackerNetId, hitPosition);

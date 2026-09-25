@@ -25,6 +25,7 @@ namespace Geumeum.AI
 
         private GameDatabaseSO _database;
         private BossPatternSO  _databaseBoss;
+        private CombatConfigSO _databaseCombat;
 
         [SetUp]
         public void SetUp()
@@ -40,6 +41,9 @@ namespace Geumeum.AI
             _databaseBoss = ScriptableObject.CreateInstance<BossPatternSO>();
             _database     = ScriptableObject.CreateInstance<GameDatabaseSO>();
             Set(_database, "_boss", _databaseBoss);
+            // 보스 근접 패링 창 길이는 CombatConfigSO 기본값을 읽는다
+            _databaseCombat = ScriptableObject.CreateInstance<CombatConfigSO>();
+            Set(_database, "_combat", _databaseCombat);
             GameDB.Initialize(_database);
         }
 
@@ -52,6 +56,7 @@ namespace Geumeum.AI
             GameDB.ResetStatic();
             if (_database != null) { UnityEngine.Object.DestroyImmediate(_database); }
             if (_databaseBoss != null) { UnityEngine.Object.DestroyImmediate(_databaseBoss); }
+            if (_databaseCombat != null) { UnityEngine.Object.DestroyImmediate(_databaseCombat); }
         }
 
         [Test]

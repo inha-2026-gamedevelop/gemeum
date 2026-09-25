@@ -31,6 +31,8 @@ MonoBehaviour:
     StaggerDuration: 0.5
     HitsToKnockback: 3
     KnockbackDuration: 1
+    KnockbackDistance: 2.5
+    KnockbackPushSeconds: 0.3
   - Kind: 1
     DisplayName: "\uCC3D\uADC0"
     MaxHealth: 260
@@ -52,6 +54,8 @@ MonoBehaviour:
     StaggerDuration: 0.8
     HitsToKnockback: 3
     KnockbackDuration: 4.6
+    KnockbackDistance: 2
+    KnockbackPushSeconds: 0.25
   - Kind: 2
     DisplayName: "\uC561\uADC0"
     MaxHealth: 140
@@ -70,6 +74,8 @@ MonoBehaviour:
     StaggerDuration: 0.5
     HitsToKnockback: 3
     KnockbackDuration: 1
+    KnockbackDistance: 1.5
+    KnockbackPushSeconds: 0.25
     ProjectileSpeed: 10
     RetreatRange: 4
   _enhances:

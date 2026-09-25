@@ -8,7 +8,7 @@ namespace Geumeum.Data
 {
     /// <summary>전투와 아레나 표현의 조정값. 판정 범위와 서버 규칙은 포함하지 않는다</summary>
     [CreateAssetMenu(fileName = "PresentationConfigSO", menuName = "Geumeum/PresentationConfigSO")]
-    public class PresentationConfigSO : ScriptableObject
+    public partial class PresentationConfigSO : ScriptableObject
     {
         [Header("Weapon abilities")]
         [SerializeField] private Material _abilityMaterial;
@@ -19,8 +19,6 @@ namespace Geumeum.Data
         [SerializeField, Min(0.01f)] private float _abilityBurstRadius = 0.65f;
         [SerializeField, Min(0.01f)] private float _echoMarkRadius = 0.22f;
         [SerializeField, Range(0f, 1f)] private float _remoteAbilityOpacity = 0.45f;
-        [SerializeField, Min(0f)] private float _bellHitStopSeconds = 0.02f;
-        [SerializeField, Min(0f)] private float _bellBurstHitStopSeconds = 0.04f;
         public Material AbilityMaterial => _abilityMaterial;
         public Color WedgeColor => _wedgeColor;
         public Color EchoColor => _echoColor;
@@ -29,12 +27,8 @@ namespace Geumeum.Data
         public float AbilityBurstRadius => _abilityBurstRadius;
         public float EchoMarkRadius => _echoMarkRadius;
         public float RemoteAbilityOpacity => _remoteAbilityOpacity;
-        public float BellHitStopSeconds => _bellHitStopSeconds;
-        [SerializeField, Min(0f)] private float _swordSkillHitStopSeconds = 0.04f;
         [SerializeField, Min(0f)] private float _bowStabHitStopSeconds = 0.03f;
-        public float SwordSkillHitStopSeconds => _swordSkillHitStopSeconds;
         public float BowStabHitStopSeconds => _bowStabHitStopSeconds;
-        public float BellBurstHitStopSeconds => _bellBurstHitStopSeconds;
 
         [Header("Bow and bell motion effects")]
         [SerializeField, Min(.01f)] private float _abilityStreakLength = .85f;
@@ -64,8 +58,6 @@ namespace Geumeum.Data
         [SerializeField, Range(0f, 1f)] private float _arenaUnderworldSmoothness = 0.9f;
 
         [Header("전투 타격감")]
-        [SerializeField, Min(0f)] private float _lightHitStopSeconds = 0.04f;
-        [SerializeField, Min(0f)] private float _criticalHitStopSeconds = 0.08f;
         [SerializeField, Min(0f)] private float _lateOneShotToleranceSeconds = 0.15f;
         [SerializeField, Min(0f)] private float _damageFlashSeconds = 0.075f;
         [SerializeField] private Color _damageFlashColor = new Color(1f, 0.12f, 0.08f, 1f);
@@ -92,8 +84,6 @@ namespace Geumeum.Data
         public float ArenaPhaseTransitionSeconds => Mathf.Max(0.01f, _arenaPhaseTransitionSeconds);
         public float ArenaShrineSmoothness => Mathf.Clamp01(_arenaShrineSmoothness);
         public float ArenaUnderworldSmoothness => Mathf.Clamp01(_arenaUnderworldSmoothness);
-        public float LightHitStopSeconds => Mathf.Max(0f, _lightHitStopSeconds);
-        public float CriticalHitStopSeconds => Mathf.Max(0f, _criticalHitStopSeconds);
         public float LateOneShotToleranceSeconds => Mathf.Max(0f, _lateOneShotToleranceSeconds);
         public float DamageFlashSeconds => Mathf.Max(0f, _damageFlashSeconds);
         public Color DamageFlashColor => _damageFlashColor;
@@ -124,9 +114,7 @@ namespace Geumeum.Data
                 return false;
             }
 
-            if (!IsFiniteNonNegative(_lightHitStopSeconds) ||
-                !IsFiniteNonNegative(_criticalHitStopSeconds) ||
-                !IsFiniteNonNegative(_lateOneShotToleranceSeconds) ||
+            if (!IsFiniteNonNegative(_lateOneShotToleranceSeconds) ||
                 !IsFiniteNonNegative(_damageFlashSeconds))
             {
                 failure = "presentation durations must be finite and non-negative";

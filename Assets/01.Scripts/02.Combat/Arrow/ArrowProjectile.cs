@@ -465,11 +465,19 @@ namespace Geumeum.Combat
                 bool followThrough = _followThroughArmed && damageable is Geumeum.AI.EnemyStatus &&
                     _abilityOwner != null && _abilityOwner.CanApplyArrowTalent && _abilityOwner.CombatGeneration == _ownerGeneration;
                 if (followThrough) { _followThroughArmed = false; _followThroughUsed = true; }
+
+                // 시작부터 겹친 대상은 SphereCast가 point를 zero로 준다. 그때는 콜라이더 중심을 적중점으로 쓴다
+                Vector3 hitPoint = (_hitBuffer[i].distance > 0f)
+                    ? _hitBuffer[i].point
+                    : _hitBuffer[i].collider.bounds.center;
                 damageable.TakeDamage(new DamageInfo(
                     _damage,
                     _attackerNetId,
                     _attacker,
-                    _strength));
+                    _strength)
+                    .WithSource(_isPrecision ? DamageSourceKind.PrecisionShot : DamageSourceKind.Arrow,
+                        _actionId, 0, _strength == HitStrength.Critical)
+                    .WithHitPoint(hitPoint));
 
                 if (damageable is IDamageHealthSource after && after.Health < healthBefore)
                 {
@@ -484,7 +492,8 @@ namespace Geumeum.Combat
                     if (followThrough)
                     {
                         damageable.TakeDamage(new DamageInfo(_basePower * _talents.PrecisionFollowThrough,
-                            _attackerNetId, _attacker, HitStrength.Heavy));
+                            _attackerNetId, _attacker, HitStrength.Heavy)
+                            .WithSource(DamageSourceKind.Derived, _actionId).WithHitPoint(hitPoint));
                     }
 
                     if (burst && !_followThroughUsed && _isPrecision && _talents.PrecisionFollowThrough > 0)

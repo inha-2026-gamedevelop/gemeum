@@ -38,6 +38,10 @@ namespace Geumeum.Data
         [SerializeField] private float _rollTotalDuration      = 0.9f;  // 전체 동작(초)
         [SerializeField] private float _rollDistance           = 3f;    // 이동 거리(m), 게임 디자인 문서에 값이 없어 프로토타입 시작값으로 추가
 
+        [Header("극한 회피 (COMBAT_STYLE_DESIGN S7)")]
+        [Tooltip("구르기 무적 시작부터 이 시간 안에 무적으로 거부된 공격만 극한 회피로 인정한다(초). 판정 값이라 서버만 읽는다")]
+        [Min(0f)] [SerializeField] private float _perfectDodgeWindowSeconds = 0.15f;
+
         [Header("패링")]
         [SerializeField] private float _parryStartupDuration    = 0.05f; // 선딜(초)
         [SerializeField] private float _parryWindowDuration     = 0.32f; // 기본 판정 창(초)
@@ -188,6 +192,9 @@ namespace Geumeum.Data
         public float RollInvincibleDuration => _rollInvincibleDuration;
         public float RollTotalDuration      => _rollTotalDuration;
         public float RollDistance           => _rollDistance;
+
+        /// <summary> 극한 회피로 인정하는 구르기 무적 앞쪽 구간(초). 구르기 무적 길이를 넘으면 무적 길이까지만 의미가 있다 </summary>
+        public float PerfectDodgeWindowSeconds => Mathf.Max(0f, _perfectDodgeWindowSeconds);
 
         public float ParryStartupDuration    => _parryStartupDuration;
         public float ParryWindowDuration     => _parryWindowDuration;

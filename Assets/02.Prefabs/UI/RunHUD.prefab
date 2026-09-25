@@ -5713,6 +5713,7 @@ MonoBehaviour:
   _root: {fileID: 1511005419748019670}
   _hpFill: {fileID: 2707234191614014256}
   _groggyFill: {fileID: 306183596880593941}
+  _groggyPulseGraphics: []
   _enrageLabel: {fileID: 7861430846929925364}
   _enrageWarningText: "\uAD11\uD3ED\uD654\uAC00 \uC784\uBC15\uD588\uB2E4"
   _enragedText: "\uAD11\uD3ED\uD654"

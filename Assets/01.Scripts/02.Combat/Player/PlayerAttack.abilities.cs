@@ -105,7 +105,7 @@ namespace Geumeum.Combat
                 if (owner.netId == attacker && owner._weapon.Weapon == WeaponKind.Bow &&
                     (ownerGeneration == 0 || ownerGeneration == owner.CombatGeneration))
                 {
-                    var hit = new WedgeHitContext { Key = key, Precision = precision, Origin = rayOrigin,
+                    var hit = new WedgeHitContext { Key = key, Action = action, Precision = precision, Origin = rayOrigin,
                         Direction = rayDirection, Distance = rayDistance, Power = basePower,
                         FirstHitCooldown = talents.WedgeFirstHitCooldown,
                         BurstPercent = precision ? talents.WedgePrecisionBurstPercent : talents.WedgeNormalBurstPercent };
@@ -118,6 +118,7 @@ namespace Geumeum.Combat
         private struct WedgeHitContext
         {
             public DirectAttackKey Key;
+            public uint Action;
             public bool Precision;
             public Vector3 Origin, Direction;
             public float Distance, Power, FirstHitCooldown, BurstPercent;
@@ -149,7 +150,8 @@ namespace Geumeum.Combat
                 _wedge = default;
                 _wedgeTarget = null;
                 target.Damage.TakeDamage(new DamageInfo(hit.Power * config.WedgeBurstMultiplier * (1f + hit.BurstPercent * .01f),
-                    netId, ResolveParticipantId(), HitStrength.Heavy));
+                    netId, ResolveParticipantId(), HitStrength.Heavy)
+                    .WithSource(DamageSourceKind.WedgeBurst, hit.Action).WithHitPoint(wedgePoint));
                 RpcAbilityEvent(WeaponAbilityEvent.WedgeBurst, wedgePoint, mark.Count, AbilityTime);
                 return true;
             }
@@ -342,7 +344,8 @@ namespace Geumeum.Combat
                     float bonus = ServerIsInsideField(point) ? _echoFieldDamage : 1f;
                     target.Damage.TakeDamage(new DamageInfo(
                         _echoPower * _echoResonance * bonus * GameDB.Combat.EchoDamageMultiplier(mark.Count),
-                        netId, ResolveParticipantId(), HitStrength.Heavy));
+                        netId, ResolveParticipantId(), HitStrength.Heavy)
+                        .WithSource(DamageSourceKind.EchoBurst, _echoExecution, mark.Count).WithHitPoint(point));
                     if (((IDamageHealthSource)target.Damage).Health < before)
                     {
                         SetEcho(i, default); _echoTargets[i] = null;

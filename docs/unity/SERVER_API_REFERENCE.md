@@ -194,6 +194,21 @@ target.TakeDamage(in info);
 
 **같은 공격이 여러 콜라이더를 맞히면 해석된 대상 기준으로 중복을 제거한다.** `netId`로 거르면 꼬리와 몸통이 같은 `NetworkIdentity`라 구분이 안 된다.
 
+### 3.1 피해 결과 알리기 (2026-09-24)
+
+플레이어가 준 피해의 표현(멈춤·셰이크·데미지 숫자)은 서버가 **실제로 깎은 HP**를 공격자에게 돌려준 결과로만 재생한다. 설계와 필드 뜻은 [전투 표현 설계 8.1·14.1](COMBAT_STYLE_DESIGN.md)에 있다.
+
+| API | 설명 |
+|---|---|
+| `info.WithSource(DamageSourceKind source, uint executionId, byte detail = 0, ...)` | 가해 쪽이 출처, 실행 번호, 세부값, 치명 여부를 채운다. 기존 생성자는 그대로다. 비워 두면 `Unknown`이라 약한 표현(T1)만 나온다 |
+| `info.WithHitPoint(Vector3)` | 판정에 쓴 적중점. 없으면 대상 중심을 쓴다 |
+| `ServerDamageResultHub.ServerReport(in DamageInfo, uint targetNetId, sbyte partIndex, ...)` | **HP를 받는 쪽**(잡귀·보스·꼬리·원혼 `.server.cs`)이 적용량 확정 직후에 부른다. 새 `IDamageable`을 만들면 여기도 연결해야 숫자가 뜬다 |
+| `LocalDamageResultFeed.Received` | 클라이언트 표현이 구독하는 창구. `DamageResult`는 공격자 소유 클라이언트만 받는다 |
+| `LocalPerfectDodgeFeed.Received` | 극한 회피 인정(회피자 본인만). 판정은 `PlayerStatus`가 서버에서 한다 |
+| `LocalObservedHitFeed.Received` | 동료가 때린 잡귀의 방향 움찔(비신뢰 채널, 대상당 0.1초 간격) |
+
+적이 플레이어를 때리는 경로는 결과를 만들지 않는다. 봇이 준 피해는 받을 화면이 없어 버린다.
+
 ---
 
 ## 4. 회복시키기

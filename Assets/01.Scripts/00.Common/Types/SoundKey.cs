@@ -52,5 +52,12 @@ namespace Geumeum.Common
         EchoThird = 185,
         EchoRecall = 186,
         EchoBurst = 187,
+
+        // 타이밍 섬광(COMBAT_STYLE_DESIGN S4)
+        ParryWindowFlash   = 188, // 패링 창이 열리는 순간의 맑은 고음
+        UnparryableWarning = 189, // 패링 불가 공격 경고의 낮은 음
+
+        // 극한 회피(COMBAT_STYLE_DESIGN S7). 회피자 화면에서만 울리는 짧은 고음
+        PerfectDodge = 190,
     }
 }

@@ -16,6 +16,10 @@ namespace Geumeum.AI
 {
     public partial class BossStatus
     {
+        // 피해 결과의 대체 적중점. 본체 콜라이더 bounds 중심을 쓴다
+        private Collider _damageResultCollider            = null;
+        private bool     _hasResolvedDamageResultCollider = false;
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
         [Server]
         internal void ServerDevSetHealthRatio(float ratio)
@@ -99,9 +103,15 @@ namespace Geumeum.AI
             _health = Mathf.Max(_minimumHealth,
                 _health - (damage.Amount * _bodyDamageMultiplier));
 
-            RecordAppliedDamage(damage, previousHealth - _health);
+            float appliedAmount = previousHealth - _health;
+            bool  isKill        = (_health <= Constants.Combat.HEALTH_EPSILON);
+            RecordAppliedDamage(damage, appliedAmount);
 
-            if (_health <= Constants.Combat.HEALTH_EPSILON)
+            // HP 하한에 막혀 줄지 않은 피해는 허브가 거른다. 꼬리·원혼 피해는 각 컨트롤러가 따로 보고한다
+            ServerDamageResultHub.ServerReport(damage, netId, DamageResult.NO_PART, true,
+                appliedAmount, isKill, ResolveDamageResultCenter());
+
+            if (isKill)
             {
                 Die(damage.AttackerNetId);
                 return;
@@ -117,6 +127,20 @@ namespace Geumeum.AI
             _isDead = true;
             ObserverDispatch.Invoke(Died, killerNetId, this,
                 nameof(BossStatus), nameof(Died));
+        }
+
+        /// <summary> 적중점이 없는 피해 결과가 쓸 본체 중심. 콜라이더는 처음 쓸 때 한 번만 찾는다 </summary>
+        private Vector3 ResolveDamageResultCenter()
+        {
+            if (!_hasResolvedDamageResultCollider)
+            {
+                _hasResolvedDamageResultCollider = true;
+                TryGetComponent(out _damageResultCollider);
+            }
+
+            return ((_damageResultCollider != null) && _damageResultCollider.enabled)
+                ? _damageResultCollider.bounds.center
+                : transform.position;
         }
 
         private void RecordAppliedDamage(in DamageInfo damage, float appliedAmount)

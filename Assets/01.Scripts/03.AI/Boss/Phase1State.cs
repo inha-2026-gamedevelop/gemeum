@@ -69,8 +69,6 @@ namespace Geumeum.AI
         private const int MAX_CANDIDATE_COUNT     = 7; // 현재 독립 후보 수
         private const int SELECTABLE_PATTERN_COUNT = 7;
 
-        private const float MELEE_PARRY_WINDOW_DURATION = 0.32f; // 초, 패링 판정 창 길이
-
         // 여우불 광선(11) 전용 - 360도를 회전 시간(MoveSpeed 필드 재해석)에 걸쳐 돈다.
         // Damage 필드는 다른 패턴과 달리 초당 피해량(DPS)으로 읽어 매 틱 deltaTime을 곱해 적용한다
         private const float ROTATING_BEAM_FULL_SWEEP_DEGREES = 360f;
@@ -992,8 +990,9 @@ namespace Geumeum.AI
             double impactTime = _activeAttackStartServerTime +
                 _activeImpactOffsets[repeatIndex];
 
+            // 기본 창 길이는 비대상 섬광 근사와 같은 설정값을 쓴다. 로드아웃 보너스는 ParryController가 더한다
             BossAttackExecution execution = new BossAttackExecution(
-                MELEE_PARRY_WINDOW_DURATION, _activeAttackInstanceId, repeatIndex,
+                GameDB.Combat.ParryWindowDuration, _activeAttackInstanceId, repeatIndex,
                 HandleAttackParried);
             uint sequenceId = _activeAttackInstanceId;
             execution.SequenceActive = () => IsAttackWindup(sequenceId);

@@ -49,6 +49,8 @@ namespace Geumeum.Data
             public float StaggerDuration;   // 비공격 상태에서 일반 피격 시 경직 시간(초)
             public int   HitsToKnockback;   // 이 횟수만큼 일반 피격이 누적되면 넉백
             public float KnockbackDuration; // 넉백(3회 누적 또는 패링 성공) 지속 시간(초)
+            public float KnockbackDistance;    // 넉백 때 서버가 공격자 반대쪽(수평)으로 실제로 밀어내는 총 거리(m), 0이면 밀지 않는다
+            public float KnockbackPushSeconds; // 위 거리를 밀어내는 데 걸리는 시간(초), KnockbackDuration을 넘으면 그 값으로 자른다
 
             // 원거리형 전용, 원거리가 아닌 종류는 0으로 둔다
             public float ProjectileSpeed; // 저주 투사체 비행 속도

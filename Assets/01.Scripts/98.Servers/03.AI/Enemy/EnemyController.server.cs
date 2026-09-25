@@ -47,6 +47,11 @@ namespace Geumeum.AI
         private const float MELEE_HIT_RANGE_MARGIN = 1.2f;
         private const int   TARGET_SCAN_BUFFER_SIZE = 8;    // 파티 최대 인원(3)보다 넉넉히 잡은 NonAlloc 버퍼 크기
 
+        // 넉백 밀기 중 다른 몸(잡귀, 보스)에 막혔는지 보는 구체 탐침. 거리, 시간 수치는 EnemySO에 있다
+        private const int   KNOCKBACK_PUSH_HIT_BUFFER_SIZE  = 4;    // 한 걸음 앞에 겹칠 몸 수는 많지 않다
+        private const float KNOCKBACK_PUSH_PROBE_RADIUS_SCALE = 0.9f; // 붙어 선 이웃을 출발부터 겹친 것으로 잡지 않도록 Agent 반경보다 살짝 줄인다
+        private const float KNOCKBACK_PUSH_PROBE_HEIGHT_SCALE = 0.5f; // 탐침은 몸 높이의 가운데에서 쏜다
+
         private EnemyBrainBase _brain;
         private float          _scanTimer       = 0f;
         private float          _defaultSpeed    = 0f;
@@ -64,6 +69,16 @@ namespace Geumeum.AI
         private uint    _lastPrecisionInterruptedExecutionId;
         private bool    _isRunPauseApplied;
         private bool    _wasAgentStoppedBeforeRunPause;
+
+        // 넉백 밀기, 서버 전용 - 위치는 NetworkTransform이 모든 화면에 같은 값으로 옮긴다
+        private uint    _handledKnockbackSequence;
+        private bool    _isKnockbackPushing;
+        private Vector3 _knockbackPushDirection;
+        private float   _knockbackPushDistance;
+        private float   _knockbackPushSeconds;
+        private float   _knockbackPushElapsed;
+        private int     _knockbackPushBlockMask;
+        private readonly RaycastHit[] _knockbackPushHits = new RaycastHit[KNOCKBACK_PUSH_HIT_BUFFER_SIZE];
 
         private static ulong G_HerdingBudgetGeneration = 0UL;
         private static ulong G_HerdingBudgetTick       = 0UL;
@@ -89,6 +104,9 @@ namespace Geumeum.AI
             _hasHerdingPath          = false;
             _herdingPathFailed       = false;
             _lastPrecisionInterruptedExecutionId = 0u;
+            _handledKnockbackSequence = 0u; // 새 Brain은 0부터 센다
+            _knockbackPushBlockMask   = LayerMask.GetMask(Constants.Layer.ENEMY, Constants.Layer.BOSS);
+            StopKnockbackPush();
             _status.Died       += HandleDied;
             _status.Damaged    += HandleDamaged;
             _status.HitLanded  += HandleHitLanded;
@@ -128,6 +146,7 @@ namespace Geumeum.AI
             }
 
             _isRunPauseApplied = false;
+            StopKnockbackPush();
 
             if (_schedulerWaitRoutine != null)
             {
@@ -185,6 +204,7 @@ namespace Geumeum.AI
 
             _brain.Tick(deltaTime);
             ApplyBrainDecision();
+            TickKnockbackPush(deltaTime); // Knockback 상태면 위에서 Agent를 세웠다, 추적 이동이 밀기를 덮어쓰지 않는다
             _visualState                = _brain.VisualState;
             _attackVariant              = _brain.AttackVariant;
             _isParryWindowVisuallyOpen  = _brain.IsParryWindowVisuallyOpen;
@@ -619,15 +639,164 @@ namespace Geumeum.AI
             }
         }
 
+        /// <summary> 피격 누적 문턱 도달. 실제 밀기는 다음 ServerTick의 TickKnockbackPush가 Brain의 넉백 순번을 보고 시작한다 </summary>
         [Server]
-        private void HandleKnockback()
+        private void HandleKnockback(uint attackerNetId)
         {
-            _brain?.EnterKnockback();
+            _brain?.EnterKnockback(attackerNetId);
+        }
+
+        /****************************************
+        *            Knockback Push
+        ****************************************/
+
+        /// <summary>
+        /// 넉백에 새로 들어갔으면 밀기를 시작하고, 진행 중이면 이번 틱 몫만큼 NavMeshAgent.Move로 민다
+        /// 모든 넉백 진입 경로(피격 누적, 패링 성공)가 Brain.EnterKnockback을 지나므로 여기 한 곳에서 받는다
+        /// </summary>
+        [Server]
+        private void TickKnockbackPush(float deltaTime)
+        {
+            if (_brain.KnockbackSequence != _handledKnockbackSequence)
+            {
+                _handledKnockbackSequence = _brain.KnockbackSequence;
+                BeginKnockbackPush(_brain.KnockbackSourceNetId);
+            }
+
+            if (!_isKnockbackPushing)
+            {
+                return;
+            }
+
+            // 넉백이 끝났거나 다른 상태로 넘어갔으면 남은 밀기를 버린다
+            if (_brain.VisualState != EnemyVisualState.Knockback)
+            {
+                StopKnockbackPush();
+                return;
+            }
+
+            if (!_agent.isActiveAndEnabled || !_agent.isOnNavMesh)
+            {
+                Debug.LogWarning($"[EnemyController] netId={netId} NavMesh 위에 없어 넉백 밀기를 중단한다", this);
+                StopKnockbackPush();
+                return;
+            }
+
+            float previousElapsed = _knockbackPushElapsed;
+            _knockbackPushElapsed = Mathf.Min(_knockbackPushElapsed + deltaTime, _knockbackPushSeconds);
+
+            float step = EnemyKnockbackPushRules.StepDistance(_knockbackPushDistance, _knockbackPushSeconds,
+                previousElapsed, _knockbackPushElapsed);
+            if (step > 0f)
+            {
+                // 다른 몸에 막히면 그 자리에서 멈춘다 - 겹쳐 밀고 들어가면 회피가 다시 떼어내며 튄다
+                if (IsKnockbackPushBlockedByBody(step))
+                {
+                    StopKnockbackPush();
+                    return;
+                }
+
+                // Move는 NavMesh 밖으로 나가지 않는다, 벽, 절벽 경계에서는 경계에 붙어 거의 못 나간다
+                Vector3 before = _agent.nextPosition;
+                _agent.Move(_knockbackPushDirection * step);
+                float movedAlong = Vector3.Dot(_agent.nextPosition - before, _knockbackPushDirection);
+                if (EnemyKnockbackPushRules.IsBlocked(step, movedAlong))
+                {
+                    StopKnockbackPush();
+                    return;
+                }
+            }
+
+            if (_knockbackPushElapsed >= _knockbackPushSeconds)
+            {
+                StopKnockbackPush();
+            }
+        }
+
+        [Server]
+        private void BeginKnockbackPush(uint sourceNetId)
+        {
+            StopKnockbackPush();
+
+            float distance = _status.KnockbackDistance;
+            float seconds  = EnemyKnockbackPushRules.ClampPushSeconds(_status.KnockbackPushSeconds, _status.KnockbackDuration);
+            if (!EnemyKnockbackPushRules.CanPush(distance, seconds))
+            {
+                // 거리, 시간이 둘 다 0이면 밀지 않기로 한 데이터다. 한쪽만 비었거나 음수면 데이터 실수다
+                if ((distance != 0f) || (_status.KnockbackPushSeconds != 0f))
+                {
+                    Debug.LogWarning($"[EnemyController] {_status.Kind} 넉백 밀기 수치가 유효하지 않아 밀지 않는다 " +
+                        $"(거리 {distance}, 밀기 {_status.KnockbackPushSeconds}초, 넉백 {_status.KnockbackDuration}초)", this);
+                }
+
+                return;
+            }
+
+            bool hasSource = TryGetKnockbackSourcePosition(sourceNetId, out Vector3 sourcePosition);
+            _knockbackPushDirection = EnemyKnockbackPushRules.ResolveDirection(transform.position, transform.forward,
+                hasSource, sourcePosition);
+            _knockbackPushDistance  = distance;
+            _knockbackPushSeconds   = seconds;
+            _knockbackPushElapsed   = 0f;
+            _isKnockbackPushing     = true;
+
+            // 직전 추적의 관성이 밀기 첫 틱을 반대로 끌지 않도록 지운다
+            if (_agent.isActiveAndEnabled && _agent.isOnNavMesh)
+            {
+                _agent.isStopped = true;
+                _agent.velocity  = Vector3.zero;
+            }
+        }
+
+        // OnStopServer에서도 부르므로 [Server]를 달지 않는다 - 서버가 내려가는 중이면 경고만 쌓인다
+        private void StopKnockbackPush()
+        {
+            _isKnockbackPushing   = false;
+            _knockbackPushElapsed = 0f;
+        }
+
+        /// <summary> 가해자가 아직 서버에 살아 있으면 그 위치를 준다, 환경 피해(0)나 이미 사라진 가해자면 false </summary>
+        private static bool TryGetKnockbackSourcePosition(uint sourceNetId, out Vector3 position)
+        {
+            if ((sourceNetId != DamageInfo.NO_ATTACKER) &&
+                NetworkServer.spawned.TryGetValue(sourceNetId, out NetworkIdentity source) &&
+                (source != null))
+            {
+                position = source.transform.position;
+                return true;
+            }
+
+            position = default;
+            return false;
+        }
+
+        /// <summary> 이번 걸음 앞에 다른 잡귀, 보스의 몸이 있으면 true. 출발부터 겹친 몸과 자기 몸은 무시한다 </summary>
+        [Server]
+        private bool IsKnockbackPushBlockedByBody(float step)
+        {
+            Vector3 origin = transform.position + (Vector3.up * (_agent.height * KNOCKBACK_PUSH_PROBE_HEIGHT_SCALE));
+            float   radius = _agent.radius * KNOCKBACK_PUSH_PROBE_RADIUS_SCALE;
+            int     count  = Physics.SphereCastNonAlloc(origin, radius, _knockbackPushDirection, _knockbackPushHits,
+                step, _knockbackPushBlockMask, QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < count; ++i)
+            {
+                RaycastHit hit = _knockbackPushHits[i];
+                if ((hit.distance <= 0f) || hit.collider.transform.IsChildOf(transform))
+                {
+                    continue; // 출발부터 겹친 이웃은 Agent 회피가 풀어줄 몫이다
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         [Server]
         private void HandleDied(uint killerNetId)
         {
+            StopKnockbackPush();
             MarkRegistry.ClearEntity(netId);
 
             // HasInstance->Instance 순차 조회는 앱 종료 중 경쟁 조건이 있다, Instance를 한 번만 받는다

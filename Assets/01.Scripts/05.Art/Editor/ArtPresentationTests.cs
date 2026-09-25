@@ -346,10 +346,10 @@ namespace Geumeum.Art.Tests
                 ScriptableObject.CreateInstance<PresentationConfigSO>();
             try
             {
-                SetPrivateField(config, "_lightHitStopSeconds", float.NaN);
+                SetPrivateField(config, "_lateOneShotToleranceSeconds", float.NaN);
                 Assert.IsFalse(config.ValidateDefinition(out _));
 
-                SetPrivateField(config, "_lightHitStopSeconds", 0.04f);
+                SetPrivateField(config, "_lateOneShotToleranceSeconds", 0.15f);
                 SetPrivateField(config, "_damageFlashSeconds", -1f);
                 Assert.IsFalse(config.ValidateDefinition(out _));
             }

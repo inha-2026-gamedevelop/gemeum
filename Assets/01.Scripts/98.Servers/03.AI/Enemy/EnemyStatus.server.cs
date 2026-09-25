@@ -17,7 +17,6 @@ namespace Geumeum.AI
     public partial class EnemyStatus
     {
 
-        private float _maxHealth           = 0f;
         private float _attackPower         = 0f;
         private float _aggroRange          = 0f;
         private float _attackRange         = 0f;
@@ -35,12 +34,18 @@ namespace Geumeum.AI
         private float _retreatRange        = 0f;
         private int   _hitsToKnockback     = 0;
         private float _knockbackDuration   = 0f;
+        private float _knockbackDistance   = 0f;
+        private float _knockbackPushSeconds = 0f;
         private int   _hitCount            = 0;
         private bool  _isDead              = false;
         private int   _fieldLevel          = -1;
         private int   _combatFieldLevel    = -1;
         private float _rewardMultiplier    = -1f;
         private uint  _lastHerdingRevision = 0u;
+
+        // 피해 결과의 대체 적중점. 몸 콜라이더 bounds 중심을 쓴다
+        private Collider _damageResultCollider            = null;
+        private bool     _hasResolvedDamageResultCollider = false;
 
         /****************************************
         *              Server API
@@ -50,6 +55,7 @@ namespace Geumeum.AI
         public override void OnStopServer()
         {
             CombatClock.Forget(netId);
+            ServerDamageResultHub.ServerForgetObservedTarget(netId);
         }
 
         /// <summary> 스폰 시점 결계 단계로 스탯과 보상 snapshot을 확정한다, 이후 재계산하지 않는다 </summary>
@@ -108,7 +114,9 @@ namespace Geumeum.AI
             _retreatRange        = stat.RetreatRange;
             _hitsToKnockback     = stat.HitsToKnockback;
             _knockbackDuration   = stat.KnockbackDuration;
-            _health              = _maxHealth;
+            _knockbackDistance   = stat.KnockbackDistance;
+            _knockbackPushSeconds = stat.KnockbackPushSeconds;
+            _health             = _maxHealth;
             _hitCount            = 0;
             _isDead              = false;
         }
@@ -172,16 +180,31 @@ namespace Geumeum.AI
             float previousHealth = _health;
             _health = Mathf.Max(0f, _health - damage.Amount);
 
-            RecordAppliedDamage(damage, previousHealth - _health);
+            float appliedAmount = previousHealth - _health;
+            bool  isKill        = (_health <= Constants.Combat.HEALTH_EPSILON);
+            RecordAppliedDamage(damage, appliedAmount);
 
-            if (_health <= Constants.Combat.HEALTH_EPSILON)
+            // 사망 처리로 개체가 정리되기 전에 보고한다. 초과 피해는 빠진 실제 감소량이다
+            Vector3 center = ResolveDamageResultCenter();
+            ServerDamageResultHub.ServerReport(damage, netId, DamageResult.NO_PART, false,
+                appliedAmount, isKill, center);
+
+            if (isKill)
             {
                 Die(damage.AttackerNetId);
                 return;
             }
 
+            // 동료 화면의 방향 움찔. 처치는 곧바로 파괴되어 움찔할 몸이 없으므로 보내지 않는다
+            if ((appliedAmount > Constants.Combat.DAMAGE_EPSILON) &&
+                ServerDamageResultHub.ServerTryAcceptObservedHit(damage, netId, center,
+                    out byte observedYaw, out ImpactTier observedTier))
+            {
+                RpcObservedHit(damage.AttackerNetId, observedYaw, (byte)observedTier);
+            }
+
             Damaged?.Invoke(damage.AttackerNetId);
-            RegisterHit();
+            RegisterHit(damage.AttackerNetId);
         }
 
         /// <summary> 패링 성공 등 넉백을 즉시 강제할 때 호출한다, 일반 피격 누적과 별도 경로다 </summary>
@@ -192,13 +215,13 @@ namespace Geumeum.AI
         }
 
         [Server]
-        private void RegisterHit()
+        private void RegisterHit(uint attackerNetId)
         {
             ++_hitCount;
             if (_hitCount >= _hitsToKnockback)
             {
                 _hitCount = 0;
-                Knockback?.Invoke();
+                Knockback?.Invoke(attackerNetId); // 문턱을 채운 공격자 반대쪽으로 민다
                 return;
             }
 
@@ -210,6 +233,20 @@ namespace Geumeum.AI
         {
             _isDead = true;
             Died?.Invoke(killerNetId);
+        }
+
+        /// <summary> 적중점이 없는 피해 결과가 쓸 몸 중심. 콜라이더는 처음 쓸 때 한 번만 찾는다 </summary>
+        private Vector3 ResolveDamageResultCenter()
+        {
+            if (!_hasResolvedDamageResultCollider)
+            {
+                _hasResolvedDamageResultCollider = true;
+                TryGetComponent(out _damageResultCollider);
+            }
+
+            return ((_damageResultCollider != null) && _damageResultCollider.enabled)
+                ? _damageResultCollider.bounds.center
+                : transform.position;
         }
 
         private void RecordAppliedDamage(in DamageInfo damage, float appliedAmount)

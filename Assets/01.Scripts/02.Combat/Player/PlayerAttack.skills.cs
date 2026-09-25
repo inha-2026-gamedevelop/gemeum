@@ -500,13 +500,19 @@ namespace Geumeum.Combat
             });
             int hits = 0;
             bool dealtDamage = false;
+            // 피해 결과의 표현 단계용 종류. 받아베기는 소비한 표식 수를 함께 싣는다
+            DamageSourceKind source = _skillWeapon == WeaponKind.Bell ? DamageSourceKind.BellField :
+                _skillWeapon == WeaponKind.Bow ? DamageSourceKind.BowStab :
+                _reservedCounter > 0 ? DamageSourceKind.CounterSlash : DamageSourceKind.SwordSkill;
+            byte detail = source == DamageSourceKind.CounterSlash ? _reservedCounter : (byte)0;
             foreach (SkillTarget candidate in _skillTargets)
             {
                 var target = candidate.Target;
                 if (!_skillHitEntities.Add(target.Reference.EntityNetId)) { continue; }
                 if (stab) { _skillSlideHit = true; } // An immune target still consumes this action's one contact
                 float before = ((IDamageHealthSource)target.Damage).Health;
-                target.Damage.TakeDamage(new DamageInfo(power * multiplier, netId, ResolveParticipantId(), HitStrength.Heavy));
+                target.Damage.TakeDamage(new DamageInfo(power * multiplier, netId, ResolveParticipantId(), HitStrength.Heavy)
+                    .WithSource(source, _skillExecution, detail).WithHitPoint(candidate.Point));
                 if (((IDamageHealthSource)target.Damage).Health < before)
                 {
                     dealtDamage = true;

@@ -118,16 +118,17 @@ namespace Geumeum.AI
             _stateTimer = 0f;
         }
 
-        /// <summary> 피격 누적 문턱 도달 시 EnemyController가 호출한다 </summary>
-        public override void EnterKnockback()
+        /// <summary> 피격 누적 문턱 도달 시 EnemyController가 EnterKnockback으로 부른다 </summary>
+        protected override bool TryEnterKnockbackState()
         {
             if (Status.IsDead)
             {
-                return;
+                return false;
             }
 
             _state      = BrainState.Knockback;
             _stateTimer = 0f;
+            return true;
         }
 
         /// <summary> 인지 범위 밖에서 공격당했을 때 EnemyController가 호출한다 </summary>

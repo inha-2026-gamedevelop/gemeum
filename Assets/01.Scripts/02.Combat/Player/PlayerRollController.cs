@@ -198,7 +198,8 @@ namespace Geumeum.Combat
             _isRolling         = true;
             _rollEndServerTime = context.ServerTime + combat.RollTotalDuration;
 
-            _status.GrantTimedInvincibility(context.ServerTime + combat.RollInvincibleDuration);
+            // 구르기 무적은 원인을 따로 기록해 극한 회피(S7)를 가른다
+            _status.GrantRollInvincibility(context.ServerTime, context.ServerTime + combat.RollInvincibleDuration);
 
             GDebug.Server($"구르기, 무적 {combat.RollInvincibleDuration:F2}초 / 전체 {combat.RollTotalDuration:F2}초");
         }

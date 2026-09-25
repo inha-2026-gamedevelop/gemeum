@@ -20,9 +20,6 @@ MonoBehaviour:
   _abilityBurstRadius: 0.65
   _echoMarkRadius: 0.22
   _remoteAbilityOpacity: 0.45
-  _bellHitStopSeconds: 0.02
-  _bellBurstHitStopSeconds: 0.04
-  _swordSkillHitStopSeconds: 0.04
   _bowStabHitStopSeconds: 0.03
   _abilityStreakLength: 0.85
   _abilityGlowWidth: 0.035
@@ -36,8 +33,6 @@ MonoBehaviour:
   _arenaPhaseTransitionSeconds: 6
   _arenaShrineSmoothness: 0.35
   _arenaUnderworldSmoothness: 0.9
-  _lightHitStopSeconds: 0.04
-  _criticalHitStopSeconds: 0.08
   _lateOneShotToleranceSeconds: 0.15
   _damageFlashSeconds: 0.075
   _damageFlashColor: {r: 1, g: 0.12, b: 0.08, a: 1}
@@ -52,3 +47,126 @@ MonoBehaviour:
   _healCastPrefab: {fileID: 4942927148076373807, guid: cb04e0b109b558540811415130d76046, type: 3}
   _parryPrefab: {fileID: 44359322229653309, guid: 0bbdf57af3faf7243990839e0dd0b0dc, type: 3}
   _markPrefab: {fileID: 568261827445443260, guid: cd1fe913584c3844ea1253f2d0c04648, type: 3}
+  _customCursorEnabled: 1
+  _cursorDefault:
+    Small: {fileID: 2800000, guid: 183d2530a89e22f458fc454dab2120e9, type: 3}
+    Medium: {fileID: 2800000, guid: 44e1bce5a7a750d458978193c3ad2e4c, type: 3}
+    Large: {fileID: 2800000, guid: 4031e4c4537686e478f9f8c14490f541, type: 3}
+    HotspotNormalized: {x: 0.0032, y: 0.0032}
+  _cursorHover:
+    Small: {fileID: 2800000, guid: 494c9f8cad38662489963a45e8ec8ff3, type: 3}
+    Medium: {fileID: 2800000, guid: 375191664c2795449ade83629b48c457, type: 3}
+    Large: {fileID: 2800000, guid: ade555663f1e1f041930f53f8921ad46, type: 3}
+    HotspotNormalized: {x: 0.0064, y: 0.0064}
+  _cursorPressed:
+    Small: {fileID: 2800000, guid: 7331b8b7716a0a04aa6f269772927196, type: 3}
+    Medium: {fileID: 2800000, guid: a4c1636343882ff44b8d549b57d32adc, type: 3}
+    Large: {fileID: 2800000, guid: 10468d9e6c2cef747b2f081863b9ad17, type: 3}
+    HotspotNormalized: {x: 0.0319, y: 0.0223}
+  _cursorBusy:
+    Small: {fileID: 2800000, guid: d0d9d7b94df16334694db0054344209f, type: 3}
+    Medium: {fileID: 2800000, guid: 5cd11efb21632884b8d2da91db7c99ea, type: 3}
+    Large: {fileID: 2800000, guid: 74c55cd2326feea4792de0da2670072e, type: 3}
+    HotspotNormalized: {x: 0.5, y: 0.5}
+  _cursorMediumMinScreenHeight: 900
+  _cursorLargeMinScreenHeight: 1600
+  _damageNumberOcclusionMask:
+    serializedVersion: 2
+    m_Bits: 229633
+  _damageNumberOcclusionChecksPerFrame: 4
+  _damageNumberOcclusionReuseSeconds: 0.2
+  _damageNumberOcclusionEndInset: 0.3
+  _enemyHealthBarsEnabledByDefault: 1
+  _enemyHealthBarMaxOnScreen: 12
+  _enemyHealthBarVisibleSeconds: 3
+  _enemyHealthBarFadeSeconds: 0.4
+  _enemyHealthBarChipDelaySeconds: 0.4
+  _enemyHealthBarChipDrainPerSecond: 0.6
+  _enemyHealthBarWidth: 96
+  _enemyHealthBarHeight: 9
+  _enemyHealthBarBorder: 1.5
+  _enemyHealthBarHeadMargin: 0.35
+  _enemyHealthBarFallbackHeight: 2
+  _enemyHealthBarScaleReferenceDistance: 8
+  _enemyHealthBarMinScale: 0.6
+  _enemyHealthBarBackgroundColor: {r: 0.05, g: 0.06, b: 0.13, a: 0.85}
+  _enemyHealthBarFillColor: {r: 0.62, g: 0.14, b: 0.13, a: 1}
+  _enemyHealthBarChipColor: {r: 0.96, g: 0.91, b: 0.78, a: 1}
+  _impactTiers:
+  - AttackerHitStopSeconds: 0
+    TargetHitStopSeconds: 0
+    BossTargetHitStopSeconds: 0
+    FlinchDegrees: 0
+    FlinchSeconds: 0
+    ScreenFlashSeconds: 0
+    ScreenFlashAlpha: 0
+  - AttackerHitStopSeconds: 0.04
+    TargetHitStopSeconds: 0.04
+    BossTargetHitStopSeconds: 0
+    FlinchDegrees: 4
+    FlinchSeconds: 0.12
+    ScreenFlashSeconds: 0
+    ScreenFlashAlpha: 0
+  - AttackerHitStopSeconds: 0.06
+    TargetHitStopSeconds: 0.06
+    BossTargetHitStopSeconds: 0
+    FlinchDegrees: 7
+    FlinchSeconds: 0.15
+    ScreenFlashSeconds: 0
+    ScreenFlashAlpha: 0
+  - AttackerHitStopSeconds: 0.08
+    TargetHitStopSeconds: 0.08
+    BossTargetHitStopSeconds: 0
+    FlinchDegrees: 10
+    FlinchSeconds: 0.18
+    ScreenFlashSeconds: 0.06
+    ScreenFlashAlpha: 0.25
+  - AttackerHitStopSeconds: 0.1
+    TargetHitStopSeconds: 0.1
+    BossTargetHitStopSeconds: 0
+    FlinchDegrees: 10
+    FlinchSeconds: 0.18
+    ScreenFlashSeconds: 0.06
+    ScreenFlashAlpha: 0.25
+  - AttackerHitStopSeconds: 0
+    TargetHitStopSeconds: 0
+    BossTargetHitStopSeconds: 0
+    FlinchDegrees: 0
+    FlinchSeconds: 0
+    ScreenFlashSeconds: 0.1
+    ScreenFlashAlpha: 0.35
+  _swordHitStopScale: 1
+  _bowRangedAttackerHitStopScale: 0
+  _bellHitStopScale: 0.5
+  _targetHitStopMaxSeconds: 0.1
+  _targetHitStopCooldownSeconds: 0.1
+  _flinchRepeatGuardSeconds: 0.1
+  _killChainWindowSeconds: 0.5
+  _lateResultDiscardSeconds: 0.5
+  _screenFlashColor: {r: 1, g: 0.93, b: 0.8, a: 1}
+  _damageNumbersEnabledByDefault: 1
+  _damageNumberNormalColor: {r: 1, g: 0.96, b: 0.88, a: 1}
+  _damageNumberCriticalColor: {r: 1, g: 0.78, b: 0.25, a: 1}
+  _damageNumberFontSize: 24
+  _damageNumberLifetimeSeconds: 0.65
+  _damageNumberRisePixels: 48
+  _damageNumberSpreadPixels: 18
+  _damageNumberCriticalScale: 1.2
+  _damageNumberTierScaleMax: 1.2
+  _damageNumberMergeWindowSeconds: 0.08
+  _damageNumberMaxOnScreen: 24
+  _damageNumberMaxPerTarget: 4
+  _damageNumberCenterGuard: 0.08
+  _damageNumberOutlineWidth: 0.25
+  _damageNumberFadeStart: 0.6
+  _parryFlashParryableColor: {r: 0.35, g: 0.7, b: 1, a: 1}
+  _parryFlashUnparryableColor: {r: 1, g: 0.25, b: 0.2, a: 1}
+  _parryFlashSeconds: 0.12
+  _unparryableWarningLeadSeconds: 0.35
+  _parryFlashNonTargetScale: 0.5
+  _perfectDodgeVignetteSeconds: 0.3
+  _perfectDodgeVignetteAlpha: 0.35
+  _partyMomentHudPulseSeconds: 0.4
+  _counterInkSeconds: 0.25
+  _counterInkColor: {r: 0.03, g: 0.05, b: 0.09, a: 1}
+  _counterInkAlpha: 0.6

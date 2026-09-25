@@ -397,3 +397,30 @@ MonoBehaviour:
     PitchJitter: 0.015
     PitchOffset: -0.35
     MinInterval: 0.04
+  - Key: 188
+    Channel: 0
+    Clips:
+    - {fileID: 8300000, guid: 09293c5ae0da849fca0b7c49c92d0b37, type: 3}
+    Is2D: 0
+    Volume: 0.8
+    PitchJitter: 0
+    PitchOffset: 0.3
+    MinInterval: 0.1
+  - Key: 189
+    Channel: 0
+    Clips:
+    - {fileID: 8300000, guid: c7bdc8104972b47359a60d473149fe98, type: 3}
+    Is2D: 0
+    Volume: 0.85
+    PitchJitter: 0
+    PitchOffset: -0.3
+    MinInterval: 0.1
+  - Key: 190
+    Channel: 0
+    Clips:
+    - {fileID: 8300000, guid: 15c7fd37178a045dc8be8708c0c8e9b1, type: 3}
+    Is2D: 1
+    Volume: 0.85
+    PitchJitter: 0
+    PitchOffset: 0.2
+    MinInterval: 0.1

@@ -292,18 +292,15 @@ namespace Geumeum.Art
             }
             else if (!(kind == WeaponAbilityEvent.BowReleased && count != 0 && _bowLaserCueTime == time))
             { QueueAbilityPulse(kind, point, count, time); }
-            if (IsLocalPlayer && count > 0 && (kind == WeaponAbilityEvent.SwordSkill || kind == WeaponAbilityEvent.BowStab))
-            {
-                _abilityAnimation?.PlayHitStop(kind == WeaponAbilityEvent.SwordSkill ? GameDB.Presentation.SwordSkillHitStopSeconds : GameDB.Presentation.BowStabHitStopSeconds);
-            }
-
-            if (IsLocalPlayer && kind == WeaponAbilityEvent.EchoBurst)
-            { _abilityAnimation?.PlayHitStop(GameDB.Presentation.BellBurstHitStopSeconds); }
-
+            // 적중 멈춤과 셰이크는 서버 피해 결과를 받는 ImpactDirector가 공격 단위로 한 번 재생한다.
+            // 여기서도 걸면 같은 적중이 두 번 멈추고 흔들린다
             if (IsLocalPlayer) { PlayAbilityCamera(kind, count); }
         }
 
-        /// <summary> 내 스킬의 카메라 연출과 셰이크. 남의 스킬까지 흔들면 3인에서 화면이 쉬지 않는다 </summary>
+        /// <summary>
+        /// 내 스킬의 시전 카메라 연출과 정밀 사격 발사 반동. 남의 스킬까지 흔들면 3인에서 화면이 쉬지 않는다
+        /// 적중에 따른 셰이크는 피해 결과 기반(ImpactDirector)으로 옮겼다
+        /// </summary>
         private static void PlayAbilityCamera(WeaponAbilityEvent kind, byte count)
         {
             CameraRig rig = CameraRig.Current;
@@ -311,16 +308,15 @@ namespace Geumeum.Art
             if (rig == null || camera == null) { return; }
             switch (kind)
             {
-                // count가 0이 아닌 발사가 정밀 사격이다
+                // count가 0이 아닌 발사가 정밀 사격이다. 반동은 적중과 무관한 발사 순간의 흔들림이다
                 case WeaponAbilityEvent.BowReleased when count != 0:
                     rig.PlayEffect(camera.EffectPrecisionShot); rig.Shake(camera.ShakePrecisionShot); break;
-                // 시전 연출은 늘 주고 흔들림은 맞혔을 때만 준다
                 case WeaponAbilityEvent.SwordSkill:
-                    rig.PlayEffect(camera.EffectSwordSkill); if (count > 0) { rig.Shake(camera.ShakeSwordSkill); } break;
+                    rig.PlayEffect(camera.EffectSwordSkill); break;
                 case WeaponAbilityEvent.BowStab:
-                    rig.PlayEffect(camera.EffectBowStab); if (count > 0) { rig.Shake(camera.ShakeBowStab); } break;
+                    rig.PlayEffect(camera.EffectBowStab); break;
                 case WeaponAbilityEvent.EchoBurst:
-                    rig.PlayEffect(camera.EffectEchoBurst); rig.Shake(camera.ShakeEchoBurst); break;
+                    rig.PlayEffect(camera.EffectEchoBurst); break;
             }
         }
     }

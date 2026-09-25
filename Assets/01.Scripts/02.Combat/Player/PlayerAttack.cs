@@ -198,6 +198,7 @@ namespace Geumeum.Combat
         {
             // 연결이 끊긴 시전자의 진은 남은 버프까지 그 자리에서 회수한다
             ServerDiscardField();
+            ServerDiscardDamageResults();
             AbilityOwners.Remove(this);
             UnsubscribeRunResumed();
         }
@@ -527,17 +528,10 @@ namespace Geumeum.Combat
 
             if (didHit)
             {
-                float hitStop = 0f;
-                if (GameDB.IsInitialized && (GameDB.Presentation != null))
-                {
-                    hitStop = wasCritical
-                        ? GameDB.Presentation.CriticalHitStopSeconds
-                        : GameDB.Presentation.LightHitStopSeconds;
-                }
-
+                // 멈춤 길이는 서버 피해 결과를 받는 ImpactDirector가 강도 사다리로 정한다. 여기서는 타이밍만 알린다
                 CombatFeedbackLocator.Current.PlayHit(
                     wasCritical ? HitStrength.Critical : HitStrength.Light,
-                    hitStop);
+                    0f);
             }
 
             if (!didHit)
@@ -747,6 +741,13 @@ namespace Geumeum.Combat
             int   hitCount   = 0;
             float spiritGain = 0f;
 
+            // 피해 결과의 표현 단계용 종류. 판정에는 쓰지 않는다
+            DamageSourceKind source = isBell
+                ? DamageSourceKind.Bell
+                : ((_comboStage == Constants.Combat.MELEE_COMBO_STAGE_COUNT)
+                    ? DamageSourceKind.MeleeFinisher
+                    : DamageSourceKind.Melee);
+
             // 안정 신원과 표식 소유자는 한 번만 찾는다. 맞은 수만큼 다시 조회하지 않는다
             ParticipantId attacker = ResolveParticipantId();
             ParticipantId markOwner = isBell ? attacker : ParticipantId.None;
@@ -806,18 +807,23 @@ namespace Geumeum.Combat
 
                 _hitTargets.Add(damageable);
 
+                // 적중점은 피해 결과와 잔향·쐐기 알림이 같은 값을 쓴다
+                Vector3 hitPoint = hit.ClosestPoint(origin + Vector3.up);
+
                 float healthBefore = damageable is IDamageHealthSource health ? health.Health : 0f;
                 damageable.TakeDamage(new DamageInfo(
                     basePower * multiplier,
                     netId,
                     attacker,
-                    (isCritical) ? HitStrength.Critical : HitStrength.Light));
+                    (isCritical) ? HitStrength.Critical : HitStrength.Light)
+                    .WithSource(source, _activePresentationActionId, 0, isCritical)
+                    .WithHitPoint(hitPoint));
 
                 if (damageable is IDamageHealthSource after && after.Health < healthBefore)
                 {
                     dealtComboDamage = true;
                     ServerNotifyDirectHit(netId, _activePresentationActionId, false, isBell, damageable,
-                        hit.ClosestPoint(origin + Vector3.up), origin, forward, range, basePower);
+                        hitPoint, origin, forward, range, basePower);
                 }
 
                 ++hitCount;

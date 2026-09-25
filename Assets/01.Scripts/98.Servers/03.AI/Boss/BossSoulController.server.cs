@@ -111,6 +111,9 @@ namespace Geumeum.AI
 
             Commit(next);
             RecordDamage(soulId, damage, applied);
+            ServerDamageResultHub.ServerReport(damage, netId,
+                (sbyte) BossTargetPartIds.SoulTargetPartId(soulId), true, applied, removed,
+                ResolveSoulCenter(soulId));
 
             if (removed)
             {
@@ -143,6 +146,7 @@ namespace Geumeum.AI
             next.RemovedMask = (byte) (next.RemovedMask | (1 << (soulId - 1)));
             Commit(next);
             RecordCounter(soulId, character, actor, actionId, applied);
+            ReportCounterResult(soulId, character, actor, actionId, applied);
             MarkRegistry.ClearTarget(CreateTargetRef(soulId));
             TryCommitImmediateSuccess();
             return true;
@@ -203,6 +207,46 @@ namespace Geumeum.AI
                         actionId, applied);
                 }
             }
+        }
+
+        /// <summary>
+        /// 반격으로 지운 원혼의 남은 HP를 공격자에게 피해 결과로 보낸다
+        /// 신궁은 정밀 사격 명중이 부른 반격이라 같은 실행 번호로 묶고, 무녀 표식 반격은 실행 번호가 없다
+        /// </summary>
+        private void ReportCounterResult(byte soulId, CharacterKind character, ParticipantId actor,
+            uint actionId, float applied)
+        {
+            if (!ServerDamageResultHub.TryResolveAttackerNetId(actor, out uint attackerNetId))
+            {
+                return;
+            }
+
+            bool isPrecision = (character == CharacterKind.Singung);
+            DamageInfo counter = new DamageInfo(applied, attackerNetId, actor, HitStrength.Heavy)
+                .WithSource(isPrecision ? DamageSourceKind.PrecisionShot : DamageSourceKind.Derived,
+                    isPrecision ? actionId : 0u);
+            ServerDamageResultHub.ServerReport(counter, netId,
+                (sbyte) BossTargetPartIds.SoulTargetPartId(soulId), true, applied, true,
+                ResolveSoulCenter(soulId));
+        }
+
+        /// <summary> 적중점이 없는 원혼 피해 결과가 쓸 위치. 같은 원혼 판정 콜라이더의 조준점을 쓴다 </summary>
+        private Vector3 ResolveSoulCenter(byte soulId)
+        {
+            byte targetPartId = BossTargetPartIds.SoulTargetPartId(soulId);
+            if (_hitboxes != null)
+            {
+                for (int i = 0; i < _hitboxes.Length; ++i)
+                {
+                    BossSoulHitbox hitbox = _hitboxes[i];
+                    if ((hitbox != null) && (hitbox.TargetPartId == targetPartId))
+                    {
+                        return hitbox.AimPoint;
+                    }
+                }
+            }
+
+            return transform.position;
         }
 
         private void TryCommitImmediateSuccess()
