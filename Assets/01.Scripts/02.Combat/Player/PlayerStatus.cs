@@ -122,6 +122,9 @@ namespace Geumeum.Combat
 
         private double _invincibleUntilServerTime = 0.0; // 서버 전용
 
+        // 공용 무적 bool과 별개로 구르기가 준 무적 구간만 기록한다. 극한 회피 판정용(COMBAT_STYLE_DESIGN S7), 서버 전용
+        private readonly PerfectDodgeTracker _perfectDodge = new PerfectDodgeTracker();
+
         private double _reviveInvulnerableUntilServerTime = 0.0; // 서버 전용
 
         private bool _isRunStateReady = false; // 서버 전용
@@ -228,6 +231,9 @@ namespace Geumeum.Combat
 
             LocalCombatState.Bind(gameObject);
 
+            // 새 연결에서 이전 세션의 구르기 번호가 남아 첫 알림을 막지 않게 한다
+            LocalPerfectDodgeFeed.Clear();
+
             RaiseAll();
         }
 
@@ -241,6 +247,7 @@ namespace Geumeum.Combat
             Local = null;
 
             LocalCombatState.Unbind();
+            LocalPerfectDodgeFeed.Clear();
         }
 
         /****************************************
@@ -580,6 +587,7 @@ namespace Geumeum.Combat
             _invincibleUntilServerTime         = 0.0;
             _reviveInvulnerableUntilServerTime = 0.0;
             _lastStaminaSpendServerTime        = -1.0;
+            _perfectDodge.Clear();
 
             TryApplyStartingState();
         }
@@ -917,6 +925,7 @@ namespace Geumeum.Combat
 
             if (_isInvincible)
             {
+                ServerJudgePerfectDodge(damage);
                 return;
             }
 
@@ -1094,6 +1103,7 @@ namespace Geumeum.Combat
 
             _isInvincible              = false;
             _invincibleUntilServerTime = 0.0;
+            _perfectDodge.Clear();
 
             _lifeState                         = PlayerLifeState.ReviveInvulnerable;
             _reviveInvulnerableUntilServerTime = NetworkTime.time + invulnerableDuration;
@@ -1624,6 +1634,70 @@ namespace Geumeum.Combat
         {
             _invincibleUntilServerTime = System.Math.Max(_invincibleUntilServerTime, untilServerTime);
             _isInvincible               = true;
+        }
+
+        /// <summary>
+        /// 구르기가 주는 일시 무적. 공용 무적은 GrantTimedInvincibility와 같게 켜고,
+        /// 극한 회피 판정을 위해 이 구르기의 무적 시작·종료 시각을 따로 기록한다(COMBAT_STYLE_DESIGN S7)
+        /// </summary>
+        [Server]
+        public void GrantRollInvincibility(double startServerTime, double untilServerTime)
+        {
+            GrantTimedInvincibility(untilServerTime);
+            _perfectDodge.BeginRoll(startServerTime, untilServerTime);
+        }
+
+        /****************************************
+        *          Perfect Dodge (S7)
+        ****************************************/
+
+        /// <summary>
+        /// 무적 때문에 버린 피해를 보고 극한 회피를 판정한다. 인정되면 회피자 소유 클라이언트에게만 알린다
+        /// 피해는 이미 거부됐다. 여기서는 보상을 주지 않고 판정 결과만 전달한다(1단계)
+        /// </summary>
+        [Server]
+        private void ServerJudgePerfectDodge(in DamageInfo damage)
+        {
+            if (!GameDB.IsInitialized)
+            {
+                return;
+            }
+
+            double             now   = NetworkTime.time;
+            InvincibilityCause cause = _perfectDodge.IsRollInvincibleAt(now)
+                ? InvincibilityCause.Roll : InvincibilityCause.Other;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || GEUMEUM_DEVTOOLS
+            // 개발용 무한 자원이 켜져 있으면 구르기가 아니어도 피해가 들어가지 않는다. 극한 회피로 치지 않는다
+            if (_devInfiniteResources)
+            {
+                cause = InvincibilityCause.Dev;
+            }
+#endif
+
+            if (!_perfectDodge.TryAward(cause, damage.Amount, damage.AttackerNetId, now,
+                    GameDB.Combat.PerfectDodgeWindowSeconds, out uint rollSerial))
+            {
+                return;
+            }
+
+            GDebug.Server($"{GDebug.Who(netId)} 극한 회피 (구르기 #{rollSerial}, 가해자 {GDebug.Who(damage.AttackerNetId)})");
+
+            // 봇·연결이 끊긴 플레이어는 받을 화면이 없다. 호스트 자신은 로컬 연결로 같은 경로를 탄다
+            if (connectionToClient == null)
+            {
+                return;
+            }
+
+            // 수신 쪽 늦은 알림 폐기는 서버 NetworkTime.time으로 잰다. 게임 시각은 멈추는 구간이 있다
+            TargetPerfectDodge(rollSerial, now);
+        }
+
+        /// <summary> 극한 회피 인정. 회피자 화면의 표현 창구로만 흘린다 </summary>
+        [TargetRpc]
+        private void TargetPerfectDodge(uint rollSerial, double serverTime)
+        {
+            LocalPerfectDodgeFeed.Publish(rollSerial, serverTime);
         }
 
         private static bool IsFinite(float value)

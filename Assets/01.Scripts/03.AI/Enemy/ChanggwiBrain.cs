@@ -176,7 +176,7 @@ namespace Geumeum.AI
             }
 
             Status.ResetHitCount(); // 넉백 직후 곧바로 일반 피격 누적이 겹쳐 문턱을 채우지 않도록
-            EnterKnockback();
+            EnterKnockback(parriedByNetId); // 패링한 사람 반대쪽으로 밀어낸다
         }
 
         /// <summary> 비공격 상태에서 일반 피격을 당하면 EnemyController가 호출한다 </summary>
@@ -201,12 +201,12 @@ namespace Geumeum.AI
             _stateTimer = 0f;
         }
 
-        /// <summary> 피격 누적 문턱 도달 시 EnemyController가, 패링 성공 시 HandleExecutionParried가 호출한다 </summary>
-        public override void EnterKnockback()
+        /// <summary> 피격 누적 문턱 도달 시 EnemyController가, 패링 성공 시 HandleExecutionParried가 EnterKnockback으로 부른다 </summary>
+        protected override bool TryEnterKnockbackState()
         {
             if (Status.IsDead)
             {
-                return;
+                return false;
             }
 
             // 패링 성공 경로(HandleExecutionParried)는 서버가 이미 창을 닫은 뒤 호출하므로 여기서
@@ -216,6 +216,7 @@ namespace Geumeum.AI
             _activeAttackExecutionId = 0u;
             _state                    = BrainState.Knockback;
             _stateTimer               = 0f;
+            return true;
         }
 
         /// <summary> 인지 범위 밖에서 공격당했을 때 EnemyController가 호출한다, 탐색 모드일 때만 즉시 돌진으로 전환한다 </summary>

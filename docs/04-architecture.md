@@ -630,7 +630,7 @@ Main.unity
 │  ├ EnemyController.cs    NB  잡귀 공통: 추적 · 공격 실행 · 사망 → 드랍/경험치 이벤트 발행.
 │  │                           EnemySO의 종류 필드로 구동 (종류별 상속 대신 데이터 구동)
 │  ├ EnemyStatus.cs        NB  HP · 최대 HP SyncVar + 강화 배수 적용. IDamageable 구현.
-│  │                           때린 플레이어에게만 TargetRpc로 HitByLocalPlayer를 보낸다 (머리 위 체력 바)
+│  │                           HitByLocalPlayer TargetRpc는 정의만 남아 있고 지금은 보내지 않는다(2026-09-25, 아래 EnemyHpBar)
 │  │                           HP 감소 훅이 IDamagePresentationSource.HealthDecreased를 발생시킨다 (각 화면 피격 플래시)
 │  │                           배수는 스폰 시점의 결계 단계로 확정하고 이후 재계산하지 않는다
 │  │                           (교전 중 최대 HP가 변하면 체력바가 어긋난다 — 게임 디자인 5.2)
@@ -1005,7 +1005,10 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │  │                        호스트 1인에서 표시, 체력 · 그로기 비율 갱신, 그로기 진입 시 빈 바와
 │  │                        기상 시 차오름, 광폭화 예고 · 발동 문구, 보스 제거 시 숨김까지 확인했다.
 │  │                        3인 접속(L3)은 아직 확인하지 못했다 [미검증]
-│  ├ EnemyHpBar.cs          [구현완료] 내가 때린 잡귀의 머리 위에만 체력 바를 띄우고 3초 뒤 흐려진다.
+│  ├ EnemyHpBar.cs          [꺼짐 2026-09-25] 잡귀 체력 바는 06.UI/Combat/EnemyHealthBars/EnemyHealthBarLayer(화면 오버레이,
+│  │                        누가 때렸든 모두의 화면, 깎인 부분 잔상)로 대체했다. 서버가 HitByLocalPlayer를 보내지 않으므로
+│  │                        이 바는 뜨지 않는다. 설정 창 "적 체력 바" 토글은 새 층을 켜고 끈다. 아래는 꺼지기 전 설명이다.
+│  │                        내가 때린 잡귀의 머리 위에만 체력 바를 띄우고 3초 뒤 흐려진다.
 │  │                        파티원이 때린 잡귀의 바는 내 화면에 뜨지 않는다. 띄우는 입구는 EnemyStatus.HitByLocalPlayer
 │  │                        (서버가 공격자 연결에만 보내는 TargetRpc) 하나이고, HealthDecreased는 떠 있는 바의 값만 맞춘다 -
 │  │                        RPC가 체력 SyncVar보다 먼저 오면 옛 체력으로 뜨므로 뒤따르는 훅이 바로잡는다.

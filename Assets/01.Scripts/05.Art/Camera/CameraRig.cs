@@ -3,9 +3,11 @@ using System;
 
 // Unity
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 // 서드파티
 using Mirror;
+using Unity.Cinemachine;
 
 // 프로젝트 내부
 using Geumeum.Common;
@@ -14,7 +16,12 @@ using Geumeum.Dev;
 
 namespace Geumeum.Art
 {
-    /// <summary> 3인칭 오버숄더 추적 카메라. 대상 추적, 마우스 회전, 지형 충돌 회피를 처리한다 </summary>
+    /// <summary>
+    /// 3인칭 오버숄더 추적 카메라. 대상 추적, 마우스 회전, 지형 충돌 회피를 처리한다
+    /// 계산한 자세는 Cinemachine 가상 카메라에 넣고 CinemachineBrain이 실제 카메라에 적용한다 -
+    /// 셰이크·카메라 연출은 그 파이프라인의 확장(FrameIndependentShake·CameraEffectPlayer)이 얹는다
+    /// 가상 카메라는 씬이 아니라 런타임에 만든다. 씬 파일을 고치지 않아야 씬 충돌이 안 난다
+    /// </summary>
     [RequireComponent(typeof(Camera))]
     public class CameraRig : MonoBehaviour
     {
@@ -25,8 +32,7 @@ namespace Geumeum.Art
         private const float FULL_TURN_DEGREES = 360f;
         private const float HALF_TURN_DEGREES = 180f;
 
-        // 동시에 살아 있을 수 있는 셰이크 수
-        private const int SHAKE_SLOT_COUNT = 4;
+        private const string VIRTUAL_CAMERA_NAME = "CM 추적 카메라 (런타임)";
 
         /****************************************
         *                Fields
@@ -49,6 +55,13 @@ namespace Geumeum.Art
 
         private Camera _camera;
 
+        // Cinemachine. 브레인은 ManualUpdate라 이 리그가 자세를 넣은 직후에만 카메라를 움직인다 -
+        // 리그를 끄면(검증 도구 등) 카메라 Transform을 직접 잡을 수 있다
+        private CinemachineBrain      _brain;
+        private CinemachineCamera     _virtualCamera;
+        private FrameIndependentShake _shake;
+        private CameraEffectPlayer    _effects;
+
         private float _yaw   = 0f;
         private float _pitch = 0f;
 
@@ -63,23 +76,18 @@ namespace Geumeum.Art
         private bool _defaultPitchApplied = false;
         private bool _cursorLocked = false;
 
-        // 셰이크 슬롯
-        private readonly ShakeSlot[] _shakes = new ShakeSlot[SHAKE_SLOT_COUNT];
-
-        /****************************************
-        *                Types
-        ****************************************/
-
-        private struct ShakeSlot
-        {
-            public float Amplitude;
-            public float Duration;
-            public float Elapsed;
-        }
+        // 로비에 들어오며 커서를 꺼내 둔 상태인지. 카메라가 씬마다 바뀌어도 이어지도록 정적으로 둔다
+        private static bool G_LobbyCursorReleased = false;
 
         /****************************************
         *              Properties
         ****************************************/
+
+        /// <summary> 지금 화면을 그리는 게임 카메라. 타격감·Timeline 연출이 여기로 들어온다 </summary>
+        public static CameraRig Current { get; private set; }
+
+        /// <summary> 이 리그가 구동하는 Cinemachine 가상 카메라 </summary>
+        public CinemachineCamera VirtualCamera => _virtualCamera;
 
         /// <summary> 따라갈 대상 </summary>
         public Transform Target
@@ -95,6 +103,9 @@ namespace Geumeum.Art
                 _target = value;
 
                 _hasPivot = false;
+
+                // 관전 대상이 바뀌면 이전 대상의 흔들림을 새 화면에 끌고 가지 않는다
+                ClearFeedback();
             }
         }
 
@@ -102,34 +113,45 @@ namespace Geumeum.Art
         *              Public API
         ****************************************/
 
-        /// <summary> 셰이크를 하나 더한다 </summary>
-        public void AddShake(float amplitude, float duration)
+        /// <summary> 셰이크를 하나 더한다. 모양(방향·박자·감쇠)은 스펙이 정한다 </summary>
+        public void Shake(in CameraConfigSO.ShakeSpec spec)
         {
-            if ((amplitude <= 0f) || (duration <= 0f))
+            if (_shake != null)
             {
-                return;
+                _shake.Add(spec);
+            }
+        }
+
+        /// <summary> 카메라 연출(거리·화각을 잠깐 바꿨다 되돌림)을 재생한다 </summary>
+        public void PlayEffect(in CameraConfigSO.CameraEffectSpec spec)
+        {
+            if (_effects != null)
+            {
+                _effects.Play(spec);
+            }
+        }
+
+        /// <summary> Timeline 카메라 연출 트랙이 이번 프레임 값을 넣는다 </summary>
+        public void SetTimelineEffect(float distance, float fov, float dutch)
+        {
+            if (_effects != null)
+            {
+                _effects.SetTimelineInput(distance, fov, dutch);
+            }
+        }
+
+        /// <summary> 셰이크와 연출을 모두 끊는다. 관전 대상이 바뀌는 것처럼 화면이 통째로 바뀔 때 쓴다 </summary>
+        public void ClearFeedback()
+        {
+            if (_shake != null)
+            {
+                _shake.Clear();
             }
 
-            int weakest      = 0;
-            float weakestMag = float.MaxValue;
-
-            for (int i = 0; i < _shakes.Length; ++i)
+            if (_effects != null)
             {
-                if (_shakes[i].Amplitude <= 0f)
-                {
-                    weakest = i;
-                    break;
-                }
-
-                float remaining = _shakes[i].Amplitude * (1f - (_shakes[i].Elapsed / _shakes[i].Duration));
-                if (remaining < weakestMag)
-                {
-                    weakestMag = remaining;
-                    weakest    = i;
-                }
+                _effects.Clear();
             }
-
-            _shakes[weakest] = new ShakeSlot { Amplitude = amplitude, Duration = duration, Elapsed = 0f };
         }
 
         /****************************************
@@ -145,11 +167,36 @@ namespace Geumeum.Art
             Vector3 euler = transform.eulerAngles;
             _yaw   = euler.y;
             _pitch = NormalizeAngle(euler.x);
+
+            SetUpCinemachine();
+        }
+
+        private void OnEnable()
+        {
+            Current = this;
+
+            SceneManager.activeSceneChanged += HandleActiveSceneChanged;
+            ApplySceneCursorDefault(SceneManager.GetActiveScene());
         }
 
         private void OnDisable()
         {
+            SceneManager.activeSceneChanged -= HandleActiveSceneChanged;
+
             ReleaseCursor();
+
+            if (Current == this)
+            {
+                Current = null;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (_virtualCamera != null)
+            {
+                Destroy(_virtualCamera.gameObject);
+            }
         }
 
         // 커서는 LateUpdate가 아니라 여기서 다룬다. LateUpdate는 카메라 대상이 없으면 먼저 빠져나가는데,
@@ -197,6 +244,35 @@ namespace Geumeum.Art
         /****************************************
         *                Methods
         ****************************************/
+
+        /// <summary>
+        /// 이 카메라에 브레인을 붙이고, 자세를 받을 가상 카메라와 확장을 만든다
+        /// 가상 카메라는 이 카메라의 자식이면 안 된다 - 브레인이 부모를 움직이면 자식이 따라와 되먹임이 생긴다
+        /// </summary>
+        private void SetUpCinemachine()
+        {
+            if (!TryGetComponent(out _brain))
+            {
+                _brain = gameObject.AddComponent<CinemachineBrain>();
+            }
+
+            _brain.UpdateMethod      = CinemachineBrain.UpdateMethods.ManualUpdate;
+            _brain.BlendUpdateMethod = CinemachineBrain.BrainUpdateMethods.LateUpdate;
+            _brain.IgnoreTimeScale   = false;
+
+            var host = new GameObject(VIRTUAL_CAMERA_NAME);
+            host.transform.SetPositionAndRotation(transform.position, transform.rotation);
+
+            // 이 카메라는 씬을 넘어 살아남는다(SessionPersistence). 가상 카메라도 같이 살고 OnDestroy에서 같이 지운다
+            DontDestroyOnLoad(host);
+
+            _virtualCamera      = host.AddComponent<CinemachineCamera>();
+            _virtualCamera.Lens = LensSettings.FromCamera(_camera);
+
+            // 확장은 가상 카메라가 먼저 있어야 파이프라인에 붙는다
+            _effects = host.AddComponent<CameraEffectPlayer>();
+            _shake   = host.AddComponent<FrameIndependentShake>();
+        }
 
         /// <summary> 첫 프레임에 한 번만 설정값 각도로 맞춘다. 그 뒤에는 사람이 돌린 각도를 덮으면 안 된다 </summary>
         private void ApplyDefaultPitchOnce(CameraConfigSO config)
@@ -290,9 +366,10 @@ namespace Geumeum.Art
 
         private void ApplyLens(CameraConfigSO config)
         {
-            if (!Mathf.Approximately(_camera.fieldOfView, config.FieldOfView))
+            // 실제 카메라 렌즈는 브레인이 가상 카메라 렌즈로 덮는다. 연출·셰이크의 화각 변화는 그 위에 얹힌다
+            if (!Mathf.Approximately(_virtualCamera.Lens.FieldOfView, config.FieldOfView))
             {
-                _camera.fieldOfView = config.FieldOfView;
+                _virtualCamera.Lens.FieldOfView = config.FieldOfView;
             }
         }
 
@@ -327,11 +404,11 @@ namespace Geumeum.Art
 
             float distance = ResolveDistance(config, boomDirection);
 
-            transform.position = _smoothedPivot
-                + (boomDirection * distance)
-                + ResolveShakeOffset(config);
+            // 셰이크·연출이 섞이지 않은 기준 자세다. 흔들림은 보정값이라 다음 프레임 기준을 오염시키지 않는다
+            _virtualCamera.transform.SetPositionAndRotation(_smoothedPivot + (boomDirection * distance), rotation);
+            _effects.BoomLength = distance;
 
-            transform.rotation = rotation;
+            _brain.ManualUpdate();
 
             DrawGizmos(config, pivot, boomDirection, distance);
         }
@@ -370,38 +447,6 @@ namespace Geumeum.Art
             // 흔들리는 모양을 봐야 "느낌이 이상한" 구간을 찾는다
             GGizmo.PlotValue("yaw", _yaw);
             GGizmo.PlotValue("카메라 거리", distance);
-        }
-
-        /// <summary> 살아 있는 셰이크를 합쳐 이번 프레임의 위치 오프셋을 만든다 </summary>
-        private Vector3 ResolveShakeOffset(CameraConfigSO config)
-        {
-            float scale = config.ShakeScale;
-            float total = 0f;
-
-            for (int i = 0; i < _shakes.Length; ++i)
-            {
-                if (_shakes[i].Amplitude <= 0f)
-                {
-                    continue;
-                }
-
-                _shakes[i].Elapsed += Time.deltaTime;
-
-                if (_shakes[i].Elapsed >= _shakes[i].Duration)
-                {
-                    _shakes[i] = default;
-                    continue;
-                }
-
-                total += _shakes[i].Amplitude * (1f - (_shakes[i].Elapsed / _shakes[i].Duration));
-            }
-
-            if ((scale <= 0f) || (total <= 0f))
-            {
-                return Vector3.zero;
-            }
-
-            return UnityEngine.Random.insideUnitSphere * Mathf.Min(total, config.ShakeMaxAmplitude) * scale;
         }
 
         /// <summary> 벽에 걸리면 카메라를 당긴다 </summary>
@@ -485,6 +530,40 @@ namespace Geumeum.Art
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible   = true;
             _cursorLocked    = false;
+        }
+
+        private void HandleActiveSceneChanged(Scene previous, Scene next)
+        {
+            ApplySceneCursorDefault(next);
+        }
+
+        /// <summary>
+        /// 로비는 방 목록, 파티 준비를 마우스로 누르는 화면이라 커서를 꺼낸 채로 시작한다. ESC로 다시 잡는 것은 그대로다
+        /// 로비를 떠나 전투 씬에 들어가면 로비가 꺼내 둔 경우에만 원래대로 잡는다
+        /// </summary>
+        private static void ApplySceneCursorDefault(Scene scene)
+        {
+            bool isLobby = (RunSceneCatalog.FromSceneName(scene.name) == RunSceneId.Lobby);
+
+            if (isLobby && (!G_LobbyCursorReleased))
+            {
+                CameraFrame.InputEnabled = false;
+                G_LobbyCursorReleased    = true;
+                return;
+            }
+
+            if ((!isLobby) && G_LobbyCursorReleased)
+            {
+                CameraFrame.InputEnabled = true;
+                G_LobbyCursorReleased    = false;
+            }
+        }
+
+        /// <summary> 도메인 리로드 OFF 대비 정적 상태 초기화 </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatic()
+        {
+            G_LobbyCursorReleased = false;
         }
 
         /****************************************

@@ -22,6 +22,9 @@ namespace Geumeum.AI
         private uint    _herdingRevision  = 0u;
         private Vector3 _herdingDestination;
 
+        private uint    _knockbackSequence    = 0u; // 넉백에 새로 들어갈 때마다 오른다, EnemyController가 밀기 시작 시점을 알아챈다
+        private uint    _knockbackSourceNetId = 0u; // 이번 넉백을 일으킨 공격자 netId, 없으면 0
+
         /****************************************
         *              Constructor
         ****************************************/
@@ -93,6 +96,12 @@ namespace Geumeum.AI
         /// <summary> 현재 중단 가능한 공격 실행 ID. 창이 없으면 0 </summary>
         public virtual uint ActiveAttackExecutionId => 0u;
 
+        /// <summary> 넉백에 새로 들어갈 때마다 1씩 오른다. EnemyController가 직전 값과 비교해 밀기를 시작한다 </summary>
+        public uint KnockbackSequence => _knockbackSequence;
+
+        /// <summary> 가장 최근 넉백을 일으킨 공격자 netId, 가해자가 없으면(환경 피해 등) 0 </summary>
+        public uint KnockbackSourceNetId => _knockbackSourceNetId;
+
         /****************************************
         *                Methods
         ****************************************/
@@ -136,8 +145,30 @@ namespace Geumeum.AI
 
         public virtual bool TryEnterSkillStagger(float duration) => false;
 
-        /// <summary> 피격 누적이 문턱에 도달했거나 패링당했을 때 EnemyController, 구현체가 호출한다 </summary>
-        public virtual void EnterKnockback() { }
+        /// <summary>
+        /// 피격 누적이 문턱에 도달했거나 패링당했을 때 EnemyController, 구현체가 호출한다
+        /// sourceNetId는 밀어낼 방향의 기준이 되는 공격자다, 모르면 0(잡귀 뒤쪽으로 민다)
+        /// 실제로 넉백 상태에 들어갔을 때만 KnockbackSequence가 오른다 - 사망 등으로 거절되면 밀지 않는다
+        /// </summary>
+        public void EnterKnockback(uint sourceNetId = 0u)
+        {
+            if (!TryEnterKnockbackState())
+            {
+                return;
+            }
+
+            _knockbackSourceNetId = sourceNetId;
+            _knockbackSequence    = NextKnockbackSequence(_knockbackSequence);
+        }
+
+        /// <summary> 구현체의 넉백 상태 전환, 전환했으면 true. 기본은 넉백이 없는 몬스터라 false </summary>
+        protected virtual bool TryEnterKnockbackState() => false;
+
+        private static uint NextKnockbackSequence(uint current)
+        {
+            uint next = current + 1u;
+            return (next == 0u) ? 1u : next; // 0은 "아직 넉백 없음"으로 남겨둔다
+        }
 
         /// <summary> 인지 범위 밖에서도 공격당하면 EnemyController가 호출한다, Target을 먼저 채운 뒤 호출해야 한다
         /// Idle 상태일 때만 Chase로 강제 전환한다, 이미 다른 행동 중이면 끼어들지 않는다 </summary>

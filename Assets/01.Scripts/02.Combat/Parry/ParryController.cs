@@ -132,6 +132,19 @@ namespace Geumeum.Combat
         }
 
         /****************************************
+        *              Client Callbacks
+        ****************************************/
+
+        public override void OnStopClient()
+        {
+            // 로컬 플레이어가 사라지면 받은 창의 표현도 같이 버린다
+            if (isOwned)
+            {
+                LocalParryWindowFeed.Clear();
+            }
+        }
+
+        /****************************************
         *              Commands
         ****************************************/
 
@@ -539,6 +552,9 @@ namespace Geumeum.Combat
             // 이 신호는 공격 모션 시작에 온다. 실제 창은 타격 시각에서 역산한 뒤쪽 구간이다
             double now = NetworkTime.time;
             GDebug.Log($"패링 창 예고 +{windowStart - now:F2}~+{windowEnd - now:F2}초");
+
+            // 타이밍 섬광(S4) 표현 창구. 서버가 확정한 시각을 그대로 넘기고 판정에는 쓰지 않는다
+            LocalParryWindowFeed.PublishOpened(key, windowStart, windowEnd);
         }
 
         [TargetRpc]
@@ -548,6 +564,8 @@ namespace Geumeum.Combat
             {
                 _clientActiveWindow = default;
             }
+
+            LocalParryWindowFeed.PublishClosed(key);
         }
 
         [TargetRpc]
