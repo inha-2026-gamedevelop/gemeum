@@ -10,6 +10,7 @@ namespace Geumeum.UI
     /// <summary>
     /// 평소에는 지도를 숨기고, 화면 구석에 여는 키만 알려 둔다.
     /// 키를 누르면 화면 정중앙에 큰 지도로 펼치고, 다시 누르면 접어 안내만 남긴다.
+    /// 설정에서 누르는 동안 모드를 고르면 키를 떼는 순간 접는다.
     ///
     /// 확대판을 따로 만들지 않고 같은 MinimapPlayerDots의 배치 · 표시 반경 · 점 크기만 바꾼다 —
     /// 점과 결계를 두 벌 그리면 둘이 어긋날 수 있다.
@@ -173,7 +174,26 @@ namespace Geumeum.UI
                 return;
             }
 
-            if (Input.GetKeyDown(_toggleKey))
+            // 여는 방식은 사용자 설정이다. 누르는 동안 모드는 뗀 순간(GetKeyUp)이 아니라 지금 눌려 있는지로 정한다 —
+            // 뗀 프레임을 한 번 놓치거나 누른 채 창을 벗어나면 지도가 펼쳐진 채로 남는다
+            if (ClientPreferences.MinimapOpenMode == MinimapOpenMode.Hold)
+            {
+                bool isHeld = Input.GetKey(_toggleKey);
+                if (isHeld != _isExpanded)
+                {
+                    if (isHeld)
+                    {
+                        Expand();
+                    }
+                    else
+                    {
+                        Collapse();
+                    }
+
+                    return;
+                }
+            }
+            else if (Input.GetKeyDown(_toggleKey))
             {
                 Toggle();
                 return;

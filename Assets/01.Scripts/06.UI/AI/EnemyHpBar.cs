@@ -71,6 +71,7 @@ namespace Geumeum.UI
         {
             _target.HitByLocalPlayer += OnHitByLocalPlayer;
             _target.HealthDecreased  += OnHealthDecreased;
+            ClientPreferences.Changed += OnPreferencesChanged;
             HideNow();
         }
 
@@ -84,6 +85,7 @@ namespace Geumeum.UI
 
             _target.HitByLocalPlayer -= OnHitByLocalPlayer;
             _target.HealthDecreased  -= OnHealthDecreased;
+            ClientPreferences.Changed -= OnPreferencesChanged;
             HideNow();
         }
 
@@ -112,6 +114,12 @@ namespace Geumeum.UI
         /// <summary> 바를 띄우는 유일한 입구다. 내가 때렸을 때만 들어온다 </summary>
         private void OnHitByLocalPlayer()
         {
+            // 설정에서 끈 사람에게는 띄우지 않는다
+            if (!ClientPreferences.ShowEnemyHpBar)
+            {
+                return;
+            }
+
             if (!ApplyFill())
             {
                 return;
@@ -170,6 +178,15 @@ namespace Geumeum.UI
             }
 
             transform.rotation = _camera.transform.rotation;
+        }
+
+        /// <summary> 떠 있는 동안 설정에서 끄면 남은 시간을 기다리지 않고 바로 거둔다 </summary>
+        private void OnPreferencesChanged()
+        {
+            if (!ClientPreferences.ShowEnemyHpBar)
+            {
+                HideNow();
+            }
         }
 
         private void HideNow()

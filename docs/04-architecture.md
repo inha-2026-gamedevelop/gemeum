@@ -1041,15 +1041,35 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │  │                           파티 HUD도 같은 netId 순이라 함께 바뀔 것으로 보인다(미확인). 서로 다른 PC(M3)는 미검증
 │  ├ TalentSkyAnimator.cs  MB  [현재] 특성 탭 별하늘 연출. 은하수 두 층을 흘리고 별을 반짝인다.
 │  │                           특성 탭이 켜져 있을 때만 돌고 별도 Canvas로 묶어 노드 재구성을 막는다
-│  ├ EscapeMenuPanel.cs    MB  ESC로 여닫는 중앙 상단 가로 바. 배낭 · 특성 · 설정 입구만 맡는다.
+│  ├ EscapeMenuPanel.cs    MB  ESC로 여닫는 중앙 상단 가로 바. 배낭 · 특성 · 도감 · 설정 입구만 맡는다.
+│  │                           도감과 설정은 같은 설정 창을 각각 도감 탭 · 옵션 탭으로 연다.
 │  │                           ESC 입력을 단독으로 읽어 관리창 → 설정 → 메뉴 순으로 하나씩 닫는다
-│  ├ SettingsPanel.cs      MB  설정 창. 여닫기 골격만 있고 실제 항목은 아직 없다 [계획]
+│  ├ SettingsPanel.cs      MB  [현재] 설정 창. 위 가로 탭(도감 · 옵션 · 시스템)을 Q · E로 넘기고, 옵션 탭은 왼쪽 분류
+│  │                           (게임플레이 · 그래픽 · 오디오)로 오른쪽 줄을 바꾼다. 열 때 값을 다시 읽고 닫을 때 저장한다.
+│  │                           ESC는 읽지 않는다 - EscapeMenuPanel이 설정 → 메뉴 순으로 닫는다
+│  ├ Guide/                [현재] 도감 탭. 게임 상태를 읽지 않는 정적 안내다
+│  │  ├ GuideCatalogSO.cs  SO  분류 → 소제목 → 항목(제목 · 본문). 에셋은 09.Data/Guide/GuideCatalog.asset.
+│  │  │                    판정 값의 원본이 아니므로 본문에 적은 수치는 밸런스가 바뀌면 같이 고친다.
+│  │  │                    UI 전용 글이라 00.Common/Data(팀장 소유)가 아니라 여기 둔다
+│  │  ├ GuidePage.cs       MB  왼쪽 분류 · 가운데 목록(스크롤) · 오른쪽 설명. 줄은 템플릿을 복제해 재사용한다.
+│  │  │                    TMP가 한글을 글자마다 끊어 본문만 어절을 <nobr>로 묶는다(전역 TMP 설정은 건드리지 않음)
+│  │  └ GuideListItem.cs   MB  분류 버튼 · 항목 한 줄. 누를 때 할 일은 GuidePage가 넘긴다
+│  ├ Settings/             [현재] 설정 창 부품. 전부 이 기기에서만 쓰는 값이라 서버를 거치지 않는다
+│  │  ├ ClientPreferences.cs   static  몬스터 체력 바 표시 · 큰 지도 여는 방식(토글/누르는 동안) ·
+│  │  │                        수직 동기화 · 최대 프레임을 PlayerPrefs에 둔다. 볼륨은 SoundVolume, 화면 모드 ·
+│  │  │                        해상도는 Unity가 스스로 저장한다. 키를 Constants.ui가 아니라 여기 둔 것은
+│  │  │                        00.Common(팀장 소유)을 건드리지 않으려는 것이다
+│  │  ├ SettingsOptionsBinder.cs  MB  옵션 줄들을 위 설정 · SoundVolume · Screen에 잇는다
+│  │  ├ SettingsStepperRow.cs · SettingsSliderRow.cs  MB  ◀ 값 ▶ 줄과 슬라이더 줄. 값 목록은 모른다
+│  │  └ SettingsSystemPage.cs  MB  로비로 돌아가기 · 게임 종료. 누르면 오른쪽에 확인을 띄운다.
+│  │                           로비 복귀는 계정 경로(LauncherGameSession.IsFrontendMode)에서만 열린다
 │  ├ RailRowVisual.cs      MB  좌측 레일 한 줄(박스 · 아이콘 · 글자 · 밑줄)의 활성 표시를 바꾼다.
 │  │                           레일을 ESC 메뉴로 대체해 코드에서는 더 쓰지 않는다.
 │  │                           꺼 둔 _bak_ 레일 오브젝트가 아직 참조하므로 파일은 남겨 둔다
 │  ├ Editor/RunManagementUiBuilder.cs  위 화면을 SessionManagers 프리팹 안에 짓는 에디터 도구
-│  └ Editor/EscapeMenuUiBuilder.cs  레일을 _bak_로 꺼 두고 ESC 메뉴 · 설정 골격을
-│                              RunManagementUI 프리팹 안에 짓는 에디터 도구. 다시 돌려도 된다
+│  └ Editor/EscapeMenuUiBuilder.cs  레일을 _bak_로 꺼 두고 ESC 메뉴를 RunManagementUI 프리팹 안에
+│                              짓는 에디터 도구. 다시 돌려도 된다. 설정 창은 프리팹에서 만든 최종 화면이라
+│                              있으면 지우지 않고 잇기만 한다(없을 때만 빈 골격을 세운다)
 └ Art/       페이드 · 트랜지션, 연출성 UI
 ```
 
