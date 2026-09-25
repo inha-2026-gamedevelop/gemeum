@@ -736,7 +736,8 @@ BossController·BossPartController·BossSoulController·BossStatus·BossSpawner�
 │  ├ InteractionRules.cs   C#  ★거리 · 생사 · 씬 · 비전투 유예 판정 전용 순수 C#
 │  ├ DroppedItem.cs        NB  필드에 떨어진 장비. IInteractable, 습득은 [Command] → 서버 확정
 │  ├ ShopInteractionPoint.cs NB 객주 지점. 서버가 개방 상태와 거리를 검사한다
-│  ├ Client/InteractionClient.cs C# 로컬 후보 탐색 · G키 입력. IInteractionRequestSource로 요청만 보낸다
+│  ├ Client/InteractionClient.cs C# 로컬 후보 탐색 · G키 입력. IInteractionRequestSource로 요청만 보낸다.
+│  │                          문을 열기 전 객주는 후보가 아니라 키 없는 안내(NoticeText)로 남긴다
 │  └ Editor/InteractionClientBoundaryTests.cs  원격 줍기 후보가 서버 판정을 호출하지 않는지 EditMode 검증
 ├ Economy/                 [구현완료]
 │  ├ CurrencyManager.cs    NB  팀 공용 노잣돈 단일 SyncVar. 구매 · 부활 차감 요청을
