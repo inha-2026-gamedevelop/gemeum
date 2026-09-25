@@ -37,13 +37,24 @@ namespace Geumeum.AI
             Immune, // 그로기 종료 직후, 게이지는 최대치지만 카운터가 안 먹는다
         }
 
+        // Stage 5-1: 기존 authoritative 값(IsDead/SoulSnapshot.State/_groggyPhase)에서
+        // 매번 계산하는 파생 분류다. 이 값 자체를 저장하는 필드는 없다 - ResolveUpperState가
+        // 호출될 때마다 새로 계산한다. 아직 어떤 게이트도 이 값으로 대체하지 않는다(Stage 5-2)
+        private enum BossUpperState
+        {
+            Dead,
+            SoulWindow,
+            Stagger,
+            Combat,
+        }
+
         /****************************************
         *                Fields
         ****************************************/
 
+        // 스캔 주기 자체는 orchestration(ServerTick) 소관이라 여기 남는다 - 반경/버퍼는
+        // BossTargetingSystem이 소유한다
         private const float TARGET_SCAN_INTERVAL    = 12f;  // 근접 어그로 재평가 주기
-        private const float TARGET_SCAN_RADIUS      = 30f;  // 보스 사거리들보다 넉넉히 잡는다
-        private const int   TARGET_SCAN_BUFFER_SIZE = Constants.Network.MAX_PLAYERS * 4;
         private const int   MAX_ACTIVE_TELEGRAPHS   = 8;
 
         // 실제 VFX가 붙기 전까지만 쓰는 확인용 시각화 - 호스트(서버 겸 클라이언트) 화면에만
@@ -61,8 +72,7 @@ namespace Geumeum.AI
 
         private BossPhaseStateBase  _currentPhaseState;
         private Coroutine           _schedulerWaitRoutine;
-        private int                 _playerLayerMask;
-        private readonly Collider[] _targetScanBuffer = new Collider[TARGET_SCAN_BUFFER_SIZE];
+        private BossTargetingSystem _targeting;
         private BossPatternSO       _bossData;
         private GameEventBus        _eventBus;
         private float               _targetScanTimer         = 0f;
@@ -137,7 +147,10 @@ namespace Geumeum.AI
                 TryGetComponent(out _souls);
             }
 
-            _playerLayerMask = LayerMask.GetMask(Constants.Layer.PLAYER);
+            // Stage: Targeting 추출 - _playerLayerMask는 더 이상 필드로 보관하지 않고,
+            // 계산한 시점(Awake) 그대로 BossTargetingSystem 생성자에 바로 넘긴다
+            int playerLayerMask = LayerMask.GetMask(Constants.Layer.PLAYER);
+            _targeting = new BossTargetingSystem(transform, playerLayerMask);
             EnsureDebugVisuals();
         }
 
