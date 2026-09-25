@@ -1571,9 +1571,13 @@ namespace Geumeum.UI
         private void SetPage(PageKind page)
         {
             _currentPage = page;
-            SetText(_pageTitle, page == PageKind.Inventory ? "배낭" :
-                page == PageKind.Talent ? "특성" : page == PageKind.Shop ? "객주" : "양도");
-            SetActive(_inventoryPage, page == PageKind.Inventory);
+
+            // 객주를 열면 물건은 화면 가운데에 따로 뜨고 오른쪽 판은 배낭 그대로다.
+            // 산 물건이 칸에 들어오는 것과 남은 칸을 보면서 고르게 한다
+            bool showsInventory = (page == PageKind.Inventory) || (page == PageKind.Shop);
+            SetText(_pageTitle, showsInventory ? "배낭" :
+                page == PageKind.Talent ? "특성" : "양도");
+            SetActive(_inventoryPage, showsInventory);
             SetActive(_talentPage, page == PageKind.Talent);
             SetActive(_shopPage, page == PageKind.Shop);
             SetActive(_transferPage, page == PageKind.Transfer);
