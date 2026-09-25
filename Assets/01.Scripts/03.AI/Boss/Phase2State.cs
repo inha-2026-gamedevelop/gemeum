@@ -137,6 +137,13 @@ namespace Geumeum.AI
         private readonly float[]      _patternCooldowns = new float[SELECTABLE_PATTERN_COUNT];
         private readonly System.Random _random = new System.Random();
 
+        // Stage 3: TickIdle의 실제 결정권자. Phase1과 달리 Opening 서브트리가 없다
+        private readonly ICombatBTNode _combatBT;
+
+        // Stage 2 EvaluateShadowCategory의 결과를 리프 노드들이 비교 로그에 쓰기 위한 진단
+        // 전용 필드 - 게임플레이 판단에는 전혀 쓰이지 않고, TickIdle이 매 틱 갱신만 한다
+        private string _shadowCategoryForVerification;
+
         private AttackState _state              = AttackState.Idle;
         private float       _stateTimer         = 0f;
         private float       _cooldownRemaining  = 0f;
@@ -194,11 +201,45 @@ namespace Geumeum.AI
             _controller      = controller;
             _selfIdentity    = self.GetComponent<NetworkIdentity>();
             _playerLayerMask = LayerMask.GetMask(Constants.Layer.PLAYER);
+
+            // Stage 3: 2페이즈는 Opening 서브트리가 없다 - 확정 구조 그대로
+            _combatBT = new SequenceNode(
+                new DelegateNode(EvaluateHasTarget),
+                new SelectorNode(
+                    new DelegateNode(TryRunForcedFollowUp),
+                    new DelegateNode(TryRunGeneralAttack)));
         }
 
         /****************************************
         *                Methods
         ****************************************/
+
+        // Stage 2: Combat BT Shadow Evaluation - 읽기 전용 관찰만 한다, 아직 결정권이 없다
+        // BuildCandidates/TrySelect/BeginAttack을 호출하지 않고, RNG를 쓰지 않고, 어떤
+        // 필드도 쓰지 않는다. Phase2에는 Opening Sequence가 없어 그 카테고리는 나오지 않는다
+        private string EvaluateShadowCategory()
+        {
+            if (Target == null)
+            {
+                return "Target 없음";
+            }
+
+            // ForcedFollowUp은 Actual도 TryGetPattern이 실패하면 이 분기를 포기하고
+            // 아래로 흘러가므로(코드 그대로), Shadow도 같은 조건을 봐야 거짓 불일치가 안 생긴다
+            // TryGetPattern은 데이터 조회일 뿐 상태를 바꾸지 않는다
+            if ((_previousPatternId == TARGETED_DASH_PATTERN_ID) &&
+                GameDB.Boss.TryGetPattern(MELEE_ARC_PATTERN_ID, out _))
+            {
+                return "ForcedFollowUp";
+            }
+
+            if (_cooldownRemaining > 0f)
+            {
+                return "Cooldown/Wait";
+            }
+
+            return "GeneralAttack 가능";
+        }
 
         public override void Tick(float deltaTime)
         {
@@ -274,31 +315,69 @@ namespace Geumeum.AI
             return true;
         }
 
+        // Stage 3: TickIdle의 얇은 진입점. 실제 결정은 _combatBT가 한다 - Shadow는 이전과
+        // 동일하게 결정권 없는 검증용 관찰이고, BT 호출과 같은 틱 안에서 먼저(아무 상태도
+        // 바뀌기 전에) 평가해 기존 Stage 2와 같은 시점 보장을 유지한다
         private void TickIdle()
+        {
+            _shadowCategoryForVerification = EvaluateShadowCategory();
+            _combatBT.Evaluate();
+        }
+
+        // ===== Combat BT 리프 (Stage 3) =====
+        // 아래 메서드들이 기존 TickIdle의 우선순위 사슬을 그대로 옮긴 것이다.
+        // BuildCandidates/BossPatternSelector.TrySelect/BeginAttack 내부 로직은 손대지 않았고
+        // 호출 순서·횟수도 그대로다. Phase2에는 Opening 리프가 없다
+
+        private BTResult EvaluateHasTarget()
         {
             if (Target == null)
             {
-                return;
+                GDebug.Server("[Phase2] TickIdle 분류: Target 없음");
+                GDebug.Server($"[Phase2][ShadowBT] Shadow={_shadowCategoryForVerification} / Actual=Target 없음 / " +
+                    ((_shadowCategoryForVerification == "Target 없음") ? "일치" : "불일치"));
+                return BTResult.Failure;
             }
 
-            // 마수 돌진(7) 직후엔 쿨다운, 거리 추첨을 전부 건너뛰고 거대 꼬리치기(6)를 강제로
-            // 붙인다 - 1페이즈 순간 접근(3) -> 여우불 봉 3연격(1) 강제 연계와 동일하게 맞춘다.
-            // 마수 돌진 자체엔 전용 2타, 3타 애니메이션이 없어 반복 판정을 못 주고, 대신
-            // 반복 애니메이션이 갖춰진 패턴6으로 이어 붙인다
-            if (_previousPatternId == TARGETED_DASH_PATTERN_ID)
+            return BTResult.Success;
+        }
+
+        // 마수 돌진(7) 직후엔 쿨다운, 거리 추첨을 전부 건너뛰고 거대 꼬리치기(6)를 강제로
+        // 붙인다 - 1페이즈 순간 접근(3) -> 여우불 봉 3연격(1) 강제 연계와 동일하게 맞춘다.
+        // 마수 돌진 자체엔 전용 2타, 3타 애니메이션이 없어 반복 판정을 못 주고, 대신
+        // 반복 애니메이션이 갖춰진 패턴6으로 이어 붙인다
+        private BTResult TryRunForcedFollowUp()
+        {
+            if (_previousPatternId != TARGETED_DASH_PATTERN_ID)
             {
-                if (GameDB.Boss.TryGetPattern(MELEE_ARC_PATTERN_ID, out BossPatternSO.PatternEntry followUpPattern))
-                {
-                    BeginAttack(followUpPattern, KindOf(MELEE_ARC_PATTERN_ID));
-                    return;
-                }
+                return BTResult.Failure;
             }
 
+            if (!GameDB.Boss.TryGetPattern(MELEE_ARC_PATTERN_ID, out BossPatternSO.PatternEntry followUpPattern))
+            {
+                return BTResult.Failure;
+            }
+
+            GDebug.Server("[Phase2] TickIdle 분류: ForcedFollowUp (TargetedDash 이후)");
+            GDebug.Server($"[Phase2][ShadowBT] Shadow={_shadowCategoryForVerification} / Actual=ForcedFollowUp / " +
+                ((_shadowCategoryForVerification == "ForcedFollowUp") ? "일치" : "불일치"));
+            BeginAttack(followUpPattern, KindOf(MELEE_ARC_PATTERN_ID));
+            return BTResult.Success;
+        }
+
+        private BTResult TryRunGeneralAttack()
+        {
             if (_cooldownRemaining > 0f)
             {
-                return;
+                GDebug.Server($"[Phase2] TickIdle 분류: Cooldown/Wait (remaining={_cooldownRemaining:F2})");
+                GDebug.Server($"[Phase2][ShadowBT] Shadow={_shadowCategoryForVerification} / Actual=Cooldown/Wait / " +
+                    ((_shadowCategoryForVerification == "Cooldown/Wait") ? "일치" : "불일치"));
+                return BTResult.Failure;
             }
 
+            GDebug.Server("[Phase2] TickIdle 분류: GeneralAttack 진입");
+            GDebug.Server($"[Phase2][ShadowBT] Shadow={_shadowCategoryForVerification} / Actual=GeneralAttack 가능 / " +
+                ((_shadowCategoryForVerification == "GeneralAttack 가능") ? "일치" : "불일치"));
             float distance = Vector3.Distance(Self.position, Target.position);
             int candidateCount = BuildCandidates(distance);
             if (!BossPatternSelector.TrySelect(
@@ -308,10 +387,13 @@ namespace Geumeum.AI
                 _random,
                 out BossPatternSelector.Candidate selected))
             {
-                return;
+                GDebug.Server("[Phase2] TickIdle 분류: GeneralAttack TrySelect 실패");
+                return BTResult.Blocked;
             }
 
+            GDebug.Server($"[Phase2] TickIdle 분류: GeneralAttack 선택 성공 (patternId={selected.Pattern.PatternId})");
             BeginAttack(selected.Pattern, KindOf(selected.Pattern.PatternId));
+            return BTResult.Success;
         }
 
         private void TickPatternCooldowns(float deltaTime)
