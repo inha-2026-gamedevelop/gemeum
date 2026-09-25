@@ -42,7 +42,7 @@ namespace Geumeum.UI.Editor
         private static readonly Color G_MutedText     = new Color(0.70f, 0.75f, 0.80f, 1f);
 
         // 캔버스 기준 해상도 1280x720과 같은 좌표계를 쓴다
-        private const float BAR_WIDTH     = 540f;
+        private const float BAR_WIDTH     = 710f;
         private const float BAR_HEIGHT    = 68f;
         // 짧게 빼면 바 색과 거의 같아 그라데이션이 보이지 않고 경계선처럼 읽힌다
         private const float FADE_HEIGHT   = 90f;
@@ -69,13 +69,22 @@ namespace Geumeum.UI.Editor
 
             try
             {
-                // 배치를 고쳐 다시 돌릴 일이 잦다. 이전에 심은 것만 걷어내고 새로 세운다
+                // 배치를 고쳐 다시 돌릴 일이 잦다. 이전에 심은 메뉴만 걷어내고 새로 세운다
                 RemoveExisting(contents.transform, MENU_NAME);
-                RemoveExisting(contents.transform, SETTINGS_NAME);
 
+                // 설정 창은 이제 프리팹에서 직접 만든 최종 화면이다. 있으면 지우지 않고 그대로 잇는다
                 BackupRail(contents.transform);
-                SettingsPanel settings = BuildSettings(contents.transform, font);
+                Transform existingSettings = contents.transform.Find(SETTINGS_NAME);
+                SettingsPanel settings = (existingSettings != null)
+                    ? existingSettings.GetComponent<SettingsPanel>()
+                    : BuildSettings(contents.transform, font);
                 BuildMenu(contents.transform, font, settings);
+
+                // 설정 창은 화면 전체를 덮는다. 메뉴 바보다 뒤에 그리면 바가 탭 위에 겹친다
+                if (settings != null)
+                {
+                    settings.transform.SetAsLastSibling();
+                }
 
                 PrefabUtility.SaveAsPrefabAsset(contents, PREFAB_PATH);
                 Debug.Log("[EscapeMenuUiBuilder] 완료: 레일 백업 · ESC 메뉴 · 설정 골격");
@@ -145,19 +154,22 @@ namespace Geumeum.UI.Editor
 
             RectTransform slide = CreateTopBar("SlidePanel", menu.transform);
 
-            // 세 칸을 가로로 나란히 둔다. 가운데가 특성, 좌우가 배낭과 설정
+            // 네 칸을 가로로 나란히 둔다. 배낭 · 특성 · 도감 · 설정 순이고 가운데 두 칸이 중심을 사이에 둔다
             Button inventory = CreateButton("InventoryButton", slide, "배낭", font,
-                new Vector2(-BUTTON_GAP, 0f), G_SurfaceRaised);
+                new Vector2(-1.5f * BUTTON_GAP, 0f), G_SurfaceRaised);
             Button talent = CreateButton("TalentButton", slide, "특성", font,
-                Vector2.zero, G_SurfaceRaised);
+                new Vector2(-0.5f * BUTTON_GAP, 0f), G_SurfaceRaised);
+            Button guide = CreateButton("GuideButton", slide, "도감", font,
+                new Vector2(0.5f * BUTTON_GAP, 0f), G_SurfaceRaised);
             Button settingsButton = CreateButton("SettingsButton", slide, "설정", font,
-                new Vector2(BUTTON_GAP, 0f), G_SurfaceRaised);
+                new Vector2(1.5f * BUTTON_GAP, 0f), G_SurfaceRaised);
 
             EscapeMenuPanel panel = menu.AddComponent<EscapeMenuPanel>();
             SetReference(panel, "_canvasGroup", canvasGroup);
             SetReference(panel, "_slidePanel", slide);
             SetReference(panel, "_inventoryButton", inventory);
             SetReference(panel, "_talentButton", talent);
+            SetReference(panel, "_guideButton", guide);
             SetReference(panel, "_settingsButton", settingsButton);
             SetReference(panel, "_settingsPanel", settings);
         }

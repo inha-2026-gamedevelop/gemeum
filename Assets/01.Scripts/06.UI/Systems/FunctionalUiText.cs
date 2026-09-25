@@ -42,6 +42,22 @@ namespace Geumeum.UI
             }
         }
 
+        /// <summary> 든 무기로 부르는 역할 이름. 무기를 바꾸면 특성 트리도 그 역할 것으로 바뀐다 </summary>
+        public static string GetWeaponRoleName(WeaponKind weapon)
+        {
+            switch (weapon)
+            {
+                case WeaponKind.Sword:
+                    return GetCharacterName(CharacterKind.Chasa);
+                case WeaponKind.Bow:
+                    return GetCharacterName(CharacterKind.Singung);
+                case WeaponKind.Bell:
+                    return GetCharacterName(CharacterKind.Munyeo);
+                default:
+                    return "참가자";
+            }
+        }
+
         public static string GetGradeName(ItemGrade grade)
         {
             switch (grade)

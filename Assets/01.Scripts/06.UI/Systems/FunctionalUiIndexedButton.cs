@@ -11,11 +11,15 @@ namespace Geumeum.UI
 {
     /// <summary> 반복 생성한 기능 버튼의 번호와 문구를 패널에 전달한다 </summary>
     public sealed class FunctionalUiIndexedButton : MonoBehaviour,
-        IPointerEnterHandler, IPointerExitHandler, ISelectHandler, IDeselectHandler
+        IPointerEnterHandler, IPointerExitHandler, ISelectHandler, IDeselectHandler,
+        IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         [SerializeField] private Button   _button;
         [SerializeField] private TMP_Text _label;
         [SerializeField] private int      _index;
+
+        [Tooltip("분류 필터에 걸렸을 때 켜지는 흰 테두리. 비워 두면 강조를 건너뛴다")]
+        [SerializeField] private GameObject _highlightBorder;
 
         public int Index => _index;
         public void SetIndex(int index) { _index = index; }
@@ -44,6 +48,20 @@ namespace Geumeum.UI
         /// </summary>
         public event Action<int, bool> HoverChanged;
 
+        /// <summary>
+        /// 이 칸을 끌기 시작했다. 배낭에서 양도 상자로 장비를 옮길 때만 쓴다
+        /// 무엇을 끌 수 있는지는 패널이 정한다 - 버튼은 번호와 포인터만 넘긴다
+        /// </summary>
+        public event Action<int, PointerEventData> DragBegan;
+
+        public event Action<int, PointerEventData> Dragged;
+
+        public event Action<int, PointerEventData> DragEnded;
+
+        public void OnBeginDrag(PointerEventData eventData) { DragBegan?.Invoke(_index, eventData); }
+        public void OnDrag(PointerEventData eventData)      { Dragged?.Invoke(_index, eventData); }
+        public void OnEndDrag(PointerEventData eventData)   { DragEnded?.Invoke(_index, eventData); }
+
         public void OnPointerEnter(PointerEventData eventData) { RaiseHover(true); }
         public void OnPointerExit(PointerEventData eventData) { RaiseHover(false); }
         public void OnSelect(BaseEventData eventData) { RaiseHover(true); }
@@ -65,6 +83,15 @@ namespace Geumeum.UI
         public void SetInteractable(bool interactable)
         {
             Interactable = interactable;
+        }
+
+        /// <summary> 분류 필터에 걸렸음을 흰 테두리로 알린다 </summary>
+        public void SetHighlighted(bool highlighted)
+        {
+            if ((_highlightBorder != null) && (_highlightBorder.activeSelf != highlighted))
+            {
+                _highlightBorder.SetActive(highlighted);
+            }
         }
 
         private void Awake()

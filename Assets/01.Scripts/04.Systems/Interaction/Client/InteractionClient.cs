@@ -19,7 +19,14 @@ namespace Geumeum.Systems
         private uint _localCandidateNetId;
         private float _nextScanTime;
 
+        // 곁에 있지만 아직 이용할 수 없는 대상의 안내. 지금은 문을 열기 전의 객주 하나뿐이다.
+        // 후보에서 빼기만 하면 가까이 가도 아무것도 뜨지 않아 고장으로 보인다
+        private string _localNotice;
+
         public string PromptText => (_localCandidate != null) ? _localCandidate.PromptText : null;
+
+        /// <summary> 누를 수 있는 후보가 없을 때만 띄울 안내. 키를 붙이지 않는다 </summary>
+        public string NoticeText => (_localCandidate == null) ? _localNotice : null;
         public uint CandidateNetId => _localCandidateNetId;
 
         public InteractionClient(IInteractionRequestSource requests)
@@ -46,6 +53,7 @@ namespace Geumeum.Systems
         {
             _localCandidate      = null;
             _localCandidateNetId = 0u;
+            _localNotice         = null;
 
             if (!GameDB.IsInitialized)
             {
@@ -77,15 +85,21 @@ namespace Geumeum.Systems
                     continue;
                 }
 
+                float distanceSquared = (identity.transform.position - _requests.ActorPosition).sqrMagnitude;
+
                 // 호스트도 순수 클라이언트와 같은 후보를 보여 준다. 실패 이유는 서버 응답으로 알린다
                 bool preview = interactable is DroppedItem drop ? drop.Equipment.HasEquipment :
                     interactable is ShopInteractionPoint shop ? shop.IsOpen : interactable.CanInteract(_requests.ActorNetId);
                 if (!preview)
                 {
+                    if ((interactable is ShopInteractionPoint closedShop) && (distanceSquared <= range * range))
+                    {
+                        _localNotice = closedShop.ClosedNoticeText;
+                    }
+
                     continue;
                 }
 
-                float distanceSquared = (identity.transform.position - _requests.ActorPosition).sqrMagnitude;
                 if (distanceSquared > range * range || distanceSquared >= nearestSquared)
                 {
                     continue;

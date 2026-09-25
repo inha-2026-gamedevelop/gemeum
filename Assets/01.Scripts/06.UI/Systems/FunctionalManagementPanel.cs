@@ -5,6 +5,7 @@ using System.Collections.Generic;
 // Unity
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 // Third party
@@ -25,20 +26,36 @@ namespace Geumeum.UI
     {
         private const float SNAPSHOT_POLL_INTERVAL = 0.2f;
         private const float NETWORK_SCAN_INTERVAL = 0.5f;
-        // 4갈래 x 5행 격자. 검/활은 2열 5행, 방울은 뿌리 1 + 세 갈래 4개를 쓴다
-        private const int TALENT_BUTTON_COUNT = 20;
+        // 가지 하나는 4열 x 5행 칸을 가진다. 지금 트리는 무기마다 뿌리 1 + 세 갈래 4개를 쓴다
+        // 칸 번호는 가지 * 20 + 열 * 5 + 행이다. 가지는 파티 순번(1P, 2P, 3P)이다
+        private const int TALENT_COLUMNS_PER_ARM = 4;
         private const int TALENT_ROWS_PER_COLUMN = 5;
+        private const int TALENT_SLOTS_PER_ARM   = TALENT_COLUMNS_PER_ARM * TALENT_ROWS_PER_COLUMN;
+        private const int TALENT_ARM_COUNT       = Constants.Network.MAX_PLAYERS;
+        private const int TALENT_BUTTON_COUNT    = TALENT_ARM_COUNT * TALENT_SLOTS_PER_ARM;
 
-        // 특성 노드 설명 상자. 기준 좌표계(308 너비) 값이고 _talentLayoutScale로 함께 늘린다
-        private const float TALENT_TOOLTIP_WIDTH = 260f;
-        private const float TALENT_TOOLTIP_PADDING = 10f;
-        private const float TALENT_TOOLTIP_GAP = 8f;
-        private const float TALENT_TOOLTIP_FONT_SIZE = 13f;
-        private const float TALENT_TOOLTIP_MIN_FONT_SIZE = 8f;
+        // 특성 노드 설명 상자. 특성 페이지 좌표계(1280x720) px
+        private const float TALENT_TOOLTIP_WIDTH         = 280f;
+        private const float TALENT_TOOLTIP_PADDING       = 12f;
+        private const float TALENT_TOOLTIP_GAP           = 8f;
+        private const float TALENT_TOOLTIP_FONT_SIZE     = 15f;
+        private const float TALENT_TOOLTIP_MIN_FONT_SIZE = 9f;
 
         // 제작 UI 팔레트와 같은 값을 쓴다
         private static readonly Color G_TooltipBackground = new Color(0.075f, 0.095f, 0.13f, 0.98f);
         private static readonly Color G_TooltipText = new Color(0.96f, 0.95f, 0.91f, 1f);
+
+        // 별자리. 고른 노드만 빛나고 고르지 않은 노드는 모두 회색이다
+        // 고를 수 있는 노드와 잠긴 노드는 색이 아니라 모양(별/점)으로 가른다
+        private static readonly Color G_TalentAllocated = new Color(0.86f, 0.97f, 1f, 1f);
+        private static readonly Color G_TalentOpen      = new Color(0.62f, 0.62f, 0.62f, 0.9f);
+        private static readonly Color G_TalentLocked    = new Color(0.5f, 0.5f, 0.5f, 0.85f);
+        private static readonly Color G_TalentOther     = new Color(0.42f, 0.42f, 0.42f, 0.6f);
+        private static readonly Color G_TalentLineLit   = new Color(0.75f, 0.9f, 1f, 0.9f);
+        private static readonly Color G_TalentLine      = new Color(0.5f, 0.5f, 0.5f, 0.55f);
+        private static readonly Color G_TalentLineOther = new Color(0.4f, 0.4f, 0.4f, 0.4f);
+        private static readonly Color G_TalentArmLabel  = new Color(0.86f, 0.9f, 1f, 1f);
+        private static readonly Color G_TalentArmOther  = new Color(0.6f, 0.65f, 0.78f, 0.7f);
 
         private static readonly ShopItemKind[] G_ShopItems =
         {
@@ -51,6 +68,12 @@ namespace Geumeum.UI
         [Header("창")]
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private Button _closeButton;
+        [Tooltip("옆으로 미는 대상. 우측 콘텐츠를 한 덩어리로 들고 있는 Window를 넣는다")]
+        [SerializeField] private RectTransform _slideRoot;
+        [Tooltip("닫힌 상태에서 오른쪽으로 밀어 두는 거리(px, 1280 기준). 우측 판 왼쪽 끝이 180이라 460이면 화면 밖으로 빠진다")]
+        [SerializeField] private float _slideDistance = 480f;
+        [Tooltip("열리고 닫히는 데 걸리는 시간(초)")]
+        [SerializeField] private float _slideDuration = 0.22f;
         [SerializeField] private Button _shopTabButton;
         [SerializeField] private GameObject _inventoryPage;
         [SerializeField] private GameObject _talentPage;
@@ -72,12 +95,51 @@ namespace Geumeum.UI
         // 받는 쪽은 제안이 도착하면 자동으로 열린다(HandleTransferChanged)
         [SerializeField] private Button _openTransferButton;
 
+        [Header("배낭 필터")]
+        [Tooltip("무기·물약·권 순서대로. 같은 것을 다시 누르면 풀린다")]
+        [SerializeField] private FunctionalUiIndexedButton[] _inventoryFilterButtons =
+            new FunctionalUiIndexedButton[0];
+
+        [Header("곁에 선 파티원에게 바로 양도")]
+        [Tooltip("배낭 페이지 안에서 장비를 끌어다 놓는 상자")]
+        [SerializeField] private RectTransform _quickTransferBox;
+
+        [Tooltip("상자에 올려 둔 장비 이름")]
+        [SerializeField] private TMP_Text _quickTransferBoxLabel;
+
+        [Tooltip("누구에게 주는지 적는 줄. 장비를 올리면 상자 문구가 장비 이름으로 바뀌므로 따로 둔다")]
+        [SerializeField] private TMP_Text _quickTransferTitleText;
+
+        [SerializeField] private Button _quickTransferConfirmButton;
+        [SerializeField] private Button _quickTransferCancelButton;
+
+        [Tooltip("끄는 동안 커서를 따라다니는 표시. 창이 밀려도 커서에서 어긋나지 않게 Window 밖에 둔다")]
+        [SerializeField] private RectTransform _quickTransferDragGhost;
+
+        [SerializeField] private TMP_Text _quickTransferDragGhostLabel;
+
         [Header("특성")]
         [SerializeField] private TMP_Text _talentPointText;
         [SerializeField] private TMP_Text _talentStatusText;
         [SerializeField] private TMP_Text[] _talentColumnTexts;
         [SerializeField] private FunctionalUiIndexedButton[] _talentButtons;
         [SerializeField] private Button _talentResetButton;
+
+        [Header("특성 별자리")]
+        [SerializeField] private TalentConstellationLayout _talentConstellation =
+            new TalentConstellationLayout();
+
+        [Tooltip("가운데 그믐. 별자리 중심으로 옮긴다")]
+        [SerializeField] private RectTransform _talentHub;
+
+        [Tooltip("고른 노드와 고를 수 있는 노드")]
+        [SerializeField] private Sprite _talentStarSprite;
+
+        [Tooltip("아직 잠긴 노드와 남의 가지 노드")]
+        [SerializeField] private Sprite _talentDotSprite;
+
+        [Tooltip("특성 탭에서는 끈다. 별하늘을 가리는 우측 판 같은 것")]
+        [SerializeField] private GameObject[] _hideOnTalentPage = new GameObject[0];
 
         [Header("객주")]
         [SerializeField] private TMP_Text _walletText;
@@ -103,7 +165,14 @@ namespace Geumeum.UI
 
         private readonly InventorySlotSnapshot[] _slots =
             new InventorySlotSnapshot[InventorySnapshot.SLOT_COUNT];
+        // 내가 고를 수 있는 노드만 담는다. 남의 가지는 그리기만 하므로 _drawnTalentNodeIds에만 있다
         private readonly int[] _visibleTalentNodeIds = new int[TALENT_BUTTON_COUNT];
+        private readonly int[] _drawnTalentNodeIds = new int[TALENT_BUTTON_COUNT];
+
+        // 파티원 무기. 남의 가지를 그 사람 무기의 트리 모양으로 그린다
+        private readonly Dictionary<uint, PlayerWeapon> _partyWeapons =
+            new Dictionary<uint, PlayerWeapon>();
+        private readonly List<uint> _talentArmNetIds = new List<uint>();
         private readonly Dictionary<uint, ShopInteractionPoint> _shopPoints =
             new Dictionary<uint, ShopInteractionPoint>();
         private readonly Dictionary<uint, RecipientEntry> _recipients =
@@ -124,6 +193,19 @@ namespace Geumeum.UI
         private ShopInteractionPoint _activeShopPoint;
 
         private uint _inventoryRevision;
+
+        // 배낭 12칸을 한 번이라도 받았는지. revision 0은 "아직 못 받음"이 아니라 빈 배낭의 정상 시작값이라
+        // revision으로 대신 판단하면 빈 배낭에서는 첫 구매 · 장착 버튼이 영영 열리지 않는다
+        private bool _hasInventorySnapshot;
+
+        // 곁에 선 파티원에게 바로 주는 모드. 0이면 평소 배낭이다
+        private uint   _quickRecipientNetId = 0u;
+        private string _quickRecipientName  = string.Empty;
+        // 지금 고른 분류. None이면 필터가 꾸지 않았다는 뜻
+        private InventoryFilter _inventoryFilter = InventoryFilter.None;
+
+        private int    _quickBoxSlot        = -1;
+        private int    _quickDragSlot       = -1;
         private uint _talentRevision;
         private uint _observedRunId;
         private uint _observedSceneRevision;
@@ -135,6 +217,11 @@ namespace Geumeum.UI
         private bool _isVisible;
         private float _nextSnapshotPollTime;
         private float _nextNetworkScanTime;
+
+        // 슬라이드 연출. 0이면 완전히 닫힌 자리, 1이면 제자리다
+        private float _revealProgress;
+        private Vector2 _slideOpenPosition;
+        private bool _hasSlideOrigin;
 
         public static FunctionalManagementPanel Instance { get; private set; }
 
@@ -200,6 +287,15 @@ namespace Geumeum.UI
             Transfer,
         }
 
+        /// <summary> 배낭에서 어느 분류를 돋보이게 할지. 칸을 감추지 않고 테두리만 밝힌다 </summary>
+        private enum InventoryFilter
+        {
+            None      = 0,
+            Weapon    = 1,
+            Potion    = 2,
+            Ticket    = 3,
+        }
+
         // 소유권(Instance)은 여기서 잡지 않는다. 꺼진 사본도 Awake는 돌기 때문에
         // 꺼져 있는 쪽이 Instance를 차지한다 - 등록은 OnEnable/ReleaseRegistration이 맡는다
         private void Awake()
@@ -212,12 +308,17 @@ namespace Geumeum.UI
             }
 
             BindButtons();
-            SetVisible(false);
+            CacheSlideOrigin();
+            SetVisible(false, true);
         }
 
         private readonly List<Image> _talentEdges = new List<Image>();
-        private float _talentLayoutScale = 1f;
-        private Vector2 _talentLayoutOffset;
+
+        // 노드 버튼 안에 둔 별 그림. 버튼 자체는 투명한 누름 영역이다
+        private Image[] _talentNodeImages = new Image[0];
+
+        // 가지 주인 이름. 첫 열 이름표를 복제해 만든다
+        private TMP_Text[] _talentArmTexts = new TMP_Text[0];
 
         // 특성 노드 상세 설명. 프리팹을 고치지 않도록 런타임에 만든다
         private GameObject _talentTooltip;
@@ -229,15 +330,14 @@ namespace Geumeum.UI
         // 바깥에서 들어온 이벤트로 특성 설명이 다른 탭 위에 뜨지 않는다
         private PageKind _currentPage = PageKind.Inventory;
 
-        // 기존 프리팹의 버튼/폰트를 재사용해 씬마다 오래된 10칸 UI가 남지 않게 한다
+        /// <summary>
+        /// 프리팹에 있는 노드 버튼 하나를 본으로 가지 셋 몫의 칸을 채우고 별 모양으로 바꾼다
+        /// 프리팹에는 버튼을 몇 개만 두어도 된다 - 칸 수는 코드가 맞춘다
+        /// </summary>
         private void EnsureTalentViewCapacity()
         {
             if (_talentButtons == null || _talentButtons.Length == 0 || _talentButtons[0] == null) { return; }
-            // 프리팹마다 페이지 위치/배율이 다르므로 기존 콘텐츠 좌표계에서 배치한다
-            _talentLayoutScale = _talentPointText == null ? 1f : _talentPointText.rectTransform.rect.width / 308f;
-            float center = _talentPointText == null ? 476f : _talentPointText.rectTransform.anchoredPosition.x;
-            float top = ((RectTransform)_talentButtons[0].transform).anchoredPosition.y;
-            _talentLayoutOffset = new Vector2(center - 476f * _talentLayoutScale, top - 118f * _talentLayoutScale);
+
             int previous = _talentButtons.Length;
             Array.Resize(ref _talentButtons, TALENT_BUTTON_COUNT);
             for (int i = previous; i < TALENT_BUTTON_COUNT; ++i)
@@ -247,25 +347,88 @@ namespace Geumeum.UI
                 button.SetIndex(i);
                 _talentButtons[i] = button;
             }
+
+            _talentNodeImages = new Image[TALENT_BUTTON_COUNT];
+            for (int i = 0; i < TALENT_BUTTON_COUNT; ++i)
+            {
+                _talentNodeImages[i] = StyleTalentNode(_talentButtons[i]);
+            }
+
             if (_talentColumnTexts != null && _talentColumnTexts.Length > 0)
             {
                 previous = _talentColumnTexts.Length;
-                Array.Resize(ref _talentColumnTexts, 4);
-                for (int i = previous; i < 4; ++i)
+                Array.Resize(ref _talentColumnTexts, TALENT_COLUMNS_PER_ARM);
+                for (int i = previous; i < TALENT_COLUMNS_PER_ARM; ++i)
                 { _talentColumnTexts[i] = Instantiate(_talentColumnTexts[0], _talentColumnTexts[0].transform.parent); }
+
+                _talentArmTexts = new TMP_Text[TALENT_ARM_COUNT];
+                for (int i = 0; i < TALENT_ARM_COUNT; ++i)
+                {
+                    TMP_Text label = Instantiate(_talentColumnTexts[0], _talentColumnTexts[0].transform.parent);
+                    label.name = "TalentArm" + i;
+                    _talentArmTexts[i] = label;
+                }
+            }
+
+            if (_talentHub != null)
+            {
+                _talentHub.anchoredPosition = _talentConstellation.Center;
             }
 
             EnsureTalentTooltip();
         }
 
-        private Vector2 TalentPosition(int column, int row)
+        /// <summary>
+        /// 버튼 판을 투명한 누름 영역으로 두고 그 안에 별 그림을 하나 넣는다
+        /// 별이 점만 해져도 가리키기 쉬워야 하므로 누름 영역은 크기를 고정한다
+        /// </summary>
+        private Image StyleTalentNode(FunctionalUiIndexedButton button)
         {
-            if (GameDB.Talent.MaxColumnsPerWeapon > 2)
-            { return TalentLayoutPoint(column == 0 ? new Vector2(476, 136) : new Vector2(370 + (column - 1) * 106, 42 - row * 60)); }
-            return TalentLayoutPoint(new Vector2(397 + column * 158, 118 - row * 62));
+            Transform existing = button.transform.Find("Star");
+            if (existing != null)
+            {
+                return existing.GetComponent<Image>();
+            }
+
+            // 비활성 틴트가 노드 색을 덮어쓰지 않게 한다. 상태 색은 RefreshTalentView가 정한다
+            Button uiButton = button.GetComponent<Button>();
+            if (uiButton != null)
+            {
+                uiButton.transition = Selectable.Transition.None;
+            }
+
+            Image hitArea = button.GetComponent<Image>();
+            if (hitArea != null)
+            {
+                hitArea.sprite = null;
+                hitArea.color = Color.clear;
+                hitArea.raycastTarget = true;
+            }
+
+            if (button.Label != null)
+            {
+                button.Label.gameObject.SetActive(false);
+            }
+
+            var rect = (RectTransform)button.transform;
+            rect.sizeDelta = Vector2.one * _talentConstellation.HitSize;
+
+            GameObject star = new GameObject("Star", typeof(RectTransform), typeof(Image));
+            star.transform.SetParent(button.transform, false);
+            Image image = star.GetComponent<Image>();
+            image.raycastTarget = false;
+            image.preserveAspect = true;
+            return image;
         }
 
-        private Vector2 TalentLayoutPoint(Vector2 point) => point * _talentLayoutScale + _talentLayoutOffset;
+        /// <summary> 한 무기 트리의 노드 자리. 열 수와 줄기 길이는 데이터에서 읽는다 </summary>
+        private Vector2 TalentPosition(TalentTreeSO tree, int arm, WeaponKind weapon, int column, int row)
+        {
+            int trunkRows = tree.TryGetColumn(weapon, 0, out TalentTreeSO.ColumnEntry trunk)
+                ? trunk.NodeCount : 1;
+            return _talentConstellation.NodePosition(arm, column, row,
+                tree.CountColumns(weapon), trunkRows);
+        }
 
         /// <summary>
         /// 노드 설명 상자를 노드와 같은 부모에 한 번만 만든다
@@ -298,7 +461,7 @@ namespace Geumeum.UI
             GameObject textObject = new GameObject("TalentTooltipText", typeof(RectTransform));
             textObject.transform.SetParent(root.transform, false);
 
-            float padding = TALENT_TOOLTIP_PADDING * _talentLayoutScale;
+            float padding = TALENT_TOOLTIP_PADDING;
             RectTransform textRect = (RectTransform)textObject.transform;
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
@@ -307,7 +470,7 @@ namespace Geumeum.UI
 
             TextMeshProUGUI label = textObject.AddComponent<TextMeshProUGUI>();
             label.font = ResolveTalentFont();
-            label.fontSize = TALENT_TOOLTIP_FONT_SIZE * _talentLayoutScale;
+            label.fontSize = TALENT_TOOLTIP_FONT_SIZE;
             label.color = G_TooltipText;
             label.alignment = TextAlignmentOptions.TopLeft;
             label.raycastTarget = false;
@@ -419,13 +582,13 @@ namespace Geumeum.UI
             // anchoredPosition은 앵커 기준이라 부모 Rect와 비교하려면 앵커 위치를 더해야 한다
             Rect bounds = parent.rect;
 
-            float padding = TALENT_TOOLTIP_PADDING * _talentLayoutScale;
-            float width = Mathf.Min(TALENT_TOOLTIP_WIDTH * _talentLayoutScale,
+            float padding = TALENT_TOOLTIP_PADDING;
+            float width = Mathf.Min(TALENT_TOOLTIP_WIDTH,
                 Mathf.Max(1f, bounds.width));
 
             // 앞선 노드에서 켜 둔 자동 축소가 남아 있으면 이번 높이를 잘못 잰다. 늘 같은
             // 글자 크기로 재고 나서 넘칠 때만 줄인다
-            float fontSize = TALENT_TOOLTIP_FONT_SIZE * _talentLayoutScale;
+            float fontSize = TALENT_TOOLTIP_FONT_SIZE;
             _talentTooltipText.enableAutoSizing = false;
             _talentTooltipText.fontSize = fontSize;
 
@@ -452,8 +615,7 @@ namespace Geumeum.UI
                 (anchor.anchorMin.y - parent.pivot.y) * bounds.height);
             Vector2 center = anchorOrigin + anchor.anchoredPosition;
 
-            float offset = (anchor.sizeDelta.x * 0.5f) + (width * 0.5f) +
-                (TALENT_TOOLTIP_GAP * _talentLayoutScale);
+            float offset = (anchor.sizeDelta.x * 0.5f) + (width * 0.5f) + TALENT_TOOLTIP_GAP;
             float x = center.x + offset;
             if ((x + (width * 0.5f)) > bounds.xMax)
             {
@@ -467,36 +629,87 @@ namespace Geumeum.UI
             _talentTooltipRect.anchoredPosition = new Vector2(x, y) - anchorOrigin;
         }
 
-        private void RefreshTalentEdges(TalentTreeSO tree)
+        /// <summary>
+        /// 그려진 노드마다 선행 노드와 선을 잇는다. 선행이 없는 뿌리는 가운데 그믐에 잇는다
+        /// 내 가지에서 이미 고른 노드에서 나가는 선만 밝힌다
+        /// </summary>
+        private void RefreshTalentEdges(TalentTreeSO tree, int localArm)
         {
             int used = 0;
-            for (int i = 0; i < _visibleTalentNodeIds.Length; ++i)
+            for (int i = 0; i < _drawnTalentNodeIds.Length; ++i)
             {
-                if (!tree.TryGetNode(_visibleTalentNodeIds[i], out var node) || !node.HasExplicitPrerequisites) { continue; }
-                foreach (int parent in node.Prerequisites)
+                if (!tree.TryGetNode(_drawnTalentNodeIds[i], out TalentTreeSO.NodeEntry node))
                 {
-                    if (!tree.TryGetNode(parent, out var prerequisite)) { continue; }
-                    if (used == _talentEdges.Count)
+                    continue;
+                }
+
+                int arm = i / TALENT_SLOTS_PER_ARM;
+                bool mine = arm == localArm;
+                Vector2 end = TalentPosition(tree, arm, node.WeaponKind, node.ColumnIndex, node.RowIndex);
+
+                bool hasParent = false;
+                foreach (int parent in tree.EnumeratePrerequisites(node))
+                {
+                    if (!tree.TryGetNode(parent, out TalentTreeSO.NodeEntry prerequisite))
                     {
-                        var go = new GameObject("TalentConnection", typeof(RectTransform), typeof(Image));
-                        go.transform.SetParent(_talentButtons[i].transform.parent, false);
-                        go.transform.SetAsFirstSibling();
-                        var image = go.GetComponent<Image>(); image.raycastTarget = false;
-                        _talentEdges.Add(image);
+                        continue;
                     }
-                    var line = _talentEdges[used++]; line.gameObject.SetActive(true);
-                    var start = TalentPosition(prerequisite.ColumnIndex, prerequisite.RowIndex);
-                    var end = TalentPosition(node.ColumnIndex, node.RowIndex);
-                    var rect = line.rectTransform;
-                    var template = (RectTransform)_talentButtons[i].transform;
-                    rect.anchorMin = template.anchorMin; rect.anchorMax = template.anchorMax;
-                    rect.anchoredPosition = (start + end) * .5f;
-                    rect.sizeDelta = new Vector2(Vector2.Distance(start, end), 2);
-                    rect.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(end.y - start.y, end.x - start.x) * Mathf.Rad2Deg);
-                    line.color = _allocation.Contains(parent) ? new Color(.65f, .8f, .85f, .8f) : new Color(.3f, .36f, .4f, .6f);
+
+                    hasParent = true;
+                    Vector2 start = TalentPosition(tree, arm, prerequisite.WeaponKind,
+                        prerequisite.ColumnIndex, prerequisite.RowIndex);
+                    PlaceTalentEdge(used++, start, end, !mine ? G_TalentLineOther :
+                        _allocation.Contains(parent) ? G_TalentLineLit : G_TalentLine);
+                }
+
+                if (!hasParent)
+                {
+                    PlaceTalentEdge(used++, _talentConstellation.Center, end, !mine ? G_TalentLineOther :
+                        _allocation.Contains(node.NodeId) ? G_TalentLineLit : G_TalentLine);
                 }
             }
+
             for (int i = used; i < _talentEdges.Count; ++i) { _talentEdges[i].gameObject.SetActive(false); }
+        }
+
+        /// <summary>
+        /// 선 하나를 두 점 사이에 눕힌다. 모자라면 새로 만든다
+        /// 그믐 바로 아래에 끼운다 - 맨 앞에 두면 별하늘 층에 가려진다
+        /// </summary>
+        private void PlaceTalentEdge(int index, Vector2 start, Vector2 end, Color color)
+        {
+            if (index == _talentEdges.Count)
+            {
+                var go = new GameObject("TalentConnection", typeof(RectTransform), typeof(Image));
+                go.transform.SetParent(_talentButtons[0].transform.parent, false);
+                if ((_talentHub != null) && (_talentHub.parent == go.transform.parent))
+                {
+                    go.transform.SetSiblingIndex(_talentHub.GetSiblingIndex());
+                }
+                else
+                {
+                    go.transform.SetAsFirstSibling();
+                }
+                var image = go.GetComponent<Image>();
+                image.raycastTarget = false;
+                _talentEdges.Add(image);
+            }
+
+            Image line = _talentEdges[index];
+            if (!line.gameObject.activeSelf)
+            {
+                line.gameObject.SetActive(true);
+            }
+
+            RectTransform rect = line.rectTransform;
+            var template = (RectTransform)_talentButtons[0].transform;
+            rect.anchorMin = template.anchorMin;
+            rect.anchorMax = template.anchorMax;
+            rect.anchoredPosition = (start + end) * 0.5f;
+            rect.sizeDelta = new Vector2(Vector2.Distance(start, end), _talentConstellation.LineWidth);
+            rect.localRotation = Quaternion.Euler(0f, 0f,
+                Mathf.Atan2(end.y - start.y, end.x - start.x) * Mathf.Rad2Deg);
+            line.color = color;
         }
 
         private void OnEnable()
@@ -548,7 +761,7 @@ namespace Geumeum.UI
                 _transferService.TransferChanged -= HandleTransferChanged;
             }
 
-            SetVisible(false);
+            SetVisible(false, true);
         }
 
         private void OnDestroy()
@@ -571,6 +784,9 @@ namespace Geumeum.UI
 
         private void Update()
         {
+            // 닫히는 연출은 _isVisible이 이미 false인 상태로 진행되므로 아래 조기 반환보다 앞에 있어야 한다
+            AdvanceRevealAnimation();
+
             RefreshLocalBinding();
             RefreshObservedContext();
 
@@ -629,6 +845,68 @@ namespace Geumeum.UI
             Open(PageKind.Transfer);
         }
 
+        /// <summary>
+        /// 곁에 선 파티원을 받을 사람으로 못 박고 배낭을 연다
+        ///
+        /// 받는 사람을 고르는 단계가 없다는 점만 다르고, 화면과 슬라이드 연출은 평소 배낭 그대로다
+        /// 서버에 보내는 것은 기존 EquipmentTransferService.RequestOffer 하나뿐이며,
+        /// 확인을 눌러도 제안이 갈 뿐이고 상대가 수락해야 장비가 넘어간다
+        /// </summary>
+        public void OpenTransferTo(uint recipientNetId, string recipientName)
+        {
+            if (recipientNetId == 0u)
+            {
+                return;
+            }
+
+            _quickRecipientNetId = recipientNetId;
+            _quickRecipientName  = string.IsNullOrEmpty(recipientName) ? "참가자" : recipientName;
+            _quickBoxSlot        = -1;
+            CancelQuickDrag();
+
+            Open(PageKind.Inventory);
+            SetText(_inventoryStatusText, "줄 장비를 위 상자로 끌어다 놓으세요.");
+            RefreshInventoryView();
+        }
+
+        /// <summary> 양도 모드인가. 평소 배낭과 화면 구성이 달라진다 </summary>
+        private bool IsQuickTransferMode => (_quickRecipientNetId != 0u);
+
+        /// <summary> 아직 답을 받지 못한 제안이 떠 있는가. 서버는 한 번에 하나만 받는다 </summary>
+        private bool HasPendingOffer => (_activeOffer.State == EquipmentTransferState.Offered);
+
+        private void ExitQuickTransferMode()
+        {
+            // 평소 배낭을 닫는 것까지 건드리지 않는다
+            if (IsQuickTransferMode)
+            {
+                WithdrawQuickOffer();
+            }
+
+            _quickRecipientNetId = 0u;
+            _quickRecipientName  = string.Empty;
+            _quickBoxSlot        = -1;
+            CancelQuickDrag();
+        }
+
+        /// <summary>
+        /// 내가 보낸 제안을 거두어들인다
+        ///
+        /// 이 창은 양도 한 건이 곧 창 하나다. 닫았는데 제안이 30초 동안 남아 있으면
+        /// 보낸 사람은 그런 줄 모르고, 그 동안 다른 사람에게는 줄 수도 없다
+        ///
+        /// 상대가 이미 수락했으면 State가 Offered가 아니므로 아무것도 하지 않는다
+        /// </summary>
+        private void WithdrawQuickOffer()
+        {
+            if ((_transferService == null) || (!CanLocalCancelOffer()))
+            {
+                return;
+            }
+
+            _transferService.RequestCancel(_activeOffer.OfferId);
+        }
+
         public void OpenShop(uint shopNetId)
         {
             if (!_shopPoints.TryGetValue(shopNetId, out ShopInteractionPoint shopPoint) ||
@@ -644,7 +922,50 @@ namespace Geumeum.UI
 
         public void Close()
         {
+            ExitQuickTransferMode();
+
+            // 모드를 끈 상태를 화면에도 반영한다. 안 하면 다음에 열 때 옛 상자가 한 프레임 비친다
+            RefreshQuickTransferView();
             SetVisible(false);
+        }
+
+        /// <summary>
+        /// 분류 버튼을 눌렀다. 같은 것을 다시 누르면 풀린다
+        ///
+        /// 칸을 숨기지 않는다. 12칸 자리가 그대로 있어야 손에 익은 위치가 흔들리지 않는다
+        /// </summary>
+        public void SelectInventoryFilter(int filterIndex)
+        {
+            InventoryFilter wanted = ToInventoryFilter(filterIndex);
+            _inventoryFilter = (_inventoryFilter == wanted) ? InventoryFilter.None : wanted;
+            RefreshInventoryView();
+        }
+
+        private static InventoryFilter ToInventoryFilter(int filterIndex)
+        {
+            switch (filterIndex)
+            {
+                case 0:  return InventoryFilter.Weapon;
+                case 1:  return InventoryFilter.Potion;
+                case 2:  return InventoryFilter.Ticket;
+                default: return InventoryFilter.None;
+            }
+        }
+
+        /// <summary> 이 칸이 지금 고른 분류에 들어가는가 </summary>
+        private bool MatchesInventoryFilter(in InventorySlotSnapshot slot)
+        {
+            switch (_inventoryFilter)
+            {
+                case InventoryFilter.Weapon:
+                    return (slot.Kind == InventoryItemKind.Equipment);
+                case InventoryFilter.Potion:
+                    return (slot.Kind == InventoryItemKind.Consumable) && IsPotion(slot.ItemId);
+                case InventoryFilter.Ticket:
+                    return (slot.Kind == InventoryItemKind.Consumable) && IsTicket(slot.ItemId);
+                default:
+                    return false;
+            }
         }
 
         public void SelectInventorySlot(int slotIndex)
@@ -864,6 +1185,175 @@ namespace Geumeum.UI
                 : $"{recipient.DisplayName}님에게 양도를 제안했습니다.");
         }
 
+        /****************************************
+        *           Quick Transfer Drag
+        ****************************************/
+
+        private void HandleInventoryDragBegan(int slotIndex, PointerEventData eventData)
+        {
+            CancelQuickDrag();
+
+            if ((!IsQuickTransferMode) || (slotIndex < 0) || (slotIndex >= _slots.Length))
+            {
+                return;
+            }
+
+            // 서버는 배낭에 있는 장비만 받는다. 물약이나 권을 끌 수 있게 두면 헛손질만 늘어난다
+            if (_slots[slotIndex].Kind != InventoryItemKind.Equipment)
+            {
+                SetText(_inventoryStatusText, "장비만 양도할 수 있습니다.");
+                return;
+            }
+
+            _quickDragSlot = slotIndex;
+            SetText(_quickTransferDragGhostLabel,
+                FunctionalUiText.DescribeWeapon(_slots[slotIndex].Equipment));
+            SetActive(_quickTransferDragGhost, true);
+            HandleInventoryDragged(slotIndex, eventData);
+        }
+
+        private void HandleInventoryDragged(int slotIndex, PointerEventData eventData)
+        {
+            if ((_quickDragSlot < 0) || (_quickTransferDragGhost == null) || (eventData == null))
+            {
+                return;
+            }
+
+            RectTransform parent = _quickTransferDragGhost.parent as RectTransform;
+            if (parent == null)
+            {
+                return;
+            }
+
+            Vector2 local;
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(parent,
+                    eventData.position, eventData.pressEventCamera, out local))
+            {
+                _quickTransferDragGhost.anchoredPosition = local;
+            }
+        }
+
+        private void HandleInventoryDragEnded(int slotIndex, PointerEventData eventData)
+        {
+            int dropped = _quickDragSlot;
+            CancelQuickDrag();
+
+            if ((dropped < 0) || (_quickTransferBox == null) || (eventData == null))
+            {
+                return;
+            }
+
+            // IDropHandler 대신 직접 본다. 커서를 따라다니는 표시가 레이캐스트를 가리는 사고를 피한다
+            if (!RectTransformUtility.RectangleContainsScreenPoint(_quickTransferBox,
+                    eventData.position, eventData.pressEventCamera))
+            {
+                return;
+            }
+
+            _quickBoxSlot = dropped;
+            SetText(_inventoryStatusText,
+                "확인을 누르면 " + _quickRecipientName + "님에게 제안이 갑니다.");
+            RefreshInventoryView();
+        }
+
+        private void CancelQuickDrag()
+        {
+            _quickDragSlot = -1;
+            SetActive(_quickTransferDragGhost, false);
+        }
+
+        /// <summary> 상자에 올려 둔 장비를 곁에 선 파티원에게 제안한다 </summary>
+        public void RequestQuickTransfer()
+        {
+            if ((_transferService == null) || (!IsQuickTransferMode) ||
+                (_quickBoxSlot < 0) || (_quickBoxSlot >= _slots.Length))
+            {
+                SetText(_inventoryStatusText, "줄 장비를 먼저 상자에 올려 주세요.");
+                return;
+            }
+
+            InventorySlotSnapshot slot = _slots[_quickBoxSlot];
+            if (slot.Kind != InventoryItemKind.Equipment)
+            {
+                _quickBoxSlot = -1;
+                SetText(_inventoryStatusText, "장비만 양도할 수 있습니다.");
+                RefreshInventoryView();
+                return;
+            }
+
+            if (HasPendingOffer)
+            {
+                SetText(_inventoryStatusText, "이미 진행 중인 양도 제안이 있습니다.");
+                return;
+            }
+
+            uint requestId = _transferService.RequestOffer(_quickRecipientNetId, _quickBoxSlot,
+                slot.Equipment.InstanceId, _inventoryRevision);
+
+            // 0은 보내지 못했다는 뜻이고, 양수라도 서버가 받아들였다는 뜻은 아니다
+            SetText(_inventoryStatusText, (requestId == 0u)
+                ? "지금은 양도 제안을 보낼 수 없습니다."
+                : _quickRecipientName + "님에게 양도를 제안했습니다. 수락을 기다립니다.");
+        }
+
+        private void UpdateQuickTransferStatus(in EquipmentTransferResult result)
+        {
+            if (!result.Succeeded)
+            {
+                SetText(_inventoryStatusText, FunctionalUiText.GetTransactionRejection(result.Rejection));
+                return;
+            }
+
+            // 제안이 떴을 뿐이고 장비는 아직 넘어가지 않았다. 상자는 그대로 둔다
+            if (result.Offer.State == EquipmentTransferState.Offered)
+            {
+                SetText(_inventoryStatusText,
+                    _quickRecipientName + "님에게 제안이 도착했습니다. 수락을 기다립니다.");
+                return;
+            }
+
+            SetText(_inventoryStatusText, GetTransferCompletionText(result.Offer.State));
+            _quickBoxSlot = -1;
+            RefreshQuickTransferView();
+        }
+
+        private void RefreshQuickTransferView()
+        {
+            // 상자는 배낭을 보고 있을 때만 띄운다. 특성이나 객주로 넘어가면 끌 곳이 없다
+            bool mode = IsQuickTransferMode && (_currentPage == PageKind.Inventory);
+
+            SetActive(_quickTransferBox, mode);
+            SetActive(_quickTransferConfirmButton, mode);
+            SetActive(_quickTransferCancelButton, mode);
+            SetActive(_quickTransferTitleText, mode);
+
+            if (!mode)
+            {
+                CancelQuickDrag();
+                return;
+            }
+
+            bool hasItem = (_quickBoxSlot >= 0) && (_quickBoxSlot < _slots.Length) &&
+                (_slots[_quickBoxSlot].Kind == InventoryItemKind.Equipment);
+
+            SetText(_quickTransferTitleText, _quickRecipientName + "에게 양도");
+            SetText(_quickTransferBoxLabel, hasItem
+                ? FunctionalUiText.DescribeWeapon(_slots[_quickBoxSlot].Equipment)
+                : "줄 장비를 여기로 끌어다 놓기");
+
+            // 이미 떠 있는 제안이 있으면 또 보내지 않는다. 서버는 OfferConflict로 돌려보내며,
+            // 양도 페이지의 받는 사람 버튼도 같은 조건을 본다(RefreshRecipientView)
+            SetInteractable(_quickTransferConfirmButton, hasItem && !HasPendingOffer);
+        }
+
+        private static void SetActive(Component target, bool active)
+        {
+            if ((target != null) && (target.gameObject.activeSelf != active))
+            {
+                target.gameObject.SetActive(active);
+            }
+        }
+
         public void RequestAcceptTransfer()
         {
             if ((_transferService == null) || (_inventory == null) ||
@@ -916,7 +1406,24 @@ namespace Geumeum.UI
             BindButton(_rejectTransferButton, RequestRejectTransfer);
             BindButton(_cancelTransferButton, RequestCancelTransfer);
 
+            BindButton(_quickTransferConfirmButton, RequestQuickTransfer);
+            BindButton(_quickTransferCancelButton, Close);
+
+            BindIndexedButtons(_inventoryFilterButtons, SelectInventoryFilter);
             BindIndexedButtons(_inventoryButtons, SelectInventorySlot);
+
+            // 배낭 칸은 클릭으로 장착하고, 끌면 양도 상자로 간다. 두 경로가 겹치지 않는다
+            for (int i = 0; i < ArrayLength(_inventoryButtons); ++i)
+            {
+                if (_inventoryButtons[i] == null)
+                {
+                    continue;
+                }
+
+                _inventoryButtons[i].DragBegan += HandleInventoryDragBegan;
+                _inventoryButtons[i].Dragged   += HandleInventoryDragged;
+                _inventoryButtons[i].DragEnded += HandleInventoryDragEnded;
+            }
             BindIndexedButtons(_talentButtons, RequestAllocateTalent);
 
             // 상세 설명은 특성 노드에서만 띄운다. 잠긴 노드도 hover는 들어온다
@@ -965,14 +1472,30 @@ namespace Geumeum.UI
 
         private void SetVisible(bool visible)
         {
+            SetVisible(visible, false);
+        }
+
+        /// <param name="instant">
+        /// 연출 없이 즉시 맞춘다. 초기화(Awake)와 비활성화(OnDisable)는 화면에 보여 줄 프레임이
+        /// 없으므로 애니메이션을 돌리면 다음에 켰을 때 중간 자세로 남는다
+        /// </param>
+        private void SetVisible(bool visible, bool instant)
+        {
             bool changed = (_isVisible != visible);
 
             _isVisible = visible;
+
+            // 입력 차단은 연출을 기다리지 않는다. 닫는 중인 창이 클릭을 먹으면 오작동한다
             if (_canvasGroup != null)
             {
-                _canvasGroup.alpha = visible ? 1f : 0f;
                 _canvasGroup.interactable = visible;
                 _canvasGroup.blocksRaycasts = visible;
+            }
+
+            if (instant || (_slideDuration <= 0f))
+            {
+                _revealProgress = visible ? 1f : 0f;
+                ApplyRevealProgress();
             }
 
             if (!visible)
@@ -990,15 +1513,80 @@ namespace Geumeum.UI
             }
         }
 
+        /// <summary>
+        /// 슬라이드 기준 자리를 한 번만 잡아 둔다. 연출로 옮긴 뒤의 좌표를 기준으로 삼으면
+        /// 열고 닫을 때마다 창이 조금씩 밀려난다
+        /// </summary>
+        private void CacheSlideOrigin()
+        {
+            if (_hasSlideOrigin || (_slideRoot == null))
+            {
+                return;
+            }
+
+            _slideOpenPosition = _slideRoot.anchoredPosition;
+            _hasSlideOrigin    = true;
+        }
+
+        private void AdvanceRevealAnimation()
+        {
+            float target = _isVisible ? 1f : 0f;
+            if (Mathf.Approximately(_revealProgress, target))
+            {
+                return;
+            }
+
+            // 관리 창은 시간이 멈춘 상태에서도 열릴 수 있어 unscaled를 쓴다
+            float step = (_slideDuration > 0f) ? (Time.unscaledDeltaTime / _slideDuration) : 1f;
+
+            _revealProgress = Mathf.MoveTowards(_revealProgress, target, step);
+            ApplyRevealProgress();
+        }
+
+        private void ApplyRevealProgress()
+        {
+            // 시작과 끝을 함께 눅인다. 등속으로 밀면 멈추는 순간이 딱딱하게 걸린다
+            float eased = Mathf.SmoothStep(0f, 1f, _revealProgress);
+
+            // 카메라가 이 값을 읽어 측면으로 비킨다. 창이 화면을 덮는 만큼 캐릭터가 반대쪽으로 간다
+            CameraFrame.MenuRevealProgress = eased;
+
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.alpha = eased;
+            }
+
+            if (_slideRoot == null)
+            {
+                return;
+            }
+
+            CacheSlideOrigin();
+
+            // 닫힌 자리는 오른쪽 화면 밖이다. 거기서 제자리로 당겨 온다
+            _slideRoot.anchoredPosition = _slideOpenPosition
+                + (Vector2.right * (_slideDistance * (1f - eased)));
+        }
+
         private void SetPage(PageKind page)
         {
             _currentPage = page;
-            SetText(_pageTitle, page == PageKind.Inventory ? "배낭" :
-                page == PageKind.Talent ? "특성" : page == PageKind.Shop ? "객주" : "양도");
-            SetActive(_inventoryPage, page == PageKind.Inventory);
+
+            // 객주를 열면 물건은 화면 가운데에 따로 뜨고 오른쪽 판은 배낭 그대로다.
+            // 산 물건이 칸에 들어오는 것과 남은 칸을 보면서 고르게 한다
+            bool showsInventory = (page == PageKind.Inventory) || (page == PageKind.Shop);
+            SetText(_pageTitle, showsInventory ? "배낭" :
+                page == PageKind.Talent ? "특성" : "양도");
+            SetActive(_inventoryPage, showsInventory);
             SetActive(_talentPage, page == PageKind.Talent);
             SetActive(_shopPage, page == PageKind.Shop);
             SetActive(_transferPage, page == PageKind.Transfer);
+
+            // 특성 탭은 화면 전체가 별하늘이다. 우측 판이 남으면 별자리 한쪽을 가린다
+            for (int i = 0; i < _hideOnTalentPage.Length; ++i)
+            {
+                SetActive(_hideOnTalentPage[i], page != PageKind.Talent);
+            }
 
             if (page != PageKind.Talent)
             {
@@ -1065,6 +1653,7 @@ namespace Geumeum.UI
             _inventory = null;
             _talents = null;
             _inventoryRevision = 0u;
+            _hasInventorySnapshot = false;
             _talentRevision = 0u;
 
             // 다른 플레이어의 트리로 바뀌므로 앞 플레이어의 설명을 남기지 않는다
@@ -1109,6 +1698,7 @@ namespace Geumeum.UI
             RefreshTalentView();
             RefreshShopView();
             RefreshRecipientView();
+            RefreshQuickTransferView();
         }
 
         private void RefreshInventorySnapshot()
@@ -1120,6 +1710,7 @@ namespace Geumeum.UI
             }
 
             _inventoryRevision = revision;
+            _hasInventorySnapshot = true;
             if ((_selectedSlot >= 0) && _slots[_selectedSlot].IsEmpty)
             {
                 _selectedSlot = -1;
@@ -1170,7 +1761,8 @@ namespace Geumeum.UI
 
                 string prefix = (i == _selectedSlot) ? "선택 " : string.Empty;
                 button.SetLabel(prefix + FunctionalUiText.DescribeSlot(_slots[i]));
-                button.SetInteractable(_inventoryRevision != 0u);
+                button.SetInteractable(_hasInventorySnapshot);
+                button.SetHighlighted(MatchesInventoryFilter(_slots[i]));
             }
 
             if ((_selectedSlot < 0) || (_selectedSlot >= _slots.Length))
@@ -1207,6 +1799,23 @@ namespace Geumeum.UI
                 (_targetEquipped || (_selectedEquipmentSlot >= 0)));
             SetInteractable(_targetEquippedButton, (_inventory != null) &&
                 _inventory.EquippedWeapon.HasEquipment);
+
+            RefreshFilterButtons();
+            RefreshQuickTransferView();
+        }
+
+        private void RefreshFilterButtons()
+        {
+            for (int i = 0; i < ArrayLength(_inventoryFilterButtons); ++i)
+            {
+                if (_inventoryFilterButtons[i] == null)
+                {
+                    continue;
+                }
+
+                // 누른 버튼도 같은 흰 테두리로 표시한다. 칸과 버튼이 같은 문법이면 눈이 따라가기 쉽다
+                _inventoryFilterButtons[i].SetHighlighted(_inventoryFilter == ToInventoryFilter(i));
+            }
         }
 
         private void RefreshTalentView()
@@ -1220,10 +1829,8 @@ namespace Geumeum.UI
             // 지우기 전에 어떤 노드를 보고 있었는지 남긴다
             int hoveredNodeBefore = ResolveHoveredTalentNodeId();
 
-            for (int i = 0; i < _visibleTalentNodeIds.Length; ++i)
-            {
-                _visibleTalentNodeIds[i] = 0;
-            }
+            Array.Clear(_visibleTalentNodeIds, 0, _visibleTalentNodeIds.Length);
+            Array.Clear(_drawnTalentNodeIds, 0, _drawnTalentNodeIds.Length);
 
             if ((_talentRevision == 0u) || !_allocation.HasWeapon ||
                 !GameDB.IsInitialized || (GameDB.Talent == null))
@@ -1234,84 +1841,38 @@ namespace Geumeum.UI
             }
 
             // 무기마다 갈래 수와 갈래별 노드 수가 다르다. 격자를 통째로 도는 대신
-            // 실제 정의된 열/노드만 그린다 - 없는 칸에 "1단계 특성"이 남으면 안 된다
+            // 실제 정의된 열/노드만 그린다 - 없는 칸에 빈 별이 남으면 안 된다
             TalentTreeSO tree = GameDB.Talent;
-            int columnCount = tree.CountColumns(_allocation.Weapon);
+            int localArm = ResolveTalentArms();
             int missing = 0;
 
-            for (int i = 0; i < ArrayLength(_talentColumnTexts); ++i)
+            for (int arm = 0; arm < TALENT_ARM_COUNT; ++arm)
             {
-                SetText(_talentColumnTexts[i], string.Empty);
-                _talentColumnTexts[i].gameObject.SetActive(i < columnCount);
-                var labelRect = _talentColumnTexts[i].rectTransform;
-                labelRect.anchoredPosition = TalentLayoutPoint(GameDB.Talent.MaxColumnsPerWeapon > 2 ?
-                    (i == 0 ? new Vector2(476, 173) : new Vector2(370 + (i - 1) * 106, 82)) : new Vector2(397 + i * 158, 168));
-                labelRect.sizeDelta = new Vector2(GameDB.Talent.MaxColumnsPerWeapon > 2 ? 102 : 150, 28) * _talentLayoutScale;
+                bool mine = (arm == localArm);
+
+                // 내 가지는 특성 배분이 들고 있는 무기를 따른다. 버튼 판정이 같은 값을 쓰기 때문이다
+                WeaponKind weapon = _allocation.Weapon;
+                bool hasWeapon = mine || TryGetTalentArmWeapon(arm, out weapon);
+
+                RefreshTalentArmLabel(arm, mine, hasWeapon, weapon);
+                if (hasWeapon)
+                {
+                    missing += DrawTalentArm(tree, arm, weapon, mine, available);
+                }
             }
 
-            for (int column = 0; column < columnCount; ++column)
-            {
-                if (!tree.TryGetColumn(_allocation.Weapon, column,
-                        out TalentTreeSO.ColumnEntry columnEntry))
-                {
-                    continue;
-                }
-
-                if (column < ArrayLength(_talentColumnTexts))
-                {
-                    SetText(_talentColumnTexts[column],
-                        string.IsNullOrWhiteSpace(columnEntry.DisplayName)
-                            ? $"{FunctionalUiText.GetWeaponName(_allocation.Weapon)} 특성"
-                            : columnEntry.DisplayName);
-                }
-
-                for (int row = 0; row < columnEntry.NodeCount; ++row)
-                {
-                    if (!tree.TryGetNode(_allocation.Weapon, column, row,
-                            out TalentTreeSO.NodeEntry node))
-                    {
-                        continue;
-                    }
-
-                    int index = (column * TALENT_ROWS_PER_COLUMN) + row;
-                    if ((index >= ArrayLength(_talentButtons)) ||
-                        (index >= _visibleTalentNodeIds.Length))
-                    {
-                        ++missing;
-                        continue;
-                    }
-
-                    FunctionalUiIndexedButton button = _talentButtons[index];
-                    SetTalentButtonActive(button, true);
-                    var rect = (RectTransform)button.transform;
-                    rect.anchoredPosition = TalentPosition(column, row);
-                    rect.sizeDelta = new Vector2(GameDB.Talent.MaxColumnsPerWeapon > 2 ? 100 : 150, 50) * _talentLayoutScale;
-                    _visibleTalentNodeIds[index] = node.NodeId;
-                    bool allocated = _allocation.Contains(node.NodeId);
-                    string name = string.IsNullOrWhiteSpace(node.DisplayName)
-                        ? $"{row + 1}단계 특성" : node.DisplayName;
-                    string state = allocated ? "선택됨" :
-                        FunctionalUiText.DescribeTalentValue(node.EffectKind, node.Value);
-                    button.SetLabel($"{name}\n{state}");
-                    TalentAllocationResult allowed = TalentRules.CanAllocate(tree,
-                        _allocation, available + _allocation.SpentPoints,
-                        node.NodeId, out _);
-                    SetTalentButtonInteractable(button, (!allocated) &&
-                        (allowed == TalentAllocationResult.Success));
-                }
-            }
+            RefreshTalentColumnLabels(tree, localArm);
 
             // 이번에 쓰지 않은 칸만 뒤늦게 숨긴다. 쓰는 노드를 먼저 껐다 켜면 포인터가
             // 그대로인데도 hover가 끊겨 설명이 0.2초마다 사라진다
-            int slotCount = Mathf.Min(ArrayLength(_talentButtons), _visibleTalentNodeIds.Length);
+            int slotCount = Mathf.Min(ArrayLength(_talentButtons), _drawnTalentNodeIds.Length);
             for (int i = 0; i < slotCount; ++i)
             {
-                if (_visibleTalentNodeIds[i] > 0)
+                if (_drawnTalentNodeIds[i] > 0)
                 {
                     continue;
                 }
 
-                _talentButtons[i].SetLabel(string.Empty);
                 SetTalentButtonInteractable(_talentButtons[i], false);
                 SetTalentButtonActive(_talentButtons[i], false);
             }
@@ -1319,17 +1880,198 @@ namespace Geumeum.UI
             if (missing > 0)
             {
                 // 고르지 못하는 노드가 있는 화면을 조용히 넘기지 않는다
-                Debug.LogError($"[FunctionalManagementPanel] 특성 버튼이 {missing}개 모자라 " +
-                    "일부 노드를 표시하지 못했다. 관리 창 프리팹을 다시 생성해야 한다", this);
+                Debug.LogError($"[FunctionalManagementPanel] 특성 칸이 {missing}개 모자라 " +
+                    "일부 노드를 표시하지 못했다. 트리가 가지 한 칸 수(4열 x 5행)를 넘었다", this);
             }
 
-            RefreshTalentEdges(tree);
+            RefreshTalentEdges(tree, localArm);
             SetInteractable(_talentResetButton, _allocation.SpentPoints > 0);
 
             ReleaseStaleTalentHover(hoveredNodeBefore);
 
             // 포인트나 배분이 바뀌면 떠 있는 설명의 상태 줄도 같이 갱신해야 한다
             RefreshTalentTooltip();
+        }
+
+        /// <summary>
+        /// 가지 하나를 그린다. 내 가지는 고를 수 있는 노드를 열고, 남의 가지는 모양만 보인다
+        /// 칸이 모자라 그리지 못한 노드 수를 돌려준다
+        /// </summary>
+        private int DrawTalentArm(TalentTreeSO tree, int arm, WeaponKind weapon, bool mine,
+            int available)
+        {
+            int missing = 0;
+            int columnCount = tree.CountColumns(weapon);
+            for (int column = 0; column < columnCount; ++column)
+            {
+                if (!tree.TryGetColumn(weapon, column, out TalentTreeSO.ColumnEntry columnEntry))
+                {
+                    continue;
+                }
+
+                for (int row = 0; row < columnEntry.NodeCount; ++row)
+                {
+                    if (!tree.TryGetNode(weapon, column, row, out TalentTreeSO.NodeEntry node))
+                    {
+                        continue;
+                    }
+
+                    int index = (arm * TALENT_SLOTS_PER_ARM) + (column * TALENT_ROWS_PER_COLUMN) + row;
+                    if ((column >= TALENT_COLUMNS_PER_ARM) || (row >= TALENT_ROWS_PER_COLUMN) ||
+                        (index >= ArrayLength(_talentButtons)))
+                    {
+                        ++missing;
+                        continue;
+                    }
+
+                    FunctionalUiIndexedButton button = _talentButtons[index];
+                    SetTalentButtonActive(button, true);
+                    ((RectTransform)button.transform).anchoredPosition =
+                        TalentPosition(tree, arm, weapon, column, row);
+                    _drawnTalentNodeIds[index] = node.NodeId;
+
+                    if (!mine)
+                    {
+                        // 남이 고른 노드는 아직 받지 않는다. 뿌리만 별로 두어 가지 모양을 알아보게 한다
+                        bool root = column == 0;
+                        SetTalentButtonInteractable(button, false);
+                        ApplyTalentNodeLook(index, root ? _talentStarSprite : _talentDotSprite,
+                            root ? _talentConstellation.OtherRootSize : _talentConstellation.OtherSize,
+                            G_TalentOther);
+                        continue;
+                    }
+
+                    _visibleTalentNodeIds[index] = node.NodeId;
+                    bool allocated = _allocation.Contains(node.NodeId);
+                    TalentAllocationResult allowed = TalentRules.CanAllocate(tree,
+                        _allocation, available + _allocation.SpentPoints,
+                        node.NodeId, out _);
+                    bool open = (!allocated) && (allowed == TalentAllocationResult.Success);
+                    SetTalentButtonInteractable(button, open);
+
+                    if (allocated)
+                    {
+                        ApplyTalentNodeLook(index, _talentStarSprite,
+                            _talentConstellation.AllocatedSize, G_TalentAllocated);
+                    }
+                    else if (open)
+                    {
+                        ApplyTalentNodeLook(index, _talentStarSprite,
+                            _talentConstellation.OpenSize, G_TalentOpen);
+                    }
+                    else
+                    {
+                        ApplyTalentNodeLook(index, _talentDotSprite,
+                            _talentConstellation.LockedSize, G_TalentLocked);
+                    }
+                }
+            }
+
+            return missing;
+        }
+
+        /// <summary>
+        /// 파티원을 netId 순으로 세워 가지를 나눈다. 파티 HUD와 같은 순서라 세 화면이 같다
+        /// 내가 목록에 없으면(네트워크 없이 연 창) 1P 자리를 내게 준다. 내 가지 번호를 돌려준다
+        /// </summary>
+        private int ResolveTalentArms()
+        {
+            _talentArmNetIds.Clear();
+            foreach (uint netId in _partyWeapons.Keys)
+            {
+                _talentArmNetIds.Add(netId);
+            }
+
+            _talentArmNetIds.Sort();
+
+            uint localNetId = (_localIdentity == null) ? 0u : _localIdentity.netId;
+            int localArm = (localNetId == 0u) ? -1 : _talentArmNetIds.IndexOf(localNetId);
+            if ((localArm < 0) || (localArm >= TALENT_ARM_COUNT))
+            {
+                _talentArmNetIds.Remove(localNetId);
+                _talentArmNetIds.Insert(0, 0u);
+                localArm = 0;
+            }
+
+            return localArm;
+        }
+
+        private bool TryGetTalentArmWeapon(int arm, out WeaponKind weapon)
+        {
+            weapon = default;
+            if ((arm >= _talentArmNetIds.Count) ||
+                !_partyWeapons.TryGetValue(_talentArmNetIds[arm], out PlayerWeapon player) ||
+                (player == null) || !player.HasWeapon)
+            {
+                return false;
+            }
+
+            weapon = player.Weapon;
+            return true;
+        }
+
+        private void RefreshTalentArmLabel(int arm, bool mine, bool hasWeapon, WeaponKind weapon)
+        {
+            if (arm >= _talentArmTexts.Length)
+            {
+                return;
+            }
+
+            TMP_Text label = _talentArmTexts[arm];
+            label.rectTransform.anchoredPosition = _talentConstellation.ArmLabelPosition(arm);
+            label.color = mine ? G_TalentArmLabel : G_TalentArmOther;
+
+            string seat = $"{arm + 1}P";
+            SetText(label, !hasWeapon ? $"{seat} 빈 자리" :
+                mine ? $"{seat} {FunctionalUiText.GetWeaponRoleName(weapon)} (나)" :
+                $"{seat} {FunctionalUiText.GetWeaponRoleName(weapon)}");
+        }
+
+        /// <summary>
+        /// 갈래 이름은 내 가지에만 단다. 남의 가지까지 달면 별보다 글자가 많아진다
+        /// 줄기(0열) 이름은 가지 주인 이름표와 자리가 겹쳐 달지 않는다 - 뿌리 설명에 나온다
+        /// </summary>
+        private void RefreshTalentColumnLabels(TalentTreeSO tree, int localArm)
+        {
+            WeaponKind weapon = _allocation.Weapon;
+            int columnCount = tree.CountColumns(weapon);
+            int trunkRows = tree.TryGetColumn(weapon, 0, out TalentTreeSO.ColumnEntry trunk)
+                ? trunk.NodeCount : 1;
+
+            for (int i = 0; i < ArrayLength(_talentColumnTexts); ++i)
+            {
+                TMP_Text label = _talentColumnTexts[i];
+                TalentTreeSO.ColumnEntry entry = default;
+                bool shown = (i > 0) && (i < columnCount) && tree.TryGetColumn(weapon, i, out entry);
+                SetActive(label.gameObject, shown);
+                if (!shown)
+                {
+                    continue;
+                }
+
+                SetText(label, string.IsNullOrWhiteSpace(entry.DisplayName)
+                    ? $"{FunctionalUiText.GetWeaponName(weapon)} 특성" : entry.DisplayName);
+                label.rectTransform.anchoredPosition = _talentConstellation.BranchLabelPosition(
+                    localArm, i, entry.NodeCount, columnCount, trunkRows);
+            }
+        }
+
+        /// <summary> 노드 상태를 별 모양, 크기, 색으로 보인다. 같은 값이면 건드리지 않는다 </summary>
+        private void ApplyTalentNodeLook(int index, Sprite sprite, float size, Color color)
+        {
+            Image image = (index < _talentNodeImages.Length) ? _talentNodeImages[index] : null;
+            if (image == null)
+            {
+                return;
+            }
+
+            if (image.sprite != sprite)
+            {
+                image.sprite = sprite;
+            }
+
+            image.color = color;
+            image.rectTransform.sizeDelta = Vector2.one * size;
         }
 
         /// <summary> 지금 가리키는 칸이 들고 있는 노드 ID. 가리키는 칸이 없으면 0 </summary>
@@ -1373,9 +2115,9 @@ namespace Geumeum.UI
 
         private void SetTalentButtonsUnavailable()
         {
+            // 확인 중이라는 안내는 포인트 줄이 한다. 노드에는 글자를 두지 않는다
             for (int i = 0; i < ArrayLength(_talentButtons); ++i)
             {
-                _talentButtons[i].SetLabel("특성 확인 중");
                 _talentButtons[i].SetInteractable(false);
             }
 
@@ -1390,7 +2132,7 @@ namespace Geumeum.UI
                 : $"공용 노잣돈 {_currency.Balance}냥");
 
             bool canPurchase = (_activeShopPoint != null) &&
-                _activeShopPoint.IsOpen && (_inventoryRevision != 0u);
+                _activeShopPoint.IsOpen && _hasInventorySnapshot;
             for (int i = 0; i < ArrayLength(_shopButtons); ++i)
             {
                 ShopItemKind kind = G_ShopItems[i];
@@ -1478,6 +2220,7 @@ namespace Geumeum.UI
 
                 _shopPoints.Remove(key);
                 _recipients.Remove(key);
+                _partyWeapons.Remove(key);
                 _scannedIdentities.Remove(key);
             }
 
@@ -1502,6 +2245,12 @@ namespace Geumeum.UI
                 {
                     _shopPoints[pair.Key] = shopPoint;
                     shopPoint.OpenRequested += OpenShop;
+                }
+
+                PlayerWeapon weapon = identity.GetComponent<PlayerWeapon>();
+                if (weapon != null)
+                {
+                    _partyWeapons[pair.Key] = weapon;
                 }
 
                 if (identity.GetComponent<InventoryController>() != null)
@@ -1530,6 +2279,7 @@ namespace Geumeum.UI
 
             _shopPoints.Clear();
             _recipients.Clear();
+            _partyWeapons.Clear();
             _scannedIdentities.Clear();
         }
 
@@ -1602,6 +2352,13 @@ namespace Geumeum.UI
 
         private void HandleTransferChanged(EquipmentTransferResult result)
         {
+            // 곁에 선 파티원에게 바로 주는 중이면 배낭 안내 줄에도 결과를 적는다.
+            // 아래 양도 페이지 문구는 그 페이지를 볼 때만 보이므로, 배낭에 선 사람은 결과를 못 본다
+            if (IsQuickTransferMode)
+            {
+                UpdateQuickTransferStatus(result);
+            }
+
             if (result.Offer.State == EquipmentTransferState.Offered)
             {
                 _activeOffer = result.Offer;

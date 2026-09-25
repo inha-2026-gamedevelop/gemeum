@@ -17,7 +17,6 @@ namespace Geumeum.AI
     public partial class EnemyStatus
     {
 
-        private float _maxHealth           = 0f;
         private float _attackPower         = 0f;
         private float _aggroRange          = 0f;
         private float _attackRange         = 0f;
@@ -181,7 +180,25 @@ namespace Geumeum.AI
             }
 
             Damaged?.Invoke(damage.AttackerNetId);
+            NotifyAttackerHit(damage.AttackerNetId);
             RegisterHit();
+        }
+
+        /// <summary>
+        /// 때린 플레이어에게만 맞혔다고 알린다. 머리 위 체력 바를 그 화면에만 띄우기 위해서다
+        /// 연결이 없는 공격자(봇, 환경 피해)는 보여줄 화면이 없으므로 건너뛴다
+        /// 처치 타격은 여기까지 오지 않는다 - 죽은 잡귀의 바는 띄우지 않는다
+        /// </summary>
+        [Server]
+        private void NotifyAttackerHit(uint attackerNetId)
+        {
+            if ((!NetworkServer.spawned.TryGetValue(attackerNetId, out NetworkIdentity attacker)) ||
+                (attacker.connectionToClient == null))
+            {
+                return;
+            }
+
+            TargetHitByLocalPlayer(attacker.connectionToClient);
         }
 
         /// <summary> 패링 성공 등 넉백을 즉시 강제할 때 호출한다, 일반 피격 누적과 별도 경로다 </summary>

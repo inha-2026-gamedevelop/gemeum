@@ -24,6 +24,9 @@ namespace Geumeum.Systems
 
         public string PromptText => "객주 이용";
 
+        /// <summary> 문을 열기 전에 곁에 오면 띄우는 안내. 누를 수 있는 것이 없으니 키를 붙이지 않는다 </summary>
+        public string ClosedNoticeText => "객주 · 두 번째 결계가 좁혀지면 문을 엽니다";
+
         public bool IsOpen => _isOpen;
 
         /// <summary> 소유 클라이언트가 서버 승인을 받아 상점을 열었다 </summary>
