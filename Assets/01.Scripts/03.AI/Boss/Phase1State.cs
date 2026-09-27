@@ -17,6 +17,9 @@ namespace Geumeum.AI
     /// BOSS_PATTERN_CONTRACT.md 3장), 패턴 3(순간 접근 3연계, TargetedDash, 예고 앞 절반
     /// 추적 DASH_TRACK_RATIO 적용됨, 11.2절), 패턴 4(여우불 낙인, MarkedCircle), 패턴 5(여우
     /// 구슬 충격파, ConeBurst), 패턴 11·12(여우불 광선·탄막, 2페이즈 13·14의 완화판).
+    /// 패턴 16(여우불 낙인 전이, RelayBrand - MarkedCircle 판정을 재사용하되 3회 연속으로
+    /// 대상을 옮겨가며 폭발시킨다. Pattern Execution 분리 구조가 신규 패턴 추가에 실제로
+    /// 맞는지 검증하기 위한 파일럿, 2026-09-27).
     /// 거리 대역별로 근접/중거리/원거리 거리 대역에 맞는 후보와,
     /// 거리 무관인 MarkedCircle을 선택기에 넘긴다. 선택기는 개별 쿨다운과 직전 패턴을 걸러낸
     /// 뒤 남은 후보를 균등 추첨한다. 대상을 고르는 패턴(TargetedDash·MarkedCircle)은 직전
@@ -51,6 +54,7 @@ namespace Geumeum.AI
             ConeBurst,
             RotatingBeam,  // ID로만 구분한다 - SO Template은 검증 통과용으로 ConeBurst(4)를 그대로 쓴다
             RandomBarrage, // ID로만 구분한다 - 위와 동일한 이유
+            RelayBrand,    // ID로만 구분한다 - SO Template은 검증 통과용으로 MarkedCircle(3)을 그대로 쓴다
         }
 
         /****************************************
@@ -64,10 +68,11 @@ namespace Geumeum.AI
         private const int CONE_BURST_PATTERN_ID    = 5;  // 여우 구슬 충격파
         private const int ROTATING_BEAM_PATTERN_ID  = 11; // 여우불 광선 - 360도 회전 빔, 2페이즈(13)보다 느리게 돈다
         private const int RANDOM_BARRAGE_PATTERN_ID = 12; // 여우불 탄막 - 랜덤 방향 연속 난사, 2페이즈(14)보다 발 수 적게
-        // 위 일곱 다 GameDB.Boss._patterns의 PatternId와 맞춘다
+        private const int RELAY_BRAND_PATTERN_ID    = 16; // 여우불 낙인 전이(RelayBrand) - 구조 검증용 신규 패턴
+        // 위 여덟 다 GameDB.Boss._patterns의 PatternId와 맞춘다
 
-        private const int MAX_CANDIDATE_COUNT     = 7; // 현재 독립 후보 수
-        private const int SELECTABLE_PATTERN_COUNT = 7;
+        private const int MAX_CANDIDATE_COUNT     = 8; // 현재 독립 후보 수
+        private const int SELECTABLE_PATTERN_COUNT = 8;
 
         // 대상을 고르는 패턴(TargetedDash, MarkedCircle) 공용 - 직전 지목자를 뺀 후보를 다시
         // 뽑을 때 쓰는 스캔 반경. BossController.RefreshTarget과 같은 반경이다
@@ -92,6 +97,7 @@ namespace Geumeum.AI
             CONE_BURST_PATTERN_ID,
             ROTATING_BEAM_PATTERN_ID,
             RANDOM_BARRAGE_PATTERN_ID,
+            RELAY_BRAND_PATTERN_ID,
         };
 
         private readonly BossPatternSelector.Candidate[] _candidatePatterns =
@@ -120,6 +126,8 @@ namespace Geumeum.AI
         private readonly Phase1MarkedCircleExecution   _markedCircle  = new Phase1MarkedCircleExecution();
         private readonly Phase1RotatingBeamExecution   _rotatingBeam  = new Phase1RotatingBeamExecution();
         private readonly Phase1RandomBarrageExecution  _randomBarrage = new Phase1RandomBarrageExecution();
+        // RelayBrand(패턴 16) - Pattern Execution 분리 구조 검증용 신규 패턴(2026-09-27)
+        private readonly Phase1RelayBrandExecution     _relayBrand    = new Phase1RelayBrandExecution();
 
         private AttackState _state              = AttackState.Idle;
         private float       _stateTimer         = 0f;
@@ -399,6 +407,7 @@ namespace Geumeum.AI
             candidateCount = AddCandidate(candidateCount, CONE_BURST_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, ROTATING_BEAM_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, RANDOM_BARRAGE_PATTERN_ID, distance);
+            candidateCount = AddCandidate(candidateCount, RELAY_BRAND_PATTERN_ID, distance);
             return candidateCount;
         }
 
@@ -490,6 +499,11 @@ namespace Geumeum.AI
                 return PatternKind.RandomBarrage;
             }
 
+            if (patternId == RELAY_BRAND_PATTERN_ID)
+            {
+                return PatternKind.RelayBrand;
+            }
+
             if (patternId == CONE_BURST_PATTERN_ID)
             {
                 return PatternKind.ConeBurst;
@@ -547,12 +561,17 @@ namespace Geumeum.AI
             {
                 _activeKind = PatternKind.RandomBarrage;
             }
+            else if (pattern.PatternId == RELAY_BRAND_PATTERN_ID)
+            {
+                // SO Template은 검증 통과용 MarkedCircle이라 ToKind가 못 잡는다, ID로 덮어쓴다
+                _activeKind = PatternKind.RelayBrand;
+            }
 
             _randomBarrage.OnBeginAttack();
 
-            // TargetedDash(패턴 3), MarkedCircle(패턴 4)은 전역 어그로 대상(Target)이 아니라
-            // 직전 지목자를 뺀 후보 중에서 다시 뽑는다 - 안 그러면 같은 사람만 계속 지목당해
-            // 3인 역할 분리가 안 된다
+            // TargetedDash(패턴 3), MarkedCircle(패턴 4), RelayBrand(패턴 16)은 전역 어그로
+            // 대상(Target)이 아니라 직전 지목자를 뺀 후보 중에서 다시 뽑는다 - 안 그러면
+            // 같은 사람만 계속 지목당해 3인 역할 분리가 안 된다
             if (_activeKind == PatternKind.TargetedDash)
             {
                 _activeTarget = _targetedDash.ResolveAttackTarget(Target, SelectTargetExcludingLast);
@@ -560,6 +579,10 @@ namespace Geumeum.AI
             else if (_activeKind == PatternKind.MarkedCircle)
             {
                 _activeTarget = _markedCircle.ResolveAttackTarget(Target, SelectTargetExcludingLast);
+            }
+            else if (_activeKind == PatternKind.RelayBrand)
+            {
+                _activeTarget = _relayBrand.ResolveAttackTarget(Target, _controller);
             }
             else
             {
@@ -595,6 +618,10 @@ namespace Geumeum.AI
             {
                 _markedCircle.OnBeginAttack(_activeTarget, _controller);
             }
+            else if (_activeKind == PatternKind.RelayBrand)
+            {
+                _relayBrand.OnBeginAttack(_controller);
+            }
 
             _activeTargetNetId = _activeTarget.TryGetComponent(out NetworkIdentity targetIdentity)
                 ? targetIdentity.netId : 0u;
@@ -622,10 +649,21 @@ namespace Geumeum.AI
 
         private void PublishRepeatTelegraphs()
         {
-            Vector3 cueOrigin = (_activeKind == PatternKind.MarkedCircle)
-                ? _markedCircle.Center : Self.position;
+            // RelayBrand는 반복마다 폭발 중심이 다르다(대상 전이) - 나머지 패턴은 전부
+            // 패턴 하나에 원점 하나라 루프 밖에서 한 번만 계산해도 됐지만, RelayBrand
+            // 때문에 반복 인덱스별로 다시 물어야 한다
             for (int i = 0; i < _activeSpec.RepeatCount; ++i)
             {
+                Vector3 cueOrigin = (_activeKind == PatternKind.RelayBrand)
+                    ? _relayBrand.GetCenter(i)
+                    : (_activeKind == PatternKind.MarkedCircle)
+                        ? _markedCircle.Center
+                        : Self.position;
+                // RelayBrand는 반복마다 지목 대상도 바뀐다 - "당신이 지목됨" 개인 UI가 매
+                // 반복 실제 대상을 따라가야 한다(BossTelegraphView.cs 594줄)
+                uint cueTargetNetId = (_activeKind == PatternKind.RelayBrand)
+                    ? _relayBrand.GetTargetNetId(i)
+                    : _activeTargetNetId;
                 float impactOffset = _activeImpactOffsets[i];
                 float startOffset = (i == 0)
                     ? 0f
@@ -635,7 +673,7 @@ namespace Geumeum.AI
                     AttackInstanceId = _activeAttackInstanceId,
                     RepeatIndex      = (byte) i,
                     PatternId        = _activePattern.PatternId,
-                    TargetNetId      = _activeTargetNetId,
+                    TargetNetId      = cueTargetNetId,
                     Origin           = cueOrigin,
                     Direction        = _lockedForward,
                     StartServerTime  = _activeAttackStartServerTime + startOffset,
@@ -708,8 +746,13 @@ namespace Geumeum.AI
                 ResolveImpact();
             }
 
+            // RelayBrand는 반복마다 다른 대상 netId로 예고를 걸었다(PublishRepeatTelegraphs
+            // 참고) - 취소도 같은 netId로 찾아야 한다, 안 그러면 이 예고가 안 지워지고 남는다
+            uint impactedTargetNetId = (_activeKind == PatternKind.RelayBrand)
+                ? _relayBrand.GetTargetNetId(_activeRepeatIndex)
+                : _activeTargetNetId;
             _controller.ServerCancelTelegraph(_activeAttackInstanceId,
-                _activeRepeatIndex, _activeTargetNetId);
+                _activeRepeatIndex, impactedTargetNetId);
             _activeExecution = null;
 
             ++_activeRepeatIndex;
@@ -761,6 +804,15 @@ namespace Geumeum.AI
                     _deflectedRepeat == _activeRepeatIndex) ? _deflectedDefender : 0u;
                 _markedCircle.ResolveImpact(_activeSpec, damage, attackerNetId,
                     _playerLayerMask, _controller, deflectedDefender);
+                return;
+            }
+
+            if (_activeKind == PatternKind.RelayBrand)
+            {
+                uint deflectedDefender = (_deflectedAttack == _activeAttackInstanceId &&
+                    _deflectedRepeat == _activeRepeatIndex) ? _deflectedDefender : 0u;
+                _relayBrand.ResolveImpact(_activePattern, _activeRepeatIndex, _activeSpec, damage,
+                    attackerNetId, _playerLayerMask, _controller, deflectedDefender);
                 return;
             }
 

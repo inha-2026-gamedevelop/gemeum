@@ -89,6 +89,12 @@ namespace Geumeum.Data
             [Tooltip("일반 선택 가중치. 1차 이관은 모두 1")]
             public float SelectionWeight;
 
+            [Tooltip("반복마다 Damage에 곱할 배수. 비어 있으면 전부 1배(반복 간 동일 피해) - RelayBrand처럼 반복마다 커지는 패턴에만 채운다")]
+            public float[] RepeatDamageMultipliers;
+
+            [Tooltip("반복마다 ImpactRadius에 곱할 배수. 비어 있으면 전부 1배")]
+            public float[] RepeatImpactRadiusMultipliers;
+
             public int RepeatCount => ((ImpactOffsets == null) || (ImpactOffsets.Length == 0))
                 ? 1 : ImpactOffsets.Length;
 
@@ -101,6 +107,26 @@ namespace Geumeum.Data
                 }
 
                 return ImpactOffsets[repeatIndex];
+            }
+
+            public float GetRepeatDamageMultiplier(int repeatIndex)
+            {
+                return GetRepeatMultiplier(RepeatDamageMultipliers, repeatIndex);
+            }
+
+            public float GetRepeatImpactRadiusMultiplier(int repeatIndex)
+            {
+                return GetRepeatMultiplier(RepeatImpactRadiusMultipliers, repeatIndex);
+            }
+
+            private static float GetRepeatMultiplier(float[] multipliers, int repeatIndex)
+            {
+                if ((multipliers == null) || (repeatIndex < 0) || (repeatIndex >= multipliers.Length))
+                {
+                    return 1f;
+                }
+
+                return multipliers[repeatIndex];
             }
         }
 
@@ -649,6 +675,13 @@ namespace Geumeum.Data
                         $"selectable pattern {pattern.PatternId} needs a positive SelectionWeight");
                 }
 
+                if (!AreValidRepeatMultipliers(pattern.RepeatDamageMultipliers, pattern.ImpactOffsets.Length) ||
+                    !AreValidRepeatMultipliers(pattern.RepeatImpactRadiusMultipliers, pattern.ImpactOffsets.Length))
+                {
+                    return FailValidation(out failure,
+                        $"pattern {pattern.PatternId} has an invalid repeat damage/radius multiplier");
+                }
+
                 if ((pattern.Template == PatternTemplate.MeleeArc) &&
                     ((!PositiveFinite(pattern.Range)) || (pattern.AngleDegrees <= 0f) ||
                         (pattern.AngleDegrees > 360f)))
@@ -687,7 +720,10 @@ namespace Geumeum.Data
                 }
             }
 
-            if ((_patterns.Length != 15) ||
+            // 15개는 여전히 최소치다(계약 패턴 1~15) - 그 위로는 구조 검증용 신규 패턴(예: 16번
+            // RelayBrand, 2026-09-27)이 자유롭게 늘어날 수 있어야 해서 정확히 15개라는
+            // 등호 검사를 하한 검사로 완화했다
+            if ((_patterns.Length < 15) ||
                 (!TryGetPattern(1, out PatternEntry teachingCombo)) ||
                 (!TryGetPattern(2, out PatternEntry derivedWake)) ||
                 (!TryGetPattern(3, out PatternEntry teachingDash)) ||
@@ -1046,6 +1082,30 @@ namespace Geumeum.Data
         private static bool PositiveFinite(float value)
         {
             return Finite(value) && (value > 0f);
+        }
+
+        /// <summary> 비어 있으면(반복별 배율을 안 쓰는 패턴) 통과, 있으면 impact 개수 이내 양수여야 한다 </summary>
+        private static bool AreValidRepeatMultipliers(float[] multipliers, int impactCount)
+        {
+            if (multipliers == null)
+            {
+                return true;
+            }
+
+            if (multipliers.Length > impactCount)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < multipliers.Length; ++i)
+            {
+                if (!PositiveFinite(multipliers[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static bool NonNegativeFinite(float value)
