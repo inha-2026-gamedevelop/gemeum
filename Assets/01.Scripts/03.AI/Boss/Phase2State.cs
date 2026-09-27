@@ -41,6 +41,7 @@ namespace Geumeum.AI
             ConeBurst,
             RotatingBeam,  // ID로만 구분한다 - SO Template은 검증 통과용으로 ConeBurst(4)를 그대로 쓴다
             RandomBarrage, // ID로만 구분한다 - 위와 동일한 이유
+            FoxfireTrail,  // ID로만 구분한다 - SO Template은 검증 통과용으로 TargetedDash(2)를 그대로 쓴다
         }
 
         // 여우불 진(15) 슬롯 하나의 상태 - 일반 AttackState와 별개로 흐른다
@@ -61,11 +62,12 @@ namespace Geumeum.AI
         private const int CONE_BURST_PATTERN_ID    = 9;  // 연쇄 부채꼴 3단
         private const int ROTATING_BEAM_PATTERN_ID  = 13; // 여우불 광선 - 360도 회전 빔
         private const int RANDOM_BARRAGE_PATTERN_ID = 14; // 여우불 탄막 - 랜덤 방향 연속 난사
-        // 위 여섯 다 GameDB.Boss._patterns의 PatternId와 맞춘다. 10번(백귀야행)은
+        private const int FOXFIRE_TRAIL_PATTERN_ID  = 17; // 여우불 잔로 - 구조 검증용 신규 패턴
+        // 위 일곱 다 GameDB.Boss._patterns의 PatternId와 맞춘다. 10번(백귀야행)은
         // 조건부 발동(꼬리 상태)이라 쿨다운 기반 선택기 대상이 아니다 - 이 슬라이스에서 다루지 않는다
 
-        private const int MAX_CANDIDATE_COUNT      = 6; // 현재 독립 후보 수, 패턴 10은 조건부 발동
-        private const int SELECTABLE_PATTERN_COUNT = 6;
+        private const int MAX_CANDIDATE_COUNT      = 7; // 현재 독립 후보 수, 패턴 10은 조건부 발동
+        private const int SELECTABLE_PATTERN_COUNT = 7;
 
         // 여우불 진(15) 전용 - 일반 선택기를 안 거치는 독립 배경 시스템이다. 보스가 다른 패턴을
         // 진행하는 동안에도 계속 흐르며, 최대 GROUND_ZONE_MAX_CONCURRENT개까지 동시에 유지된다.
@@ -106,6 +108,7 @@ namespace Geumeum.AI
             CONE_BURST_PATTERN_ID,
             ROTATING_BEAM_PATTERN_ID,
             RANDOM_BARRAGE_PATTERN_ID,
+            FOXFIRE_TRAIL_PATTERN_ID,
         };
 
         private readonly BossPatternSelector.Candidate[] _candidatePatterns =
@@ -171,6 +174,9 @@ namespace Geumeum.AI
         // 받은 Phase2State만 수행한다(실행 객체가 직접 하지 않음)
         private readonly Phase2RotatingBeamExecution   _rotatingBeam  = new Phase2RotatingBeamExecution();
         private readonly Phase2RandomBarrageExecution  _randomBarrage = new Phase2RandomBarrageExecution();
+
+        // 여우불 잔로(패턴 17) - Pattern Execution 분리 구조 검증용 신규 패턴(2026-09-27)
+        private readonly Phase2FoxfireTrailExecution   _foxfireTrail  = new Phase2FoxfireTrailExecution();
 
         // 여우불 진(GroundZone) 전용 - 일반 공격 상태 순환과 독립으로 흐른다
         private readonly GroundZoneInstance[] _groundZones =
@@ -404,6 +410,7 @@ namespace Geumeum.AI
             candidateCount = AddCandidate(candidateCount, CONE_BURST_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, ROTATING_BEAM_PATTERN_ID, distance);
             candidateCount = AddCandidate(candidateCount, RANDOM_BARRAGE_PATTERN_ID, distance);
+            candidateCount = AddCandidate(candidateCount, FOXFIRE_TRAIL_PATTERN_ID, distance);
             return candidateCount;
         }
 
@@ -494,6 +501,11 @@ namespace Geumeum.AI
                 return PatternKind.RandomBarrage;
             }
 
+            if (patternId == FOXFIRE_TRAIL_PATTERN_ID)
+            {
+                return PatternKind.FoxfireTrail;
+            }
+
             if (patternId == CONE_BURST_PATTERN_ID)
             {
                 return PatternKind.ConeBurst;
@@ -512,6 +524,7 @@ namespace Geumeum.AI
                 case MARKED_CIRCLE_PATTERN_ID: return "표식 순환 처형";
                 case CONE_BURST_PATTERN_ID:    return "연쇄 부채꼴 3단";
                 case ROTATING_BEAM_PATTERN_ID: return "여우불 광선";
+                case FOXFIRE_TRAIL_PATTERN_ID: return "여우불 잔로";
                 default:                       return $"패턴 {patternId}";
             }
         }
@@ -531,6 +544,11 @@ namespace Geumeum.AI
             else if (pattern.PatternId == RANDOM_BARRAGE_PATTERN_ID)
             {
                 _activeKind = PatternKind.RandomBarrage;
+            }
+            else if (pattern.PatternId == FOXFIRE_TRAIL_PATTERN_ID)
+            {
+                // SO Template은 검증 통과용 TargetedDash라 ToKind가 못 잡는다, ID로 덮어쓴다
+                _activeKind = PatternKind.FoxfireTrail;
             }
 
             _randomBarrage.OnBeginAttack();
@@ -563,6 +581,10 @@ namespace Geumeum.AI
             else if (_activeKind == PatternKind.MarkedCircle)
             {
                 _markedCircle.OnBeginAttack(_activeTarget);
+            }
+            else if (_activeKind == PatternKind.FoxfireTrail)
+            {
+                _foxfireTrail.OnBeginAttack(Self.position, _lockedForward, _activeSpec);
             }
 
             SnapshotRepeatTargets();
@@ -709,6 +731,23 @@ namespace Geumeum.AI
                 {
                     // 난사 시작 전 딱 한 번만 보낸 예고 신호를 여기서 닫는다 - 안 닫으면
                     // 동시 예고 목록에 계속 남아 다음 발동들이 상한에 걸린다
+                    CompleteSelfManagedAttack();
+                }
+                return;
+            }
+
+            if (_activeKind == PatternKind.FoxfireTrail)
+            {
+                _stateTimer += deltaTime;
+                uint  attackerNetId = (_selfIdentity != null) ? _selfIdentity.netId : 0u;
+                float damage        = _activePattern.Damage * _activeDamageMultiplier;
+                PatternTickResult result = _foxfireTrail.TickWindup(deltaTime, _stateTimer,
+                    _activePattern.TelegraphDuration, Self, _activeSpec, damage, attackerNetId,
+                    _playerLayerMask, _controller, _activeAttackInstanceId, _activePattern.PatternId);
+                if (result == PatternTickResult.Complete)
+                {
+                    // 공용 예고(진입 신호) 하나만 여기서 닫는다 - 잔상별 Telegraph는 폭발 시점마다
+                    // ExplodeTrailPoint가 이미 개별적으로 닫아서 이 시점엔 하나도 안 남아 있다
                     CompleteSelfManagedAttack();
                 }
                 return;

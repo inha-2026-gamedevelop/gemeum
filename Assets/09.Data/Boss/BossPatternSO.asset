@@ -20,7 +20,7 @@ MonoBehaviour:
     WakePatternId: 2
   - PhaseIndex: 2
     EnterHealthRatio: 0.5
-    PatternIds: 060000000700000008000000090000000d0000000e0000000f000000
+    PatternIds: 060000000700000008000000090000000d0000000e0000000f00000011000000
     WakePatternId: 2
   _transitionLockDuration: 2
   _patterns:
@@ -395,6 +395,28 @@ MonoBehaviour:
     - 1
     - 1.3
     - 1.6
+  - PatternId: 17
+    DisplayName: "여우불 잔로"
+    TelegraphDuration: 1.2
+    ActiveDuration: 1
+    Cooldown: 30
+    Damage: 12
+    IsParryable: 0
+    Template: 2
+    Targeting: 0
+    Range: 6
+    AngleDegrees: 0
+    MoveSpeed: 10
+    MoveDistance: 18
+    ImpactRadius: 2.2
+    ImpactOffsets:
+    - 1.2
+    RepeatTimingJitterMin: 0
+    RepeatTimingJitterMax: 0
+    ParryableRepeatIndex: -1
+    DerivedFromId: -1
+    IsConditional: 0
+    SelectionWeight: 1
   _bossTimeLimitSeconds: 840
   _enrageStartSeconds: 810
   _enrageWarningSeconds: 720
