@@ -1,0 +1,92 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e251860fcd970734c9f14ebd98a146c3, type: 3}
+  m_Name: FieldGaiaSession_20260927
+  m_EditorClassIdentifier: GaiaCore::Gaia.GaiaSession
+  m_name: Field 2026-09-27
+  m_description: "\uADF8\uBBD0 Field 1024m \uACE0\uC815 \uC9C0\uD615. FieldProductionBuilder\uAC00
+    Gaia CreateWorld\xB7Stamp\uB85C \uAE30\uB85D"
+  m_previewImage: {fileID: 0}
+  m_dateCreated: "2026-09-27 \uC624\uD6C4 9:21:25"
+  m_terrainWidth: 1024
+  m_terrainDepth: 1024
+  m_terrainHeight: 200
+  m_seaLevel: 4.8828125
+  m_spawnDensity: 1
+  m_isLocked: 0
+  m_previewImageBytes: 
+  m_previewImageWidth: 0
+  m_previewImageHeight: 0
+  m_operations:
+  - m_description: 'Creating World: 1 x 1 tiles, tile size: 1024'
+    m_operationType: 0
+    m_isActive: 1
+    m_affectedTerrainNames:
+    - Terrain_0_0-20260927 - 212127
+    m_operationDateTime: "2026-09-27 \uC624\uD6C4 9:21:28"
+    scriptableObjectAssetGUID: 382ad1268e613aa4dab548051db27860
+    m_isFoldedOut: 0
+    sessionPlaybackState: 1
+    m_terrainsFoldedOut: 0
+    m_serializedExternalAction: 
+  - m_description: RaiseHeight - ImageMask
+    m_operationType: 4
+    m_isActive: 1
+    m_affectedTerrainNames:
+    - Terrain_0_0-20260927 - 212127
+    m_operationDateTime: "2026-09-27 \uC624\uD6C4 9:21:40"
+    scriptableObjectAssetGUID: 516637473efccfc479daacc38f81b3f0
+    m_isFoldedOut: 0
+    sessionPlaybackState: 1
+    m_terrainsFoldedOut: 0
+    m_serializedExternalAction: 
+  - m_description: AddHeight - ImageMask
+    m_operationType: 4
+    m_isActive: 1
+    m_affectedTerrainNames:
+    - Terrain_0_0-20260927 - 212127
+    m_operationDateTime: "2026-09-27 \uC624\uD6C4 9:21:43"
+    scriptableObjectAssetGUID: af333c84d3e15e84aa4f7dd8ca5ff17e
+    m_isFoldedOut: 0
+    sessionPlaybackState: 1
+    m_terrainsFoldedOut: 0
+    m_serializedExternalAction: 
+  - m_description: RaiseHeight - ImageMask
+    m_operationType: 4
+    m_isActive: 1
+    m_affectedTerrainNames:
+    - Terrain_0_0-20260927 - 212127
+    m_operationDateTime: "2026-09-27 \uC624\uD6C4 9:26:52"
+    scriptableObjectAssetGUID: 48eab52a6d92432469494dbd6e807bd2
+    m_isFoldedOut: 0
+    sessionPlaybackState: 1
+    m_terrainsFoldedOut: 0
+    m_serializedExternalAction: 
+  - m_description: AddHeight - ImageMask
+    m_operationType: 4
+    m_isActive: 1
+    m_affectedTerrainNames:
+    - Terrain_0_0-20260927 - 212127
+    m_operationDateTime: "2026-09-27 \uC624\uD6C4 9:26:55"
+    scriptableObjectAssetGUID: 75d373058563ec740b5fdddaf8c93da9
+    m_isFoldedOut: 0
+    sessionPlaybackState: 1
+    m_terrainsFoldedOut: 0
+    m_serializedExternalAction: 
+  m_terrainMinMaxCache:
+  - guid: c0a801ce9ebe5914dab693ee95d00d65
+    isWorldmap: 0
+    recalculate: 1
+    min: 0.9765774
+    max: 19.971008
+  m_bakedMaskCacheEntries: []
+  m_worldBiomeMaskSettings: {fileID: 0}
