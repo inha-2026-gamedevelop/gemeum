@@ -2555,6 +2555,7 @@ MonoBehaviour:
   _button: {fileID: 6493737501561928395}
   _label: {fileID: 4756476054396489596}
   _index: 8
+  _highlightBorder: {fileID: 0}
 --- !u!1 &1463284309580360502
 GameObject:
   m_ObjectHideFlags: 0
@@ -3482,6 +3483,7 @@ MonoBehaviour:
   _button: {fileID: 1702751930659778272}
   _label: {fileID: 4300808776422709990}
   _index: 0
+  _highlightBorder: {fileID: 0}
 --- !u!1 &2272841464631735139
 GameObject:
   m_ObjectHideFlags: 0
@@ -3619,6 +3621,7 @@ MonoBehaviour:
   _button: {fileID: 5957314295681856553}
   _label: {fileID: 5012575405313494746}
   _index: 5
+  _highlightBorder: {fileID: 0}
 --- !u!1 &2378613039912687001
 GameObject:
   m_ObjectHideFlags: 0
@@ -4135,6 +4138,7 @@ MonoBehaviour:
   _button: {fileID: 3079897561148060736}
   _label: {fileID: 338233512123957299}
   _index: 9
+  _highlightBorder: {fileID: 0}
 --- !u!1 &2574408076030440489
 GameObject:
   m_ObjectHideFlags: 0
@@ -4272,6 +4276,7 @@ MonoBehaviour:
   _button: {fileID: 8979914834681539820}
   _label: {fileID: 429099056421741917}
   _index: 4
+  _highlightBorder: {fileID: 0}
 --- !u!1 &2637248778033179367
 GameObject:
   m_ObjectHideFlags: 0
@@ -4546,6 +4551,7 @@ MonoBehaviour:
   _button: {fileID: 6916705135568878763}
   _label: {fileID: 3755044933912378677}
   _index: 3
+  _highlightBorder: {fileID: 0}
 --- !u!1 &2814325699182403640
 GameObject:
   m_ObjectHideFlags: 0
@@ -4958,6 +4964,7 @@ MonoBehaviour:
   _button: {fileID: 4439662754922793860}
   _label: {fileID: 7489314990250881715}
   _index: 3
+  _highlightBorder: {fileID: 0}
 --- !u!1 &3150070011510238797
 GameObject:
   m_ObjectHideFlags: 0
@@ -5095,6 +5102,7 @@ MonoBehaviour:
   _button: {fileID: 1334263834503509764}
   _label: {fileID: 3659700545345547817}
   _index: 9
+  _highlightBorder: {fileID: 0}
 --- !u!1 &3181377034370834949
 GameObject:
   m_ObjectHideFlags: 0
@@ -5751,6 +5759,7 @@ MonoBehaviour:
   _button: {fileID: 8250414714714651125}
   _label: {fileID: 1200604954961840238}
   _index: 0
+  _highlightBorder: {fileID: 0}
 --- !u!1 &3427628855250924278
 GameObject:
   m_ObjectHideFlags: 0
@@ -6025,6 +6034,7 @@ MonoBehaviour:
   _button: {fileID: 1837812910982592956}
   _label: {fileID: 2498739559475973514}
   _index: 0
+  _highlightBorder: {fileID: 0}
 --- !u!1 &3437688803054286599
 GameObject:
   m_ObjectHideFlags: 0
@@ -6162,6 +6172,7 @@ MonoBehaviour:
   _button: {fileID: 284268736775329763}
   _label: {fileID: 7239673126028674856}
   _index: 0
+  _highlightBorder: {fileID: 0}
 --- !u!1 &3505737142359167188
 GameObject:
   m_ObjectHideFlags: 0
@@ -6557,6 +6568,7 @@ MonoBehaviour:
   _button: {fileID: 2833295400605090959}
   _label: {fileID: 2172060379465231585}
   _index: 1
+  _highlightBorder: {fileID: 0}
 --- !u!1 &3656222790433896169
 GameObject:
   m_ObjectHideFlags: 0
@@ -6831,6 +6843,7 @@ MonoBehaviour:
   _button: {fileID: 2517802968964373619}
   _label: {fileID: 5238799329717699744}
   _index: 3
+  _highlightBorder: {fileID: 0}
 --- !u!1 &3716052944819020166
 GameObject:
   m_ObjectHideFlags: 0
@@ -7089,6 +7102,7 @@ MonoBehaviour:
   _button: {fileID: 4632667319451902783}
   _label: {fileID: 569857240867527393}
   _index: 10
+  _highlightBorder: {fileID: 0}
 --- !u!1 &3799465275764647654
 GameObject:
   m_ObjectHideFlags: 0
@@ -7565,6 +7579,14 @@ MonoBehaviour:
   _useTicketButton: {fileID: 6760370518014261063}
   _targetEquippedButton: {fileID: 8352294719630178498}
   _openTransferButton: {fileID: 0}
+  _inventoryFilterButtons: []
+  _quickTransferBox: {fileID: 0}
+  _quickTransferBoxLabel: {fileID: 0}
+  _quickTransferTitleText: {fileID: 0}
+  _quickTransferConfirmButton: {fileID: 0}
+  _quickTransferCancelButton: {fileID: 0}
+  _quickTransferDragGhost: {fileID: 0}
+  _quickTransferDragGhostLabel: {fileID: 0}
   _talentPointText: {fileID: 3519792868367177709}
   _talentStatusText: {fileID: 6757844942893243389}
   _talentColumnTexts:
@@ -7582,6 +7604,29 @@ MonoBehaviour:
   - {fileID: 7082634288208487825}
   - {fileID: 6416560031288239169}
   _talentResetButton: {fileID: 6682488688294860935}
+  _talentConstellation:
+    _center: {x: 0, y: -60}
+    _armAngles:
+    - 90
+    - 195
+    - -15
+    _rootDistance: 110
+    _nodeSpacing: 62
+    _branchSpread: 34
+    _zigzag: 9
+    _labelDistance: 34
+    _armLabelOffset: 3
+    _hitSize: 36
+    _allocatedSize: 44
+    _openSize: 20
+    _lockedSize: 12
+    _otherSize: 10
+    _otherRootSize: 18
+    _lineWidth: 2
+  _talentHub: {fileID: 0}
+  _talentStarSprite: {fileID: 0}
+  _talentDotSprite: {fileID: 0}
+  _hideOnTalentPage: []
   _walletText: {fileID: 3663250604569498537}
   _shopHintText: {fileID: 8564890942455516531}
   _shopStatusText: {fileID: 2107029422630631453}
@@ -7875,6 +7920,7 @@ MonoBehaviour:
   _button: {fileID: 3432237809287096142}
   _label: {fileID: 4638495335390569928}
   _index: 6
+  _highlightBorder: {fileID: 0}
 --- !u!1 &3940170724832023934
 GameObject:
   m_ObjectHideFlags: 0
@@ -8104,7 +8150,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
   sceneId: 0
-  _assetId: 0
+  _assetId: 2823841836
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
@@ -8628,6 +8674,7 @@ MonoBehaviour:
   _button: {fileID: 6903365520323584430}
   _label: {fileID: 4988644332797096175}
   _index: 1
+  _highlightBorder: {fileID: 0}
 --- !u!1 &4274111689325506435
 GameObject:
   m_ObjectHideFlags: 0
@@ -8902,6 +8949,7 @@ MonoBehaviour:
   _button: {fileID: 3760373189517348046}
   _label: {fileID: 1690189303100327865}
   _index: 4
+  _highlightBorder: {fileID: 0}
 --- !u!1 &4390789609586854301
 GameObject:
   m_ObjectHideFlags: 0
@@ -9834,6 +9882,7 @@ MonoBehaviour:
   _button: {fileID: 4679002929507574708}
   _label: {fileID: 7074235153603626610}
   _index: 1
+  _highlightBorder: {fileID: 0}
 --- !u!1 &4792726880245220273
 GameObject:
   m_ObjectHideFlags: 0
@@ -10366,6 +10415,7 @@ MonoBehaviour:
   _button: {fileID: 1864549184178450938}
   _label: {fileID: 775005395345638675}
   _index: 2
+  _highlightBorder: {fileID: 0}
 --- !u!1 &5178246996886145855
 GameObject:
   m_ObjectHideFlags: 0
@@ -10586,6 +10636,7 @@ MonoBehaviour:
   _button: {fileID: 4910417638629828687}
   _label: {fileID: 2138010730901554135}
   _index: 1
+  _highlightBorder: {fileID: 0}
 --- !u!1 &5297504193935682666
 GameObject:
   m_ObjectHideFlags: 0
@@ -11305,6 +11356,7 @@ MonoBehaviour:
   _button: {fileID: 2340364424115272140}
   _label: {fileID: 4331867072252100011}
   _index: 7
+  _highlightBorder: {fileID: 0}
 --- !u!1 &5907198059350071984
 GameObject:
   m_ObjectHideFlags: 0
@@ -13939,6 +13991,7 @@ MonoBehaviour:
   _button: {fileID: 6514107708690495881}
   _label: {fileID: 5989458709874468239}
   _index: 6
+  _highlightBorder: {fileID: 0}
 --- !u!1 &7453062462756756540
 GameObject:
   m_ObjectHideFlags: 0
@@ -14213,6 +14266,7 @@ MonoBehaviour:
   _button: {fileID: 5856439574674813972}
   _label: {fileID: 5830483169606487101}
   _index: 5
+  _highlightBorder: {fileID: 0}
 --- !u!1 &7622517979992542634
 GameObject:
   m_ObjectHideFlags: 0
@@ -14350,6 +14404,7 @@ MonoBehaviour:
   _button: {fileID: 832804357047175043}
   _label: {fileID: 6460190682417928682}
   _index: 11
+  _highlightBorder: {fileID: 0}
 --- !u!1 &7978228473674939997
 GameObject:
   m_ObjectHideFlags: 0
@@ -14487,6 +14542,7 @@ MonoBehaviour:
   _button: {fileID: 2391900738612453573}
   _label: {fileID: 4664645854619773644}
   _index: 7
+  _highlightBorder: {fileID: 0}
 --- !u!1 &8029754669554259807
 GameObject:
   m_ObjectHideFlags: 0
@@ -14624,6 +14680,7 @@ MonoBehaviour:
   _button: {fileID: 3429376834732918222}
   _label: {fileID: 6726206287654141088}
   _index: 8
+  _highlightBorder: {fileID: 0}
 --- !u!1 &8057929990209765675
 GameObject:
   m_ObjectHideFlags: 0
@@ -15338,6 +15395,7 @@ MonoBehaviour:
   _button: {fileID: 5529257867320065919}
   _label: {fileID: 4620691596568353423}
   _index: 2
+  _highlightBorder: {fileID: 0}
 --- !u!1 &8743234674580770239
 GameObject:
   m_ObjectHideFlags: 0
@@ -15612,6 +15670,7 @@ MonoBehaviour:
   _button: {fileID: 7826611573632737284}
   _label: {fileID: 7097228253831302298}
   _index: 2
+  _highlightBorder: {fileID: 0}
 --- !u!1 &8979916442288783204
 GameObject:
   m_ObjectHideFlags: 0
