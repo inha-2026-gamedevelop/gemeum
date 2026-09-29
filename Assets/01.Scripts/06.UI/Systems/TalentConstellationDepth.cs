@@ -28,6 +28,9 @@ namespace Geumeum.UI
         private const float HASH_FREQUENCY = 12.9898f;
         private const float HASH_STRETCH   = 43758.5453f;
 
+        // 기울인 판이 초점 거리의 이 비율보다 가까이 오지 못하게 한다. 투영 배율이 2배를 넘지 않는다
+        private const float MIN_FOCAL_RATIO = 0.5f;
+
         [Header("깊이 배치 (-1 멀리 ~ +1 가까이)")]
         [Tooltip("내 가지의 기준 깊이. 내 가지가 앞으로 나와 보이게 한다")]
         [SerializeField] private float _localArmDepth = 0.3f;
@@ -61,6 +64,16 @@ namespace Geumeum.UI
 
         [Tooltip("가운데 그믐의 깊이. 모든 가지가 모이는 자리라 약간 앞에 둔다")]
         [SerializeField] private float _hubDepth = 0.2f;
+
+        [Header("기울기 (마우스)")]
+        [Tooltip("마우스를 위아래 끝까지 밀었을 때 별자리 판이 앞뒤로 눕는 각도(도)")]
+        [SerializeField] private float _maxPitch = 3f;
+
+        [Tooltip("마우스를 좌우 끝까지 밀었을 때 별자리 판이 도는 각도(도). 많이 돌리면 VR 메뉴처럼 보인다")]
+        [SerializeField] private float _maxYaw = 5f;
+
+        [Tooltip("원근 초점 거리(px). 작을수록 가까운 쪽이 더 커진다")]
+        [SerializeField] private float _focalLength = 900f;
 
         [Header("반짝임")]
         [Tooltip("알파가 흔들리는 폭. 잠긴 별은 반짝이지 않는다")]
@@ -150,6 +163,36 @@ namespace Geumeum.UI
         public Vector2 ParallaxOffset(Vector2 pointer, float depth)
         {
             return -pointer * Lerp(_parallaxRange, depth);
+        }
+
+        /// <summary>
+        /// 별자리 판을 기울여 원근으로 비춘 자리. center를 축으로 판을 돌리고 초점 거리로 투영한다.
+        /// scale은 그 자리에서 커지는 비율이다 - 판이 다가온 쪽은 1보다 크다
+        ///
+        /// 카메라와 캔버스를 바꾸지 않고 좌표만 옮긴다. 글자는 돌지 않고 자리만 따라가므로 흐려지지 않는다
+        /// </summary>
+        public Vector2 Tilt(Vector2 point, Vector2 center, Vector2 pointer, out float scale)
+        {
+            scale = 1f;
+            if (_focalLength <= 0f)
+            {
+                return point;
+            }
+
+            // 마우스 쪽이 뒤로 물러나게 돈다. 판을 들여다보는 시선이 마우스를 따라가는 모양이다
+            float yaw = pointer.x * _maxYaw * Mathf.Deg2Rad;
+            float pitch = -pointer.y * _maxPitch * Mathf.Deg2Rad;
+            Vector2 local = point - center;
+
+            float x = local.x * Mathf.Cos(yaw);
+            float z = -local.x * Mathf.Sin(yaw);
+            float y = (local.y * Mathf.Cos(pitch)) - (z * Mathf.Sin(pitch));
+            z = (local.y * Mathf.Sin(pitch)) + (z * Mathf.Cos(pitch));
+
+            // z가 클수록 사용자 쪽이다. 초점 거리보다 가까워지면 무한대로 커지므로 막는다
+            float distance = Mathf.Max(_focalLength - z, _focalLength * MIN_FOCAL_RATIO);
+            scale = _focalLength / distance;
+            return center + (new Vector2(x, y) * scale);
         }
 
         /// <summary> 알파 배수. phase는 별마다 다르게 주어 한꺼번에 깜빡이지 않게 한다 </summary>

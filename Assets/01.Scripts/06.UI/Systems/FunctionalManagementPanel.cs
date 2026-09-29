@@ -41,6 +41,9 @@ namespace Geumeum.UI
         private const float TALENT_TOOLTIP_FONT_SIZE     = 15f;
         private const float TALENT_TOOLTIP_MIN_FONT_SIZE = 9f;
 
+        // 가지·갈래 이름표의 깊이. 판 한가운데에 있다고 보고 기울기만 따른다
+        private const float TALENT_LABEL_DEPTH = 0f;
+
         // 제작 UI 팔레트와 같은 값을 쓴다
         private static readonly Color G_TooltipBackground = new Color(0.075f, 0.095f, 0.13f, 0.98f);
         private static readonly Color G_TooltipText = new Color(0.96f, 0.95f, 0.91f, 1f);
@@ -361,6 +364,13 @@ namespace Geumeum.UI
         private readonly float[] _talentStarDepths = new float[TALENT_BUTTON_COUNT];
         private readonly TalentStarState[] _talentStarStates = new TalentStarState[TALENT_BUTTON_COUNT];
         private readonly float[] _talentStarHover = new float[TALENT_BUTTON_COUNT];
+
+        // 기울기와 시차를 받기 전 자리와 이번 프레임에 밀린 거리. 0.2초 갱신이 기준 자리를 정하고
+        // 매 프레임 기울인 판 위 자리로 옮긴다. 선은 밀린 거리를 그대로 따른다
+        private readonly Vector2[] _talentStarBases = new Vector2[TALENT_BUTTON_COUNT];
+        private readonly Vector2[] _talentStarOffsets = new Vector2[TALENT_BUTTON_COUNT];
+        private readonly Vector2[] _talentArmLabelBases = new Vector2[TALENT_ARM_COUNT];
+        private readonly Vector2[] _talentColumnLabelBases = new Vector2[TALENT_COLUMNS_PER_ARM];
 
         /// <summary> 별이 얼마나 살아 있는지. 색이 아니라 빛의 세기로 가른다 </summary>
         private enum TalentStarState
@@ -2135,8 +2145,8 @@ namespace Geumeum.UI
 
                     FunctionalUiIndexedButton button = _talentButtons[index];
                     SetTalentButtonActive(button, true);
-                    ((RectTransform)button.transform).anchoredPosition =
-                        TalentPosition(tree, arm, weapon, column, row);
+                    _talentStarBases[index] = TalentPosition(tree, arm, weapon, column, row);
+                    ((RectTransform)button.transform).anchoredPosition = _talentStarBases[index];
                     _drawnTalentNodeIds[index] = node.NodeId;
                     _talentStarDepths[index] = _talentDepth.NodeDepth(mine, column, row, node.NodeId);
 
@@ -2229,7 +2239,8 @@ namespace Geumeum.UI
             }
 
             TMP_Text label = _talentArmTexts[arm];
-            label.rectTransform.anchoredPosition = _talentConstellation.ArmLabelPosition(arm);
+            _talentArmLabelBases[arm] = _talentConstellation.ArmLabelPosition(arm);
+            label.rectTransform.anchoredPosition = _talentArmLabelBases[arm];
             label.color = mine ? G_TalentArmLabel : G_TalentArmOther;
 
             string seat = $"{arm + 1}P";
@@ -2262,8 +2273,14 @@ namespace Geumeum.UI
 
                 SetText(label, string.IsNullOrWhiteSpace(entry.DisplayName)
                     ? $"{FunctionalUiText.GetWeaponName(weapon)} 특성" : entry.DisplayName);
-                label.rectTransform.anchoredPosition = _talentConstellation.BranchLabelPosition(
+                Vector2 labelPosition = _talentConstellation.BranchLabelPosition(
                     localArm, i, entry.NodeCount, columnCount, trunkRows);
+                if (i < _talentColumnLabelBases.Length)
+                {
+                    _talentColumnLabelBases[i] = labelPosition;
+                }
+
+                label.rectTransform.anchoredPosition = labelPosition;
             }
         }
 
@@ -2377,12 +2394,17 @@ namespace Geumeum.UI
                     alpha *= dim;
                 }
 
-                // 헤일로는 별과 한 덩어리(Visual)라 크기와 시차를 함께 받는다. 알파만 따로 곱한다
+                // 버튼째 옮긴다. 그림만 옮기면 기울기와 시차가 겹친 가장자리에서 누름 영역을 벗어난다
+                Vector2 basePosition = _talentStarBases[i];
+                Vector2 offset = TalentPlaneOffset(basePosition, pointer, depth, out float tiltScale);
+                _talentStarOffsets[i] = offset;
+                ((RectTransform)_talentButtons[i].transform).anchoredPosition = basePosition + offset;
+
+                // 헤일로는 별과 한 덩어리(Visual)라 크기를 함께 받는다. 알파만 따로 곱한다
                 RectTransform visual = (i < _talentStarVisuals.Length) ? _talentStarVisuals[i] : null;
                 if (visual != null)
                 {
-                    SetLocalScale(visual, scale);
-                    visual.anchoredPosition = _talentDepth.ParallaxOffset(pointer, depth);
+                    SetLocalScale(visual, scale * tiltScale);
                 }
 
                 image.canvasRenderer.SetAlpha(alpha);
@@ -2410,17 +2432,60 @@ namespace Geumeum.UI
                 Vector2 end = _talentEdgeEnds[i] + TalentSlotOffset(slots.x, pointer, hubOffset);
                 LayoutTalentEdge(line.rectTransform, start, end, _talentEdgeDepths[i]);
             }
+
+            AnimateTalentLabels(pointer);
         }
 
-        /// <summary> 칸의 시차 거리. -1은 가운데 그믐이다 </summary>
+        /// <summary>
+        /// 기울인 판 위 자리까지의 거리에 깊이 시차를 더한다. 가운데 그믐이 기울기의 축이다
+        /// </summary>
+        private Vector2 TalentPlaneOffset(Vector2 basePosition, Vector2 pointer, float depth,
+            out float tiltScale)
+        {
+            Vector2 tilted = _talentDepth.Tilt(basePosition, _talentConstellation.Center, pointer,
+                out tiltScale);
+            return (tilted - basePosition) + _talentDepth.ParallaxOffset(pointer, depth);
+        }
+
+        /// <summary> 칸이 이번 프레임에 밀린 거리. -1은 가운데 그믐이다 </summary>
         private Vector2 TalentSlotOffset(int slot, Vector2 pointer, Vector2 hubOffset)
         {
-            if ((slot < 0) || (slot >= _talentStarDepths.Length))
+            if ((slot < 0) || (slot >= _talentStarOffsets.Length))
             {
                 return hubOffset;
             }
 
-            return _talentDepth.ParallaxOffset(pointer, _talentStarDepths[slot]);
+            return _talentStarOffsets[slot];
+        }
+
+        /// <summary>
+        /// 가지 이름과 갈래 이름도 기울인 판을 따라 옮긴다. 글자는 돌리지 않고 자리만 옮겨 흐려지지 않는다
+        /// 이름은 판 한가운데 깊이(0)에 있다고 본다
+        /// </summary>
+        private void AnimateTalentLabels(Vector2 pointer)
+        {
+            int arms = Mathf.Min(_talentArmTexts.Length, _talentArmLabelBases.Length);
+            for (int i = 0; i < arms; ++i)
+            {
+                MoveTalentLabel(_talentArmTexts[i], _talentArmLabelBases[i], pointer);
+            }
+
+            int columns = Mathf.Min(ArrayLength(_talentColumnTexts), _talentColumnLabelBases.Length);
+            for (int i = 0; i < columns; ++i)
+            {
+                MoveTalentLabel(_talentColumnTexts[i], _talentColumnLabelBases[i], pointer);
+            }
+        }
+
+        private void MoveTalentLabel(TMP_Text label, Vector2 basePosition, Vector2 pointer)
+        {
+            if ((label == null) || !label.gameObject.activeSelf)
+            {
+                return;
+            }
+
+            label.rectTransform.anchoredPosition = basePosition +
+                TalentPlaneOffset(basePosition, pointer, TALENT_LABEL_DEPTH, out _);
         }
 
         /// <summary> 그믐을 시차만큼 밀고 아주 느리게 숨쉬게 한다. 헤일로는 숨에 맞춰 밝기만 바뀐다 </summary>
