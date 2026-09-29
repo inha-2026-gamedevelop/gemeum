@@ -2116,9 +2116,17 @@ namespace Geumeum.UI
         private void SetTalentButtonsUnavailable()
         {
             // 확인 중이라는 안내는 포인트 줄이 한다. 노드에는 글자를 두지 않는다
+            // 노드와 선도 숨긴다. 아직 모양을 받지 못한 별 그림은 스프라이트 없는 100px 흰 판이라
+            // 켜 둔 채면 프리팹 자리에 흰 기둥이 선다
             for (int i = 0; i < ArrayLength(_talentButtons); ++i)
             {
                 _talentButtons[i].SetInteractable(false);
+                SetTalentButtonActive(_talentButtons[i], false);
+            }
+
+            for (int i = 0; i < _talentEdges.Count; ++i)
+            {
+                SetActive(_talentEdges[i].gameObject, false);
             }
 
             SetInteractable(_talentResetButton, false);
