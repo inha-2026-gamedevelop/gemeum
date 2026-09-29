@@ -1095,6 +1095,7 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │  │                           주요(주칠 · 낙관) · 보조(먹 판) · 탭(한지 두루마리) · 배낭 칸(먹 판)을 상태별 그림
 │  │                           (13.UI/00.UI_Resource/InGame/Ink/)으로 바꾼다. 새 버튼은 목록에 올리고 다시 돌린다.
 │  │                           배낭 칸 · 필터의 선택 그림(FunctionalUiIndexedButton.SetSelected)도 여기서 물린다.
+│  │                           분류 필터 강조선도 여기서 칸 안쪽의 얇은 옅은 금빛 선으로 바꾼다(흰 선은 붙은 칸끼리 겹쳤다).
 │  │                           배낭은 위 필터(전체 · 무기 · 물약 · 권), 왼쪽 장착 칸과 물약 퀵슬롯(클릭 사용),
 │  │                           간격 없는 3x4 칸, 아래 사용 칸 수 · 노잣돈 줄로 배치했다
 │  ├ Editor/RunManagementUiBuilder.cs  위 화면을 SessionManagers 프리팹 안에 짓는 에디터 도구

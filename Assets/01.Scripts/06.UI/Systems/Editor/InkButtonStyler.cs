@@ -37,8 +37,8 @@ namespace Geumeum.UI.Editor
         private const string PREFAB_PATH = "Assets/02.Prefabs/UI/RunManagementUI.prefab";
         private const string SPRITE_DIR  = "Assets/13.UI/00.UI_Resource/InGame/Ink/";
 
-        // 원본 판은 높이 약 120px이다. 44px 버튼에 맞춰 9-slice 테두리를 이 비율로 줄인다
-        private const float SLICE_PIXELS_PER_UNIT = 2.8f;
+        // 판 그림은 높이 94px, 테두리 14px이다. 44px 버튼에서 위아래 선이 글자를 가로지르지 않게 테두리를 이 비율로 줄인다
+        private const float SLICE_PIXELS_PER_UNIT = 2.2f;
 
         private const int SLOT_COUNT = 12;
 
@@ -51,11 +51,15 @@ namespace Geumeum.UI.Editor
         // 한지 아이보리 - 먹 판과 주칠 판 위 글자
         private static readonly Color G_HanjiIvory = new Color(0.906f, 0.867f, 0.784f, 1f);
 
-        // 먹 - 한지 두루마리 위 글자
-        private static readonly Color G_InkBlack = new Color(0.067f, 0.075f, 0.082f, 1f);
+        // 글자가 테두리 선에 닿지 않게 좌우를 조금 비운다 (왼쪽, 위, 오른쪽, 아래 px)
+        private static readonly Vector4 G_OrnamentMargin = new Vector4(4f, 0f, 4f, 0f);
 
-        // 판 오른쪽의 낙관·매화를 글자가 덮지 않게 오른쪽을 더 비운다 (왼쪽, 위, 오른쪽, 아래 px)
-        private static readonly Vector4 G_OrnamentMargin = new Vector4(4f, 0f, 22f, 0f);
+        // 분류 필터에 걸린 칸의 강조선. 흰 선을 칸 밖으로 두르면 칸을 붙인 배낭에서 이웃 칸과 겹쳐
+        // 굵은 흰 격자가 된다. 칸 안쪽에 얇은 옅은 금빛 선 하나만 두른다
+        private static readonly Color G_FocusGold = new Color(0.722f, 0.584f, 0.353f, 0.85f);
+
+        private const float HIGHLIGHT_INSET     = 6f; // 칸 가장자리에서 안쪽으로 (칸 단위 px)
+        private const float HIGHLIGHT_THICKNESS = 3f;
 
         private static readonly InkKind G_Primary = new InkKind
         {
@@ -101,7 +105,7 @@ namespace Geumeum.UI.Editor
             Prefix = "Ink_Tab",
             PressedState = "Selected",
             IsSliced = true,
-            LabelColor = G_InkBlack,
+            LabelColor = G_HanjiIvory,
             Targets = new[]
             {
                 "EscapeMenu/SlidePanel/InventoryButton",
@@ -191,6 +195,37 @@ namespace Geumeum.UI.Editor
             return styled;
         }
 
+        /// <summary> 강조선 네 줄(T · B · L · R)을 칸 안쪽으로 들이고 옅은 금빛으로 바꾼다 </summary>
+        private static void StyleFilterHighlight(GameObject border)
+        {
+            if (border == null)
+            {
+                return;
+            }
+
+            var frame = (RectTransform)border.transform;
+            frame.offsetMin = new Vector2(HIGHLIGHT_INSET, HIGHLIGHT_INSET);
+            frame.offsetMax = new Vector2(-HIGHLIGHT_INSET, -HIGHLIGHT_INSET);
+
+            foreach (Transform line in frame)
+            {
+                var rect = (RectTransform)line;
+                bool horizontal = (line.name == "T") || (line.name == "B");
+                rect.sizeDelta = horizontal
+                    ? new Vector2(rect.sizeDelta.x, HIGHLIGHT_THICKNESS)
+                    : new Vector2(HIGHLIGHT_THICKNESS, rect.sizeDelta.y);
+
+                Image image = line.GetComponent<Image>();
+                if (image != null)
+                {
+                    image.color = G_FocusGold;
+                    image.raycastTarget = false;
+                }
+            }
+
+            EditorUtility.SetDirty(border);
+        }
+
         private static Sprite LoadSprite(string prefix, string state)
         {
             string path = $"{SPRITE_DIR}{prefix}_{state}.png";
@@ -237,6 +272,8 @@ namespace Geumeum.UI.Editor
                 var serialized = new SerializedObject(indexed);
                 serialized.FindProperty("_selectedSprite").objectReferenceValue = pressed;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
+
+                StyleFilterHighlight(serialized.FindProperty("_highlightBorder").objectReferenceValue as GameObject);
             }
 
             TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
