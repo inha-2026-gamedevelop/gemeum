@@ -57,8 +57,6 @@ namespace Geumeum.UI
         private static readonly Color G_TalentLineLit   = new Color(0.75f, 0.9f, 1f, 0.9f);
         private static readonly Color G_TalentLine      = new Color(0.5f, 0.5f, 0.5f, 0.55f);
         private static readonly Color G_TalentLineOther = new Color(0.4f, 0.4f, 0.4f, 0.4f);
-        private static readonly Color G_TalentArmLabel  = new Color(0.86f, 0.9f, 1f, 1f);
-        private static readonly Color G_TalentArmOther  = new Color(0.6f, 0.65f, 0.78f, 0.7f);
 
         private static readonly ShopItemKind[] G_ShopItems =
         {
@@ -2105,7 +2103,7 @@ namespace Geumeum.UI
                 WeaponKind weapon = _allocation.Weapon;
                 bool hasWeapon = mine || TryGetTalentArmWeapon(arm, out weapon);
 
-                RefreshTalentArmLabel(arm, mine, hasWeapon, weapon);
+                HideTalentArmLabel(arm);
                 if (hasWeapon)
                 {
                     missing += DrawTalentArm(tree, arm, weapon, mine, available);
@@ -2263,7 +2261,11 @@ namespace Geumeum.UI
             return true;
         }
 
-        private void RefreshTalentArmLabel(int arm, bool mine, bool hasWeapon, WeaponKind weapon)
+        /// <summary>
+        /// 가지 주인 이름표("1P 차사 (나)", "2P 빈 자리")는 화면을 어수선하게 해서 감춘다.
+        /// 글자 객체는 남겨 두고 위치만 갱신한다 - 가지 이름표 배치가 같은 기준점을 쓴다
+        /// </summary>
+        private void HideTalentArmLabel(int arm)
         {
             if (arm >= _talentArmTexts.Length)
             {
@@ -2273,12 +2275,7 @@ namespace Geumeum.UI
             TMP_Text label = _talentArmTexts[arm];
             _talentArmLabelBases[arm] = _talentConstellation.ArmLabelPosition(arm);
             label.rectTransform.anchoredPosition = _talentArmLabelBases[arm];
-            label.color = mine ? G_TalentArmLabel : G_TalentArmOther;
-
-            string seat = $"{arm + 1}P";
-            SetText(label, !hasWeapon ? $"{seat} 빈 자리" :
-                mine ? $"{seat} {FunctionalUiText.GetWeaponRoleName(weapon)} (나)" :
-                $"{seat} {FunctionalUiText.GetWeaponRoleName(weapon)}");
+            SetActive(label.gameObject, false);
         }
 
         /// <summary>
