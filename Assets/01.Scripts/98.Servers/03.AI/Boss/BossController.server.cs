@@ -146,7 +146,7 @@ namespace Geumeum.AI
                 return;
             }
 
-            TickGroggyState(deltaTime);
+            TickGroggySystem(deltaTime);
             CommitPendingPhaseTransitions();
 
             _souls?.ServerTick(runTime.GameplayElapsedSeconds);
@@ -183,15 +183,14 @@ namespace Geumeum.AI
                 }
             }
 
-            if (_groggyPhase == GroggyPhase.Groggy)
+            // Stage 5-2: 여기가 기존 11번(Groggy)·12번(SoulWindow) 게이트가 있던 정확한
+            // 위치다 - TransitionLock/Enrage/TargetRefresh를 전부 통과한 뒤, ResolveUpperState
+            // 결과 하나가 Combat 실행 여부를 결정한다(gate authority)
+            BossFinalState soulState = (_souls == null) ? BossFinalState.Dormant : _souls.SoulSnapshot.State;
+            BossUpperState upperState = ResolveUpperState(_status.IsDead, soulState, _groggyPhase);
+            if (upperState != BossUpperState.Combat)
             {
-                return; // 그로기 중엔 패턴을 새로 고르거나 발동하지 않는다
-            }
-
-            if ((_souls != null) &&
-                (_souls.SoulSnapshot.State == BossFinalState.SoulWindow))
-            {
-                return;
+                return; // 그로기(Stagger)나 SoulWindow면 패턴을 새로 고르거나 발동하지 않는다
             }
 
             _currentPhaseState.Tick(deltaTime);
@@ -229,9 +228,14 @@ namespace Geumeum.AI
             }
         }
 
-        // 그로기와 면역의 시간만 진행한다. 게이지 감소는 카운터 수락 경로가 맡는다
+        // Stage 5-0: 그로기와 면역의 시간만 진행한다. 게이지 감소는 카운터 수락 경로가 맡는다
+        // 기존 TickGroggyState의 단일 switch를 그대로 감싼 얇은 진입점이다 - 공통 가드와
+        // switch 분기 하나만 여기 남고, 각 case 본문은 TickStagger/TickGroggyImmune으로
+        // 옮겼다. 이 switch가 "한 틱에 한 case만 실행"을 보장한다 - Groggy case 안에서
+        // _groggyPhase가 Immune으로 바뀌어도 이 호출의 switch는 이미 Groggy 분기로
+        // 진입했으므로 같은 호출 안에서 Immune case로 다시 들어가지 않는다
         [Server]
-        private void TickGroggyState(float deltaTime)
+        private void TickGroggySystem(float deltaTime)
         {
             if (HasEnteredFinalSequence())
             {
@@ -241,116 +245,101 @@ namespace Geumeum.AI
             switch (_groggyPhase)
             {
                 case GroggyPhase.Groggy:
-                    _groggyStateTimer += deltaTime;
-                    if ((_groggyStateTimer >= _bossData.GroggyHelplessDuration) &&
-                        (_phaseSnapshot.Stage != BossEncounterStage.WakeWarning))
-                    {
-                        CommitPhaseSnapshot(BossEncounterStage.WakeWarning);
-                    }
-
-                    if (_groggyStateTimer >= _bossData.GroggyDuration)
-                    {
-                        _groggyPhase      = GroggyPhase.Immune;
-                        _groggyStateTimer = 0f;
-                        _groggyGauge      = _bossData.GroggyGaugeMax;
-                        _status.ServerSetBodyDamageMultiplier(1f);
-                        _parts?.ServerEndGroggy(_groggyGeneration);
-                        CommitPhaseSnapshot(BossEncounterStage.Fighting);
-
-                        if (_bossData.TryGetPhase(_currentPhaseIndex,
-                                out BossPatternSO.PhaseEntry phase) &&
-                            (phase.WakePatternId > 0) &&
-                            (!ServerIsPatternSealed(phase.WakePatternId)))
-                        {
-                            _currentPhaseState?.TryBeginForcedAttack(phase.WakePatternId, 0);
-                        }
-                    }
+                    TickStagger(deltaTime);
                     break;
                 case GroggyPhase.Immune:
-                    _groggyStateTimer += deltaTime;
-                    if (_groggyStateTimer >= _bossData.GroggyImmunityDuration)
-                    {
-                        _groggyPhase      = GroggyPhase.Active;
-                        _groggyStateTimer = 0f;
-                    }
+                    TickGroggyImmune(deltaTime);
                     break;
             }
         }
 
+        // 기존 TickGroggyState의 GroggyPhase.Groggy case 본문을 그대로 옮겼다 - 로직 순서,
+        // 비교 연산자, 타이머 초기화 시점, Wake Pattern 발동 시점 전부 동일하다
+        [Server]
+        private void TickStagger(float deltaTime)
+        {
+            _groggyStateTimer += deltaTime;
+            if ((_groggyStateTimer >= _bossData.GroggyHelplessDuration) &&
+                (_phaseSnapshot.Stage != BossEncounterStage.WakeWarning))
+            {
+                CommitPhaseSnapshot(BossEncounterStage.WakeWarning);
+            }
+
+            if (_groggyStateTimer >= _bossData.GroggyDuration)
+            {
+                _groggyPhase      = GroggyPhase.Immune;
+                _groggyStateTimer = 0f;
+                _groggyGauge      = _bossData.GroggyGaugeMax;
+                _status.ServerSetBodyDamageMultiplier(1f);
+                _parts?.ServerEndGroggy(_groggyGeneration);
+                CommitPhaseSnapshot(BossEncounterStage.Fighting);
+
+                if (_bossData.TryGetPhase(_currentPhaseIndex,
+                        out BossPatternSO.PhaseEntry phase) &&
+                    (phase.WakePatternId > 0) &&
+                    (!ServerIsPatternSealed(phase.WakePatternId)))
+                {
+                    _currentPhaseState?.TryBeginForcedAttack(phase.WakePatternId, 0);
+                }
+            }
+        }
+
+        // 기존 TickGroggyState의 GroggyPhase.Immune case 본문을 그대로 옮겼다
+        [Server]
+        private void TickGroggyImmune(float deltaTime)
+        {
+            _groggyStateTimer += deltaTime;
+            if (_groggyStateTimer >= _bossData.GroggyImmunityDuration)
+            {
+                _groggyPhase      = GroggyPhase.Active;
+                _groggyStateTimer = 0f;
+            }
+        }
+
+        // Stage 5-1: 순수 분류 함수. 어떤 필드도 쓰지 않고, 넘겨받은 값만으로 계산한다
+        // 우선순위: Dead > SoulWindow > Stagger > Combat. FailureAttack/Killable/Dormant/
+        // Active/Immune은 전부 Combat으로 분류한다 - 이 넷 다 _currentPhaseState.Tick()을
+        // 막지 않기 때문이다(BOSS_UPPER_FSM_DESIGN 재검토 결론). SoulWindow와 Groggy가
+        // 동시에 관찰되는 비정상 조합에서는 SoulWindow가 우선한다("Final이 Groggy를
+        // 강제 종료한다"는 기존 의미와 맞춤 - ExitGroggyForFinal 참고)
+        private static BossUpperState ResolveUpperState(bool isDead, BossFinalState soulState,
+            GroggyPhase groggyPhase)
+        {
+            if (isDead)
+            {
+                return BossUpperState.Dead;
+            }
+
+            if (soulState == BossFinalState.SoulWindow)
+            {
+                return BossUpperState.SoulWindow;
+            }
+
+            if (groggyPhase == GroggyPhase.Groggy)
+            {
+                return BossUpperState.Stagger;
+            }
+
+            return BossUpperState.Combat;
+        }
+
+        // Stage: Targeting 추출 - Physics 스캔/필터/거리 비교는 BossTargetingSystem이 한다.
+        // 여기 남은 건 orchestration뿐이다: 결과를 받아 PhaseState.Target과 _targetDamageable
+        // 캐시에 실제로 대입하는 것. BossPhaseStateBase/_currentPhaseState는 여전히
+        // BossController만 만지고, BossTargetingSystem은 이 둘을 전혀 모른다
         [Server]
         private void RefreshTarget()
         {
-            int count = Physics.OverlapSphereNonAlloc(transform.position, TARGET_SCAN_RADIUS, _targetScanBuffer, _playerLayerMask);
-
-            Transform    nearest           = null;
-            IDamageable  nearestDamageable = null;
-            float        nearestDistance   = float.MaxValue;
-
-            for (int i = 0; i < count; ++i)
-            {
-                _targetScanBuffer[i].TryGetComponent(out IDamageable damageable);
-                if ((damageable != null) &&
-                    (damageable.IsDead || ((damageable is IBossSwallowTarget swallowed) &&
-                        swallowed.IsSwallowed)))
-                {
-                    continue; // 관전 또는 삼켜진 플레이어는 새 공격 대상으로 삼지 않는다
-                }
-
-                float distance = Vector3.Distance(transform.position, _targetScanBuffer[i].transform.position);
-                if (distance < nearestDistance)
-                {
-                    nearestDistance   = distance;
-                    nearest           = _targetScanBuffer[i].transform;
-                    nearestDamageable = damageable;
-                }
-            }
-
+            _targeting.ResolvePrimaryTarget(out Transform nearest, out IDamageable nearestDamageable);
             _currentPhaseState.Target = nearest;
             _targetDamageable         = nearestDamageable;
         }
 
+        // 기존 시그니처·호출부(Phase1State/Phase2State) 그대로 유지하는 facade
         [Server]
         internal int ServerCollectAliveTargets(Transform[] destination)
         {
-            if ((destination == null) || (destination.Length == 0))
-            {
-                return 0;
-            }
-
-            int hitCount = Physics.OverlapSphereNonAlloc(transform.position, TARGET_SCAN_RADIUS,
-                _targetScanBuffer, _playerLayerMask);
-            int count = 0;
-            for (int i = 0; (i < hitCount) && (count < destination.Length); ++i)
-            {
-                NetworkIdentity identity = _targetScanBuffer[i].GetComponentInParent<NetworkIdentity>();
-                Transform candidate = (identity == null)
-                    ? _targetScanBuffer[i].transform
-                    : identity.transform;
-                if (candidate.TryGetComponent(out IDamageable damageable) &&
-                    (damageable.IsDead || ((damageable is IBossSwallowTarget swallowed) &&
-                        swallowed.IsSwallowed)))
-                {
-                    continue;
-                }
-
-                bool duplicate = false;
-                for (int j = 0; j < count; ++j)
-                {
-                    if (destination[j] == candidate)
-                    {
-                        duplicate = true;
-                        break;
-                    }
-                }
-
-                if (!duplicate)
-                {
-                    destination[count] = candidate;
-                    ++count;
-                }
-            }
-
-            return count;
+            return _targeting.CollectAliveTargets(destination);
         }
 
         /****************************************

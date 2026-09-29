@@ -662,8 +662,33 @@ Main.unity
    │                              Exit()는 멱등이라 종료된 페이즈는 다시 공격하지 않는다
    ├ Phase1State.cs           C#  [구현완료] 1페이즈 MVP: 오프닝 고정 시퀀스(1→2→4) 이후 거리 3단
    │                              필터 + SO 가중치 추첨. 템플릿 넷(MeleeArc·TargetedDash·
-   │                              MarkedCircle·ConeBurst) SO 실행 시퀀스로 연타·엇박을 처리
-   ├ Phase2State.cs           C#  [구현완료] 2페이즈: 패턴 6~10, 꼬리 파괴·25% 게이트·최종 원혼·삼켜짐 구현
+   │                              MarkedCircle·ConeBurst) SO 실행 시퀀스로 연타·엇박을 처리.
+   │                              [구현됨, L2 미검증] TargetedDash·MarkedCircle·RotatingBeam·
+   │                              RandomBarrage 4종의 패턴 전용 상태·실행 로직을 Phase1*Execution
+   │                              클래스로 분리했다. FSM 상태(_state)·타이머·attackInstanceId·
+   │                              반복 스케줄 소유는 Phase1State에 그대로 남는다
+   ├ Phase2State.cs           C#  [구현완료] 2페이즈: 패턴 6~10, 꼬리 파괴·25% 게이트·최종 원혼·삼켜짐 구현.
+   │                              [구현됨, L2 미검증] 같은 4종 패턴을 Phase2*Execution 클래스로
+   │                              분리(FSM 소유는 Phase2State 유지, Phase1과 공통화하지 않음 -
+   │                              같은 패턴이라도 페이즈별 세부 동작이 다르다, 예: TargetedDash 추적)
+   ├ Phase1TargetedDashExecution.cs   C#  [구현됨, L2 미검증] 패턴 3(순간 접근) 전용 - 직전 지목자
+   │                                      제외, 예고 앞 절반 추적 이동
+   ├ Phase1MarkedCircleExecution.cs   C#  [구현됨, L2 미검증] 패턴 4(여우불 낙인) 전용 - 예고 시작
+   │                                      시점 위치 스냅샷 고정
+   ├ Phase1RotatingBeamExecution.cs   C#  [구현됨, L2 미검증] 패턴 11(여우불 광선) 전용 - 회전 빔 1줄기,
+   │                                      자체 완료 판단(PatternTickResult 반환, FSM 전환은 Phase1State)
+   ├ Phase1RandomBarrageExecution.cs  C#  [구현됨, L2 미검증] 패턴 12(여우불 탄막) 전용 - 볼리 탄막
+   │                                      3발, 자체 완료 판단(PatternTickResult 반환)
+   ├ Phase2TargetedDashExecution.cs   C#  [구현됨, L2 미검증] 패턴 7 전용 - 추적 없는 단순 직진 돌진
+   ├ Phase2MarkedCircleExecution.cs   C#  [구현됨, L2 미검증] 패턴 8(표식 순환 처형) 전용. 실제 판정
+   │                                      원점은 ConeBurst·MeleeArc와 공유하는 반복-대상 스냅샷에서
+   │                                      나온다 - Center 필드는 원본부터 죽은 값, 그대로 유지
+   ├ Phase2RotatingBeamExecution.cs   C#  [구현됨, L2 미검증] 패턴 13 전용 - 회전 빔 2줄기(1페이즈보다
+   │                                      회피 구간이 좁음)
+   ├ Phase2RandomBarrageExecution.cs  C#  [구현됨, L2 미검증] 패턴 14 전용 - 볼리 탄막 6발(1페이즈보다 많음)
+   ├ PatternTickResult.cs             C#  [구현됨, L2 미검증] 자체완료형 실행 객체(RotatingBeam·
+   │                                      RandomBarrage)의 TickWindup 결과 enum(Continue/Complete).
+   │                                      실행 객체는 이 값만 반환하고 FSM 전환은 PhaseState가 수행
    ├ BossPatternRunner.cs     C#  [구현완료] MeleeArc 부채꼴 판정(NonAlloc), netId 중복 제거
    ├ BossAttackExecution.cs   C#  [구현완료] 보스 공격 1회의 IParryable 구현체. 공격마다 새 인스턴스로
    │                              늦은 패링 통지를 차단(창귀와 동일 패턴)

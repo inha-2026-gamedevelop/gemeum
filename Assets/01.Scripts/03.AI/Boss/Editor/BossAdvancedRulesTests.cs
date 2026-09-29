@@ -310,7 +310,7 @@ namespace Geumeum.AI
                 Assert.AreEqual("Active", Get(controller, "_groggyPhase").ToString());
                 Assert.AreEqual(1f, Get(status, "_bodyDamageMultiplier"));
 
-                Invoke(controller, "TickGroggyState", data.GroggyDuration * 2f);
+                Invoke(controller, "TickGroggySystem", data.GroggyDuration * 2f);
                 Assert.AreEqual(BossEncounterStage.FinalSoulWindow,
                     controller.PhaseSnapshot.Stage);
 
@@ -322,7 +322,7 @@ namespace Geumeum.AI
                     controller.PhaseSnapshot.Stage);
                 Assert.AreEqual(1, phase.ForcedAttackCount);
 
-                Invoke(controller, "TickGroggyState", data.GroggyDuration * 2f);
+                Invoke(controller, "TickGroggySystem", data.GroggyDuration * 2f);
                 Assert.AreEqual(BossEncounterStage.FinalFailureAttack,
                     controller.PhaseSnapshot.Stage);
             }

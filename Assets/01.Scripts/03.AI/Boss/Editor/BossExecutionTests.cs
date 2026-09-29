@@ -355,7 +355,7 @@ namespace Geumeum.AI
             Assert.AreEqual(85f, _status.Health);
 
             Set(_controller, "_groggyPhase", Enum.Parse(Field(_controller, "_groggyPhase").FieldType, "Groggy"));
-            Invoke(_controller, "TickGroggyState", _data.GroggyDuration);
+            Invoke(_controller, "TickGroggySystem", _data.GroggyDuration);
             _status.TakeDamage(new DamageInfo(10f, 1u, default));
             Assert.AreEqual(75f, _status.Health);
         }
