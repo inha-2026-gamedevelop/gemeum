@@ -30368,6 +30368,10 @@ MonoBehaviour:
   - {fileID: 8059150757960409624}
   - {fileID: 3623340781019420067}
   - {fileID: 6953707538654378482}
+  _pageTitleUnderline: {fileID: 533488289832526352}
+  _talentTitlePosition: {x: -480, y: 300}
+  _talentUnderlinePosition: {x: -492, y: 274}
+  _talentPointPosition: {x: -400, y: 238}
   _walletText: {fileID: 2743483700576439791}
   _shopHintText: {fileID: 2522747067708313884}
   _shopStatusText: {fileID: 2935959955959933787}

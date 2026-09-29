@@ -149,6 +149,18 @@ namespace Geumeum.UI
         [Tooltip("특성 탭에서는 끈다. 별하늘을 가리는 우측 판 같은 것")]
         [SerializeField] private GameObject[] _hideOnTalentPage = new GameObject[0];
 
+        [Header("특성 탭 제목 자리")]
+        [Tooltip("제목 밑 붓 획. 제목과 함께 옮긴다")]
+        [SerializeField] private RectTransform _pageTitleUnderline;
+
+        [Tooltip("특성 탭에서 제목을 두는 자리(px, 1280 기준). 우측 판이 숨으면 제목만 오른쪽에 떠 있어 왼쪽 위로 옮긴다")]
+        [SerializeField] private Vector2 _talentTitlePosition = new Vector2(-480f, 300f);
+
+        [SerializeField] private Vector2 _talentUnderlinePosition = new Vector2(-492f, 274f);
+
+        [Tooltip("포인트·확인 중 안내 줄 자리. 제목 바로 밑이다")]
+        [SerializeField] private Vector2 _talentPointPosition = new Vector2(-400f, 238f);
+
         [Header("객주")]
         [SerializeField] private TMP_Text _walletText;
         [SerializeField] private TMP_Text _shopHintText;
@@ -230,6 +242,10 @@ namespace Geumeum.UI
         private float _revealProgress;
         private Vector2 _slideOpenPosition;
         private bool _hasSlideOrigin;
+
+        private Vector2 _titleOrigin;
+        private Vector2 _underlineOrigin;
+        private bool _hasTitleOrigin;
 
         public static FunctionalManagementPanel Instance { get; private set; }
 
@@ -317,6 +333,7 @@ namespace Geumeum.UI
 
             BindButtons();
             CacheSlideOrigin();
+            CacheTitleOrigin();
             SetVisible(false, true);
         }
 
@@ -1674,6 +1691,40 @@ namespace Geumeum.UI
         /// 슬라이드 기준 자리를 한 번만 잡아 둔다. 연출로 옮긴 뒤의 좌표를 기준으로 삼으면
         /// 열고 닫을 때마다 창이 조금씩 밀려난다
         /// </summary>
+        /// <summary> 다른 탭으로 돌아갈 때 쓸 제목 자리. 프리팹이 정한 자리다 </summary>
+        private void CacheTitleOrigin()
+        {
+            if (_hasTitleOrigin)
+            {
+                return;
+            }
+
+            _titleOrigin     = (_pageTitle == null) ? Vector2.zero : _pageTitle.rectTransform.anchoredPosition;
+            _underlineOrigin = (_pageTitleUnderline == null) ? Vector2.zero : _pageTitleUnderline.anchoredPosition;
+            _hasTitleOrigin  = true;
+        }
+
+        /// <summary> 특성 탭이면 제목과 붓 획을 왼쪽 위로, 아니면 프리팹 자리로 되돌린다 </summary>
+        private void ApplyTitleLayout(bool talent)
+        {
+            CacheTitleOrigin();
+            if (_pageTitle != null)
+            {
+                _pageTitle.rectTransform.anchoredPosition = talent ? _talentTitlePosition : _titleOrigin;
+            }
+
+            if (_pageTitleUnderline != null)
+            {
+                _pageTitleUnderline.anchoredPosition = talent ? _talentUnderlinePosition : _underlineOrigin;
+            }
+
+            // 포인트 줄은 특성 탭에만 있다. 제목이 들어온 자리를 비켜 그 밑으로 내린다
+            if (talent && (_talentPointText != null))
+            {
+                _talentPointText.rectTransform.anchoredPosition = _talentPointPosition;
+            }
+        }
+
         private void CacheSlideOrigin()
         {
             if (_hasSlideOrigin || (_slideRoot == null))
@@ -1734,6 +1785,7 @@ namespace Geumeum.UI
             bool showsInventory = (page == PageKind.Inventory) || (page == PageKind.Shop);
             SetText(_pageTitle, showsInventory ? "배낭" :
                 page == PageKind.Talent ? "특성" : "양도");
+            ApplyTitleLayout(page == PageKind.Talent);
             SetActive(_inventoryPage, showsInventory);
             SetActive(_talentPage, page == PageKind.Talent);
             SetActive(_shopPage, page == PageKind.Shop);
