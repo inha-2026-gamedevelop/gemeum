@@ -878,6 +878,7 @@ GameObject:
   - component: {fileID: 8352459767863496161}
   - component: {fileID: 5546283567068918877}
   - component: {fileID: 8268809784438762700}
+  - component: {fileID: 9157834141494662591}
   m_Layer: 0
   m_Name: InventorySlot1
   m_TagString: Untagged
@@ -927,16 +928,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -963,7 +964,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
@@ -973,10 +974,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: f38b43dc099200e46b75012bff6cc3be, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 692a7e4c23573664c80971a229514097, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: ba12607c084927c4c8ffc9f57a5c4a64, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -1004,6 +1005,21 @@ MonoBehaviour:
   _label: {fileID: 536869356604729676}
   _index: 1
   _highlightBorder: {fileID: 3911762073897001917}
+--- !u!114 &9157834141494662591
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 195136796883867142}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 5546283567068918877}
+  _label: {fileID: 536869356604729676}
+  _disabledAlpha: 0.4
 --- !u!1 &219740134473342732
 GameObject:
   m_ObjectHideFlags: 0
@@ -1214,6 +1230,7 @@ GameObject:
   - component: {fileID: 4276038364881108631}
   - component: {fileID: 2815915309219802278}
   - component: {fileID: 7827288606573321217}
+  - component: {fileID: 758010812707164878}
   m_Layer: 0
   m_Name: InventoryFilter2
   m_TagString: Untagged
@@ -1263,15 +1280,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -1279,7 +1296,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &2815915309219802278
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1299,7 +1316,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
@@ -1309,10 +1326,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 9acae0a0e3715f942b19fea9abb521c7, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 805a8988c7428554a99e4dffd902b076, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 39a775951df2b2740aefaea08f0cdefb, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -1340,6 +1357,21 @@ MonoBehaviour:
   _label: {fileID: 2716849150181809501}
   _index: 2
   _highlightBorder: {fileID: 4045919136166057359}
+--- !u!114 &758010812707164878
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 307917235911028060}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 2815915309219802278}
+  _label: {fileID: 2716849150181809501}
+  _disabledAlpha: 0.4
 --- !u!1 &315601466219550651
 GameObject:
   m_ObjectHideFlags: 0
@@ -1415,7 +1447,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1741,6 +1773,7 @@ GameObject:
   - component: {fileID: 542537686286072768}
   - component: {fileID: 4521463809285078445}
   - component: {fileID: 5033537737619721575}
+  - component: {fileID: 2285068934951888337}
   m_Layer: 0
   m_Name: InventorySlot0
   m_TagString: Untagged
@@ -1790,16 +1823,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -1826,7 +1859,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
@@ -1836,10 +1869,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: f38b43dc099200e46b75012bff6cc3be, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 692a7e4c23573664c80971a229514097, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: ba12607c084927c4c8ffc9f57a5c4a64, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -1867,6 +1900,21 @@ MonoBehaviour:
   _label: {fileID: 6229073548025381825}
   _index: 0
   _highlightBorder: {fileID: 9200839547155150578}
+--- !u!114 &2285068934951888337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 381576687621046254}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 4521463809285078445}
+  _label: {fileID: 6229073548025381825}
+  _disabledAlpha: 0.4
 --- !u!1 &392826618149100002
 GameObject:
   m_ObjectHideFlags: 0
@@ -2492,7 +2540,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -3467,7 +3515,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -4136,7 +4184,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -4192,7 +4240,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -4980,6 +5028,7 @@ GameObject:
   - component: {fileID: 8889331947654956864}
   - component: {fileID: 1397626063027091731}
   - component: {fileID: 5062262126651322458}
+  - component: {fileID: 6745201483932656614}
   m_Layer: 0
   m_Name: InventorySlot5
   m_TagString: Untagged
@@ -5029,16 +5078,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -5065,7 +5114,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
@@ -5075,10 +5124,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: f38b43dc099200e46b75012bff6cc3be, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 692a7e4c23573664c80971a229514097, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: ba12607c084927c4c8ffc9f57a5c4a64, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -5106,6 +5155,21 @@ MonoBehaviour:
   _label: {fileID: 8174315181515769922}
   _index: 5
   _highlightBorder: {fileID: 8877786785031408924}
+--- !u!114 &6745201483932656614
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1223031764521077474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 1397626063027091731}
+  _label: {fileID: 8174315181515769922}
+  _disabledAlpha: 0.4
 --- !u!1 &1224803267063317815
 GameObject:
   m_ObjectHideFlags: 0
@@ -5674,7 +5738,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -5730,7 +5794,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -5965,7 +6029,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -6021,7 +6085,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -7375,6 +7439,7 @@ GameObject:
   - component: {fileID: 1981062029778728800}
   - component: {fileID: 7534389157168977928}
   - component: {fileID: 7648150164857575582}
+  - component: {fileID: 4424472815674062701}
   m_Layer: 0
   m_Name: TargetEquipped
   m_TagString: Untagged
@@ -7423,15 +7488,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.12, g: 0.15, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -7439,7 +7504,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &7648150164857575582
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7459,20 +7524,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
-    m_PressedColor: {r: 0.76, g: 0.78, b: 0.82, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.35, g: 0.37, b: 0.4, a: 0.65}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 7772e2ed49252864681369739005ef61, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: a0c5553090ba3734784f09cb6cd1695c, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 1ae41ea9d83b8b94c9380e403001b990, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -7484,6 +7549,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &4424472815674062701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1832282056594413547}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 7648150164857575582}
+  _label: {fileID: 8801497647604060782}
+  _disabledAlpha: 0.4
 --- !u!1 &1832282056594413601
 GameObject:
   m_ObjectHideFlags: 0
@@ -7496,6 +7576,7 @@ GameObject:
   - component: {fileID: 1981062029778728601}
   - component: {fileID: 7534389157168977601}
   - component: {fileID: 7648150164857575601}
+  - component: {fileID: 1752889714161498896}
   m_Layer: 0
   m_Name: OpenTransfer
   m_TagString: Untagged
@@ -7544,15 +7625,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.12, g: 0.15, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -7560,7 +7641,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &7648150164857575601
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7580,20 +7661,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
-    m_PressedColor: {r: 0.76, g: 0.78, b: 0.82, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.35, g: 0.37, b: 0.4, a: 0.65}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 7772e2ed49252864681369739005ef61, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: a0c5553090ba3734784f09cb6cd1695c, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 1ae41ea9d83b8b94c9380e403001b990, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -7605,6 +7686,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1752889714161498896
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1832282056594413601}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 7648150164857575601}
+  _label: {fileID: 8801497647604060601}
+  _disabledAlpha: 0.4
 --- !u!1 &1839700381653164445
 GameObject:
   m_ObjectHideFlags: 0
@@ -7817,7 +7913,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -8966,6 +9062,7 @@ GameObject:
   - component: {fileID: 645109471831069772}
   - component: {fileID: 6490012561523958067}
   - component: {fileID: 1300490206213847946}
+  - component: {fileID: 9138686268263747793}
   m_Layer: 0
   m_Name: TalentReset
   m_TagString: Untagged
@@ -9014,15 +9111,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.12, g: 0.15, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -9030,7 +9127,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &1300490206213847946
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9050,20 +9147,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
-    m_PressedColor: {r: 0.76, g: 0.78, b: 0.82, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.35, g: 0.37, b: 0.4, a: 0.65}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 7772e2ed49252864681369739005ef61, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: a0c5553090ba3734784f09cb6cd1695c, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 1ae41ea9d83b8b94c9380e403001b990, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -9075,6 +9172,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &9138686268263747793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2224293087001402316}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 1300490206213847946}
+  _label: {fileID: 2877884970976538592}
+  _disabledAlpha: 0.4
 --- !u!1 &2227827704406398991
 GameObject:
   m_ObjectHideFlags: 0
@@ -10006,6 +10118,7 @@ GameObject:
   - component: {fileID: 2505443995079034126}
   - component: {fileID: 3504611872478859442}
   - component: {fileID: 1006173119798180762}
+  - component: {fileID: 7805391967395696849}
   m_Layer: 0
   m_Name: QuickTransferConfirm
   m_TagString: Untagged
@@ -10054,15 +10167,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.86, g: 0.59, b: 0.18, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: 882a40cf539eda24d876cbfd1da30a09, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -10070,7 +10183,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &1006173119798180762
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10090,20 +10203,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 395546e9d5d19c8499b3dfbac0a2bf84, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 28758174091a1504293f564fef3a9fc5, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 882a40cf539eda24d876cbfd1da30a09, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: b1c789cd2797f37489007875381ad86b, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -10115,6 +10228,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &7805391967395696849
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2428283223215611675}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 1006173119798180762}
+  _label: {fileID: 4576819232490963254}
+  _disabledAlpha: 0.4
 --- !u!1 &2457444903237178914
 GameObject:
   m_ObjectHideFlags: 0
@@ -11400,6 +11528,7 @@ GameObject:
   - component: {fileID: 5167221223673363944}
   - component: {fileID: 3757942503371471128}
   - component: {fileID: 3878062732359571821}
+  - component: {fileID: 1171898177580939763}
   m_Layer: 0
   m_Name: InventorySlot8
   m_TagString: Untagged
@@ -11449,16 +11578,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -11485,7 +11614,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
@@ -11495,10 +11624,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: f38b43dc099200e46b75012bff6cc3be, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 692a7e4c23573664c80971a229514097, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: ba12607c084927c4c8ffc9f57a5c4a64, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -11526,6 +11655,21 @@ MonoBehaviour:
   _label: {fileID: 1283605412551548500}
   _index: 8
   _highlightBorder: {fileID: 7743919676819606227}
+--- !u!114 &1171898177580939763
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2807109607104864795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 3757942503371471128}
+  _label: {fileID: 1283605412551548500}
+  _disabledAlpha: 0.4
 --- !u!1 &2827561646090977051
 GameObject:
   m_ObjectHideFlags: 0
@@ -11601,7 +11745,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.067, g: 0.075, b: 0.082, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -11813,7 +11957,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.067, g: 0.075, b: 0.082, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -12495,7 +12639,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -12551,7 +12695,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -12570,6 +12714,7 @@ GameObject:
   - component: {fileID: 1493597574351999709}
   - component: {fileID: 2197264809858044625}
   - component: {fileID: 3741046084270609677}
+  - component: {fileID: 3996577790875118350}
   m_Layer: 0
   m_Name: InventorySlot6
   m_TagString: Untagged
@@ -12619,16 +12764,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -12655,7 +12800,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
@@ -12665,10 +12810,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: f38b43dc099200e46b75012bff6cc3be, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 692a7e4c23573664c80971a229514097, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: ba12607c084927c4c8ffc9f57a5c4a64, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -12696,6 +12841,21 @@ MonoBehaviour:
   _label: {fileID: 2165953767339965218}
   _index: 6
   _highlightBorder: {fileID: 6907310162714843286}
+--- !u!114 &3996577790875118350
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3120348413455136051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 2197264809858044625}
+  _label: {fileID: 2165953767339965218}
+  _disabledAlpha: 0.4
 --- !u!1 &3197156293347826157
 GameObject:
   m_ObjectHideFlags: 0
@@ -12993,6 +13153,7 @@ GameObject:
   - component: {fileID: 7778410839937539839}
   - component: {fileID: 2491412446969880349}
   - component: {fileID: 6490221271595694535}
+  - component: {fileID: 5563455389799231559}
   m_Layer: 0
   m_Name: InventoryFilter0
   m_TagString: Untagged
@@ -13042,15 +13203,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -13058,7 +13219,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &2491412446969880349
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13078,7 +13239,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
@@ -13088,10 +13249,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 9acae0a0e3715f942b19fea9abb521c7, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 805a8988c7428554a99e4dffd902b076, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 39a775951df2b2740aefaea08f0cdefb, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -13119,6 +13280,21 @@ MonoBehaviour:
   _label: {fileID: 3105670460746475891}
   _index: 0
   _highlightBorder: {fileID: 4690706660606090897}
+--- !u!114 &5563455389799231559
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3368862802199398823}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 2491412446969880349}
+  _label: {fileID: 3105670460746475891}
+  _disabledAlpha: 0.4
 --- !u!1 &3430558052536876972
 GameObject:
   m_ObjectHideFlags: 0
@@ -13405,6 +13581,7 @@ GameObject:
   - component: {fileID: 6658241737856251261}
   - component: {fileID: 4370902870137799418}
   - component: {fileID: 8132393020122997030}
+  - component: {fileID: 3195308334193591810}
   m_Layer: 0
   m_Name: Unequip
   m_TagString: Untagged
@@ -13453,15 +13630,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.12, g: 0.15, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -13469,7 +13646,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &8132393020122997030
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13489,20 +13666,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
-    m_PressedColor: {r: 0.76, g: 0.78, b: 0.82, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.35, g: 0.37, b: 0.4, a: 0.65}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 7772e2ed49252864681369739005ef61, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: a0c5553090ba3734784f09cb6cd1695c, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 1ae41ea9d83b8b94c9380e403001b990, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -13514,6 +13691,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3195308334193591810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3467421190712384391}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 8132393020122997030}
+  _label: {fileID: 2021783519299101174}
+  _disabledAlpha: 0.4
 --- !u!1 &3492539129175380688
 GameObject:
   m_ObjectHideFlags: 0
@@ -13770,6 +13962,7 @@ GameObject:
   - component: {fileID: 3149952578641917692}
   - component: {fileID: 2757820111288090648}
   - component: {fileID: 856383628252912329}
+  - component: {fileID: 6976391761218806487}
   m_Layer: 0
   m_Name: SettingsButton
   m_TagString: Untagged
@@ -13818,15 +14011,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.12, g: 0.15, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -13834,7 +14027,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &856383628252912329
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13854,20 +14047,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 9acae0a0e3715f942b19fea9abb521c7, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 805a8988c7428554a99e4dffd902b076, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 39a775951df2b2740aefaea08f0cdefb, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -13879,6 +14072,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6976391761218806487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3547275351491548208}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 856383628252912329}
+  _label: {fileID: 8730732231438981761}
+  _disabledAlpha: 0.4
 --- !u!1 &3553563052399388710
 GameObject:
   m_ObjectHideFlags: 0
@@ -14091,7 +14299,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -14147,7 +14355,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -14228,7 +14436,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -14284,7 +14492,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -14926,7 +15134,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.067, g: 0.075, b: 0.082, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -15063,7 +15271,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -15119,7 +15327,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -15380,6 +15588,7 @@ GameObject:
   - component: {fileID: 3374920281241095793}
   - component: {fileID: 5812922519182834358}
   - component: {fileID: 4110643775110361453}
+  - component: {fileID: 375105832640876837}
   m_Layer: 0
   m_Name: QuickTransferCancel
   m_TagString: Untagged
@@ -15428,15 +15637,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.24, g: 0.22, b: 0.2, a: 0.95}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -15444,7 +15653,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &4110643775110361453
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15464,20 +15673,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 7772e2ed49252864681369739005ef61, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: a0c5553090ba3734784f09cb6cd1695c, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 1ae41ea9d83b8b94c9380e403001b990, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -15489,6 +15698,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &375105832640876837
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3786633614753000458}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 4110643775110361453}
+  _label: {fileID: 3927879864334425903}
+  _disabledAlpha: 0.4
 --- !u!1 &3871693138482022008
 GameObject:
   m_ObjectHideFlags: 0
@@ -15714,6 +15938,7 @@ GameObject:
   - component: {fileID: 5781384997592855779}
   - component: {fileID: 7600481877326215772}
   - component: {fileID: 2287231075379405811}
+  - component: {fileID: 6321251597186480498}
   m_Layer: 0
   m_Name: UseTicket
   m_TagString: Untagged
@@ -15762,15 +15987,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.86, g: 0.59, b: 0.18, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: 882a40cf539eda24d876cbfd1da30a09, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -15778,7 +16003,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &2287231075379405811
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15798,20 +16023,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
-    m_PressedColor: {r: 0.76, g: 0.78, b: 0.82, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.35, g: 0.37, b: 0.4, a: 0.65}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 395546e9d5d19c8499b3dfbac0a2bf84, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 28758174091a1504293f564fef3a9fc5, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 882a40cf539eda24d876cbfd1da30a09, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: b1c789cd2797f37489007875381ad86b, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -15823,6 +16048,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6321251597186480498
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3910469245743617556}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 2287231075379405811}
+  _label: {fileID: 5348462602694321677}
+  _disabledAlpha: 0.4
 --- !u!1 &3911762073897001917
 GameObject:
   m_ObjectHideFlags: 0
@@ -15884,6 +16124,7 @@ GameObject:
   - component: {fileID: 456240195437689057}
   - component: {fileID: 8955787842029378174}
   - component: {fileID: 1025007885991110763}
+  - component: {fileID: 951215393548251590}
   m_Layer: 0
   m_Name: InventorySlot2
   m_TagString: Untagged
@@ -15933,16 +16174,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -15969,7 +16210,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
@@ -15979,10 +16220,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: f38b43dc099200e46b75012bff6cc3be, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 692a7e4c23573664c80971a229514097, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: ba12607c084927c4c8ffc9f57a5c4a64, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -16010,6 +16251,21 @@ MonoBehaviour:
   _label: {fileID: 2240274303049860589}
   _index: 2
   _highlightBorder: {fileID: 1224803267063317815}
+--- !u!114 &951215393548251590
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3942667071338467302}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 8955787842029378174}
+  _label: {fileID: 2240274303049860589}
+  _disabledAlpha: 0.4
 --- !u!1 &3951816305088391334
 GameObject:
   m_ObjectHideFlags: 0
@@ -16085,7 +16341,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -16141,7 +16397,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -16714,6 +16970,7 @@ GameObject:
   - component: {fileID: 7432569711183948739}
   - component: {fileID: 445384001377751624}
   - component: {fileID: 9185607897879250408}
+  - component: {fileID: 7364525663523872072}
   m_Layer: 0
   m_Name: TalentButton
   m_TagString: Untagged
@@ -16762,15 +17019,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.12, g: 0.15, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -16778,7 +17035,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &9185607897879250408
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16798,20 +17055,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 9acae0a0e3715f942b19fea9abb521c7, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 805a8988c7428554a99e4dffd902b076, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 39a775951df2b2740aefaea08f0cdefb, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -16823,6 +17080,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &7364525663523872072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4083961350682474036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 9185607897879250408}
+  _label: {fileID: 8784388198418432461}
+  _disabledAlpha: 0.4
 --- !u!1 &4123143220300975991
 GameObject:
   m_ObjectHideFlags: 0
@@ -17185,7 +17457,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -17241,7 +17513,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -18859,6 +19131,7 @@ GameObject:
   - component: {fileID: 5091460688598967563}
   - component: {fileID: 2475209302814718647}
   - component: {fileID: 2714960815105860921}
+  - component: {fileID: 1012945875272838686}
   m_Layer: 0
   m_Name: AcceptTransfer
   m_TagString: Untagged
@@ -18907,15 +19180,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.86, g: 0.59, b: 0.18, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: 882a40cf539eda24d876cbfd1da30a09, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -18923,7 +19196,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &2714960815105860921
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18943,20 +19216,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
-    m_PressedColor: {r: 0.76, g: 0.78, b: 0.82, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.35, g: 0.37, b: 0.4, a: 0.65}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 395546e9d5d19c8499b3dfbac0a2bf84, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 28758174091a1504293f564fef3a9fc5, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 882a40cf539eda24d876cbfd1da30a09, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: b1c789cd2797f37489007875381ad86b, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -18968,6 +19241,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1012945875272838686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4615440075836352021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 2714960815105860921}
+  _label: {fileID: 8419360764790873550}
+  _disabledAlpha: 0.4
 --- !u!1 &4652713664535908378
 GameObject:
   m_ObjectHideFlags: 0
@@ -20131,7 +20419,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.067, g: 0.075, b: 0.082, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -20465,7 +20753,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -20827,6 +21115,7 @@ GameObject:
   - component: {fileID: 4022697777622144742}
   - component: {fileID: 7095402782818303643}
   - component: {fileID: 4917434034284764852}
+  - component: {fileID: 9001675375755114185}
   m_Layer: 0
   m_Name: Recipient0
   m_TagString: Untagged
@@ -20875,15 +21164,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.12, g: 0.15, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -20891,7 +21180,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &7095402782818303643
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20911,20 +21200,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
-    m_PressedColor: {r: 0.76, g: 0.78, b: 0.82, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.35, g: 0.37, b: 0.4, a: 0.65}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 7772e2ed49252864681369739005ef61, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: a0c5553090ba3734784f09cb6cd1695c, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 1ae41ea9d83b8b94c9380e403001b990, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -20952,6 +21241,21 @@ MonoBehaviour:
   _label: {fileID: 8005709995977074614}
   _index: 0
   _highlightBorder: {fileID: 0}
+--- !u!114 &9001675375755114185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5007259202332887984}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 7095402782818303643}
+  _label: {fileID: 8005709995977074614}
+  _disabledAlpha: 0.4
 --- !u!1 &5011298595010344197
 GameObject:
   m_ObjectHideFlags: 0
@@ -21102,7 +21406,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -21465,6 +21769,7 @@ GameObject:
   - component: {fileID: 6049492379225775175}
   - component: {fileID: 7583978023649659617}
   - component: {fileID: 5182797751120060102}
+  - component: {fileID: 1391542931573504279}
   m_Layer: 0
   m_Name: InventorySlot3
   m_TagString: Untagged
@@ -21514,16 +21819,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -21550,7 +21855,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
@@ -21560,10 +21865,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: f38b43dc099200e46b75012bff6cc3be, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 692a7e4c23573664c80971a229514097, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: ba12607c084927c4c8ffc9f57a5c4a64, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -21591,6 +21896,21 @@ MonoBehaviour:
   _label: {fileID: 7242340783113685422}
   _index: 3
   _highlightBorder: {fileID: 2384545844093338084}
+--- !u!114 &1391542931573504279
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5069999273462167028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 7583978023649659617}
+  _label: {fileID: 7242340783113685422}
+  _disabledAlpha: 0.4
 --- !u!1 &5114131422088456238
 GameObject:
   m_ObjectHideFlags: 0
@@ -23248,7 +23568,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -23304,7 +23624,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -24249,6 +24569,7 @@ GameObject:
   - component: {fileID: 1294296831581269283}
   - component: {fileID: 349783379776951555}
   - component: {fileID: 5766201564542349139}
+  - component: {fileID: 4002344963894231760}
   m_Layer: 0
   m_Name: Recipient1
   m_TagString: Untagged
@@ -24297,15 +24618,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.12, g: 0.15, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -24313,7 +24634,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &349783379776951555
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -24333,20 +24654,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
-    m_PressedColor: {r: 0.76, g: 0.78, b: 0.82, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.35, g: 0.37, b: 0.4, a: 0.65}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 7772e2ed49252864681369739005ef61, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: a0c5553090ba3734784f09cb6cd1695c, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 1ae41ea9d83b8b94c9380e403001b990, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -24374,6 +24695,21 @@ MonoBehaviour:
   _label: {fileID: 2784556735653334298}
   _index: 1
   _highlightBorder: {fileID: 0}
+--- !u!114 &4002344963894231760
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5736649373522797280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 349783379776951555}
+  _label: {fileID: 2784556735653334298}
+  _disabledAlpha: 0.4
 --- !u!1 &5760375214903348043
 GameObject:
   m_ObjectHideFlags: 0
@@ -24867,7 +25203,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -25094,7 +25430,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -25445,7 +25781,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.067, g: 0.075, b: 0.082, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -26280,7 +26616,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -26635,7 +26971,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -27121,7 +27457,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -27177,7 +27513,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -27971,7 +28307,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.067, g: 0.075, b: 0.082, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -28532,6 +28868,7 @@ GameObject:
   - component: {fileID: 486018406918236647}
   - component: {fileID: 2752949645361980767}
   - component: {fileID: 1432850019769902218}
+  - component: {fileID: 6062910575251016206}
   m_Layer: 0
   m_Name: GuideButton
   m_TagString: Untagged
@@ -28580,15 +28917,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.12, g: 0.15, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -28596,7 +28933,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &1432850019769902218
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28616,20 +28953,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 9acae0a0e3715f942b19fea9abb521c7, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 805a8988c7428554a99e4dffd902b076, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 39a775951df2b2740aefaea08f0cdefb, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -28641,6 +28978,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6062910575251016206
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6696960779687296287}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 1432850019769902218}
+  _label: {fileID: 857435186913462491}
+  _disabledAlpha: 0.4
 --- !u!1 &6702040166717362101
 GameObject:
   m_ObjectHideFlags: 0
@@ -29098,6 +29450,7 @@ GameObject:
   - component: {fileID: 4882014458372175528}
   - component: {fileID: 4347781250987165518}
   - component: {fileID: 7098613533411377384}
+  - component: {fileID: 5656805668943031594}
   m_Layer: 0
   m_Name: InventorySlot11
   m_TagString: Untagged
@@ -29147,16 +29500,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -29183,7 +29536,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
@@ -29193,10 +29546,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: f38b43dc099200e46b75012bff6cc3be, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 692a7e4c23573664c80971a229514097, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: ba12607c084927c4c8ffc9f57a5c4a64, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -29224,6 +29577,21 @@ MonoBehaviour:
   _label: {fileID: 7968256471456947925}
   _index: 11
   _highlightBorder: {fileID: 8560580351069974142}
+--- !u!114 &5656805668943031594
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6844552120848867513}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 4347781250987165518}
+  _label: {fileID: 7968256471456947925}
+  _disabledAlpha: 0.4
 --- !u!1 &6848203240308988179
 GameObject:
   m_ObjectHideFlags: 0
@@ -30338,6 +30706,9 @@ MonoBehaviour:
     _lineWidthRange: {x: 0.7, y: 1.3}
     _parallaxRange: {x: 2, y: 9}
     _hubDepth: 0.2
+    _maxPitch: 3
+    _maxYaw: 5
+    _focalLength: 900
     _twinkleAmount: 0.15
     _twinkleSpeedRange: {x: 0.25, y: 0.7}
     _pulseInterval: 4
@@ -30616,6 +30987,7 @@ GameObject:
   - component: {fileID: 8219699095641591504}
   - component: {fileID: 416104823918915827}
   - component: {fileID: 1771215719479846172}
+  - component: {fileID: 5624654664061860636}
   m_Layer: 0
   m_Name: CancelTransfer
   m_TagString: Untagged
@@ -30664,15 +31036,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.12, g: 0.15, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -30680,7 +31052,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &1771215719479846172
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -30700,20 +31072,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
-    m_PressedColor: {r: 0.76, g: 0.78, b: 0.82, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.35, g: 0.37, b: 0.4, a: 0.65}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 7772e2ed49252864681369739005ef61, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: a0c5553090ba3734784f09cb6cd1695c, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 1ae41ea9d83b8b94c9380e403001b990, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -30725,6 +31097,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &5624654664061860636
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7139762398342900188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 1771215719479846172}
+  _label: {fileID: 3466132521528802775}
+  _disabledAlpha: 0.4
 --- !u!1 &7151502999108970826
 GameObject:
   m_ObjectHideFlags: 0
@@ -31252,7 +31639,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -31308,7 +31695,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -31326,6 +31713,7 @@ GameObject:
   - component: {fileID: 3590009641525347969}
   - component: {fileID: 1192397026484016456}
   - component: {fileID: 651765274007857726}
+  - component: {fileID: 938176695067116434}
   m_Layer: 0
   m_Name: InventoryButton
   m_TagString: Untagged
@@ -31374,15 +31762,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.12, g: 0.15, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -31390,7 +31778,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &651765274007857726
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -31410,20 +31798,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 9acae0a0e3715f942b19fea9abb521c7, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 805a8988c7428554a99e4dffd902b076, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 39a775951df2b2740aefaea08f0cdefb, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -31435,6 +31823,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &938176695067116434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7327426382725075558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 651765274007857726}
+  _label: {fileID: 9170301799831597117}
+  _disabledAlpha: 0.4
 --- !u!1 &7332923249719040070
 GameObject:
   m_ObjectHideFlags: 0
@@ -32730,6 +33133,7 @@ GameObject:
   - component: {fileID: 7170385041831259243}
   - component: {fileID: 9183334084835679973}
   - component: {fileID: 3293518540429958976}
+  - component: {fileID: 8458827837974357763}
   m_Layer: 0
   m_Name: InventorySlot7
   m_TagString: Untagged
@@ -32779,16 +33183,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -32815,7 +33219,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
@@ -32825,10 +33229,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: f38b43dc099200e46b75012bff6cc3be, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 692a7e4c23573664c80971a229514097, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: ba12607c084927c4c8ffc9f57a5c4a64, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -32856,6 +33260,21 @@ MonoBehaviour:
   _label: {fileID: 8783001279268304920}
   _index: 7
   _highlightBorder: {fileID: 4022326187056020002}
+--- !u!114 &8458827837974357763
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7643926011317407009}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 9183334084835679973}
+  _label: {fileID: 8783001279268304920}
+  _disabledAlpha: 0.4
 --- !u!1 &7656580781159874423
 GameObject:
   m_ObjectHideFlags: 0
@@ -32931,7 +33350,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.067, g: 0.075, b: 0.082, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -33006,6 +33425,7 @@ GameObject:
   - component: {fileID: 4938866675439656523}
   - component: {fileID: 5666772283855292539}
   - component: {fileID: 6713797081778242871}
+  - component: {fileID: 2648295783074032561}
   m_Layer: 0
   m_Name: InventorySlot10
   m_TagString: Untagged
@@ -33055,16 +33475,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -33091,7 +33511,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
@@ -33101,10 +33521,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: f38b43dc099200e46b75012bff6cc3be, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 692a7e4c23573664c80971a229514097, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: ba12607c084927c4c8ffc9f57a5c4a64, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -33132,6 +33552,21 @@ MonoBehaviour:
   _label: {fileID: 4733869297088279023}
   _index: 10
   _highlightBorder: {fileID: 7036404138853696279}
+--- !u!114 &2648295783074032561
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7672189669418057330}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 5666772283855292539}
+  _label: {fileID: 4733869297088279023}
+  _disabledAlpha: 0.4
 --- !u!1 &7699470825393852578
 GameObject:
   m_ObjectHideFlags: 0
@@ -33330,7 +33765,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -34022,7 +34457,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -34078,7 +34513,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -34217,6 +34652,7 @@ GameObject:
   - component: {fileID: 8970196340047570667}
   - component: {fileID: 2426699918945345790}
   - component: {fileID: 936780066508578804}
+  - component: {fileID: 2714828936926794008}
   m_Layer: 0
   m_Name: Equip
   m_TagString: Untagged
@@ -34265,15 +34701,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.86, g: 0.59, b: 0.18, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: 882a40cf539eda24d876cbfd1da30a09, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -34281,7 +34717,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &936780066508578804
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34301,20 +34737,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
-    m_PressedColor: {r: 0.76, g: 0.78, b: 0.82, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.35, g: 0.37, b: 0.4, a: 0.65}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 395546e9d5d19c8499b3dfbac0a2bf84, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 28758174091a1504293f564fef3a9fc5, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 882a40cf539eda24d876cbfd1da30a09, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: b1c789cd2797f37489007875381ad86b, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -34326,6 +34762,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &2714828936926794008
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8179951187247840921}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 936780066508578804}
+  _label: {fileID: 4301813985548145807}
+  _disabledAlpha: 0.4
 --- !u!1 &8185270350363833462
 GameObject:
   m_ObjectHideFlags: 0
@@ -34338,6 +34789,7 @@ GameObject:
   - component: {fileID: 6983072868076357929}
   - component: {fileID: 6330932251135921580}
   - component: {fileID: 5770674910564106283}
+  - component: {fileID: 5677951583013077546}
   m_Layer: 0
   m_Name: RejectTransfer
   m_TagString: Untagged
@@ -34386,15 +34838,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.12, g: 0.15, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -34402,7 +34854,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &5770674910564106283
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34422,20 +34874,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
-    m_PressedColor: {r: 0.76, g: 0.78, b: 0.82, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.35, g: 0.37, b: 0.4, a: 0.65}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 7772e2ed49252864681369739005ef61, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: a0c5553090ba3734784f09cb6cd1695c, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: daa397efba7ab3c46b4b93cd099cb63f, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 1ae41ea9d83b8b94c9380e403001b990, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -34447,6 +34899,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &5677951583013077546
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8185270350363833462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 5770674910564106283}
+  _label: {fileID: 8538953131947742809}
+  _disabledAlpha: 0.4
 --- !u!1 &8190728520351113555
 GameObject:
   m_ObjectHideFlags: 0
@@ -35090,7 +35557,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -37197,6 +37664,7 @@ GameObject:
   - component: {fileID: 4600351367676548647}
   - component: {fileID: 5147272244813195628}
   - component: {fileID: 5826899409790389494}
+  - component: {fileID: 2190700897107966592}
   m_Layer: 0
   m_Name: InventoryFilter1
   m_TagString: Untagged
@@ -37246,15 +37714,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -37262,7 +37730,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &5147272244813195628
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37282,7 +37750,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
@@ -37292,10 +37760,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 9acae0a0e3715f942b19fea9abb521c7, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 805a8988c7428554a99e4dffd902b076, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: f1f77fbcd69aa084f9713ee2135724c2, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: 39a775951df2b2740aefaea08f0cdefb, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -37323,6 +37791,21 @@ MonoBehaviour:
   _label: {fileID: 3744281884527433578}
   _index: 1
   _highlightBorder: {fileID: 690359096273900195}
+--- !u!114 &2190700897107966592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8809205620796327840}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 5147272244813195628}
+  _label: {fileID: 3744281884527433578}
+  _disabledAlpha: 0.4
 --- !u!1 &8836362899049555944
 GameObject:
   m_ObjectHideFlags: 0
@@ -37411,6 +37894,7 @@ GameObject:
   - component: {fileID: 5635844916485907126}
   - component: {fileID: 3026931241503764021}
   - component: {fileID: 4272081214347865655}
+  - component: {fileID: 8695157898545605464}
   m_Layer: 0
   m_Name: InventorySlot4
   m_TagString: Untagged
@@ -37460,16 +37944,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -37496,7 +37980,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
@@ -37506,10 +37990,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: f38b43dc099200e46b75012bff6cc3be, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 692a7e4c23573664c80971a229514097, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: ba12607c084927c4c8ffc9f57a5c4a64, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -37537,6 +38021,21 @@ MonoBehaviour:
   _label: {fileID: 1781423332879723092}
   _index: 4
   _highlightBorder: {fileID: 979071689014698670}
+--- !u!114 &8695157898545605464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8837480995665287122}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 3026931241503764021}
+  _label: {fileID: 1781423332879723092}
+  _disabledAlpha: 0.4
 --- !u!1 &8862862898314818173
 GameObject:
   m_ObjectHideFlags: 0
@@ -37624,6 +38123,7 @@ GameObject:
   - component: {fileID: 203259905151551581}
   - component: {fileID: 1386469444478258206}
   - component: {fileID: 4049029628860386309}
+  - component: {fileID: 5908931785050457263}
   m_Layer: 0
   m_Name: UsePotion
   m_TagString: Untagged
@@ -37672,15 +38172,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.86, g: 0.59, b: 0.18, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: 882a40cf539eda24d876cbfd1da30a09, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -37688,7 +38188,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.8
 --- !u!114 &4049029628860386309
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37708,20 +38208,20 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
-    m_PressedColor: {r: 0.76, g: 0.78, b: 0.82, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.35, g: 0.37, b: 0.4, a: 0.65}
+    m_NormalColor: {r: 0.82, g: 0.82, b: 0.82, a: 1}
+    m_HighlightedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_PressedColor: {r: 0.6, g: 0.58, b: 0.55, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_DisabledColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.55}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: 395546e9d5d19c8499b3dfbac0a2bf84, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 28758174091a1504293f564fef3a9fc5, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 882a40cf539eda24d876cbfd1da30a09, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: b1c789cd2797f37489007875381ad86b, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -37733,6 +38233,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &5908931785050457263
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8871861520418967542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 4049029628860386309}
+  _label: {fileID: 8118065091784040492}
+  _disabledAlpha: 0.4
 --- !u!1 &8877786785031408924
 GameObject:
   m_ObjectHideFlags: 0
@@ -38567,7 +39082,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4293456629
-  m_fontColor: {r: 0.96, g: 0.95, b: 0.91, a: 1}
+  m_fontColor: {r: 0.906, g: 0.867, b: 0.784, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -38623,7 +39138,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 4, y: 0, z: 22, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -39390,6 +39905,7 @@ GameObject:
   - component: {fileID: 7661197540050848939}
   - component: {fileID: 2425812392218249992}
   - component: {fileID: 5986482637216442976}
+  - component: {fileID: 1185439037814580788}
   m_Layer: 0
   m_Name: InventorySlot9
   m_TagString: Untagged
@@ -39439,16 +39955,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.941, g: 0.886, b: 0.784, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 36cde26e529d8c3458db3c3718186ad2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -39475,7 +39991,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 2
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0.96, b: 0.84, a: 1}
@@ -39485,10 +40001,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 0}
-    m_PressedSprite: {fileID: 0}
-    m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 0}
+    m_HighlightedSprite: {fileID: 21300000, guid: f38b43dc099200e46b75012bff6cc3be, type: 3}
+    m_PressedSprite: {fileID: 21300000, guid: 692a7e4c23573664c80971a229514097, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: 731c533ddadd63d44a83b4500cec615c, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: ba12607c084927c4c8ffc9f57a5c4a64, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -39516,6 +40032,21 @@ MonoBehaviour:
   _label: {fileID: 6913065258843622242}
   _index: 9
   _highlightBorder: {fileID: 512132605888482966}
+--- !u!114 &1185439037814580788
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9206286057162290027}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0be5dcf2c631ac44a79fbe97a79a934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Geumeum.UI.InkButtonLabel
+  _button: {fileID: 2425812392218249992}
+  _label: {fileID: 6913065258843622242}
+  _disabledAlpha: 0.4
 --- !u!1 &9208871720066369231
 GameObject:
   m_ObjectHideFlags: 0

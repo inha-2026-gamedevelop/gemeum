@@ -1084,6 +1084,12 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │  ├ RailRowVisual.cs      MB  좌측 레일 한 줄(박스 · 아이콘 · 글자 · 밑줄)의 활성 표시를 바꾼다.
 │  │                           레일을 ESC 메뉴로 대체해 코드에서는 더 쓰지 않는다.
 │  │                           꺼 둔 _bak_ 레일 오브젝트가 아직 참조하므로 파일은 남겨 둔다
+│  ├ InkButtonLabel.cs     MB  [현재] 먹 버튼 글자를 버튼 상태에 맞춰 흐린다. 그림 교체는 판 하나에만 걸려
+│  │                           글자가 그대로 밝으면 누를 수 없는 버튼이 누를 수 있어 보인다
+│  ├ Editor/InkButtonStyler.cs  [현재] 먹 버튼 스타일의 정본. 메뉴 그믐 ▸ UI ▸ 먹 버튼 스타일 적용.
+│  │                           주요(주칠 · 낙관) · 보조(먹 판) · 탭(한지 두루마리) · 배낭 칸(먹 판)을 상태별 그림
+│  │                           (13.UI/00.UI_Resource/InGame/Ink/)으로 바꾼다. 새 버튼은 목록에 올리고 다시 돌린다.
+│  │                           배낭 칸 선택 그림은 실제 선택 상태에 아직 물리지 않았다 [계획]
 │  ├ Editor/RunManagementUiBuilder.cs  위 화면을 SessionManagers 프리팹 안에 짓는 에디터 도구
 │  └ Editor/EscapeMenuUiBuilder.cs  레일을 _bak_로 꺼 두고 ESC 메뉴를 RunManagementUI 프리팹 안에
 │                              짓는 에디터 도구. 다시 돌려도 된다. 설정 창은 프리팹에서 만든 최종 화면이라
