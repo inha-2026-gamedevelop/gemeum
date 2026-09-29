@@ -1,5 +1,6 @@
 // Unity
 using UnityEngine;
+using UnityEngine.UI;
 
 // 프로젝트 내부
 using Geumeum.Combat;
@@ -22,8 +23,8 @@ namespace Geumeum.UI
 
         private const float FULL = 1f;
 
-        [Tooltip("채움 막대. 오른쪽 앵커를 진행률만큼 옮긴다 - 스프라이트 없이 늘이기만 한다")]
-        [SerializeField] private RectTransform _fill;
+        [Tooltip("채움 붓 획. Filled(가로) 이미지의 fillAmount로 채운다 - 늘이면 붓 획이 찌그러진다")]
+        [SerializeField] private Image _fill;
 
         private PlayerStatus _boundStatus;
         private int          _shownLevel      = -1;
@@ -104,9 +105,7 @@ namespace Geumeum.UI
                 return;
             }
 
-            Vector2 anchorMax = _fill.anchorMax;
-            anchorMax.x = progress;
-            _fill.anchorMax = anchorMax;
+            _fill.fillAmount = progress;
         }
     }
 }

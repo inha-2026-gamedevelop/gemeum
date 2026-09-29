@@ -884,7 +884,7 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           서버에만 쌓여 순수 클라이언트가 전투 상태를 모른다. 팀장께 SyncVar를
 │     │                           요청해 둔 상태다 [계획]. 3인 접속은 미검증
 │     ├ HUDController.cs         [구현완료] HP · 신력 · 스태미나 바를 PlayerStatus.Local에 바인딩
-│     ├ HudExperienceBar.cs      [현재] 화면 맨 아래 초록 경험치 바. 현재 레벨 구간 안의 진행률을 그리고 만렙은 가득.
+│     ├ HudExperienceBar.cs      [현재] 화면 맨 아래 상아색 붓 획 경험치 바(Filled). 현재 레벨 구간 진행률, 만렙은 가득.
 │     │                           GrowthChanged가 서버에서만 불려 레벨 · 누적 경험치를 매 프레임 비교해 바뀐 때만 그린다.
 │     │                           호스트 1인에서 60% · 레벨업 후 재충전 · 만렙 가득을 확인, 3인 접속은 미검증
 │     ├ MinimapPlayerDots.cs     [구현완료] 파티원 위치를 점으로, 결계를 판과 원으로 그린다. 캐릭터별 색.
