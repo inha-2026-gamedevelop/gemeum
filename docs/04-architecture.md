@@ -887,6 +887,11 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     ├ HudExperienceBar.cs      [현재] 화면 맨 아래 상아색 붓 획 경험치 바(Filled). 현재 레벨 구간 진행률, 만렙은 가득.
 │     │                           GrowthChanged가 서버에서만 불려 레벨 · 누적 경험치를 매 프레임 비교해 바뀐 때만 그린다.
 │     │                           호스트 1인에서 60% · 레벨업 후 재충전 · 만렙 가득을 확인, 3인 접속은 미검증
+│     ├ HudPotionQuickSlots.cs   [현재] 좌하단 물약 퀵슬롯(체력 1 · 신력 2). 종류로 칸이 정해져 배낭의 첫 칸을 쓰고,
+│     │                           기존 ShopTransactionService.RequestUsePotion으로 요청한다 - 판정은 서버, 네트워크 멤버 추가 없음.
+│     │                           서버에 물약 쿨다운이 없어 결과가 오기 전(최대 1초)에는 다음 요청을 보내지 않는다.
+│     │                           메뉴가 열려 있으면(LocalGameplayInputGate) 막는다. Boot → 필드 호스트 1인에서 소모 · 회복 ·
+│     │                           연타 차단 · 가득 참 거절을 확인. 실제 키 입력과 3인 접속은 미검증
 │     ├ MinimapPlayerDots.cs     [구현완료] 파티원 위치를 점으로, 결계를 판과 원으로 그린다. 캐릭터별 색.
 │     │                           결계 밖을 위험 색으로 덮는다 - UI에 역마스크가 없어 판 하나를 칠하고
 │     │                           결계 자리만 비운다. 원이 움직인 만큼만 다시 칠한다.
