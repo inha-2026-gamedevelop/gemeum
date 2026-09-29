@@ -129,6 +129,14 @@ namespace Geumeum.UI
         [SerializeField] private TalentConstellationLayout _talentConstellation =
             new TalentConstellationLayout();
 
+        [Tooltip("노드마다 가상 깊이를 주어 별자리가 평면이 아니라 공간에 떠 있게 보이게 한다")]
+        [SerializeField] private TalentConstellationDepth _talentDepth =
+            new TalentConstellationDepth();
+
+        [Tooltip("별 헤일로와 가운데 그믐의 빛. Bloom 대신 겹친 그림으로 광원처럼 보이게 한다")]
+        [SerializeField] private TalentConstellationGlow _talentGlow =
+            new TalentConstellationGlow();
+
         [Tooltip("가운데 그믐. 별자리 중심으로 옮긴다")]
         [SerializeField] private RectTransform _talentHub;
 
@@ -314,8 +322,37 @@ namespace Geumeum.UI
 
         private readonly List<Image> _talentEdges = new List<Image>();
 
+        // 선마다 잇는 두 칸 번호(x = 자식, y = 선행, 그믐이면 -1). 가리킨 별에 닿은 선을 찾는다
+        private readonly List<Vector2Int> _talentEdgeSlots = new List<Vector2Int>();
+
+        // 선마다 시차를 받기 전 두 끝과 깊이. 매 프레임 두 끝 별의 시차만큼 다시 눕힌다
+        private readonly List<Vector2> _talentEdgeStarts = new List<Vector2>();
+        private readonly List<Vector2> _talentEdgeEnds = new List<Vector2>();
+        private readonly List<float> _talentEdgeDepths = new List<float>();
+
         // 노드 버튼 안에 둔 별 그림. 버튼 자체는 투명한 누름 영역이다
         private Image[] _talentNodeImages = new Image[0];
+
+        // 별 그림과 헤일로 두 겹을 묶은 덩어리. 시차와 다가옴은 이것만 움직인다
+        private RectTransform[] _talentStarVisuals = new RectTransform[0];
+        private Image[] _talentHaloInner = new Image[0];
+        private Image[] _talentHaloOuter = new Image[0];
+
+        private Image _talentHubHalo;
+
+        // 칸마다 깊이, 상태, 가리킨 정도(0~1). 매 프레임 반짝임과 다가옴을 계산하는 데 쓴다
+        private readonly float[] _talentStarDepths = new float[TALENT_BUTTON_COUNT];
+        private readonly TalentStarState[] _talentStarStates = new TalentStarState[TALENT_BUTTON_COUNT];
+        private readonly float[] _talentStarHover = new float[TALENT_BUTTON_COUNT];
+
+        /// <summary> 별이 얼마나 살아 있는지. 색이 아니라 빛의 세기로 가른다 </summary>
+        private enum TalentStarState
+        {
+            Other     = 0,
+            Locked    = 1,
+            Open      = 2,
+            Allocated = 3,
+        }
 
         // 가지 주인 이름. 첫 열 이름표를 복제해 만든다
         private TMP_Text[] _talentArmTexts = new TMP_Text[0];
@@ -349,9 +386,13 @@ namespace Geumeum.UI
             }
 
             _talentNodeImages = new Image[TALENT_BUTTON_COUNT];
+            _talentStarVisuals = new RectTransform[TALENT_BUTTON_COUNT];
+            _talentHaloInner = new Image[TALENT_BUTTON_COUNT];
+            _talentHaloOuter = new Image[TALENT_BUTTON_COUNT];
+            Sprite glowSprite = ResolveTalentGlowSprite();
             for (int i = 0; i < TALENT_BUTTON_COUNT; ++i)
             {
-                _talentNodeImages[i] = StyleTalentNode(_talentButtons[i]);
+                StyleTalentNode(_talentButtons[i], i, glowSprite);
             }
 
             if (_talentColumnTexts != null && _talentColumnTexts.Length > 0)
@@ -375,19 +416,79 @@ namespace Geumeum.UI
                 _talentHub.anchoredPosition = _talentConstellation.Center;
             }
 
+            EnsureTalentHubGlow(glowSprite);
             EnsureTalentTooltip();
         }
 
-        /// <summary>
-        /// 버튼 판을 투명한 누름 영역으로 두고 그 안에 별 그림을 하나 넣는다
-        /// 별이 점만 해져도 가리키기 쉬워야 하므로 누름 영역은 크기를 고정한다
-        /// </summary>
-        private Image StyleTalentNode(FunctionalUiIndexedButton button)
+        /// <summary> 헤일로 그림은 가운데 그믐의 빛을 빌린다. 프리팹에 칸을 새로 만들지 않는다 </summary>
+        private Sprite ResolveTalentGlowSprite()
         {
-            Transform existing = button.transform.Find("Star");
+            Image hub = (_talentHub == null) ? null : _talentHub.GetComponent<Image>();
+            return (hub == null) ? null : hub.sprite;
+        }
+
+        /// <summary>
+        /// 가운데 그믐을 여러 겹으로 나눈다. 빛과 달은 줄이고, 뒤에 아주 옅은 헤일로를 한 겹 깐다
+        /// 한 덩어리의 큰 원형 번짐은 별이 아니라 선택 표시처럼 읽힌다
+        /// </summary>
+        private void EnsureTalentHubGlow(Sprite glowSprite)
+        {
+            if ((_talentHub == null) || (_talentHubHalo != null))
+            {
+                return;
+            }
+
+            if (_talentGlow.HubGlowSize > 0f)
+            {
+                _talentHub.sizeDelta = Vector2.one * _talentGlow.HubGlowSize;
+            }
+
+            Transform moon = _talentHub.Find("Moon");
+            if ((moon != null) && (_talentGlow.HubMoonSize > 0f))
+            {
+                ((RectTransform)moon).sizeDelta = Vector2.one * _talentGlow.HubMoonSize;
+            }
+
+            if ((glowSprite == null) || (_talentGlow.HubHaloAlpha <= 0f))
+            {
+                return;
+            }
+
+            // 그믐과 같은 부모에서 바로 뒤에 둔다. 그믐 자식으로 두면 숨쉬기 배율이 겹쳐 곱해진다
+            GameObject halo = new GameObject("TalentHubHalo", typeof(RectTransform), typeof(Image));
+            _talentHubHalo = halo.GetComponent<Image>();
+            RectTransform rect = _talentHubHalo.rectTransform;
+            rect.SetParent(_talentHub.parent, false);
+            rect.SetSiblingIndex(_talentHub.GetSiblingIndex());
+            rect.anchorMin = _talentHub.anchorMin;
+            rect.anchorMax = _talentHub.anchorMax;
+            rect.anchoredPosition = _talentHub.anchoredPosition;
+            rect.sizeDelta = Vector2.one * _talentGlow.HubHaloSize;
+
+            Image hubImage = _talentHub.GetComponent<Image>();
+            Color color = (hubImage == null) ? Color.white : hubImage.color;
+            color.a = _talentGlow.HubHaloAlpha;
+            _talentHubHalo.sprite = glowSprite;
+            _talentHubHalo.color = color;
+            _talentHubHalo.raycastTarget = false;
+        }
+
+        /// <summary>
+        /// 버튼 판을 투명한 누름 영역으로 두고 그 안에 별 그림과 헤일로 두 겹을 넣는다
+        /// 별이 점만 해져도 가리키기 쉬워야 하므로 누름 영역은 크기를 고정한다
+        ///
+        /// 셋은 Visual 한 덩어리 아래에 둔다. 시차와 다가옴은 Visual만 움직이고 누름 영역은 제자리다
+        /// </summary>
+        private void StyleTalentNode(FunctionalUiIndexedButton button, int index, Sprite glowSprite)
+        {
+            Transform existing = button.transform.Find("Visual");
             if (existing != null)
             {
-                return existing.GetComponent<Image>();
+                _talentStarVisuals[index] = (RectTransform)existing;
+                _talentNodeImages[index] = FindChildImage(existing, "Star");
+                _talentHaloInner[index] = FindChildImage(existing, "HaloInner");
+                _talentHaloOuter[index] = FindChildImage(existing, "HaloOuter");
+                return;
             }
 
             // 비활성 틴트가 노드 색을 덮어쓰지 않게 한다. 상태 색은 RefreshTalentView가 정한다
@@ -413,12 +514,38 @@ namespace Geumeum.UI
             var rect = (RectTransform)button.transform;
             rect.sizeDelta = Vector2.one * _talentConstellation.HitSize;
 
-            GameObject star = new GameObject("Star", typeof(RectTransform), typeof(Image));
-            star.transform.SetParent(button.transform, false);
-            Image image = star.GetComponent<Image>();
+            GameObject visual = new GameObject("Visual", typeof(RectTransform));
+            visual.transform.SetParent(button.transform, false);
+            _talentStarVisuals[index] = (RectTransform)visual.transform;
+
+            // 그리는 순서대로 만든다. 바깥 헤일로가 맨 뒤, 별이 맨 앞이다
+            _talentHaloOuter[index] = CreateTalentStarLayer(visual.transform, "HaloOuter", glowSprite);
+            _talentHaloInner[index] = CreateTalentStarLayer(visual.transform, "HaloInner", glowSprite);
+            _talentNodeImages[index] = CreateTalentStarLayer(visual.transform, "Star", null);
+        }
+
+        private static Image CreateTalentStarLayer(Transform parent, string name, Sprite sprite)
+        {
+            GameObject layer = new GameObject(name, typeof(RectTransform), typeof(Image));
+            layer.transform.SetParent(parent, false);
+            Image image = layer.GetComponent<Image>();
+            image.sprite = sprite;
             image.raycastTarget = false;
             image.preserveAspect = true;
+
+            // 헤일로는 상태가 정해질 때 켠다. 그림이 없으면 끝까지 꺼 둔다
+            if (name != "Star")
+            {
+                layer.SetActive(false);
+            }
+
             return image;
+        }
+
+        private static Image FindChildImage(Transform parent, string name)
+        {
+            Transform child = parent.Find(name);
+            return (child == null) ? null : child.GetComponent<Image>();
         }
 
         /// <summary> 한 무기 트리의 노드 자리. 열 수와 줄기 길이는 데이터에서 읽는다 </summary>
@@ -646,6 +773,7 @@ namespace Geumeum.UI
                 int arm = i / TALENT_SLOTS_PER_ARM;
                 bool mine = arm == localArm;
                 Vector2 end = TalentPosition(tree, arm, node.WeaponKind, node.ColumnIndex, node.RowIndex);
+                float depth = _talentStarDepths[i];
 
                 bool hasParent = false;
                 foreach (int parent in tree.EnumeratePrerequisites(node))
@@ -658,14 +786,22 @@ namespace Geumeum.UI
                     hasParent = true;
                     Vector2 start = TalentPosition(tree, arm, prerequisite.WeaponKind,
                         prerequisite.ColumnIndex, prerequisite.RowIndex);
+
+                    // 선행은 같은 가지 안에 있다. 선은 두 끝 별 깊이의 가운데에 놓인다
+                    int parentSlot = (arm * TALENT_SLOTS_PER_ARM) +
+                        (prerequisite.ColumnIndex * TALENT_ROWS_PER_COLUMN) + prerequisite.RowIndex;
+                    float lineDepth = ((parentSlot >= 0) && (parentSlot < _talentStarDepths.Length))
+                        ? (depth + _talentStarDepths[parentSlot]) * 0.5f : depth;
                     PlaceTalentEdge(used++, start, end, !mine ? G_TalentLineOther :
-                        _allocation.Contains(parent) ? G_TalentLineLit : G_TalentLine);
+                        _allocation.Contains(parent) ? G_TalentLineLit : G_TalentLine,
+                        lineDepth, new Vector2Int(i, parentSlot));
                 }
 
                 if (!hasParent)
                 {
                     PlaceTalentEdge(used++, _talentConstellation.Center, end, !mine ? G_TalentLineOther :
-                        _allocation.Contains(node.NodeId) ? G_TalentLineLit : G_TalentLine);
+                        _allocation.Contains(node.NodeId) ? G_TalentLineLit : G_TalentLine,
+                        depth, new Vector2Int(i, -1));
                 }
             }
 
@@ -676,7 +812,8 @@ namespace Geumeum.UI
         /// 선 하나를 두 점 사이에 눕힌다. 모자라면 새로 만든다
         /// 그믐 바로 아래에 끼운다 - 맨 앞에 두면 별하늘 층에 가려진다
         /// </summary>
-        private void PlaceTalentEdge(int index, Vector2 start, Vector2 end, Color color)
+        private void PlaceTalentEdge(int index, Vector2 start, Vector2 end, Color color, float depth,
+            Vector2Int slots)
         {
             if (index == _talentEdges.Count)
             {
@@ -693,7 +830,16 @@ namespace Geumeum.UI
                 var image = go.GetComponent<Image>();
                 image.raycastTarget = false;
                 _talentEdges.Add(image);
+                _talentEdgeSlots.Add(slots);
+                _talentEdgeStarts.Add(start);
+                _talentEdgeEnds.Add(end);
+                _talentEdgeDepths.Add(depth);
             }
+
+            _talentEdgeSlots[index] = slots;
+            _talentEdgeStarts[index] = start;
+            _talentEdgeEnds[index] = end;
+            _talentEdgeDepths[index] = depth;
 
             Image line = _talentEdges[index];
             if (!line.gameObject.activeSelf)
@@ -705,11 +851,17 @@ namespace Geumeum.UI
             var template = (RectTransform)_talentButtons[0].transform;
             rect.anchorMin = template.anchorMin;
             rect.anchorMax = template.anchorMax;
+            LayoutTalentEdge(rect, start, end, depth);
+            line.color = _talentDepth.LineTint(color, depth);
+        }
+
+        private void LayoutTalentEdge(RectTransform rect, Vector2 start, Vector2 end, float depth)
+        {
             rect.anchoredPosition = (start + end) * 0.5f;
-            rect.sizeDelta = new Vector2(Vector2.Distance(start, end), _talentConstellation.LineWidth);
+            rect.sizeDelta = new Vector2(Vector2.Distance(start, end),
+                _talentConstellation.LineWidth * _talentDepth.LineWidthScale(depth));
             rect.localRotation = Quaternion.Euler(0f, 0f,
                 Mathf.Atan2(end.y - start.y, end.x - start.x) * Mathf.Rad2Deg);
-            line.color = color;
         }
 
         private void OnEnable()
@@ -813,6 +965,11 @@ namespace Geumeum.UI
             {
                 _nextSnapshotPollTime = Time.unscaledTime + SNAPSHOT_POLL_INTERVAL;
                 RefreshAllViews();
+            }
+
+            if (_currentPage == PageKind.Talent)
+            {
+                AnimateTalentStars();
             }
 
             RefreshTransferCountdown();
@@ -1929,6 +2086,7 @@ namespace Geumeum.UI
                     ((RectTransform)button.transform).anchoredPosition =
                         TalentPosition(tree, arm, weapon, column, row);
                     _drawnTalentNodeIds[index] = node.NodeId;
+                    _talentStarDepths[index] = _talentDepth.NodeDepth(mine, column, row, node.NodeId);
 
                     if (!mine)
                     {
@@ -1937,7 +2095,7 @@ namespace Geumeum.UI
                         SetTalentButtonInteractable(button, false);
                         ApplyTalentNodeLook(index, root ? _talentStarSprite : _talentDotSprite,
                             root ? _talentConstellation.OtherRootSize : _talentConstellation.OtherSize,
-                            G_TalentOther);
+                            G_TalentOther, TalentStarState.Other);
                         continue;
                     }
 
@@ -1952,17 +2110,18 @@ namespace Geumeum.UI
                     if (allocated)
                     {
                         ApplyTalentNodeLook(index, _talentStarSprite,
-                            _talentConstellation.AllocatedSize, G_TalentAllocated);
+                            _talentConstellation.AllocatedSize, G_TalentAllocated,
+                            TalentStarState.Allocated);
                     }
                     else if (open)
                     {
                         ApplyTalentNodeLook(index, _talentStarSprite,
-                            _talentConstellation.OpenSize, G_TalentOpen);
+                            _talentConstellation.OpenSize, G_TalentOpen, TalentStarState.Open);
                     }
                     else
                     {
                         ApplyTalentNodeLook(index, _talentDotSprite,
-                            _talentConstellation.LockedSize, G_TalentLocked);
+                            _talentConstellation.LockedSize, G_TalentLocked, TalentStarState.Locked);
                     }
                 }
             }
@@ -2056,8 +2215,12 @@ namespace Geumeum.UI
             }
         }
 
-        /// <summary> 노드 상태를 별 모양, 크기, 색으로 보인다. 같은 값이면 건드리지 않는다 </summary>
-        private void ApplyTalentNodeLook(int index, Sprite sprite, float size, Color color)
+        /// <summary>
+        /// 노드 상태를 별 모양, 크기, 색으로 보이고 깊이를 입힌다. 같은 스프라이트면 건드리지 않는다
+        /// 반짝임과 다가옴은 여기서 정하지 않는다 - 매 프레임 AnimateTalentStars가 배수로 얹는다
+        /// </summary>
+        private void ApplyTalentNodeLook(int index, Sprite sprite, float size, Color color,
+            TalentStarState state)
         {
             Image image = (index < _talentNodeImages.Length) ? _talentNodeImages[index] : null;
             if (image == null)
@@ -2070,8 +2233,179 @@ namespace Geumeum.UI
                 image.sprite = sprite;
             }
 
-            image.color = color;
-            image.rectTransform.sizeDelta = Vector2.one * size;
+            float depth = _talentStarDepths[index];
+            float starSize = size * _talentDepth.Scale(depth);
+            Color tint = _talentDepth.Tint(color, depth);
+            _talentStarStates[index] = state;
+            image.color = tint;
+            image.rectTransform.sizeDelta = Vector2.one * starSize;
+
+            bool allocated = state == TalentStarState.Allocated;
+            bool open = state == TalentStarState.Open;
+            bool hasInner = _talentGlow.TryGetInner(allocated, open, out float innerScale, out float innerAlpha);
+            bool hasOuter = _talentGlow.TryGetOuter(allocated, out float outerScale, out float outerAlpha);
+            ApplyTalentHalo(_talentHaloInner, index, hasInner, starSize * innerScale, tint, innerAlpha);
+            ApplyTalentHalo(_talentHaloOuter, index, hasOuter, starSize * outerScale, tint, outerAlpha);
+        }
+
+        /// <summary> 헤일로 한 겹. 별과 같은 색에 깊이 알파까지 따른다 - 먼 별은 번짐도 옅다 </summary>
+        private static void ApplyTalentHalo(Image[] halos, int index, bool shown, float size, Color tint,
+            float alpha)
+        {
+            Image halo = (index < halos.Length) ? halos[index] : null;
+            if (halo == null)
+            {
+                return;
+            }
+
+            shown &= halo.sprite != null;
+            if (halo.gameObject.activeSelf != shown)
+            {
+                halo.gameObject.SetActive(shown);
+            }
+
+            if (!shown)
+            {
+                return;
+            }
+
+            tint.a *= alpha;
+            halo.color = tint;
+            halo.rectTransform.sizeDelta = Vector2.one * size;
+        }
+
+        /// <summary>
+        /// 별의 빛과 시차를 매 프레임 얹는다. 특성 탭이 열려 있을 때만 돈다
+        ///
+        /// 상태 색과 크기(sizeDelta, Image.color)와 버튼 자리는 0.2초 갱신이 정하고, 여기서는
+        /// Visual의 자리·배율과 CanvasRenderer 알파 배수만 만진다. 두 갱신이 서로 값을 덮지 않는다
+        /// 누름 영역(버튼)은 움직이지 않는다. 시차 폭이 누름 영역 반지름보다 작아 클릭이 어긋나지 않는다
+        /// </summary>
+        private void AnimateTalentStars()
+        {
+            float time = Time.unscaledTime;
+            float blend = 1f - Mathf.Exp(-_talentDepth.HoverSmoothing * Time.unscaledDeltaTime);
+
+            // 별하늘과 같은 입력으로 밀어야 하늘과 별자리가 한 공간에 있는 것처럼 움직인다
+            Vector2 pointer = TalentSkyAnimator.Pointer;
+
+            int hovered = _hoveredTalentIndex;
+            bool hovering = (hovered >= 0) && (hovered < _drawnTalentNodeIds.Length) &&
+                (_drawnTalentNodeIds[hovered] > 0);
+            float dim = _talentDepth.HoverDimOthers;
+
+            int count = Mathf.Min(_talentNodeImages.Length, _drawnTalentNodeIds.Length);
+            for (int i = 0; i < count; ++i)
+            {
+                Image image = _talentNodeImages[i];
+                if ((_drawnTalentNodeIds[i] <= 0) || (image == null))
+                {
+                    continue;
+                }
+
+                bool isHovered = hovering && (i == hovered);
+                _talentStarHover[i] = Mathf.Lerp(_talentStarHover[i], isHovered ? 1f : 0f, blend);
+
+                // 칸 번호로 위상을 뽑아 별들이 한꺼번에 깜빡이거나 부풀지 않게 한다
+                float phase = (TalentConstellationDepth.Hash(i) + 1f) * 0.5f;
+                float depth = _talentStarDepths[i];
+                TalentStarState state = _talentStarStates[i];
+
+                float scale = Mathf.Lerp(1f, _talentDepth.HoverScale, _talentStarHover[i]);
+                if (state == TalentStarState.Open)
+                {
+                    scale += _talentDepth.Pulse(time, phase);
+                }
+
+                // 잠긴 별은 죽은 별이다. 반짝이지 않는다
+                float alpha = (state == TalentStarState.Locked)
+                    ? 1f : _talentDepth.Twinkle(time, depth, phase);
+                if (hovering && !isHovered)
+                {
+                    alpha *= dim;
+                }
+
+                // 헤일로는 별과 한 덩어리(Visual)라 크기와 시차를 함께 받는다. 알파만 따로 곱한다
+                RectTransform visual = (i < _talentStarVisuals.Length) ? _talentStarVisuals[i] : null;
+                if (visual != null)
+                {
+                    SetLocalScale(visual, scale);
+                    visual.anchoredPosition = _talentDepth.ParallaxOffset(pointer, depth);
+                }
+
+                image.canvasRenderer.SetAlpha(alpha);
+                SetHaloAlpha(_talentHaloInner, i, alpha);
+                SetHaloAlpha(_talentHaloOuter, i, alpha);
+            }
+
+            Vector2 hubOffset = _talentDepth.ParallaxOffset(pointer, _talentDepth.HubDepth);
+            AnimateTalentHub(time, hubOffset);
+
+            for (int i = 0; i < _talentEdges.Count; ++i)
+            {
+                Image line = _talentEdges[i];
+                if (!line.gameObject.activeSelf)
+                {
+                    continue;
+                }
+
+                Vector2Int slots = _talentEdgeSlots[i];
+                bool touches = (slots.x == hovered) || (slots.y == hovered);
+                line.canvasRenderer.SetAlpha((hovering && !touches) ? dim : 1f);
+
+                // 선은 두 끝 별이 밀린 만큼 따라 눕는다. 선만 제자리면 별이 선에서 떨어져 보인다
+                Vector2 start = _talentEdgeStarts[i] + TalentSlotOffset(slots.y, pointer, hubOffset);
+                Vector2 end = _talentEdgeEnds[i] + TalentSlotOffset(slots.x, pointer, hubOffset);
+                LayoutTalentEdge(line.rectTransform, start, end, _talentEdgeDepths[i]);
+            }
+        }
+
+        /// <summary> 칸의 시차 거리. -1은 가운데 그믐이다 </summary>
+        private Vector2 TalentSlotOffset(int slot, Vector2 pointer, Vector2 hubOffset)
+        {
+            if ((slot < 0) || (slot >= _talentStarDepths.Length))
+            {
+                return hubOffset;
+            }
+
+            return _talentDepth.ParallaxOffset(pointer, _talentStarDepths[slot]);
+        }
+
+        /// <summary> 그믐을 시차만큼 밀고 아주 느리게 숨쉬게 한다. 헤일로는 숨에 맞춰 밝기만 바뀐다 </summary>
+        private void AnimateTalentHub(float time, Vector2 offset)
+        {
+            if (_talentHub == null)
+            {
+                return;
+            }
+
+            Vector2 position = _talentConstellation.Center + offset;
+            _talentHub.anchoredPosition = position;
+            SetLocalScale(_talentHub, _talentGlow.BreathScale(time));
+
+            if (_talentHubHalo != null)
+            {
+                _talentHubHalo.rectTransform.anchoredPosition = position;
+                _talentHubHalo.canvasRenderer.SetAlpha(_talentGlow.HaloBreathAlpha(time));
+            }
+        }
+
+        private static void SetHaloAlpha(Image[] halos, int index, float alpha)
+        {
+            Image halo = (index < halos.Length) ? halos[index] : null;
+            if ((halo != null) && halo.gameObject.activeSelf)
+            {
+                halo.canvasRenderer.SetAlpha(alpha);
+            }
+        }
+
+        private static void SetLocalScale(Transform target, float scale)
+        {
+            Vector3 value = Vector3.one * scale;
+            if (target.localScale != value)
+            {
+                target.localScale = value;
+            }
         }
 
         /// <summary> 지금 가리키는 칸이 들고 있는 노드 ID. 가리키는 칸이 없으면 0 </summary>
