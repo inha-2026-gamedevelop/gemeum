@@ -2,6 +2,9 @@
 using System;
 using System.Text;
 
+// Unity
+using UnityEngine;
+
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
@@ -109,6 +112,22 @@ namespace Geumeum.UI
 
             return $"{GetGradeName(weapon.Grade)} {GetWeaponName(weapon.WeaponKind)}" +
                 $"\n공격력 {weapon.AttackPower:0.#}{options}";
+        }
+
+        /// <summary> 배낭 칸 글자색. 아이콘이 생기기 전까지 등급을 색으로 구분한다 </summary>
+        public static Color GetGradeColor(ItemGrade grade)
+        {
+            switch (grade)
+            {
+                case ItemGrade.Talisman:
+                    return new Color(0.45f, 0.72f, 1f, 1f);
+                case ItemGrade.Spiritual:
+                    return new Color(0.78f, 0.58f, 1f, 1f);
+                case ItemGrade.Divine:
+                    return new Color(1f, 0.80f, 0.36f, 1f);
+                default:
+                    return new Color(0.86f, 0.90f, 0.91f, 1f);
+            }
         }
 
         public static string DescribeSlot(in InventorySlotSnapshot slot)

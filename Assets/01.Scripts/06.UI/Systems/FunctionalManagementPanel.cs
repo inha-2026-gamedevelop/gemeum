@@ -1989,7 +1989,9 @@ namespace Geumeum.UI
                     ++usedSlots;
                 }
 
-                button.SetLabel(FunctionalUiText.DescribeSlot(_slots[i]));
+                // 빈 칸 글자 12개가 화면을 어지럽힌다. 칸 자체가 비었음을 말하므로 글자를 지운다
+                button.SetLabel(_slots[i].IsEmpty ? string.Empty : FunctionalUiText.DescribeSlot(_slots[i]));
+                ApplySlotLabelColor(button, _slots[i]);
                 button.SetSelected(i == _selectedSlot);
                 button.SetInteractable(_hasInventorySnapshot);
                 button.SetHighlighted(MatchesInventoryFilter(_slots[i]));
@@ -2036,6 +2038,21 @@ namespace Geumeum.UI
 
             RefreshFilterButtons();
             RefreshQuickTransferView();
+        }
+
+        /// <summary> 장비는 등급 색으로 칠한다. 알파는 InkButtonLabel이 정하므로 건드리지 않는다 </summary>
+        private static void ApplySlotLabelColor(FunctionalUiIndexedButton button, in InventorySlotSnapshot slot)
+        {
+            if (button.Label == null)
+            {
+                return;
+            }
+
+            Color color = (slot.Kind == InventoryItemKind.Equipment)
+                ? FunctionalUiText.GetGradeColor(slot.Equipment.Grade)
+                : FunctionalUiText.GetGradeColor(ItemGrade.Common);
+            color.a = button.Label.color.a;
+            button.Label.color = color;
         }
 
         private void RefreshFilterButtons()
