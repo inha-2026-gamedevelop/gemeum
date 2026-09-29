@@ -21,6 +21,13 @@ namespace Geumeum.UI
         [Tooltip("분류 필터에 걸렸을 때 켜지는 흰 테두리. 비워 두면 강조를 건너뛴다")]
         [SerializeField] private GameObject _highlightBorder;
 
+        [Tooltip("골랐을 때 판 그림. 비워 두면 선택을 그림으로 보이지 않는다")]
+        [SerializeField] private Sprite _selectedSprite;
+
+        private Image  _image;
+        private Sprite _normalSprite;
+        private bool   _isSelected;
+
         public int Index => _index;
         public void SetIndex(int index) { _index = index; }
         public TMP_Text Label => _label;
@@ -94,12 +101,31 @@ namespace Geumeum.UI
             }
         }
 
+        /// <summary>
+        /// 골랐음을 판 그림으로 알린다. 글자 앞에 "선택"을 붙이면 좁은 칸에서 이름이 밀려난다
+        /// 호버와 눌림 그림은 버튼 상태가 그대로 맡는다
+        /// </summary>
+        public void SetSelected(bool selected)
+        {
+            if ((_image == null) || (_selectedSprite == null) || (_isSelected == selected))
+            {
+                return;
+            }
+
+            _isSelected = selected;
+            _image.sprite = selected ? _selectedSprite : _normalSprite;
+        }
+
         private void Awake()
         {
             if (_button == null)
             {
                 _button = GetComponent<Button>();
             }
+
+            // 평소 그림은 프리팹이 정한 그림이다. 선택을 풀 때 되돌린다
+            _image = GetComponent<Image>();
+            _normalSprite = (_image == null) ? null : _image.sprite;
 
             if (_button != null)
             {

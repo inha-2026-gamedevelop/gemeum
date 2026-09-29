@@ -85,6 +85,9 @@ namespace Geumeum.UI
 
         [Header("인벤토리")]
         [SerializeField] private TMP_Text _equippedWeaponText;
+
+        [Tooltip("배낭 아래 줄의 사용 칸 수(N / 12)")]
+        [SerializeField] private TMP_Text _inventoryCountText;
         [SerializeField] private FunctionalUiIndexedButton[] _inventoryButtons;
         [SerializeField] private TMP_Text _inventoryDetailText;
         [SerializeField] private TMP_Text _inventoryStatusText;
@@ -1132,6 +1135,8 @@ namespace Geumeum.UI
                 case 0:  return InventoryFilter.Weapon;
                 case 1:  return InventoryFilter.Potion;
                 case 2:  return InventoryFilter.Ticket;
+
+                // 3번은 "전체". 필터를 푼다
                 default: return InventoryFilter.None;
             }
         }
@@ -1965,11 +1970,12 @@ namespace Geumeum.UI
 
         private void RefreshInventoryView()
         {
+            // 장착 칸 안에 쓰므로 무기 이름만 적는다. "장착"은 칸 위 이름표가 말한다
             SetText(_equippedWeaponText, (_inventory == null)
-                ? "장착 장비를 확인하고 있습니다."
-                : "현재 장비\n" + FunctionalUiText.DescribeWeapon(
-                    _inventory.EquippedWeapon));
+                ? "확인 중"
+                : FunctionalUiText.DescribeWeapon(_inventory.EquippedWeapon));
 
+            int usedSlots = 0;
             for (int i = 0; i < ArrayLength(_inventoryButtons); ++i)
             {
                 FunctionalUiIndexedButton button = _inventoryButtons[i];
@@ -1978,11 +1984,20 @@ namespace Geumeum.UI
                     continue;
                 }
 
-                string prefix = (i == _selectedSlot) ? "선택 " : string.Empty;
-                button.SetLabel(prefix + FunctionalUiText.DescribeSlot(_slots[i]));
+                if ((i < _slots.Length) && !_slots[i].IsEmpty)
+                {
+                    ++usedSlots;
+                }
+
+                button.SetLabel(FunctionalUiText.DescribeSlot(_slots[i]));
+                button.SetSelected(i == _selectedSlot);
                 button.SetInteractable(_hasInventorySnapshot);
                 button.SetHighlighted(MatchesInventoryFilter(_slots[i]));
             }
+
+            SetText(_inventoryCountText, _hasInventorySnapshot
+                ? $"{usedSlots} / {InventorySnapshot.SLOT_COUNT}"
+                : string.Empty);
 
             if ((_selectedSlot < 0) || (_selectedSlot >= _slots.Length))
             {
@@ -2032,8 +2047,8 @@ namespace Geumeum.UI
                     continue;
                 }
 
-                // 누른 버튼도 같은 흰 테두리로 표시한다. 칸과 버튼이 같은 문법이면 눈이 따라가기 쉽다
-                _inventoryFilterButtons[i].SetHighlighted(_inventoryFilter == ToInventoryFilter(i));
+                // 고른 분류는 펼친 두루마리로 보인다. 아무것도 고르지 않았으면 "전체"가 골린 것이다
+                _inventoryFilterButtons[i].SetSelected(_inventoryFilter == ToInventoryFilter(i));
             }
         }
 

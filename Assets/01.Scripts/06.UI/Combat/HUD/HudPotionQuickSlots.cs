@@ -35,6 +35,9 @@ namespace Geumeum.UI
             public Image        Frame;
             public TMP_Text     CountLabel;
 
+            [Tooltip("누르면 마신다. 비워 두면 키로만 쓴다")]
+            public Button       Button;
+
             [NonSerialized] public int Count;
         }
 
@@ -43,6 +46,9 @@ namespace Geumeum.UI
         ****************************************/
 
         [SerializeField] private SlotView[] _slots = new SlotView[0];
+
+        [Tooltip("키를 읽는다. 같은 칸을 배낭에도 두면 한쪽만 읽어야 한 번 누를 때 두 개를 마시지 않는다")]
+        [SerializeField] private bool _readsKeys = true;
 
         [Tooltip("물약이 있을 때 칸 그림")]
         [SerializeField] private Sprite _readySprite;
@@ -81,6 +87,26 @@ namespace Geumeum.UI
             {
                 Debug.LogError("[HudPotionQuickSlots] 부모에서 ShopTransactionService를 찾지 못했다. 물약을 쓸 수 없다", this);
             }
+
+            for (int i = 0; i < _slots.Length; ++i)
+            {
+                SlotView view = _slots[i];
+                if (view.Button != null)
+                {
+                    view.Button.onClick.AddListener(() => TryUse(view));
+                }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            for (int i = 0; i < _slots.Length; ++i)
+            {
+                if (_slots[i].Button != null)
+                {
+                    _slots[i].Button.onClick.RemoveAllListeners();
+                }
+            }
         }
 
         private void OnEnable()
@@ -113,8 +139,8 @@ namespace Geumeum.UI
                 _pendingRequestId = 0u;
             }
 
-            // 관리 창이나 메뉴가 열려 있으면 전투 입력과 함께 막는다
-            if (!LocalGameplayInputGate.AllowsGameplayInput)
+            // 관리 창이나 메뉴가 열려 있으면 전투 입력과 함께 막는다. 배낭 안의 칸은 클릭으로만 쓴다
+            if ((!_readsKeys) || (!LocalGameplayInputGate.AllowsGameplayInput))
             {
                 return;
             }
@@ -264,6 +290,11 @@ namespace Geumeum.UI
             {
                 view.CountLabel.text = view.Count.ToString();
                 view.CountLabel.alpha = hasPotion ? 1f : _emptyLabelAlpha;
+            }
+
+            if ((view.Button != null) && (view.Button.interactable != hasPotion))
+            {
+                view.Button.interactable = hasPotion;
             }
         }
     }

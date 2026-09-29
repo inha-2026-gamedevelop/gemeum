@@ -42,6 +42,12 @@ namespace Geumeum.UI.Editor
 
         private const int SLOT_COUNT = 12;
 
+        private static readonly string[] G_PotionSlots =
+        {
+            "ManagementPanel/Window/InventoryPage/PotionSlots/HealthPotion",
+            "ManagementPanel/Window/InventoryPage/PotionSlots/SpiritPotion",
+        };
+
         // 한지 아이보리 - 먹 판과 주칠 판 위 글자
         private static readonly Color G_HanjiIvory = new Color(0.906f, 0.867f, 0.784f, 1f);
 
@@ -105,10 +111,11 @@ namespace Geumeum.UI.Editor
                 "ManagementPanel/Window/InventoryPage/InventoryFilter0",
                 "ManagementPanel/Window/InventoryPage/InventoryFilter1",
                 "ManagementPanel/Window/InventoryPage/InventoryFilter2",
+                "ManagementPanel/Window/InventoryPage/InventoryFilter3",
             },
         };
 
-        // 칸은 실제 크기(106px 정사각)와 원본 비율이 거의 같아 자르지 않고 통째로 쓴다
+        // 칸은 원본이 정사각에 가까워 자르지 않고 통째로 쓴다
         private static readonly InkKind G_Slot = new InkKind
         {
             Prefix = "Ink_Slot",
@@ -147,7 +154,11 @@ namespace Geumeum.UI.Editor
                 targets[i] = "ManagementPanel/Window/InventoryPage/InventorySlot" + i;
             }
 
-            return targets;
+            // 배낭 왼쪽의 물약 퀵슬롯도 같은 칸이다
+            var withPotions = new string[SLOT_COUNT + G_PotionSlots.Length];
+            targets.CopyTo(withPotions, 0);
+            G_PotionSlots.CopyTo(withPotions, SLOT_COUNT);
+            return withPotions;
         }
 
         private static int StyleKind(Transform root, InkKind kind)
@@ -218,6 +229,15 @@ namespace Geumeum.UI.Editor
             states.selectedSprite = normal;
             states.disabledSprite = disabled;
             button.spriteState = states;
+
+            // 칸과 필터는 고른 상태를 판 그림으로 보인다. 누름 그림과 같은 그림을 쓴다
+            FunctionalUiIndexedButton indexed = button.GetComponent<FunctionalUiIndexedButton>();
+            if (indexed != null)
+            {
+                var serialized = new SerializedObject(indexed);
+                serialized.FindProperty("_selectedSprite").objectReferenceValue = pressed;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+            }
 
             TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
             if (label != null)
