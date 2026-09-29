@@ -50,10 +50,15 @@ namespace Geumeum.UI
         [SerializeField] private GuidePage             _guide;
         [SerializeField] private SettingsOptionsBinder _options;
         [SerializeField] private SettingsSystemPage    _system;
+        [Tooltip("옵션 탭 오른쪽 설명 칸. 분류를 바꾸면 안내 문구로 되돌린다")]
+        [SerializeField] private SettingsHintPanel     _hint;
 
         [Header("활성 표시")]
         [SerializeField] private Color _activeLabelColor   = new Color(0.941f, 0.886f, 0.784f, 1f);
         [SerializeField] private Color _inactiveLabelColor = new Color(0.55f, 0.52f, 0.48f, 1f);
+        [Tooltip("켜진 탭만 크게 쓴다. 색만 바꾸면 어느 탭에 있는지 한눈에 들어오지 않는다")]
+        [SerializeField, Min(1f)] private float _activeTabFontSize   = 34f;
+        [SerializeField, Min(1f)] private float _inactiveTabFontSize = 22f;
 
         private bool _isVisible;
         private int  _tabIndex;
@@ -165,11 +170,24 @@ namespace Geumeum.UI
         private void SelectTab(int index)
         {
             _tabIndex = ApplySelection(_tabs, index);
+
+            for (int i = 0; i < _tabs.Length; ++i)
+            {
+                if (_tabs[i].Label != null)
+                {
+                    _tabs[i].Label.fontSize = (i == _tabIndex) ? _activeTabFontSize : _inactiveTabFontSize;
+                }
+            }
         }
 
         private void SelectCategory(int index)
         {
             ApplySelection(_categories, index);
+
+            if (_hint != null)
+            {
+                _hint.ShowIdle();
+            }
         }
 
         /// <summary> 고른 칸의 페이지만 켜고 글자색과 표시를 바꾼다. 실제로 고른 인덱스를 돌려준다 </summary>

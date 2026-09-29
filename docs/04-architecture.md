@@ -1069,13 +1069,18 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │  │                           ESC 입력을 단독으로 읽어 관리창 → 설정 → 메뉴 순으로 하나씩 닫는다
 │  ├ SettingsPanel.cs      MB  [현재] 설정 창. 위 가로 탭(도감 · 옵션 · 시스템)을 Q · E로 넘기고, 옵션 탭은 왼쪽 분류
 │  │                           (게임플레이 · 그래픽 · 오디오)로 오른쪽 줄을 바꾼다. 열 때 값을 다시 읽고 닫을 때 저장한다.
-│  │                           ESC는 읽지 않는다 - EscapeMenuPanel이 설정 → 메뉴 순으로 닫는다
+│  │                           켜진 탭만 크게(34 · 22) 쓰고, 분류를 바꾸면 오른쪽 설명 칸을 안내 문구로 되돌린다.
+│  │                           ESC는 읽지 않는다 - EscapeMenuPanel이 설정 → 메뉴 순으로 닫는다.
+│  │                           스킨은 '그믐밤 창호'(먹빛 한지 바탕 · 띠살 세 줄 · 처마선 탭 밑줄 · 등불 번짐 선택 ·
+│  │                           겹테두리 본문 판 · 도장 확인 버튼 · 엽전 손잡이). 그림은 13.UI/00.UI_Resource/InGame/Settings/에
+│  │                           있고 코드로 만든 임시본이라 같은 파일명으로 덮어써 바꾼다. 호스트 1인(M0)에서 확인
 │  ├ Guide/                [현재] 도감 탭. 게임 상태를 읽지 않는 정적 안내다
 │  │  ├ GuideCatalogSO.cs  SO  분류 → 소제목 → 항목(제목 · 본문). 에셋은 09.Data/Guide/GuideCatalog.asset.
 │  │  │                    판정 값의 원본이 아니므로 본문에 적은 수치는 밸런스가 바뀌면 같이 고친다.
 │  │  │                    UI 전용 글이라 00.Common/Data(팀장 소유)가 아니라 여기 둔다
 │  │  ├ GuidePage.cs       MB  왼쪽 분류 · 가운데 목록(스크롤) · 오른쪽 설명. 줄은 템플릿을 복제해 재사용한다.
-│  │  │                    TMP가 한글을 글자마다 끊어 본문만 어절을 <nobr>로 묶는다(전역 TMP 설정은 건드리지 않음)
+│  │  │                    TMP가 한글을 글자마다 끊어 본문만 어절을 <nobr>로 묶는다(전역 TMP 설정은 건드리지 않음).
+│  │  │                    묶는 처리는 FunctionalUiText.KeepWordsTogether에 있고 설정 창 설명 칸 · 종료 확인도 함께 쓴다
 │  │  └ GuideListItem.cs   MB  분류 버튼 · 항목 한 줄. 누를 때 할 일은 GuidePage가 넘긴다
 │  ├ Settings/             [현재] 설정 창 부품. 전부 이 기기에서만 쓰는 값이라 서버를 거치지 않는다
 │  │  ├ ClientPreferences.cs   static  몬스터 체력 바 표시 · 큰 지도 여는 방식(토글/누르는 동안) ·
@@ -1084,7 +1089,11 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │  │  │                        00.Common(팀장 소유)을 건드리지 않으려는 것이다
 │  │  ├ SettingsOptionsBinder.cs  MB  옵션 줄들을 위 설정 · SoundVolume · Screen에 잇는다
 │  │  ├ SettingsStepperRow.cs · SettingsSliderRow.cs  MB  ◀ 값 ▶ 줄과 슬라이더 줄. 값 목록은 모른다
+│  │  ├ SettingsRowHint.cs     MB  [현재] 줄에 마우스를 올리면 등불 번짐을 켜고 설명 칸에 이 줄의 설명을 넘긴다.
+│  │  │                        설명 문구는 줄마다 프리팹에 적는다. 설명 칸을 비우면 번짐만 켠다(시스템 탭 줄)
+│  │  ├ SettingsHintPanel.cs   MB  [현재] 옵션 탭 오른쪽 설명 칸. 줄 이름 · 설명을 띄우고 분류를 바꾸면 안내 문구로 돌아간다
 │  │  └ SettingsSystemPage.cs  MB  로비로 돌아가기 · 게임 종료. 누르면 오른쪽에 확인을 띄운다.
+│  │                           확인 문구의 첫 줄은 제목 칸, 나머지는 본문 칸에 나눠 띄운다.
 │  │                           로비 복귀는 계정 경로(LauncherGameSession.IsFrontendMode)에서만 열린다
 │  ├ RailRowVisual.cs      MB  좌측 레일 한 줄(박스 · 아이콘 · 글자 · 밑줄)의 활성 표시를 바꾼다.
 │  │                           레일을 ESC 메뉴로 대체해 코드에서는 더 쓰지 않는다.
