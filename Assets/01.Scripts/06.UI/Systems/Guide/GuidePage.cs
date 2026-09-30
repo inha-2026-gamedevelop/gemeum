@@ -1,6 +1,5 @@
 // System
 using System.Collections.Generic;
-using System.Text;
 
 // Unity
 using TMPro;
@@ -46,12 +45,6 @@ namespace Geumeum.UI
         private readonly List<GuideCatalogSO.Entry> _shownEntries  = new List<GuideCatalogSO.Entry>();
 
         private int _categoryIndex = -1;
-
-        // 본문 한 항목에 태그를 붙인 길이가 대개 이 안에 든다(글자 수). 넘으면 StringBuilder가 알아서 늘린다
-        private const int BODY_BUFFER_CAPACITY = 512;
-
-        // 본문을 어절 단위로 묶을 때 쓰는 버퍼. 항목을 고를 때만 돌아 한 벌이면 된다
-        private static readonly StringBuilder G_Builder = new StringBuilder(BODY_BUFFER_CAPACITY);
 
         /****************************************
         *              Unity Event
@@ -176,47 +169,9 @@ namespace Geumeum.UI
 
             bool hasEntry = (index >= 0) && (index < _shownEntries.Count);
             _titleText.text = hasEntry ? _shownEntries[index].Title : string.Empty;
-            _bodyText.text  = hasEntry ? KeepWordsTogether(_shownEntries[index].Body) : string.Empty;
-        }
-
-        /// <summary>
-        /// 어절마다 &lt;nobr&gt;로 감싸 한 어절이 두 줄로 갈라지지 않게 한다.
-        /// TMP는 한글을 글자마다 끊는데(TMP Settings의 현대 한글 줄바꿈 규칙이 꺼져 있다),
-        /// 그 설정은 프로젝트의 모든 글자에 걸리므로 여기서만 막는다
-        /// </summary>
-        private static string KeepWordsTogether(string text)
-        {
-            if (string.IsNullOrEmpty(text))
-            {
-                return string.Empty;
-            }
-
-            G_Builder.Clear();
-            bool isInWord = false;
-            for (int i = 0; i < text.Length; ++i)
-            {
-                char c = text[i];
-                bool isBreak = (c == ' ') || (c == '\n');
-                if (isBreak && isInWord)
-                {
-                    G_Builder.Append("</nobr>");
-                    isInWord = false;
-                }
-                else if ((!isBreak) && (!isInWord))
-                {
-                    G_Builder.Append("<nobr>");
-                    isInWord = true;
-                }
-
-                G_Builder.Append(c);
-            }
-
-            if (isInWord)
-            {
-                G_Builder.Append("</nobr>");
-            }
-
-            return G_Builder.ToString();
+            _bodyText.text  = hasEntry
+                ? FunctionalUiText.KeepWordsTogether(_shownEntries[index].Body)
+                : string.Empty;
         }
 
         private TMP_Text GetHeader(int index)

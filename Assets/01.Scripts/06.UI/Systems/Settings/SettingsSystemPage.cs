@@ -50,6 +50,8 @@ namespace Geumeum.UI
         [Header("확인")]
         [Tooltip("항목을 누르면 켜지는 오른쪽 확인 영역")]
         [SerializeField] private GameObject _confirmRoot;
+        [Tooltip("확인 문구의 첫 줄을 제목으로 띄울 글자. 비워 두면 문구 전체를 본문 글자 하나에 띄운다")]
+        [SerializeField] private TMP_Text   _confirmTitleText;
         [SerializeField] private TMP_Text   _confirmText;
         [SerializeField] private Button     _confirmButton;
         [SerializeField] private Button     _cancelButton;
@@ -169,8 +171,26 @@ namespace Geumeum.UI
 
             if ((_confirmText != null) && (action != PendingAction.None))
             {
-                _confirmText.text = BuildConfirmText(action);
+                ShowConfirmText(BuildConfirmText(action));
             }
+        }
+
+        /// <summary> 첫 줄은 무엇을 하는지, 나머지는 파티에 미치는 영향이다. 제목 글자가 있으면 둘을 나눠 띄운다 </summary>
+        private void ShowConfirmText(string message)
+        {
+            if (_confirmTitleText == null)
+            {
+                _confirmText.text = message;
+                return;
+            }
+
+            int lineEnd = message.IndexOf('\n');
+            string title = (lineEnd < 0) ? message : message.Substring(0, lineEnd);
+            string body  = (lineEnd < 0) ? string.Empty : message.Substring(lineEnd + 1);
+
+            // 제목 자리에는 마침표를 찍지 않는다
+            _confirmTitleText.text = title.TrimEnd('.');
+            _confirmText.text      = FunctionalUiText.KeepWordsTogether(body);
         }
 
         private static string BuildConfirmText(PendingAction action)

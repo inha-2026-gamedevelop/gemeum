@@ -909,6 +909,19 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           서버에만 쌓여 순수 클라이언트가 전투 상태를 모른다. 팀장께 SyncVar를
 │     │                           요청해 둔 상태다 [계획]. 3인 접속은 미검증
 │     ├ HUDController.cs         [구현완료] HP · 신력 · 스태미나 바를 PlayerStatus.Local에 바인딩
+│     │                           HP는 잡귀 체력 바 잔상(EnemyHealthBarTrail · 같은 지연 · 속도 · 색)을 남긴다.
+│     │                           잔상 막대는 채움을 런타임에 복제해 뒤에 깐다. 채움 그림(Bar_Fill_Health)이 이미 빨개
+│     │                           색을 입혀도 상아색이 안 나오므로 잔상 그림만 무채색 Bar_Fill_Stamina로 바꾼다(_hpChipSprite)
+│     ├ HudExperienceBar.cs      [현재] 화면 맨 아래 상아색 붓 획 경험치 바(Filled). 현재 레벨 구간 진행률, 만렙은 가득.
+│     │                           GrowthChanged가 서버에서만 불려 레벨 · 누적 경험치를 매 프레임 비교해 바뀐 때만 그린다.
+│     │                           호스트 1인에서 60% · 레벨업 후 재충전 · 만렙 가득을 확인, 3인 접속은 미검증
+│     │                           오를 때는 잔상을 거꾸로 써서 얻은 만큼 금빛 막대가 먼저 차고 채움이 따라간다.
+│     │                           레벨업은 끝까지 채운 뒤 비우고 새 구간으로 오른다. 금빛 막대도 런타임 복제
+│     ├ HudPotionQuickSlots.cs   [현재] 좌하단 물약 퀵슬롯(체력 1 · 신력 2). 종류로 칸이 정해져 배낭의 첫 칸을 쓰고,
+│     │                           기존 ShopTransactionService.RequestUsePotion으로 요청한다 - 판정은 서버, 네트워크 멤버 추가 없음.
+│     │                           서버에 물약 쿨다운이 없어 결과가 오기 전(최대 1초)에는 다음 요청을 보내지 않는다.
+│     │                           메뉴가 열려 있으면(LocalGameplayInputGate) 막는다. Boot → 필드 호스트 1인에서 소모 · 회복 ·
+│     │                           연타 차단 · 가득 참 거절을 확인. 실제 키 입력과 3인 접속은 미검증
 │     ├ MinimapPlayerDots.cs     [구현완료] 파티원 위치를 점으로, 결계를 판과 원으로 그린다. 캐릭터별 색.
 │     │                           결계 밖을 위험 색으로 덮는다 - UI에 역마스크가 없어 판 하나를 칠하고
 │     │                           결계 자리만 비운다. 원이 움직인 만큼만 다시 칠한다.
@@ -1069,20 +1082,35 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │  │                           한 PC 3인(M2)에서 배정, 원격 선택, 무기 교체 초기화, 재접속 복구를 확인했다.
 │  │                           결함: 재접속하면 새 netId를 받아 자리 순서가 바뀐다(3P가 2P로 올라감).
 │  │                           파티 HUD도 같은 netId 순이라 함께 바뀔 것으로 보인다(미확인). 서로 다른 PC(M3)는 미검증
+│  ├ TalentConstellationDepth.cs  [현재] 특성 별자리 가상 깊이(직렬화 클래스). 노드마다 -1 ~ +1 깊이 하나로
+│  │                           크기 · 밝기 · 알파 · 선 굵기 · 반짝임 · 마우스 시차를 함께 정한다. 흩뿌림은 노드 ID에서 뽑아
+│  │                           세 화면이 같다. 상태는 빛의 세기로 가른다(잠김 = 반짝이지 않음, 고를 수 있음 = 간헐 맥박,
+│  │                           가리킴 = 다가옴). 호스트 1인 화면에서 확인, 마우스 실조작 체감은 미검증.
+│  │                           마우스를 따라 별자리 판을 기울이는 원근도 여기서 계산한다(Tilt). 카메라 · 캔버스를
+│  │                           바꾸지 않고 좌표만 투영하므로 글자는 돌지 않고 자리만 따라간다. 누름 영역도 함께 옮긴다
+│  ├ TalentConstellationGlow.cs   [현재] 별 헤일로 두 겹과 가운데 그믐(축소 · 뒤 헤일로 · 숨쉬기) 설정(직렬화 클래스).
+│  │                           URP Bloom 대신 겹친 그림으로 광원처럼 보이게 한다 - Bloom은 글자 · 버튼까지 번진다
 │  ├ TalentSkyAnimator.cs  MB  [현재] 특성 탭 별하늘 연출. 은하수 두 층을 흘리고 별을 반짝인다.
-│  │                           특성 탭이 켜져 있을 때만 돌고 별도 Canvas로 묶어 노드 재구성을 막는다
+│  │                           특성 탭이 켜져 있을 때만 돌고 별도 Canvas로 묶어 노드 재구성을 막는다.
+│  │                           마우스 + 느린 떠다님을 시차 입력(Pointer) 하나로 내보내 층마다 다른 거리로 밀고,
+│  │                           별자리 앞 먼지를 자체 Canvas로 띄운다. 별자리 노드도 같은 Pointer로 민다
 │  ├ EscapeMenuPanel.cs    MB  ESC로 여닫는 중앙 상단 가로 바. 배낭 · 특성 · 도감 · 설정 입구만 맡는다.
 │  │                           도감과 설정은 같은 설정 창을 각각 도감 탭 · 옵션 탭으로 연다.
 │  │                           ESC 입력을 단독으로 읽어 관리창 → 설정 → 메뉴 순으로 하나씩 닫는다
 │  ├ SettingsPanel.cs      MB  [현재] 설정 창. 위 가로 탭(도감 · 옵션 · 시스템)을 Q · E로 넘기고, 옵션 탭은 왼쪽 분류
 │  │                           (게임플레이 · 그래픽 · 오디오)로 오른쪽 줄을 바꾼다. 열 때 값을 다시 읽고 닫을 때 저장한다.
-│  │                           ESC는 읽지 않는다 - EscapeMenuPanel이 설정 → 메뉴 순으로 닫는다
+│  │                           켜진 탭만 크게(34 · 22) 쓰고, 분류를 바꾸면 오른쪽 설명 칸을 안내 문구로 되돌린다.
+│  │                           ESC는 읽지 않는다 - EscapeMenuPanel이 설정 → 메뉴 순으로 닫는다.
+│  │                           스킨은 '그믐밤 창호'(먹빛 한지 바탕 · 띠살 세 줄 · 처마선 탭 밑줄 · 등불 번짐 선택 ·
+│  │                           겹테두리 본문 판 · 도장 확인 버튼 · 엽전 손잡이). 그림은 13.UI/00.UI_Resource/InGame/Settings/에
+│  │                           있고 코드로 만든 임시본이라 같은 파일명으로 덮어써 바꾼다. 호스트 1인(M0)에서 확인
 │  ├ Guide/                [현재] 도감 탭. 게임 상태를 읽지 않는 정적 안내다
 │  │  ├ GuideCatalogSO.cs  SO  분류 → 소제목 → 항목(제목 · 본문). 에셋은 09.Data/Guide/GuideCatalog.asset.
 │  │  │                    판정 값의 원본이 아니므로 본문에 적은 수치는 밸런스가 바뀌면 같이 고친다.
 │  │  │                    UI 전용 글이라 00.Common/Data(팀장 소유)가 아니라 여기 둔다
 │  │  ├ GuidePage.cs       MB  왼쪽 분류 · 가운데 목록(스크롤) · 오른쪽 설명. 줄은 템플릿을 복제해 재사용한다.
-│  │  │                    TMP가 한글을 글자마다 끊어 본문만 어절을 <nobr>로 묶는다(전역 TMP 설정은 건드리지 않음)
+│  │  │                    TMP가 한글을 글자마다 끊어 본문만 어절을 <nobr>로 묶는다(전역 TMP 설정은 건드리지 않음).
+│  │  │                    묶는 처리는 FunctionalUiText.KeepWordsTogether에 있고 설정 창 설명 칸 · 종료 확인도 함께 쓴다
 │  │  └ GuideListItem.cs   MB  분류 버튼 · 항목 한 줄. 누를 때 할 일은 GuidePage가 넘긴다
 │  ├ Settings/             [현재] 설정 창 부품. 전부 이 기기에서만 쓰는 값이라 서버를 거치지 않는다
 │  │  ├ ClientPreferences.cs   static  몬스터 체력 바 표시 · 큰 지도 여는 방식(토글/누르는 동안) ·
@@ -1091,11 +1119,24 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │  │  │                        00.Common(팀장 소유)을 건드리지 않으려는 것이다
 │  │  ├ SettingsOptionsBinder.cs  MB  옵션 줄들을 위 설정 · SoundVolume · Screen에 잇는다
 │  │  ├ SettingsStepperRow.cs · SettingsSliderRow.cs  MB  ◀ 값 ▶ 줄과 슬라이더 줄. 값 목록은 모른다
+│  │  ├ SettingsRowHint.cs     MB  [현재] 줄에 마우스를 올리면 등불 번짐을 켜고 설명 칸에 이 줄의 설명을 넘긴다.
+│  │  │                        설명 문구는 줄마다 프리팹에 적는다. 설명 칸을 비우면 번짐만 켠다(시스템 탭 줄)
+│  │  ├ SettingsHintPanel.cs   MB  [현재] 옵션 탭 오른쪽 설명 칸. 줄 이름 · 설명을 띄우고 분류를 바꾸면 안내 문구로 돌아간다
 │  │  └ SettingsSystemPage.cs  MB  로비로 돌아가기 · 게임 종료. 누르면 오른쪽에 확인을 띄운다.
+│  │                           확인 문구의 첫 줄은 제목 칸, 나머지는 본문 칸에 나눠 띄운다.
 │  │                           로비 복귀는 계정 경로(LauncherGameSession.IsFrontendMode)에서만 열린다
 │  ├ RailRowVisual.cs      MB  좌측 레일 한 줄(박스 · 아이콘 · 글자 · 밑줄)의 활성 표시를 바꾼다.
 │  │                           레일을 ESC 메뉴로 대체해 코드에서는 더 쓰지 않는다.
 │  │                           꺼 둔 _bak_ 레일 오브젝트가 아직 참조하므로 파일은 남겨 둔다
+│  ├ InkButtonLabel.cs     MB  [현재] 먹 버튼 글자를 버튼 상태에 맞춰 흐린다. 그림 교체는 판 하나에만 걸려
+│  │                           글자가 그대로 밝으면 누를 수 없는 버튼이 누를 수 있어 보인다
+│  ├ Editor/InkButtonStyler.cs  [현재] 먹 버튼 스타일의 정본. 메뉴 그믐 ▸ UI ▸ 먹 버튼 스타일 적용.
+│  │                           주요(주칠 · 낙관) · 보조(먹 판) · 탭(한지 두루마리) · 배낭 칸(먹 판)을 상태별 그림
+│  │                           (13.UI/00.UI_Resource/InGame/Ink/)으로 바꾼다. 새 버튼은 목록에 올리고 다시 돌린다.
+│  │                           배낭 칸 · 필터의 선택 그림(FunctionalUiIndexedButton.SetSelected)도 여기서 물린다.
+│  │                           분류 필터 강조선도 여기서 칸 안쪽의 얇은 옅은 금빛 선으로 바꾼다(흰 선은 붙은 칸끼리 겹쳤다).
+│  │                           배낭은 위 필터(전체 · 무기 · 물약 · 권), 왼쪽 장착 칸과 물약 퀵슬롯(클릭 사용),
+│  │                           간격 없는 3x4 칸, 아래 사용 칸 수 · 노잣돈 줄로 배치했다
 │  ├ Editor/RunManagementUiBuilder.cs  위 화면을 SessionManagers 프리팹 안에 짓는 에디터 도구
 │  └ Editor/EscapeMenuUiBuilder.cs  레일을 _bak_로 꺼 두고 ESC 메뉴를 RunManagementUI 프리팹 안에
 │                              짓는 에디터 도구. 다시 돌려도 된다. 설정 창은 프리팹에서 만든 최종 화면이라

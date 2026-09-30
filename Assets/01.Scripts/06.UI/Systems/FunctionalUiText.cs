@@ -2,6 +2,9 @@
 using System;
 using System.Text;
 
+// Unity
+using UnityEngine;
+
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
@@ -12,6 +15,52 @@ namespace Geumeum.UI
     /// <summary> 서버 결과와 게임 데이터를 사용자용 한국어로 바꾼다 </summary>
     public static class FunctionalUiText
     {
+        // 본문 한 항목에 태그를 붙인 길이가 대개 이 안에 든다(글자 수). 넘으면 StringBuilder가 알아서 늘린다
+        private const int WORD_BUFFER_CAPACITY = 512;
+
+        // 본문을 어절 단위로 묶을 때 쓰는 버퍼. 항목을 고르거나 가리킬 때만 돌아 한 벌이면 된다
+        private static readonly StringBuilder G_WordBuilder = new StringBuilder(WORD_BUFFER_CAPACITY);
+
+        /// <summary>
+        /// 어절마다 &lt;nobr&gt;로 감싸 한 어절이 두 줄로 갈라지지 않게 한다.
+        /// TMP는 한글을 글자마다 끊는데(TMP Settings의 현대 한글 줄바꿈 규칙이 꺼져 있다),
+        /// 그 설정은 프로젝트의 모든 글자에 걸리므로 긴 본문을 띄우는 곳에서만 막는다
+        /// </summary>
+        public static string KeepWordsTogether(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return string.Empty;
+            }
+
+            G_WordBuilder.Clear();
+            bool isInWord = false;
+            for (int i = 0; i < text.Length; ++i)
+            {
+                char c = text[i];
+                bool isBreak = (c == ' ') || (c == '\n');
+                if (isBreak && isInWord)
+                {
+                    G_WordBuilder.Append("</nobr>");
+                    isInWord = false;
+                }
+                else if ((!isBreak) && (!isInWord))
+                {
+                    G_WordBuilder.Append("<nobr>");
+                    isInWord = true;
+                }
+
+                G_WordBuilder.Append(c);
+            }
+
+            if (isInWord)
+            {
+                G_WordBuilder.Append("</nobr>");
+            }
+
+            return G_WordBuilder.ToString();
+        }
+
         public static string GetWeaponName(WeaponKind weapon)
         {
             switch (weapon)
@@ -109,6 +158,22 @@ namespace Geumeum.UI
 
             return $"{GetGradeName(weapon.Grade)} {GetWeaponName(weapon.WeaponKind)}" +
                 $"\n공격력 {weapon.AttackPower:0.#}{options}";
+        }
+
+        /// <summary> 배낭 칸 글자색. 아이콘이 생기기 전까지 등급을 색으로 구분한다 </summary>
+        public static Color GetGradeColor(ItemGrade grade)
+        {
+            switch (grade)
+            {
+                case ItemGrade.Talisman:
+                    return new Color(0.45f, 0.72f, 1f, 1f);
+                case ItemGrade.Spiritual:
+                    return new Color(0.78f, 0.58f, 1f, 1f);
+                case ItemGrade.Divine:
+                    return new Color(1f, 0.80f, 0.36f, 1f);
+                default:
+                    return new Color(0.86f, 0.90f, 0.91f, 1f);
+            }
         }
 
         public static string DescribeSlot(in InventorySlotSnapshot slot)
