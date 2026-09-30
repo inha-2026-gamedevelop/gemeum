@@ -4,6 +4,8 @@
 
 게임 화면과 화면 UI의 기준은 16:9다. 창이 넓으면 좌우, 좁으면 위아래에 검정 여백을 둔다. `FixedAspectViewport`가 URP 렌더링 전에 화면 출력 카메라의 viewport를 맞추고, 루트 Overlay Canvas의 자식을 런타임 `AspectContent` 아래 배치한다. CanvasScaler는 Expand로 맞춘다. 원본 씬/프리팹은 변경하지 않는다.
 
+`AspectContent`의 `RectMask2D`는 경계 픽셀을 반투명하게 잘라, 화면 끝까지 닿는 불투명 UI(특성 창 별하늘 등)의 가장자리 1px로 월드가 비쳤다. 마스크 padding을 -2(캔버스 단위)로 두어 자르는 경계를 화면 밖이나 검정 여백 아래로 민다. 2026-09-30 에디터 1920×1080에서 특성 창 가장자리를 캡처해 확인했고, 16:9가 아닌 창은 재검증하지 않았다.
+
 씬 로드 시 비활성 Canvas까지 등록한다. 런타임에 새 Overlay Canvas를 생성하는 코드는 자식 구성이 끝난 뒤 `FixedAspectViewport.Register(canvas)`를 호출한다. 현재 동적 로비 무기 패널에 적용되어 있다. World Space UI, RenderTexture 미니맵/반사/캡처, SceneView는 제외한다. 개발용 IMGUI도 여백 밖 표시를 가리지만 Unity 자체 Development Build 워터마크는 엔진이 별도로 표시한다.
 
 2026-09-20 Windows 개발 빌드에서 1024×768, 1600×600, 700×1000, 최대화와 복원을 확인했다. 로비 무기 선택·봇 충원·준비·필드 진입도 실제 마우스로 확인했다. 이 결과는 당시 빌드의 검증이며, 현재 변경의 재검증을 대신하지 않는다. 기능은 로컬 표현이고 네트워크 판정을 바꾸지 않는다.

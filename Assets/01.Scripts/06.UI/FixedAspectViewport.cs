@@ -13,6 +13,9 @@ namespace Geumeum.UI
     public sealed class FixedAspectViewport : MonoBehaviour
     {
         public const float ASPECT = 16f / 9f;
+        // RectMask2D는 경계 픽셀을 반투명하게 잘라, 화면 끝에 닿는 불투명 UI의 가장자리 1px로 월드가 비친다.
+        // 자르는 경계를 이만큼(캔버스 단위) 바깥으로 밀어 그 픽셀을 화면 밖이나 검은 띠 아래로 보낸다
+        private const float MASK_EDGE_BLEED = 2f;
         private static FixedAspectViewport _instance;
         private readonly List<RectTransform> _contents = new List<RectTransform>();
         private readonly List<Canvas> _canvases = new List<Canvas>();
@@ -61,6 +64,7 @@ namespace Geumeum.UI
             }
             var content = new GameObject("AspectContent", typeof(RectTransform), typeof(RectMask2D));
             content.layer = canvas.gameObject.layer;
+            content.GetComponent<RectMask2D>().padding = Vector4.one * -MASK_EDGE_BLEED;
             RectTransform rect = (RectTransform)content.transform;
             rect.SetParent(canvas.transform, false);
             int childCount = canvas.transform.childCount - 1;
