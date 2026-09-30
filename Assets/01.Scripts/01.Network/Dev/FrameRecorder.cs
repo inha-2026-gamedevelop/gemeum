@@ -161,6 +161,8 @@ namespace Geumeum.Network
                 return;
             }
 
+            // 옵션 탭의 수직 동기화 · 프레임 상한을 덮어쓴다. 측정 전용 값이 남은 씬을 알아챌 수 있게 남긴다
+            Debug.LogWarning($"[FrameRecorder] 측정 조건으로 사용자 프레임 설정을 덮어쓴다 (수직 동기화 끔, {_targetFrameRate} FPS 상한)");
             QualitySettings.vSyncCount  = 0;
             Application.targetFrameRate = _targetFrameRate;
         }

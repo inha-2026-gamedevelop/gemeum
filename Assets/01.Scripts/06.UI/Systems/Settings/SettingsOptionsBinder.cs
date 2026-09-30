@@ -28,6 +28,8 @@ namespace Geumeum.UI
         private const string LABEL_MINIMAP_HOLD   = "누르는 동안";
 
         private const string LABEL_FRAME_UNLIMITED = "제한 없음";
+        // 수직 동기화가 켜져 있으면 상한 대신 모니터 주사율(부족하면 그 절반)에 묶인다. 막힌 줄에 그 이유를 보인다
+        private const string LABEL_FRAME_BY_VSYNC  = "모니터 주사율";
 
         private static readonly FullScreenMode[] G_ScreenModes =
         {
@@ -135,14 +137,16 @@ namespace Geumeum.UI
                 _resolutionRow.SetInteractable(_resolutions.Count > 1);
             }
 
-            SetText(_vSyncRow, OnOff(ClientPreferences.VSync));
+            bool isVSync = ClientPreferences.VSync;
+            SetText(_vSyncRow, OnOff(isVSync));
 
             int cap = (_frameCapOptions.Length > 0) ? _frameCapOptions[_frameCapIndex] : 0;
-            SetText(_frameCapRow, (cap > 0) ? cap.ToString() : LABEL_FRAME_UNLIMITED);
+            string capLabel = (cap > 0) ? cap.ToString() : LABEL_FRAME_UNLIMITED;
+            SetText(_frameCapRow, isVSync ? LABEL_FRAME_BY_VSYNC : capLabel);
             if (_frameCapRow != null)
             {
                 // 수직 동기화가 켜져 있으면 Unity가 상한을 무시한다. 눌러도 달라지지 않는 줄은 막아 둔다
-                _frameCapRow.SetInteractable((!ClientPreferences.VSync) && (_frameCapOptions.Length > 1));
+                _frameCapRow.SetInteractable((!isVSync) && (_frameCapOptions.Length > 1));
             }
         }
 
