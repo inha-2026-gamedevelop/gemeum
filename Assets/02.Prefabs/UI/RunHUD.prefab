@@ -6738,6 +6738,7 @@ MonoBehaviour:
   _hpFill: {fileID: 8551218733058894160}
   _mpFill: {fileID: 6658707404486472887}
   _spFill: {fileID: 6128659667877658565}
+  _hpChipSprite: {fileID: 21300000, guid: b66eba1d2cd975a4db4b03a678c376ab, type: 3}
 --- !u!114 &1009537822049512765
 MonoBehaviour:
   m_ObjectHideFlags: 0

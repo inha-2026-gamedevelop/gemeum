@@ -884,9 +884,14 @@ BarrierController·CurrencyManager·ShopTransactionService·DropDirector·Growth
 │     │                           서버에만 쌓여 순수 클라이언트가 전투 상태를 모른다. 팀장께 SyncVar를
 │     │                           요청해 둔 상태다 [계획]. 3인 접속은 미검증
 │     ├ HUDController.cs         [구현완료] HP · 신력 · 스태미나 바를 PlayerStatus.Local에 바인딩
+│     │                           HP는 잡귀 체력 바 잔상(EnemyHealthBarTrail · 같은 지연 · 속도 · 색)을 남긴다.
+│     │                           잔상 막대는 채움을 런타임에 복제해 뒤에 깐다. 채움 그림(Bar_Fill_Health)이 이미 빨개
+│     │                           색을 입혀도 상아색이 안 나오므로 잔상 그림만 무채색 Bar_Fill_Stamina로 바꾼다(_hpChipSprite)
 │     ├ HudExperienceBar.cs      [현재] 화면 맨 아래 상아색 붓 획 경험치 바(Filled). 현재 레벨 구간 진행률, 만렙은 가득.
 │     │                           GrowthChanged가 서버에서만 불려 레벨 · 누적 경험치를 매 프레임 비교해 바뀐 때만 그린다.
 │     │                           호스트 1인에서 60% · 레벨업 후 재충전 · 만렙 가득을 확인, 3인 접속은 미검증
+│     │                           오를 때는 잔상을 거꾸로 써서 얻은 만큼 금빛 막대가 먼저 차고 채움이 따라간다.
+│     │                           레벨업은 끝까지 채운 뒤 비우고 새 구간으로 오른다. 금빛 막대도 런타임 복제
 │     ├ HudPotionQuickSlots.cs   [현재] 좌하단 물약 퀵슬롯(체력 1 · 신력 2). 종류로 칸이 정해져 배낭의 첫 칸을 쓰고,
 │     │                           기존 ShopTransactionService.RequestUsePotion으로 요청한다 - 판정은 서버, 네트워크 멤버 추가 없음.
 │     │                           서버에 물약 쿨다운이 없어 결과가 오기 전(최대 1초)에는 다음 요청을 보내지 않는다.
