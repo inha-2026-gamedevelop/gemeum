@@ -79,7 +79,8 @@ namespace Geumeum.Combat
         *                Fields
         ****************************************/
 
-        private bool  _isBarsVisible      = true;
+        // 정식 HUD(체력 붓 획 · 파티 HUD)가 들어와 기본은 끈다. 개발 패널 "인게임 파티 바"로 다시 켤 수 있다
+        private bool  _isBarsVisible      = false;
         private bool  _isNameplateVisible = true;
         private float _nextRefreshTime    = 0f;
 
