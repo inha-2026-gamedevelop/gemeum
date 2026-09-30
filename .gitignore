@@ -178,3 +178,13 @@ coverage/
 # Codex 개인 설정
 .codex/
 /Assets/Screenshots.meta
+artifacts
+
+# 개인 측정·점검용 에디터 스크립트 (.meta 포함)
+/Assets/01.Scripts/05.Art/Editor/FieldGroundingFix.cs*
+/Assets/01.Scripts/05.Art/Editor/FieldPerfBench.cs*
+/Assets/01.Scripts/05.Art/Editor/FieldRockAudit.cs*
+/Assets/01.Scripts/05.Art/Editor/FieldRockCapture.cs*
+/Assets/01.Scripts/05.Art/Editor/FieldRockClosure.cs*
+/Assets/01.Scripts/05.Art/Editor/FieldVisualPolish.cs*
+/Assets/01.Scripts/99.Dev/FieldPerfProbe.cs*
