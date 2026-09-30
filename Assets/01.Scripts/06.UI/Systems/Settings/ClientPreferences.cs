@@ -30,8 +30,11 @@ namespace Geumeum.UI
         private const string PREF_FRAME_CAP         = "Graphics.FrameCap";
 
         // 기본값. 프레임 상한 0은 제한 없음이다
+        // 수직 동기화는 끈다. 켜 두면 한 프레임이 주사율 주기를 넘길 때마다 60에서 30으로 계단식으로 떨어진다.
+        // 키는 사용자가 옵션에서 직접 바꿀 때만 저장되므로, 기본값만 쓰던 사용자는 이 값으로 옮겨 가고
+        // 직접 켠 사용자의 저장값은 그대로 남는다
         private const int DEFAULT_SHOW_ENEMY_HP_BAR = 1;
-        private const int DEFAULT_VSYNC             = 1;
+        private const int DEFAULT_VSYNC             = 0;
         private const int DEFAULT_FRAME_CAP         = 0;
 
         /// <summary> 표시 설정이 바뀌었을 때. 이미 떠 있는 화면이 즉시 따라가도록 듣는다 </summary>
@@ -128,6 +131,12 @@ namespace Geumeum.UI
         private static void ApplyOnStartup()
         {
             ApplyFrameSettings();
+
+            // 프레임이 30·60에 묶였다는 제보가 오면 Player.log에서 이 기기의 실제 설정부터 확인한다
+            int cap = FrameCap;
+            Debug.Log($"[ClientPreferences] 시작 프레임 설정: 수직 동기화 {(VSync ? "켬" : "끔")}"
+                + $"({(PlayerPrefs.HasKey(PREF_VSYNC) ? "저장값" : "기본값")}), 상한 {((cap > 0) ? cap.ToString() : "없음")}"
+                + $", vSyncCount={QualitySettings.vSyncCount}, targetFrameRate={Application.targetFrameRate}");
         }
 
         private static void EnsureDisplayLoaded()
@@ -146,7 +155,8 @@ namespace Geumeum.UI
                 : MinimapOpenMode.Toggle;
         }
 
-        private static void ApplyFrameSettings()
+        /// <summary> 저장값(없으면 기본값)을 Unity에 건다. 저장값은 쓰지 않는다 </summary>
+        public static void ApplyFrameSettings()
         {
             QualitySettings.vSyncCount = VSync ? 1 : 0;
 
