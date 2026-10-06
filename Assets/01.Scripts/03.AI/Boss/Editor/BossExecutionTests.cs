@@ -16,6 +16,7 @@ using NUnit.Framework;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
+using Geumeum.Dev;
 using Geumeum.Network;
 
 namespace Geumeum.AI
@@ -51,6 +52,7 @@ namespace Geumeum.AI
         {
             Assert.IsFalse(NetworkServer.active, "실행 중인 서버에서는 이 테스트를 실행하지 않는다");
             typeof(NetworkServer).GetProperty(nameof(NetworkServer.active)).SetValue(null, true);
+            DevAccess.Unlock();
 
             _previousRunTimeSource = RunTimeLocator.Current;
             _testRunTimeSource = new TestRunTimeSource
@@ -70,6 +72,7 @@ namespace Geumeum.AI
                 .SetValue(_boss.GetComponent<NetworkIdentity>(), BOSS_NET_ID);
             _data = ScriptableObject.CreateInstance<BossPatternSO>();
             Set(_controller, "_status", _status);
+            Set(_controller, "_targeting", new BossTargetingSystem(_boss.transform, LayerMask.GetMask(Constants.Layer.PLAYER)));
             Set(_controller, "_bossData", _data);
             Set(_controller, "_groggyGauge", 100f);
             Set(_status, "_maxHealth", TEST_HEALTH);
@@ -122,6 +125,21 @@ namespace Geumeum.AI
                 Assert.AreEqual(1, _controller.CurrentPhaseIndex);
             }
             finally { GameDB.ResetStatic(); UnityEngine.Object.DestroyImmediate(database); }
+        }
+
+        [Test]
+        public void DevPhaseRestartReportsPauseAndStoppedStateWithoutChangingSnapshot()
+        {
+            BossPhaseSnapshot before = _controller.PhaseSnapshot;
+            _testRunTimeSource.IsPaused = true;
+            Assert.IsFalse(_controller.ServerDevRestartPhase(2, out string failure));
+            Assert.That(failure, Does.Contain("일시정지"));
+            Assert.AreEqual(before.Revision, _controller.PhaseSnapshot.Revision);
+            _testRunTimeSource.IsPaused = false;
+            Set(_controller, "_serverStopped", true);
+            Assert.IsFalse(_controller.ServerDevRestartPhase(2, out failure));
+            Assert.That(failure, Does.Contain("종료되거나 비활성화"));
+            Assert.AreEqual(before.Revision, _controller.PhaseSnapshot.Revision);
         }
 
         [TestCase(1)]

@@ -146,8 +146,8 @@ namespace Geumeum.Art
         {
             if (command.Control == "groggy" || command.Control.StartsWith("pattern.", System.StringComparison.Ordinal))
             {
-                if (!NetworkServer.active) { _message = "호스트 패널에서 실행한다."; return; }
-                BossController boss = FindAnyObjectByType<BossController>();
+                if (!NetworkServer.active || !DevAccess.IsUnlocked) { _message = "개발 도구가 열린 호스트 패널에서 실행한다."; return; }
+                BossController boss = ResolveServerBoss();
                 bool applied = boss != null && (command.Control == "groggy" ? boss.ServerDevEnterGroggy() :
                     int.TryParse(command.Control.Substring(8), out int pattern) && boss.ServerDevBeginPattern(pattern));
                 _message = applied ? "보스 테스트 실행 완료" : "보스 / 대상 / 현재 전투 단계 조건을 확인한다.";
@@ -170,9 +170,10 @@ namespace Geumeum.Art
             if (NetworkServer.active)
             {
                 // 보스는 씬 로드 이후 네트워크 스폰된다. 버튼을 누를 때 현재 인스턴스를 찾는다
-                BossController boss = FindAnyObjectByType<BossController>();
-                _message = boss != null && boss.ServerDevRestartPhase(phase)
-                    ? $"{phase}페이즈 서버 적용 완료" : "살아 있는 보스가 없거나 일시정지 / 씬 전환 중이다.";
+                BossController boss = ResolveServerBoss();
+                if (boss == null) { _message = "서버에 스폰된 보스가 없다. 보스 전투 진입을 확인한다."; return; }
+                _message = boss.ServerDevRestartPhase(phase, out string failure)
+                    ? $"{phase}페이즈 서버 적용 완료 (보스 #{boss.netId})" : "페이즈 재시작 실패: " + failure;
                 return;
             }
             if (NetworkClient.active) { _message = "실제 페이즈 변경은 호스트 패널에서 실행한다."; return; }
@@ -180,6 +181,17 @@ namespace Geumeum.Art
             if (_phaseView == null) { _message = "보스 아레나가 없다."; return; }
             _phaseView.ShowPhase((BossArenaPhase)phase);
             _message = $"{phase}페이즈 배경 미리보기 (오프라인)";
+        }
+
+        private static BossController ResolveServerBoss()
+        {
+            // 씬 미리보기나 스폰 해제 중인 오브젝트를 찾아 성공으로 오인하지 않는다.
+            foreach (NetworkIdentity identity in NetworkServer.spawned.Values)
+            {
+                if (identity != null && identity.isServer && identity.gameObject.activeInHierarchy &&
+                    identity.TryGetComponent(out BossController boss)) { return boss; }
+            }
+            return null;
         }
 
 #endif

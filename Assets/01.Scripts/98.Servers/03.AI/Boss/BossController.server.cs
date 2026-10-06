@@ -11,6 +11,7 @@ using Mirror;
 // 프로젝트 내부
 using Geumeum.Common;
 using Geumeum.Data;
+using Geumeum.Dev;
 using Geumeum.Network;
 
 namespace Geumeum.AI
@@ -47,14 +48,23 @@ namespace Geumeum.AI
         [Server]
         public bool ServerDevRestartPhase(int phaseIndex)
         {
-            if (_serverStopped || _status == null || _status.IsDead || _bossData == null ||
-                RunTimeLocator.Current.IsPaused || RunSceneDirector.IsServerTransitioning ||
-                !_bossData.TryGetPhase(phaseIndex, out BossPatternSO.PhaseEntry phase))
-            {
-                return false;
-            }
+            return ServerDevRestartPhase(phaseIndex, out _);
+        }
+
+        [Server]
+        public bool ServerDevRestartPhase(int phaseIndex, out string failure)
+        {
+            failure = string.Empty;
+            if (!DevAccess.IsUnlocked) { failure = "호스트의 개발 도구 잠금이 열리지 않았다."; return false; }
+            if (_serverStopped || _serverTerminated) { failure = "보스 실행이 종료되거나 비활성화되었다."; return false; }
+            if (_status == null || _bossData == null) { failure = "보스 서버 초기화가 아직 끝나지 않았다."; return false; }
+            if (_status.IsDead) { failure = "보스가 이미 사망했다. 새 보스 전투를 시작한다."; return false; }
+            if (RunSceneDirector.IsServerTransitioning) { failure = "씬 전환이 끝난 뒤 재시도한다."; return false; }
+            if (RunTimeLocator.Current.IsPaused) { failure = $"런 일시정지 상태다 ({RunTimeLocator.Current.PauseReasons})."; return false; }
+            if (!_bossData.TryGetPhase(phaseIndex, out BossPatternSO.PhaseEntry phase))
+            { failure = $"{phaseIndex}페이즈 데이터가 없다."; return false; }
             BossPhaseStateBase next = CreatePhaseState(phaseIndex);
-            if (next == null) { return false; }
+            if (next == null) { failure = $"{phaseIndex}페이즈 실행기가 없다."; return false; }
             Transform target = _currentPhaseState?.Target;
             _currentPhaseState?.Exit();
             ServerReleaseSwallowed();
@@ -69,6 +79,8 @@ namespace Geumeum.AI
             _currentPhaseIndex = phaseIndex;
             _currentPhaseState = next;
             next.Target = target;
+            _targetScanTimer = 0f;
+            RefreshTarget();
             _transitionLockRemaining = _bossData.TransitionLockDuration;
             CommitPhaseSnapshot(BossEncounterStage.Fighting);
             return true;
