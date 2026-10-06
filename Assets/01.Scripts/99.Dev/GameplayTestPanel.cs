@@ -20,6 +20,8 @@ namespace Geumeum.Dev
         private readonly List<InventoryController> _targets = new List<InventoryController>();
         private readonly List<EquipmentSO.OptionEntry> _options = new List<EquipmentSO.OptionEntry>();
         private uint _targetId;
+        private ParticipantId _targetParticipant;
+        private RunId _targetRun;
         private int _grade;
         private int _weapon;
         private int _option;
@@ -49,7 +51,7 @@ namespace Geumeum.Dev
             string selected = string.Empty;
             for (int i = 0; i < _targets.Count; ++i)
             {
-                names[i] = $"{_targets[i].name} #{_targets[i].netId}";
+                names[i] = DescribeTarget(_targets[i]);
                 if (_targets[i].netId == _targetId) { selected = names[i]; }
             }
             b.Choice("target", "지급 / 장착 변경 대상 (봇 포함)", selected, names);
@@ -113,19 +115,91 @@ namespace Geumeum.Dev
 
         private void RefreshTargets()
         {
+            RunId runId = RunManager.ServerInstance != null ? RunManager.ServerInstance.RunId : default;
+            if (runId != _targetRun)
+            {
+                _targetRun = runId;
+                _targetParticipant = ParticipantId.None;
+                _targetId = 0u;
+            }
             _targets.Clear();
             foreach (PlayerStatus player in PlayerStatus.ServerPlayers)
             {
-                if (player != null && player.TryGetComponent(out InventoryController inventory)) { _targets.Add(inventory); }
+                if (player != null && player.TryGetComponent(out InventoryController inventory) &&
+                    NetworkServer.spawned.TryGetValue(inventory.netId, out NetworkIdentity identity) &&
+                    identity == inventory.netIdentity && identity.isServer && identity.gameObject.activeInHierarchy)
+                { _targets.Add(inventory); }
             }
-            _targets.Sort((a, b) => a.netId.CompareTo(b.netId));
-            if (_targetId == 0 && _targets.Count > 0) { _targetId = _targets[0].netId; }
+            _targets.Sort((a, b) =>
+            {
+                ParticipantId left = a.GetComponent<PlayerStatus>().Participant;
+                ParticipantId right = b.GetComponent<PlayerStatus>().Participant;
+                int order = left.CompareTo(right);
+                return order != 0 ? order : a.netId.CompareTo(b.netId);
+            });
+            // 씬 전환은 플레이어를 새 netId로 스폰한다. 선택한 사람/봇의 신원으로 다시 연결한다.
+            if (_targetParticipant.IsValid)
+            {
+                _targetId = 0u;
+                foreach (InventoryController inventory in _targets)
+                {
+                    if (inventory.TryGetComponent(out PlayerStatus status) && status.Participant == _targetParticipant)
+                    { _targetId = inventory.netId; return; }
+                }
+                return;
+            }
+            foreach (InventoryController inventory in _targets)
+            {
+                if (inventory.netId == _targetId) { SelectTarget(inventory); return; }
+            }
+            if (_targets.Count > 0) { SelectTarget(_targets[0]); }
+        }
+
+        private void SelectTarget(InventoryController inventory)
+        {
+            _targetId = inventory.netId;
+            _targetParticipant = inventory.TryGetComponent(out PlayerStatus status)
+                ? status.Participant : ParticipantId.None;
+            _option = 0;
         }
 
         private InventoryController ResolveTarget()
         {
             return NetworkServer.spawned.TryGetValue(_targetId, out NetworkIdentity identity) && identity != null
                 ? identity.GetComponent<InventoryController>() : null;
+        }
+
+        private string DescribeTarget(InventoryController target)
+        {
+            string name = ResolveTargetName(target);
+            int duplicateNames = 0;
+            foreach (InventoryController inventory in _targets)
+            {
+                if (ResolveTargetName(inventory) == name) { ++duplicateNames; }
+            }
+            if (duplicateNames > 1) { name += $" (파티 {_targets.IndexOf(target) + 1})"; }
+            if (target.TryGetComponent(out PlayerWeapon weapon) && weapon.HasWeapon)
+            { name += " · " + Weapons[(int)weapon.Weapon]; }
+            return name;
+        }
+
+        private static string ResolveTargetName(InventoryController target)
+        {
+            if (target.TryGetComponent(out IDisplayNamed named) && !string.IsNullOrWhiteSpace(named.DisplayName))
+            { return named.DisplayName.Trim(); }
+            NetworkConnectionToClient connection = target.connectionToClient;
+            if (connection != null)
+            {
+                if (connection.identity != null && connection.identity.TryGetComponent(out IDisplayNamed owner) &&
+                    !string.IsNullOrWhiteSpace(owner.DisplayName)) { return owner.DisplayName.Trim(); }
+                foreach (NetworkIdentity owned in connection.owned)
+                {
+                    if (owned != null && owned.TryGetComponent(out IDisplayNamed ownerName) &&
+                        !string.IsNullOrWhiteSpace(ownerName.DisplayName)) { return ownerName.DisplayName.Trim(); }
+                }
+            }
+            return target.TryGetComponent(out PlayerStatus status) && status.Participant.Kind == ParticipantKind.Bot
+                ? "봇" : "이름 확인 중";
         }
 
         private void RefreshOptions(WeaponKind weapon)
@@ -144,7 +218,12 @@ namespace Geumeum.Dev
             {
                 case "target":
                     if (command.TryGetInt(out value) && value >= 0 && value < _targets.Count)
-                    { _targetId = _targets[value].netId; _option = 0; }
+                    {
+                        InventoryController selected = _targets[value];
+                        if (selected != null && NetworkServer.spawned.TryGetValue(selected.netId, out var identity) &&
+                            identity == selected.netIdentity) { SelectTarget(selected); }
+                        else { _message = "대상이 사라졌다. 대상 플레이어를 다시 선택한다."; }
+                    }
                     return;
                 case "grade": if (command.TryGetInt(out value) && value >= 0 && value < Grades.Length) { _grade = value; } return;
                 case "weapon": if (command.TryGetInt(out value) && value >= 0 && value < Weapons.Length) { _weapon = value; } return;
@@ -201,7 +280,8 @@ namespace Geumeum.Dev
             {
                 if (int.TryParse(command.Control.Substring(7), out value) &&
                     GameDB.Shop.TryGetItem((ShopItemKind)value, out var item))
-                { _message = "소모품 지급: " + target.ServerTryStoreConsumable(item.Kind, _amount, item.CarryLimit, item.MaxStack, target.Revision); }
+                { InventoryResultMessage(target.ServerTryStoreConsumable(item.Kind, _amount, item.CarryLimit, item.MaxStack, target.Revision), target, "소모품 지급"); }
+                else { _message = "소모품 지급 실패: 상품 정보가 없다."; }
                 return;
             }
             if (command.Control == "grant")
@@ -210,7 +290,7 @@ namespace Geumeum.Dev
                 { _message = "장비 생성기가 준비되지 않았다."; return; }
                 item.Grade = (ItemGrade)_grade;
                 item = Generator().Reroll(item);
-                _message = "장비 지급: " + target.ServerTryStoreEquipment(item, target.Revision);
+                InventoryResultMessage(target.ServerTryStoreEquipment(item, target.Revision), target, "장비 지급");
                 return;
             }
             WeaponCombatSnapshot current = target.EquippedWeapon;
@@ -253,6 +333,10 @@ namespace Geumeum.Dev
             else { _message = "양의 정수를 입력한다."; }
         }
         private void Result(bool success, string action) { _message = action + (success ? ": 성공" : ": 적용 실패 (현재 상태 / 한도 확인)"); }
+        private void InventoryResultMessage(InventoryResult result, InventoryController target, string action)
+        {
+            _message = $"{action} · {DescribeTarget(target)}: " + (result == InventoryResult.Success ? "성공" : $"실패 ({result})");
+        }
 #endif
     }
 }
