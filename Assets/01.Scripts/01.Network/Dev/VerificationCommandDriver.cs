@@ -167,6 +167,17 @@ namespace Geumeum.Network
             public string frontendTitleState;
             public bool frontendVisible;
             public bool frontendOwnInput;
+            public bool localDefaultRun;
+            public ChatVerificationMessage[] chatMessages;
+            public bool chatTyping;
+            public bool chatCollapsed;
+            public int chatTab;
+            public bool gameplayInputAllowed;
+            public string devPanelJson;
+            public int soundPlayedCount;
+            public SfxPlayer.PlayRecord lastSound;
+            public bool runPaused;
+            public string runPauseReasons;
         }
 
         [Serializable]
@@ -447,6 +458,10 @@ namespace Geumeum.Network
             {
                 return ExecuteFrontendVerb(command, out message);
             }
+            if (TryExecuteChatDevVerb(command, out bool featureAccepted, out message))
+            {
+                return featureAccepted;
+            }
             if (command.verb.StartsWith("ability_", StringComparison.Ordinal))
             { return G_Instance.ExecuteAbilityVerification(command, out message); }
             if (command.verb == "hit_test_overlap")
@@ -604,6 +619,17 @@ namespace Geumeum.Network
                 PlayerController player = NetworkClient.localPlayer.GetComponent<PlayerController>();
                 player.ServerTeleport(player.transform.position + new Vector3(command.index, 0f, command.secondaryIndex));
                 message = "호스트 이동 목표 배치"; return true;
+            }
+            if (string.Equals(command.verb, "bot_obstacle_setup", StringComparison.Ordinal))
+            {
+                return TrySetupObstacleFollow(command, out message);
+            }
+            if (string.Equals(command.verb, "movement_default_run", StringComparison.Ordinal))
+            {
+                // 설정 창 토글과 같은 저장 경로다. 창 클릭 자체는 화면 캡처 검증으로 따로 본다
+                LocalMovementPreferences.SetDefaultRun(command.enabled);
+                message = $"defaultRun={LocalMovementPreferences.DefaultRun}";
+                return true;
             }
             if (string.Equals(command.verb, "brain_pause", StringComparison.Ordinal))
             {
@@ -1309,6 +1335,8 @@ namespace Geumeum.Network
             public int brainAttacks;
             public int brainRolls, brainParryAttempts, brainHeals, brainRescues, brainPrecision;
             public int pathFailures;
+            public int pathPartials, stuckRecoveries;
+            public float planarSpeed; // 서버 권위 평면 속도, 서버가 아닌 프로세스는 -1
             public ActionRejection brainRejection;
         }
 
@@ -1336,6 +1364,7 @@ namespace Geumeum.Network
                 frontendCurrentRoomId = string.Empty,
                 frontendRooms = Array.Empty<AccountRoom>(),
                 frontendSessionReady = LauncherGameSession.State == LauncherGameSession.SessionState.Ready,
+                localDefaultRun = LocalMovementPreferences.DefaultRun,
             };
             AccountLobbyPanel account = AccountLobbyPanel.Instance;
             if (account != null)
@@ -1374,6 +1403,7 @@ namespace Geumeum.Network
                 PlayerStatus player = players[i];
                 PlayerRunAgent agent = player.GetComponent<PlayerRunAgent>();
                 PlayerBrain brain = player.GetComponent<PlayerController>()?.ServerBrain;
+                Rigidbody body = player.GetComponent<Rigidbody>();
                 snapshot.players[i] = new PlayerVerificationSnapshot
                 {
                     wedge = player.GetComponent<PlayerAttack>().Wedge,
@@ -1418,6 +1448,10 @@ namespace Geumeum.Network
                     brainRescues = brain?.StartedRescues ?? 0,
                     brainPrecision = brain?.AcceptedPrecision ?? 0,
                     pathFailures = brain?.PathFailures ?? 0,
+                    pathPartials = brain?.PathPartials ?? 0,
+                    stuckRecoveries = brain?.StuckRecoveries ?? 0,
+                    planarSpeed = ((!NetworkServer.active) || (body == null)) ? -1f
+                        : new Vector2(body.linearVelocity.x, body.linearVelocity.z).magnitude,
                     brainRejection = brain?.LastRejection ?? ActionRejection.None,
                 };
             }
@@ -1503,6 +1537,7 @@ namespace Geumeum.Network
                 snapshot.resultEvaluationMessage = result.EvaluationMessage ?? string.Empty;
             }
 
+            CaptureChatDevState(snapshot);
             return snapshot;
         }
 
