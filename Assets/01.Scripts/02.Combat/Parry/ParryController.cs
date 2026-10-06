@@ -579,6 +579,7 @@ namespace Geumeum.Combat
             }
 
             _lastAppliedResultId = requestId;
+            ActionRejectionChat.ShowParry(resultCode);
 
             // 거부 8종과 성공, 타이밍 실패가 전부 여기를 지난다. 화면에 사유까지 그대로 띄운다
             if (resultCode == ParryResultCode.Success)

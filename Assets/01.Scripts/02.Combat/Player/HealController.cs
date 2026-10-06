@@ -140,7 +140,7 @@ namespace Geumeum.Combat
             ActionRejection rejection = ServerRequestHeal(requestId);
             if ((rejection != ActionRejection.None) && (connectionToClient != null))
             {
-                TargetHealRejected(rejection);
+                TargetHealRejected(rejection, NetworkTime.time < _cooldownEndServerTime);
             }
         }
 
@@ -491,9 +491,10 @@ namespace Geumeum.Combat
         ****************************************/
 
         [TargetRpc]
-        private void TargetHealRejected(ActionRejection rejection)
+        private void TargetHealRejected(ActionRejection rejection, bool cooldown)
         {
             GDebug.Fail($"치유 거부: {rejection}");
+            ActionRejectionChat.Show(rejection, usesSpirit: true, cooldown: cooldown);
             LocalCombatState.RaiseActionRejected(rejection);
         }
 

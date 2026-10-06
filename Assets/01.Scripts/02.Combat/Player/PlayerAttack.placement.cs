@@ -74,10 +74,7 @@ namespace Geumeum.Combat
 
             if (!_placementAiming)
             {
-                if (eligible && Input.GetKeyDown(KeyCode.R))
-                {
-                    BeginPlacement();
-                }
+                if (Input.GetKeyDown(KeyCode.R)) { RequestBeginBellPlacement(); }
 
                 return;
             }
@@ -129,6 +126,7 @@ namespace Geumeum.Combat
 
             if (!_placementValid)
             {
+                ActionRejectionChat.Show(ActionRejection.InvalidInput, placement: true);
                 LocalCombatState.RaiseActionRejected(ActionRejection.InvalidInput);
                 return;
             }
@@ -163,22 +161,43 @@ namespace Geumeum.Combat
             return true;
         }
 
+        /// <summary> R 입력과 검증 도구가 같은 로컬 진입/실패 안내를 사용한다. 설치 판정은 서버가 한다 </summary>
+        public bool RequestBeginBellPlacement()
+        {
+            if (!isLocalPlayer || !LocalGameplayInputGate.AllowsGameplayInput ||
+                _weapon == null || !_weapon.HasWeapon || _weapon.Weapon != WeaponKind.Bell)
+            {
+                return false;
+            }
+            if (_placementAiming) { return true; }
+            if (!IsPlacementEligible())
+            {
+                ActionRejectionChat.Show(ActionRejection.State, usesSpirit: true);
+                return false;
+            }
+            BeginPlacement();
+            return _placementAiming;
+        }
+
         private void BeginPlacement()
         {
             if (WeaponSkillCooldownRemaining > 0f)
             {
+                ActionRejectionChat.Show(ActionRejection.Busy, cooldown: true);
                 LocalCombatState.RaiseActionRejected(ActionRejection.Busy);
                 return;
             }
 
             if (IsActionInProgress(NetworkTime.time))
             {
+                ActionRejectionChat.Show(ActionRejection.Busy);
                 LocalCombatState.RaiseActionRejected(ActionRejection.Busy);
                 return;
             }
 
             if (_status.Spirit < ResolveLocalFieldCost())
             {
+                ActionRejectionChat.Show(ActionRejection.Resource, usesSpirit: true);
                 LocalCombatState.RaiseActionRejected(ActionRejection.Resource);
                 return;
             }
@@ -270,6 +289,8 @@ namespace Geumeum.Combat
             _placementAwaitingServer = false;
             if (rejection == ActionRejection.None) { EndPlacement(); return; }
             _clientMoveLockUntilTime = 0;
+            ActionRejectionChat.Show(rejection, usesSpirit: true,
+                cooldown: WeaponSkillCooldownRemaining > 0f, placement: true);
             LocalCombatState.RaiseActionRejected(rejection);
             if (rejection != ActionRejection.InvalidInput || !IsPlacementEligible()) { EndPlacement(); }
         }

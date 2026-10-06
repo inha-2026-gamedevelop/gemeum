@@ -112,8 +112,18 @@ namespace Geumeum.Combat
                 return;
             }
 
-            if ((!CanStartLocalHold()) || (!Input.GetKeyDown(_precisionShotKey)))
+            if (!Input.GetKeyDown(_precisionShotKey))
             {
+                return;
+            }
+
+            if (!CanStartLocalHold())
+            {
+                if (LocalGameplayInputGate.AllowsGameplayInput && CameraFrame.InputEnabled &&
+                    _weapon != null && _weapon.HasWeapon && _weapon.Weapon == WeaponKind.Bow)
+                {
+                    ActionRejectionChat.Show(ActionRejection.State);
+                }
                 return;
             }
 
@@ -129,6 +139,7 @@ namespace Geumeum.Combat
             {
                 _localHoldPredicted = false;
                 _localHoldGeneration = 0u;
+                ActionRejectionChat.Show(ActionRejection.State);
                 return;
             }
 
@@ -545,7 +556,10 @@ namespace Geumeum.Combat
         [TargetRpc]
         private void TargetPrecisionRejected(uint holdGeneration, ActionRejection rejection)
         {
+            // 이전 홀드의 늦은 거부가 새 홀드의 채팅 안내를 덮지 않는다.
+            if (_localHoldGeneration != holdGeneration) { return; }
             ClearLocalHold(holdGeneration);
+            ActionRejectionChat.Show(rejection);
             LocalCombatState.RaiseActionRejected(rejection);
         }
 

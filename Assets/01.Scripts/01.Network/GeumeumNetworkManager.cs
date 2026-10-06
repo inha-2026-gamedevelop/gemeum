@@ -129,6 +129,7 @@ namespace Geumeum.Network
         public override void OnStartServer()
         {
             base.OnStartServer();
+            PartyChatNetwork.StartServer();
 
             if (ServerBootGate.TryValidate(this, _bootFailures))
             {
@@ -141,6 +142,7 @@ namespace Geumeum.Network
 
         public override void OnStopServer()
         {
+            PartyChatNetwork.StopServer();
             IsAdmissionLocked = false;
             base.OnStopServer();
         }
@@ -152,6 +154,18 @@ namespace Geumeum.Network
         /****************************************
         *              Client Side
         ****************************************/
+
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+            PartyChatNetwork.StartClient();
+        }
+
+        public override void OnStopClient()
+        {
+            PartyChatNetwork.StopClient();
+            base.OnStopClient();
+        }
 
         public override void OnClientConnect()
         {
@@ -188,6 +202,7 @@ namespace Geumeum.Network
 
         public override void OnClientDisconnect()
         {
+            PartyChatNetwork.ClearClientHistory();
             base.OnClientDisconnect();
             ClientDisconnected?.Invoke();
         }
@@ -214,6 +229,7 @@ namespace Geumeum.Network
 
         public override void OnServerDisconnect(NetworkConnectionToClient conn)
         {
+            PartyChatNetwork.Forget(conn);
             Debug.Log($"[GeumeumNetworkManager] 해제: {NetworkPeerLabel.Describe(conn)}");
 
             if (LobbyController.ServerInstance != null)

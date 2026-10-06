@@ -300,7 +300,7 @@ namespace Geumeum.Combat
             ActionRejection rejection = ServerRequestAttack(requestId, aim, cameraAim);
             if ((rejection != ActionRejection.None) && (connectionToClient != null))
             {
-                TargetActionRejected(rejection);
+                TargetActionRejected(rejection, false, NetworkTime.time < _recoveryServerTime);
             }
         }
 
@@ -506,9 +506,10 @@ namespace Geumeum.Combat
 
         /// <summary> 요청이 거부된 사유를 요청자에게만 돌려준다 </summary>
         [TargetRpc]
-        private void TargetActionRejected(ActionRejection rejection)
+        private void TargetActionRejected(ActionRejection rejection, bool usesSpirit, bool cooldown)
         {
             _clientMoveLockUntilTime = 0d;
+            ActionRejectionChat.Show(rejection, usesSpirit, cooldown);
             LocalCombatState.RaiseActionRejected(rejection);
         }
 

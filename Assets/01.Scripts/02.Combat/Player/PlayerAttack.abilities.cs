@@ -222,8 +222,12 @@ namespace Geumeum.Combat
             }
 
             if (!isLocalPlayer || !NetworkClient.active || !LocalGameplayInputGate.AllowsGameplayInput ||
-                _weapon == null || !_weapon.HasWeapon || _weapon.Weapon != WeaponKind.Bell ||
-                (_status != null && _status.IsHitReacting)) { return false; }
+                _weapon == null || !_weapon.HasWeapon || _weapon.Weapon != WeaponKind.Bell) { return false; }
+            if (_status != null && _status.IsHitReacting)
+            {
+                ActionRejectionChat.Show(ActionRejection.State);
+                return false;
+            }
             // 소유자의 최신 런/씬 참조를 함께 보내 지연된 이전 씬 입력을 거부한다
             WeaponAbilityMark mark = _echoFirst.IsActive(AbilityTime) ? _echoFirst : _echoSecond;
             _clientMoveLockUntilTime = NetworkTime.time + Constants.Combat.CLIENT_ATTACK_MOVE_LOCK;
@@ -236,7 +240,10 @@ namespace Geumeum.Combat
         {
             if (_status != null && _status.Participant.Kind == ParticipantKind.Bot) { return; }
             ActionRejection rejection = ServerRequestEchoRecall(request, run, scene);
-            if (rejection != ActionRejection.None && connectionToClient != null) { TargetActionRejected(rejection); }
+            if (rejection != ActionRejection.None && connectionToClient != null)
+            {
+                TargetActionRejected(rejection, true, AbilityTime < _echoCooldownEnd);
+            }
         }
 
         [Server]

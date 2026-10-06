@@ -96,11 +96,24 @@ namespace Geumeum.Combat
 
         private bool SendSkillRequest(Vector3 point)
         {
-            if (!isLocalPlayer || !NetworkClient.active || !LocalGameplayInputGate.AllowsGameplayInput ||
-                _status == null || _status.IsHitReacting || _weapon == null || !_weapon.HasWeapon) { return false; }
+            if (!isLocalPlayer || !LocalGameplayInputGate.AllowsGameplayInput) { return false; }
+            if (!NetworkClient.active || _status == null || _weapon == null || !_weapon.HasWeapon)
+            {
+                ActionRejectionChat.Show(ActionRejection.NotReady);
+                return false;
+            }
+            if (_status.IsHitReacting)
+            {
+                ActionRejectionChat.Show(ActionRejection.State);
+                return false;
+            }
             RunManager run = RunManager.LocalInstance;
             RunSceneDirector scene = RunSceneDirector.LocalInstance;
-            if (run == null || scene == null) { return false; }
+            if (run == null || scene == null)
+            {
+                ActionRejectionChat.Show(ActionRejection.NotReady);
+                return false;
+            }
             // 설치는 커서가 정하지만 몸이 보는 방향은 진 쪽이어야 눈과 판정이 어긋나지 않는다
             Vector2 aim = IsFinite(point)
                 ? ResolvePlanarAim(point - transform.position)
@@ -126,7 +139,11 @@ namespace Geumeum.Combat
             if (_status != null && _status.Participant.Kind == ParticipantKind.Bot) { return; }
             ActionRejection rejection = ServerRequestWeaponSkill(request, run, scene, aim, point);
             if (IsFinite(point) && connectionToClient != null) { TargetPlacementResult(request, rejection); }
-            else if (rejection != ActionRejection.None && connectionToClient != null) { TargetActionRejected(rejection); }
+            else if (rejection != ActionRejection.None && connectionToClient != null)
+            {
+                TargetActionRejected(rejection, _weapon != null && _weapon.Weapon == WeaponKind.Bell,
+                    WeaponSkillCooldownRemaining > 0f);
+            }
         }
 
         [Server]

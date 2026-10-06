@@ -209,6 +209,7 @@ namespace Geumeum.Combat
         private void TargetActionRejected(ActionRejection rejection)
         {
             GDebug.Warn($"구르기 거부: {rejection}");
+            ActionRejectionChat.Show(rejection);
             LocalCombatState.RaiseActionRejected(rejection);
         }
 
