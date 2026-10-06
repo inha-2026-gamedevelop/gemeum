@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
 
+// Third party
+using Mirror;
+
 // 프로젝트 내부
 using Geumeum.Data;
 
@@ -18,6 +21,7 @@ namespace Geumeum.Common
         ****************************************/
 
         /// <summary> 마지막 재생의 흔적. 검증용이고 게임 로직이 읽지 않는다 </summary>
+        [System.Serializable]
         public struct PlayRecord
         {
             public SoundKey Key;
@@ -27,6 +31,8 @@ namespace Geumeum.Common
             public float    Pitch;
             public bool     Is2D;
             public Vector3  Position;
+            public float    MinDistance;
+            public float    MaxDistance;
             public int      Frame;
         }
 
@@ -67,7 +73,7 @@ namespace Geumeum.Common
         *                Methods
         ****************************************/
 
-        /// <summary> 효과음을 재생한다. emitterId는 소리를 낸 주체이고 중복 제거를 주체별로 가른다. 위치 사용 여부는 SoundCatalogSO의 Is2D가 정한다 </summary>
+        /// <summary> 효과음을 재생한다. 개인 알림은 소유자만 듣고 원격 플레이어 효과음은 위치와 카탈로그 거리로 감쇠한다. emitterId로 주체별 중복을 제거한다 </summary>
         public static void Play(SoundKey key, Vector3 position, bool isLocalPlayer, uint emitterId = 0)
         {
             PlayInternal(key, position, isLocalPlayer, emitterId);
@@ -169,6 +175,11 @@ namespace Geumeum.Common
                 return;
             }
 
+            if (!CanPlayForListener(key, isLocalPlayer, NetworkServer.active, NetworkClient.active))
+            {
+                return;
+            }
+
             if (_isPaused)
             {
                 return;
@@ -213,21 +224,9 @@ namespace Geumeum.Common
                 return;
             }
 
-            bool isRemote = (!isLocalPlayer) && (entry.Channel != SoundChannel.World);
-
-            AudioMixerGroup group = catalog.ResolveGroup(entry.Channel, isLocalPlayer);
-
-            float pitch = 1f + entry.PitchOffset + Random.Range(-entry.PitchJitter, entry.PitchJitter);
-
-            if (isRemote)
-            {
-                pitch += catalog.RemotePitchOffset;
-            }
-
-            source.outputAudioMixerGroup = group;
-            source.pitch                 = Mathf.Max(0.01f, pitch);
-            source.spatialBlend          = (entry.Is2D) ? 0f : 1f;
-            source.transform.position    = (entry.Is2D) ? Vector3.zero : position;
+            // 풀을 빼앗을 때 이전 OneShot을 먼저 끈다. 살아 있는 소리를 새 위치/2D 설정으로 옮기면 안 된다.
+            source.Stop();
+            ConfigureSource(source, catalog, entry, position, isLocalPlayer);
 
             source.PlayOneShot(clip, entry.Volume);
 
@@ -238,12 +237,51 @@ namespace Geumeum.Common
                 Key           = key,
                 EmitterId     = emitterId,
                 IsLocalPlayer = isLocalPlayer,
-                GroupName     = (group == null) ? "(none)" : group.name,
+                GroupName     = (source.outputAudioMixerGroup == null) ? "(none)" : source.outputAudioMixerGroup.name,
                 Pitch         = source.pitch,
-                Is2D          = entry.Is2D,
+                Is2D          = source.spatialBlend == 0f,
                 Position      = source.transform.position,
+                MinDistance   = source.minDistance,
+                MaxDistance   = source.maxDistance,
                 Frame         = Time.frameCount,
             };
+        }
+
+        private static bool CanPlayForListener(SoundKey key, bool isLocalPlayer, bool isServer, bool isClient)
+        {
+            if ((isServer) && (!isClient))
+            {
+                return false;
+            }
+
+            return (!IsOwnerOnly(key)) || (isLocalPlayer);
+        }
+
+        private static bool IsOwnerOnly(SoundKey key)
+        {
+            return (key == SoundKey.StaminaEmpty) || (key == SoundKey.PerfectDodge);
+        }
+
+        private static void ConfigureSource(AudioSource source, SoundCatalogSO catalog,
+            SoundCatalogSO.Entry entry, Vector3 position, bool isLocalPlayer)
+        {
+            bool isRemote = (!isLocalPlayer) && (entry.Channel != SoundChannel.World);
+            // 개인 알림은 화면의 신호다. 원격 전투음은 데이터가 2D여도 월드 위치를 유지한다.
+            bool is2D = IsOwnerOnly(entry.Key) || ((entry.Is2D) && (!isRemote));
+            float pitch = 1f + entry.PitchOffset + Random.Range(-entry.PitchJitter, entry.PitchJitter);
+
+            if (isRemote)
+            {
+                pitch += catalog.RemotePitchOffset;
+            }
+
+            source.outputAudioMixerGroup = catalog.ResolveGroup(entry.Channel, isLocalPlayer);
+            source.pitch                 = Mathf.Max(0.01f, pitch);
+            source.spatialBlend          = (is2D) ? 0f : 1f;
+            source.transform.position    = (is2D) ? Vector3.zero : position;
+            source.rolloffMode           = AudioRolloffMode.Linear;
+            source.minDistance           = catalog.SfxMinDistance;
+            source.maxDistance           = catalog.SfxMaxDistance;
         }
 
         // 같은 발신자의 같은 소리는 한 프레임에 한 번만 내고, MinInterval 간격도 함께 본다

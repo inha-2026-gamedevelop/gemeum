@@ -19,6 +19,8 @@ MonoBehaviour:
   _remote: {fileID: -280613064333314588, guid: 75dbdaaa546c35f42bbc99ad96d93dc9, type: 2}
   _world: {fileID: -923571278865823309, guid: 75dbdaaa546c35f42bbc99ad96d93dc9, type: 2}
   _remotePitchOffset: -0.05
+  _sfxMinDistance: 1
+  _sfxMaxDistance: 25
   _bgmEntries:
   - Track: 1
     Clip: {fileID: 0}

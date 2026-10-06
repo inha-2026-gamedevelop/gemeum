@@ -82,6 +82,10 @@ namespace Geumeum.Data
         [Header("원격 구분 (SOUND_DESIGN 4.2)")]
         [SerializeField] private float _remotePitchOffset = -0.05f;
 
+        [Header("공간 효과음 거리 (m)")]
+        [Min(0f)] [SerializeField] private float _sfxMinDistance = 1f;
+        [Min(0.01f)] [SerializeField] private float _sfxMaxDistance = 25f;
+
         [Header("BGM")]
         [SerializeField] private BgmEntry[] _bgmEntries;
 
@@ -102,6 +106,8 @@ namespace Geumeum.Data
         public AudioMixerGroup Bgm   => _bgm;
 
         public float RemotePitchOffset    => _remotePitchOffset;
+        public float SfxMinDistance       => Mathf.Max(0f, _sfxMinDistance);
+        public float SfxMaxDistance       => Mathf.Max(SfxMinDistance, _sfxMaxDistance);
         public float BgmCrossFadeSeconds  => _bgmCrossFadeSeconds;
         public float KillCueSilenceSeconds => _killCueSilenceSeconds;
 
