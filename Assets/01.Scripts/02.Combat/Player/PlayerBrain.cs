@@ -83,6 +83,8 @@ namespace Geumeum.Combat
         public int StartedRescues { get; private set; }
         public int AcceptedPrecision { get; private set; }
         public int PathFailures => (_navigation == null) ? 0 : _navigation.Failures;
+        public int PathPartials => (_navigation == null) ? 0 : _navigation.PartialPaths;
+        public int StuckRecoveries => (_navigation == null) ? 0 : _navigation.StuckRecoveries;
         public ActionRejection LastRejection { get; private set; }
 
         public PlayerBrain(PlayerController controller)
@@ -235,7 +237,9 @@ namespace Geumeum.Combat
             _random = new System.Random(unchecked((int)_status.Participant.Value * 397 ^ (int)_run));
             _observation = new BotObservation(_skill, _random);
             _sensor = new BotPerception(_controller.transform, _config, _skill);
-            _navigation = new BotNavigation(_config);
+            // 판에 없는 턱과 바위는 몸 캡슐로 훑는다. 스킬 미끄러짐 충돌과 같은 월드 지형 마스크를 쓴다
+            int worldMask = ((GameDB.IsInitialized) && (GameDB.Arrow != null)) ? GameDB.Arrow.WorldMask : _config.ObstacleMask.value;
+            _navigation = new BotNavigation(_config, _controller.GetComponent<CapsuleCollider>(), worldMask);
             _threats = new BotThreatTracker(_skill, _random);
             _shop = UnityEngine.Object.FindAnyObjectByType<ShopTransactionService>();
             _entrance = UnityEngine.Object.FindAnyObjectByType<BossEntranceTrigger>();
@@ -623,6 +627,8 @@ namespace Geumeum.Combat
             IBarrierState barrier = BarrierStateLocator.Current;
             if (barrier != null && barrier.IsActive && barrier.IsOutside(goal))
             { goal = barrier.Center + (goal - barrier.Center).normalized * Mathf.Max(0f, barrier.Radius - _config.FollowDistance); }
+            // 리더 등 뒤 대형 자리가 바위나 벽 너머면 그 너머로 멀리 돌지 않고 리더 쪽에 선다
+            goal = _navigation.ClampToReachable(_leader.transform.position, goal);
             float distance = PlanarDistance(goal, _controller.transform.position);
             if (distance > _config.FormationTolerance + _config.FollowHysteresis) { _following = true; }
             if (distance <= _config.FormationTolerance) { _following = false; }

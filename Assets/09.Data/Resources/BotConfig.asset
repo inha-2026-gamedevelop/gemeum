@@ -23,7 +23,7 @@ MonoBehaviour:
   EyeHeight: 1.2
   BowDistance: 10
   MeleeRangeRatio: 0.8
-  StuckSeconds: 2
+  StuckSeconds: 1
   StuckDistance: 0.15
   ObstacleMask:
     serializedVersion: 2
@@ -57,3 +57,10 @@ MonoBehaviour:
   FollowSprintStopDistance: 4
   RegroupStopDistance: 5
   AssistDistance: 6
+  NavRecoverRadius: 6
+  StepClearance: 0.2
+  AvoidanceProbeDistance: 1
+  AvoidanceAngleStep: 30
+  AvoidanceMaxAngle: 120
+  UnstickSeconds: 0.6
+  DirectApproachDistance: 4

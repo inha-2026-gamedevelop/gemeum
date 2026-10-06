@@ -52,5 +52,15 @@ namespace Geumeum.Data
 
         /// <summary> 봇이 예고된 보스 장판 위에 진을 깔지 않도록 피하는 반경(m) </summary>
         [Min(0f)] public float BellFieldHazardRadius = 4f;
+
+        // 우회와 막힘 복구. NavMesh는 0.75m 턱까지 오른다고 보지만 플레이어 캡슐은 계단 보정이 없어
+        // 낮은 바위나 기단에 걸린다. 경로는 판을 따르고, 몸이 못 지나가는 곳은 캡슐로 미리 훑어 돌아간다
+        [Min(0.1f)] public float NavRecoverRadius = 6f;        // 봇이나 목표가 판에서 벗어났을 때 판을 다시 찾는 반경(m)
+        [Min(0f)] public float StepClearance = 0.2f;           // 캡슐이 스스로 넘는 턱 높이(m), 이보다 높으면 장애물로 본다
+        [Min(0.1f)] public float AvoidanceProbeDistance = 1f;  // 진행 방향을 캡슐로 미리 훑는 거리(m)
+        [Range(5f, 90f)] public float AvoidanceAngleStep = 30f; // 막혔을 때 방향을 트는 간격(도)
+        [Range(5f, 180f)] public float AvoidanceMaxAngle = 120f; // 한쪽으로 트는 최대 각도(도)
+        [Min(0.05f)] public float UnstickSeconds = 0.6f;       // 막힘을 감지하면 옆이나 뒤로 비켜 서는 시간(초)
+        [Min(0f)] public float DirectApproachDistance = 4f;    // 부분 경로 끝에서 몸이 지나갈 틈이면 목표로 곧장 가는 최대 거리(m)
     }
 }
