@@ -27,6 +27,11 @@ namespace Geumeum.UI
         private const string LABEL_MINIMAP_TOGGLE = "토글";
         private const string LABEL_MINIMAP_HOLD   = "누르는 동안";
 
+        private const string DEFAULT_RUN_ROW_NAME    = "DefaultRunRow";
+        private const string LABEL_DEFAULT_RUN       = "기본 달리기";
+        private const string DESCRIPTION_DEFAULT_RUN =
+            "켜면 평소에 달리고 Shift를 누르는 동안 걷습니다.\n끄면 평소에 걷고 Shift를 누르는 동안 달립니다.";
+
         private const string LABEL_FRAME_UNLIMITED = "제한 없음";
         // 수직 동기화가 켜져 있으면 상한 대신 모니터 주사율(부족하면 그 절반)에 묶인다. 막힌 줄에 그 이유를 보인다
         private const string LABEL_FRAME_BY_VSYNC  = "모니터 주사율";
@@ -48,6 +53,8 @@ namespace Geumeum.UI
         [Header("게임플레이")]
         [SerializeField] private SettingsStepperRow _enemyHpBarRow;
         [SerializeField] private SettingsStepperRow _minimapModeRow;
+        [Tooltip("비워 두면 지도 여는 방식 줄을 복제해 게임플레이 목록 끝에 붙인다")]
+        [SerializeField] private SettingsStepperRow _defaultRunRow;
 
         [Header("그래픽")]
         [SerializeField] private SettingsStepperRow _screenModeRow;
@@ -77,8 +84,11 @@ namespace Geumeum.UI
 
         private void Awake()
         {
+            EnsureDefaultRunRow();
+
             Subscribe(_enemyHpBarRow, StepEnemyHpBar);
             Subscribe(_minimapModeRow, StepMinimapMode);
+            Subscribe(_defaultRunRow, StepDefaultRun);
             Subscribe(_screenModeRow, StepScreenMode);
             Subscribe(_resolutionRow, StepResolution);
             Subscribe(_vSyncRow, StepVSync);
@@ -118,6 +128,7 @@ namespace Geumeum.UI
             SetText(_minimapModeRow, (ClientPreferences.MinimapOpenMode == MinimapOpenMode.Hold)
                 ? LABEL_MINIMAP_HOLD
                 : LABEL_MINIMAP_TOGGLE);
+            SetText(_defaultRunRow, OnOff(LocalMovementPreferences.DefaultRun));
         }
 
         private void RefreshGraphics()
@@ -189,6 +200,12 @@ namespace Geumeum.UI
             RefreshGameplay();
         }
 
+        private void StepDefaultRun(int _)
+        {
+            LocalMovementPreferences.SetDefaultRun(!LocalMovementPreferences.DefaultRun);
+            RefreshGameplay();
+        }
+
         private void StepScreenMode(int direction)
         {
             _screenModeIndex = Wrap(_screenModeIndex + direction, G_ScreenModes.Length);
@@ -243,6 +260,34 @@ namespace Geumeum.UI
         /****************************************
         *                Helpers
         ****************************************/
+
+        /// <summary>
+        /// 프리팹에 기본 달리기 줄이 없으면 지도 여는 방식 줄을 복제해 바로 아래에 붙인다.
+        /// 같은 켜기/끄기 선택기와 설명 칸 배선을 그대로 쓰고, 목록의 세로 배치가 자리를 잡는다
+        /// </summary>
+        private void EnsureDefaultRunRow()
+        {
+            // 템플릿이 없으면 Subscribe가 오류를 남긴다
+            if ((_defaultRunRow != null) || (_minimapModeRow == null))
+            {
+                return;
+            }
+
+            Transform template = _minimapModeRow.transform;
+            SettingsStepperRow row = Instantiate(_minimapModeRow, template.parent, false);
+            row.name = DEFAULT_RUN_ROW_NAME;
+            row.transform.SetSiblingIndex(template.GetSiblingIndex() + 1);
+
+            if (row.TryGetComponent(out SettingsRowHint hint))
+            {
+                hint.SetContent(LABEL_DEFAULT_RUN, DESCRIPTION_DEFAULT_RUN);
+            }
+
+            _defaultRunRow = row;
+
+            // 창을 연 뒤 페이지가 처음 켜지며 여기 오면 Refresh가 이미 지나갔다. 복제된 지도 값이 남지 않게 바로 쓴다
+            SetText(_defaultRunRow, OnOff(LocalMovementPreferences.DefaultRun));
+        }
 
         /// <summary>
         /// 화면 모드와 해상도는 한 번에 건다. Unity가 다음 프레임에 반영하므로 Screen 값을

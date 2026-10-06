@@ -111,8 +111,10 @@ namespace Geumeum.Combat
                     Input.GetAxisRaw(Constants.Player.AXIS_HORIZONTAL),
                     Input.GetAxisRaw(Constants.Player.AXIS_VERTICAL));
 
+            // 서버에는 키 상태가 아니라 해석을 마친 달리기 의도를 보낸다. 서버는 이 값을 속도로만 쓴다
             Vector2 moveDirection = CameraFrame.ToWorld(Vector2.ClampMagnitude(moveAxis, 1f));
-            bool    sprintHeld    = (!inputBlocked) && Input.GetKey(Constants.Player.KEY_SPRINT);
+            bool    sprintHeld    = (!inputBlocked) && LocalMovementPreferences.ResolveRunIntent(
+                LocalMovementPreferences.DefaultRun, Input.GetKey(Constants.Player.KEY_SPRINT));
             float   predictedSpeed = ResolveMoveSpeed(sprintHeld);
 
             if (!isServer)

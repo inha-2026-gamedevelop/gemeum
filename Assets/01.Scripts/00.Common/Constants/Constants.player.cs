@@ -16,7 +16,7 @@ namespace Geumeum.Common
             public const string AXIS_MOUSE_WHEEL = "Mouse ScrollWheel";
 
             // 키 바인딩, 리바인딩 UI가 생기면 이 값을 기본값으로 쓴다
-            public const KeyCode KEY_SPRINT    = KeyCode.LeftShift;
+            public const KeyCode KEY_SPRINT    = KeyCode.LeftShift; // 기본 달리기면 누르는 동안 걷고, 끄면 누르는 동안 달린다
             public const KeyCode KEY_ROLL      = KeyCode.C;
             public const KeyCode KEY_INTERACT  = KeyCode.E;
             public const KeyCode KEY_FREE_LOOK = KeyCode.LeftAlt; // -nocursorlock 개발 모드에서 누르는 동안만 카메라가 돈다

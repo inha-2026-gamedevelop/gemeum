@@ -59,6 +59,17 @@ namespace Geumeum.UI
         *                Methods
         ****************************************/
 
+        /// <summary> 복제해 만든 줄의 이름과 설명을 바꾼다. 색은 Awake에서 잡으므로 이름 글자색은 건드리지 않는다 </summary>
+        public void SetContent(string label, string description)
+        {
+            if (_label != null)
+            {
+                _label.text = label;
+            }
+
+            _description = description;
+        }
+
         public void OnPointerEnter(PointerEventData eventData)
         {
             SetHovered(true);
