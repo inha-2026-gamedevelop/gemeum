@@ -1,3 +1,6 @@
+using System.Reflection;
+using System.Threading;
+using Geumeum.Network;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
@@ -63,7 +66,7 @@ namespace Geumeum.UI.Editor
             }
             finally
             {
-                Object.DestroyImmediate(root);
+                UnityEngine.Object.DestroyImmediate(root);
             }
         }
 
@@ -94,8 +97,64 @@ namespace Geumeum.UI.Editor
             }
             finally
             {
-                Object.DestroyImmediate(root);
+                UnityEngine.Object.DestroyImmediate(root);
             }
+        }
+
+        [Test]
+        public void PulseLeavesForegroundFreeAndRejectsStaleRoomResponse()
+        {
+            TMP_FontAsset font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
+                AccountLobbyUiBuilder.FONT_PATH);
+            GameObject root = AccountLobbyUiBuilder.CreateVisualTree(null, font);
+            var cancellation = new CancellationTokenSource();
+            try
+            {
+                AccountLobbyPanel panel = root.GetComponent<AccountLobbyPanel>();
+                const string roomId = "00000000-0000-0000-0000-000000000001";
+                var current = new AccountRoom { room_id = roomId, state = "waiting" };
+                var delayed = new AccountRoom { room_id = roomId, state = "ready" };
+                FieldInfo roomField = Field("_currentRoom");
+                FieldInfo busyField = Field("_busy");
+                roomField.SetValue(panel, current);
+                Field("_pulseRevision").SetValue(panel, 7);
+                Field("_pulseInFlight").SetValue(panel, true);
+                Field("_pulseCancellation").SetValue(panel, cancellation);
+
+                Assert.IsFalse((bool)busyField.GetValue(panel), "자동 상태 확인은 사용자 조작을 막지 않는다");
+                Method("InvalidatePulse").Invoke(panel, null);
+                Assert.IsTrue(cancellation.IsCancellationRequested);
+                Assert.IsFalse((bool)busyField.GetValue(panel));
+                Assert.IsFalse((bool)Method("ApplyPulseIfCurrent").Invoke(panel,
+                    new object[] { delayed, roomId, 7, CancellationToken.None }));
+                Assert.AreSame(current, panel.CurrentRoom, "취소 전 응답이 현재 방을 덮어쓰지 않는다");
+
+                roomField.SetValue(panel, null);
+                Assert.IsFalse((bool)Method("ApplyPulseIfCurrent").Invoke(panel,
+                    new object[] { delayed, roomId, 8, CancellationToken.None }));
+                Assert.IsNull(panel.CurrentRoom, "방을 나간 뒤 도착한 응답이 방을 복원하지 않는다");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+                cancellation.Dispose();
+            }
+        }
+
+        private static FieldInfo Field(string name)
+        {
+            FieldInfo field = typeof(AccountLobbyPanel).GetField(name,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.IsNotNull(field, name);
+            return field;
+        }
+
+        private static MethodInfo Method(string name)
+        {
+            MethodInfo method = typeof(AccountLobbyPanel).GetMethod(name,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.IsNotNull(method, name);
+            return method;
         }
     }
 }

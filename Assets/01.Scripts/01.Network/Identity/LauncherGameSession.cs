@@ -295,8 +295,19 @@ namespace Geumeum.Network
                     $"방 이름을 {MIN_ROOM_NAME_LENGTH}~{MAX_ROOM_NAME_LENGTH}자로 입력해 주세요.");
             }
             var input = new CreateRoomInput { name = name.Trim(), build_id = BuildIdentity.ReleaseId };
-            string json = await self.AuthorizedRequestAsync(HttpMethod.Post, "v1/rooms",
-                JsonConvert.SerializeObject(input), ct);
+            string json;
+            try
+            {
+                json = await self.AuthorizedRequestAsync(HttpMethod.Post, "v1/rooms",
+                    JsonConvert.SerializeObject(input), ct);
+            }
+            catch (AccountRoomException exception) when (exception.Code == "room_conflict")
+            {
+                // 생성 충돌에는 빌드 불일치와 방 수용량 초과가 모두 포함된다.
+                // 서버의 목록 빌드를 확인해 업데이트가 필요한 경우 정확한 안내를 전달한다.
+                await ListRoomsAsync(ct);
+                throw;
+            }
             AccountRoom room = ParseRoomJson<AccountRoom>(json);
             ValidateRoomIdentity(room);
             return room;

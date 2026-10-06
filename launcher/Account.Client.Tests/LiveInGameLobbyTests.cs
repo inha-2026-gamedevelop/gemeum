@@ -154,6 +154,14 @@ public sealed class LiveInGameLobbyTests
                     index == 0 ? 1280 : 960, index == 0 ? 720 : 540, deadline.Token);
             }
 
+            // Party pulses continue in the background while preference and ready remain usable.
+            await Task.Delay(TimeSpan.FromSeconds(6), deadline.Token);
+            for (int index = 0; index < 3; index++)
+            {
+                await ProbeAsync(artifacts, children, index, "party.pref:" + index, deadline.Token);
+                await ProbeAsync(artifacts, children, index, "party.ready", deadline.Token);
+            }
+
             for (int index = 0; index < 3; index++)
             {
                 await ClickAsync(artifacts, children, index, "party.pref:" + index, deadline.Token);

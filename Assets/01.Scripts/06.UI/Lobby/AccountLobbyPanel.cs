@@ -74,8 +74,11 @@ namespace Geumeum.UI
         private AccountRoomList _roomList;
         private AccountRoom _currentRoom;
         private CancellationTokenSource _lifetime;
+        private CancellationTokenSource _pulseCancellation;
         private float _nextPulse;
         private bool _busy;
+        private bool _pulseInFlight;
+        private int _pulseRevision;
         private bool _connectionAttempted;
         private string _screen = "hidden";
         private string _status = string.Empty;
@@ -148,6 +151,7 @@ namespace Geumeum.UI
         private void OnDestroy()
         {
             LauncherGameSession.ReturnedToLobby -= OnReturnedToLobby;
+            InvalidatePulse();
             _lifetime?.Cancel();
             _lifetime?.Dispose();
             _lifetime = null;
@@ -252,17 +256,82 @@ namespace Geumeum.UI
                     }
                 }
             }
-            if ((_currentRoom != null) && (!_busy) && (Time.unscaledTime >= _nextPulse))
+            if ((_currentRoom != null) && (!_busy) && (!_pulseInFlight) &&
+                (Time.unscaledTime >= _nextPulse))
             {
                 _nextPulse = Time.unscaledTime + PARTY_PULSE_SECONDS;
-                RunOperation("pulse", async token =>
-                {
-                    AccountRoom updated = await LauncherGameSession.LobbyAsync(_currentRoom.room_id, "pulse", ct: token);
-                    _currentRoom = updated;
-                    RenderParty();
-                    TryConnectCurrentRoom();
-                }, false);
+                StartPulse();
             }
+        }
+
+        private void StartPulse()
+        {
+            string roomId = _currentRoom.room_id;
+            int revision = ++_pulseRevision;
+            _pulseInFlight = true;
+            _pulseCancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+            PulseAsync(roomId, revision, _pulseCancellation);
+        }
+
+        private async void PulseAsync(string roomId, int revision, CancellationTokenSource cancellation)
+        {
+            try
+            {
+                AccountRoom updated = await LauncherGameSession.LobbyAsync(roomId, "pulse",
+                    ct: cancellation.Token);
+                ApplyPulseIfCurrent(updated, roomId, revision, cancellation.Token);
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+            }
+            catch (AccountRoomException exception)
+            {
+                if (IsPulseCurrent(roomId, revision, cancellation.Token))
+                {
+                    SetStatus(exception.Message);
+                }
+            }
+            catch (Exception)
+            {
+                if (IsPulseCurrent(roomId, revision, cancellation.Token))
+                {
+                    SetStatus("원정대 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+                }
+            }
+            finally
+            {
+                if (_pulseCancellation == cancellation)
+                {
+                    _pulseCancellation = null;
+                }
+                _pulseInFlight = false;
+                cancellation.Dispose();
+            }
+        }
+
+        private bool IsPulseCurrent(string roomId, int revision, CancellationToken token)
+        {
+            return (!token.IsCancellationRequested) && (this != null) && (!_busy) &&
+                (_pulseRevision == revision) && (_currentRoom?.room_id == roomId);
+        }
+
+        private bool ApplyPulseIfCurrent(AccountRoom updated, string roomId, int revision,
+            CancellationToken token)
+        {
+            if ((!IsPulseCurrent(roomId, revision, token)) || (updated?.room_id != roomId))
+            {
+                return false;
+            }
+            _currentRoom = updated;
+            RenderParty();
+            TryConnectCurrentRoom();
+            return true;
+        }
+
+        private void InvalidatePulse()
+        {
+            ++_pulseRevision;
+            _pulseCancellation?.Cancel();
         }
 
         /// <summary>방 목록에서 Title 첫 화면으로 돌아간다. 참가 중인 파티는 유지한다.</summary>
@@ -589,7 +658,7 @@ namespace Geumeum.UI
             });
         }
 
-        private bool RunOperation(string operation, Func<CancellationToken, Task> work, bool showBusyStatus = true)
+        private bool RunOperation(string operation, Func<CancellationToken, Task> work)
         {
             if ((_busy) || (_lifetime == null) || (!LauncherGameSession.IsFrontendMode) ||
                 (LauncherGameSession.State != LauncherGameSession.SessionState.Ready) ||
@@ -597,11 +666,10 @@ namespace Geumeum.UI
             {
                 return false;
             }
+            // 사용자 조작이 시작되면 늦게 도착한 pulse 응답은 현재 방을 덮어쓰지 못한다.
+            InvalidatePulse();
             _busy = true;
-            if (showBusyStatus)
-            {
-                SetStatus(operation + " 중입니다.");
-            }
+            SetStatus(operation + " 중입니다.");
             RenderControls();
             CompleteOperation(work, operation, _lifetime.Token);
             return true;
@@ -696,6 +764,7 @@ namespace Geumeum.UI
 
         private void OnReturnedToLobby(string message)
         {
+            InvalidatePulse();
             _currentRoom = null;
             _roomList = null;
             _busy = false;
