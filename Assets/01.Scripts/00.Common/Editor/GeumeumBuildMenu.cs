@@ -53,6 +53,11 @@ namespace Geumeum.EditorTools
         private const string STREAMING_DIR     = "StreamingAssets";
         private const string RELEASE_ID_PREFIX = "win64";
 
+        // 배포 빌드는 작업 브랜치에서 만든다. 팀원 작업은 develop으로 병합되므로 develop이 빠지면 배포에서도 빠진다
+        private const string TEAM_BRANCH_REF         = "origin/develop";
+        private const int    GIT_FETCH_TIMEOUT_MS    = 15000;
+        private const int    MAX_LISTED_TEAM_COMMITS = 15;
+
         private const string MENU_ALLOW_MISMATCH  = MENU_BUILD + "에디터 빌드 불일치 허용";
         private const string PREF_ALLOW_MISMATCH  = "Geumeum.AllowBuildMismatch";
 
@@ -128,6 +133,11 @@ namespace Geumeum.EditorTools
 
             // 저장하지 않으면 편집 중인 내용이 빠진 채로 빌드된다
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return;
+            }
+
+            if (!ConfirmTeamWorkIncluded())
             {
                 return;
             }
@@ -213,23 +223,64 @@ namespace Geumeum.EditorTools
             return string.IsNullOrEmpty(dirty) ? commit : commit + "-dirty";
         }
 
-        private static string RunGit(string arguments)
+        // 팀원 작업(UI · 보스 등)은 develop으로 들어온다. 작업 브랜치에 develop이 병합되지 않은 채 빌드하면 배포에서 빠진다
+        // 기본 버튼은 빌드 취소다. 네트워크가 없으면 마지막으로 받아 둔 develop 기준으로 비교한다
+        private static bool ConfirmTeamWorkIncluded()
+        {
+            if (RunGit("fetch --quiet origin develop", GIT_FETCH_TIMEOUT_MS) == null)
+            {
+                UnityEngine.Debug.LogWarning($"[그믐] develop을 받아 오지 못해 마지막으로 받은 {TEAM_BRANCH_REF} 기준으로 비교한다");
+            }
+
+            string countText = RunGit($"rev-list --count HEAD..{TEAM_BRANCH_REF}");
+            if (!int.TryParse(countText, out int missing))
+            {
+                return EditorUtility.DisplayDialog("develop 병합 확인 불가",
+                    $"{TEAM_BRANCH_REF}와 비교하지 못했다. 팀원 작업이 빠졌을 수 있다.", "그대로 빌드", "빌드 취소");
+            }
+
+            if (missing == 0)
+            {
+                return true;
+            }
+
+            string commits = RunGit($"log --no-merges --format=\"%h %an %s\" -{MAX_LISTED_TEAM_COMMITS} HEAD..{TEAM_BRANCH_REF}");
+            UnityEngine.Debug.LogWarning($"[그믐] 현재 브랜치에 없는 {TEAM_BRANCH_REF} 커밋 {missing}개\n{commits}");
+
+            bool cancel = EditorUtility.DisplayDialog("develop 미병합",
+                $"{TEAM_BRANCH_REF}에 현재 브랜치에 없는 커밋이 {missing}개 있다.\n"
+                + "이대로 빌드하면 팀원의 UI · 보스 작업 등이 배포에서 빠진다.\n"
+                + $"develop을 먼저 병합하고 빌드한다.\n\n{commits}",
+                "빌드 취소", "빠진 채로 빌드");
+            return !cancel;
+        }
+
+        private static string RunGit(string arguments, int timeoutMs = -1)
         {
             var info = new ProcessStartInfo("git", arguments)
             {
                 WorkingDirectory       = ProjectRoot(),
                 RedirectStandardOutput = true,
+                StandardOutputEncoding = System.Text.Encoding.UTF8,
                 UseShellExecute        = false,
                 CreateNoWindow         = true,
             };
+            // 인증 창을 기다리며 에디터가 멈추지 않게 한다
+            info.EnvironmentVariables["GIT_TERMINAL_PROMPT"] = "0";
 
             try
             {
                 using (Process process = Process.Start(info))
                 {
-                    string output = process.StandardOutput.ReadToEnd().Trim();
-                    process.WaitForExit();
-                    return (process.ExitCode == 0) ? output : null;
+                    var output = process.StandardOutput.ReadToEndAsync();
+                    if (!process.WaitForExit(timeoutMs))
+                    {
+                        process.Kill();
+                        UnityEngine.Debug.LogWarning($"[그믐] git {arguments} 시간 초과({timeoutMs}ms)");
+                        return null;
+                    }
+
+                    return (process.ExitCode == 0) ? output.Result.Trim() : null;
                 }
             }
             catch (System.ComponentModel.Win32Exception exception)
